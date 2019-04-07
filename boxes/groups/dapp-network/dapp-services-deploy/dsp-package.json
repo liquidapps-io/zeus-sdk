@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "preinstall": "",
+    "preinstall": "npm install -g pm2",
     "start": "node ./node_modules/.bin/pm2-runtime app.js -i max"
   },
   "author": "",

@@ -1,4 +1,3 @@
-import 'mocha';
 const { getCreateKeys } = require('./utils');
 const { loadModels } = require("../models");
 

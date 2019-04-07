@@ -9,7 +9,7 @@ if (fs.existsSync(__dirname + "/.env"))
 const modifyEnv = (key, value) => {
     let envConfig = {};
     if (fs.existsSync(__dirname + "/.env"))
-        envConfig = dotenv.parse(fs.readFileSync('.env'))
+        envConfig = dotenv.parse(fs.readFileSync(__dirname + '.env'))
     envConfig[key] = value;
     fs.writeFileSync(__dirname + "/.env", Object.keys(envConfig).map(k => `${k}=${envConfig[k]}`).join('\n'));
 }
@@ -46,6 +46,7 @@ module.exports = {
             name: 'dapp-services-node',
             script: __dirname + '/services/dapp-services-node/index.js',
             autorestart: true,
+            cwd: __dirname,
             env: {
                 NODEOS_CHAINID: chainId,
                 NODEOS_HOST: nodeosHost,
@@ -58,6 +59,7 @@ module.exports = {
             name: 'demux',
             script: __dirname + '/services/demux/index.js',
             autorestart: true,
+            cwd: __dirname,
             env: {
                 NODEOS_CHAINID: chainId,
                 NODEOS_HOST: nodeosHost,
@@ -71,6 +73,7 @@ module.exports = {
             name: 'ipfs-dapp-service-node',
             script: __dirname + '/services/ipfs-dapp-service-node/index.js',
             autorestart: true,
+            cwd: __dirname,
             env: {
                 NODEOS_CHAINID: chainId,
                 NODEOS_HOST: nodeosHost,
