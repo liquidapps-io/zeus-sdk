@@ -2,9 +2,7 @@
 
 require("babel-core/register");
 require("babel-polyfill");
-const path = require("path");
 var pm2 = require('pm2');
-const platform = "ubuntu";
 var command = process.argv[2];
 switch (command) {
     case "reload":
