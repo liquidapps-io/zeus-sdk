@@ -9,7 +9,7 @@ if (fs.existsSync(__dirname + "/.env"))
 const modifyEnv = (key, value) => {
     let envConfig = {};
     if (fs.existsSync(__dirname + "/.env"))
-        envConfig = dotenv.parse(fs.readFileSync(__dirname + '.env'))
+        envConfig = dotenv.parse(fs.readFileSync(__dirname + '/.env'))
     envConfig[key] = value;
     fs.writeFileSync(__dirname + "/.env", Object.keys(envConfig).map(k => `${k}=${envConfig[k]}`).join('\n'));
 }
