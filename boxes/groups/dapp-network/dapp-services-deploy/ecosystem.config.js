@@ -34,12 +34,27 @@ const getParam = (name, description, defaultValue, options) => {
 }
 const demuxBackend = getParam("DEMUX_BACKEND", "backend for demux", "zmq_plugin", ['zmq_plugin', 'state_history_plugin']);
 const ipfsHost = getParam("IPFS_HOST", "ipfs hostname", "localhost");
+const ipfsPort = getParam("IPFS_PORT", "ipfs port", "5001");
+const ipfsProto = getParam("IPFS_PROTOCOL", "ipfs protocol", "http", ['https', 'http']);
 const chainId = getParam("NODEOS_CHAINID", "chain id", "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906");
 const dspAccount = getParam("DSP_ACCOUNT", "dsp account name");
 const dspKey = getParam("DSP_PRIVATE_KEY", "dsp private key");
 const nodeosHost = getParam("NODEOS_HOST", "nodeos hostname", 'localhost');
 const nodePort = getParam("NODEOS_PORT", "nodeos api port", 8888);
-const nodeosZmqPort = getParam("NODEOS_ZMQ_PORT", "nodeos zeromq plugin port", 5557);
+let nodeosZmqPort = 5557;
+let nodeosWebSocketPort = 8887;
+switch (demuxBackend) {
+    case 'zmq_plugin':
+        nodeosZmqPort = getParam("NODEOS_ZMQ_PORT", "nodeos zeromq plugin port", 5557);
+        // code
+        break;
+    case 'state_history_plugin':
+        nodeosWebSocketPort = getParam("NODEOS_WEBSOCKET_PORT", "nodeos websocket plugin port", 8887);
+        break;
+    default:
+        throw new Error('unknown backend');
+        // code
+}
 
 module.exports = {
     apps: [{
@@ -65,6 +80,7 @@ module.exports = {
                 NODEOS_HOST: nodeosHost,
                 NODEOS_PORT: nodePort,
                 NODEOS_ZMQ_PORT: nodeosZmqPort,
+                NODEOS_WEBSOCKET_PORT: nodeosWebSocketPort,
                 SOCKET_MODE: 'sub',
                 DEMUX_BACKEND: demuxBackend
             }
@@ -79,6 +95,8 @@ module.exports = {
                 NODEOS_HOST: nodeosHost,
                 NODEOS_PORT: nodePort,
                 IPFS_HOST: ipfsHost,
+                IPFS_PORT: ipfsPort,
+                IPFS_PROTOCOL: ipfsProto,
                 DSP_ACCOUNT: dspAccount,
                 DSP_PRIVATE_KEY: dspKey,
             }

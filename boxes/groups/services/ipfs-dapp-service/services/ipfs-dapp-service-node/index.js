@@ -12,7 +12,7 @@ const multihash = require('multihashes')
 const Eos = require('eosjs');
 
 const eos = eosPrivate;
-var ipfs = new IPFS({ host: process.env.IPFS_HOST || 'localhost', port: 5001, protocol: 'http' });
+var ipfs = new IPFS({ host: process.env.IPFS_HOST || 'localhost', port: process.env.IPFS_PORT || 5001, protocol: process.env.IPFS_PROTOCOL || 'http' });
 
 const eosjs2 = require('../demux/eosjs2');
 const { JsonRpc } = eosjs2;
