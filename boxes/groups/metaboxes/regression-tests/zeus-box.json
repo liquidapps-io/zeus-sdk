@@ -1,0 +1,8 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json",
+    "zeus-config.js"
+  ],
+  "dependencies":["helloworld", "all-dapp-services", "microauctions", "registry" ]
+}

@@ -1,0 +1,17 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "commands": {
+    "Unbox": "zeus unbox helloworld"
+  },
+  "install":{
+    "npm":{
+      "unzip":true
+    }
+  },
+  "dependencies":[ "seed-extensions" , "seed-models" ],
+  "hooks": {
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "commands": {
+    "Create event": "zeus create event"
+  },
+  "hooks": {
+  },
+  "dependencies":["seed-eos","core-extensions"]
+}

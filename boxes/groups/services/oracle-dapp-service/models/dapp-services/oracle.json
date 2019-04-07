@@ -1,0 +1,22 @@
+{
+    "name": "oracle",
+    "port": 13112,
+    "contract": "oracleservic",
+    "commands": {
+        "geturi": {
+            "blocking": true,
+            "request": {
+                "uri": "std::string"
+            },
+            "callback": {
+                "size": "uint32_t",
+                "uri": "std::string",
+                "data": "std::vector<char>"
+            },
+            "signal": {
+                "size": "uint32_t",
+                "uri": "std::string"
+            }
+        }
+    }
+}

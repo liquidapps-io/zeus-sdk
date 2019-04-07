@@ -1,0 +1,25 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "commands": {
+    "Watch": "zeus watch"
+  },
+  "dependencies":[
+      "run-extensions",
+      "migrations-extensions",
+      "contract-migrations-extensions",
+      "test-extensions",
+      "build-extensions",
+      "localenv-extensions",
+      "upgrade-extensions",
+      "unbox-extensions",
+      "build-extensions",
+      "create-extensions",
+      "hooks-extensions",
+      "update-extensions"
+    ],
+  "hooks": {
+  }
+}

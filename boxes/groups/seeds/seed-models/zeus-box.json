@@ -1,0 +1,12 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "dependencies":["seed"],
+  "install": {
+    "npm":{
+      "js-yaml":true
+    }
+  }
+}

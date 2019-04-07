@@ -1,0 +1,24 @@
+{
+    "name": "cron",
+    "port": 13131,
+    "contract": "cronservices",
+    "commands": {
+        "schedule": {
+            "blocking": false,
+            "request": {
+                "timer": "name",
+                "payload": "std::vector<char>",
+                "seconds": "uint32_t"
+            },
+            "callback": {
+                "timer": "name",
+                "payload": "std::vector<char>",
+                "seconds": "uint32_t"
+            },
+            "signal": {
+                "timer": "name",
+                "seconds": "uint32_t"
+            }
+        }
+    }
+}

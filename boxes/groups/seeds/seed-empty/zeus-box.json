@@ -1,0 +1,11 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "commands": {
+    "Unbox sample": "zeus unbox sample-eos-cpp"
+  },
+  "hooks": {
+  }
+}

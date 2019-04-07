@@ -1,0 +1,12 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "commands": {
+    "Register DSP": "zeus register dapp-service-provider-package --help"
+  },
+  "dependencies":[
+    "coldtoken"
+  ]
+}

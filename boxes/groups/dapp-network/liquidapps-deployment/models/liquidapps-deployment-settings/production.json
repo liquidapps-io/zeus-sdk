@@ -1,0 +1,50 @@
+{
+    "name": "production",
+    "dapptoken":{
+        "yearlyInflation": 0.0271
+    },
+    "auctions":{
+        "cycles":{
+            "startTimestamp": 1551196800000,
+            "iterations": 444,
+            "secondsPerCycle": 64800
+        },
+        "standard":{
+            "ratio": 0.5,
+            "account": "instanttrack",
+            "safeAccount": "lqapmauctis1"
+        },
+        "whitelisted":{
+            "whitelist": "dappverified",
+            "ratio": 0.5,
+            "account": "regulartrack",
+            "safeAccount": "lqapmauctis2"
+        },
+        "accepted": {
+            "contract": "eosio.token",
+            "symbol": "EOS",
+            "minimum": "0.1000"
+        }
+    },
+    "distribution":{
+       "supply": 1000000000,
+       "auctions": 0.5,
+        "wallets": {
+            "lqapwalleta1": 0.1,
+            
+            "lqapwalletb1": 0.05, 
+            "lqapwalletb2": 0.05, 
+            "lqapwalletb3": 0.05, 
+            "lqapwalletb4": 0.05, 
+            "lqapwalletb5": 0.05, 
+            "lqapwalletba": 0.05, 
+            "lqapwalletbb": 0.05,
+            "lqapwalletbc": 0.05
+        }
+    },
+    "protect":{
+        "newOwnerPublicKey":"EOS7vLUnvz3kCZVBjwmRcad7bMGBqYBjP4Dztpj6mQvpdCtniYkLd",
+        "newActivePublicKey":"EOS5TuGNWU3g7QtneyNGopZZKuhwy5TsTGDMMXMAqDjc2LaUpJvUp"
+    },
+    "testUsers":[]
+}

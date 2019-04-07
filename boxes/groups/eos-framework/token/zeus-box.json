@@ -1,0 +1,18 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "commands": {
+    "Create Token": "zeus create token ...",
+    "Migrate": "zeus migrate"
+  },
+  "dependencies":["mocha", "seed-eos", "seed-models", "hooks-cpp-contracts"],
+  "install":{
+    "contracts":{
+      "Token": true
+    }
+  },
+  "hooks": {
+  }
+}

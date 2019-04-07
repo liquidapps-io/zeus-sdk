@@ -1,0 +1,7 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "dependencies":["seed-extensions", "seed-zeus-support"]
+}

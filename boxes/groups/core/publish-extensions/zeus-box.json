@@ -1,0 +1,12 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "commands": {
+    "Watch": "zeus run <type> <name>"
+  },
+  "dependencies":["seed-extensions", "seed-models"],
+  "hooks": {
+  }
+}

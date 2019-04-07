@@ -1,0 +1,10 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "dependencies":["seed-empty", "hooks-npm"],
+  "hooks":{
+    "post-install":"npm install"
+  }
+}

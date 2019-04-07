@@ -1,0 +1,24 @@
+{
+  "ignore": [
+    "README.md",
+    "LICENSE",    
+    "zeus-box.json"
+  ],
+  "dependencies":[
+    "dapp-services",
+    "seed-utils",
+    "mocha",
+    "hooks-cpp-contracts"],
+  "install":{
+    "contracts":{
+      "ipfsservice": true,
+      "ipfsconsumer": true
+    },
+    "npm":{
+      "ipfs-api": "^24.0.2",
+      "dfuse-eoshttp-js":true,
+      "node-fetch": true
+      
+    }
+  }
+}

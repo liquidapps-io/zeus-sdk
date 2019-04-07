@@ -1,0 +1,19 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "commands": {
+    "Unbox sample": "zeus unbox sample-eos-cpp"
+  },
+  "install":{
+    "npm":{
+      "mkdirp": true,
+      "which": true
+    }, 
+    "npm-scripts":{
+      "preinstall": ""
+    }
+  },
+  "dependencies":["eos-extensions", "zeus-eos", "eos-common", "eosio-system-contracts"]
+}

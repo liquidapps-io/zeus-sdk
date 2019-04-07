@@ -1,0 +1,13 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "dependencies":["seed","core-extensions"],
+  "install": {
+    "npm":{
+      "daemonize-process": true,
+      "kill-port": true
+    }
+  }
+}

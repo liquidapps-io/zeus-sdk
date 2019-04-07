@@ -1,0 +1,19 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "commands": {
+    "Compile contracts": "zeus compile",
+    "Migrate contracts": "zeus migrate",
+    "Test all": "zeus test"
+  },
+  "install":{
+    "contracts":{
+      "helloworld": true
+    }
+  },
+  "dependencies":["mocha","seed-eos", "seed-migrations", "hooks-cpp-contracts","eos-common"],
+  "hooks": {
+  }
+}

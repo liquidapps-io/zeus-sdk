@@ -1,0 +1,4 @@
+{
+    "eventType": "service_signal", 
+    "webhook":"http://localhost:8812"
+}

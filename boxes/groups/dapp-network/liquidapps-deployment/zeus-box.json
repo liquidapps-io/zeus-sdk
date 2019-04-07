@@ -1,0 +1,11 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "dependencies":[
+    "all-dapp-services",
+    "coldtoken",
+    "microauctions",
+    "hooks-cpp-contracts"]
+}

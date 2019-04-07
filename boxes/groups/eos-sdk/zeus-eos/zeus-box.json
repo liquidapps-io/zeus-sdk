@@ -1,0 +1,14 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "install":{
+    "npm":{
+      "eosjs@16.0.9": true,
+      "eosjs-ecc": true,
+      "eosjs2": true
+    }
+  },
+  "dependencies":["seed", "hooks-npm"]
+}

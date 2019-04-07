@@ -1,0 +1,11 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json",
+    "zeus-config.js"
+  ],
+  "dependencies":[
+    "log-dapp-service",
+    "ipfs-dapp-service"
+  ]
+}

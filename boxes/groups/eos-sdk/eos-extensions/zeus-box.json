@@ -1,0 +1,12 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "commands": {
+    "Start EOS Localenv": "zeus start-localenv"
+  },
+  "dependencies":["core-extensions" ],
+  "hooks": {
+  }
+}

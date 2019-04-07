@@ -1,0 +1,20 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "dependencies":["events","seed-microservices", "seed-models"],
+  "install": {
+    "npm":{
+      "zeromq": true, 
+      "--zmq-external": true, 
+      "@types/jest": "^23.3.1",
+      "babel-polyfill": "^6.26.0",
+      "eosjs-ecc": "^4.0.1",
+      "text-encoding": "^0.6.4",
+      "ws":true,
+      "pako":true,
+      "node-fetch": true
+    }
+  }
+}

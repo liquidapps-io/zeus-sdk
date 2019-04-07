@@ -1,0 +1,12 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "commands": {
+    "Watch": "zeus log docker-log"
+  },
+  "dependencies":[ "seed-extensions" ],
+  "hooks": {
+  }
+}
