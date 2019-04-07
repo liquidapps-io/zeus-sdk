@@ -1,7 +1,9 @@
 var readlineSync = require('readline-sync');
 const dotenv = require('dotenv')
 const fs = require('fs');
-dotenv.config({ path: __dirname + "/.env" });
+
+if (fs.existsSync(__dirname + "/.env"))
+    dotenv.config({ path: __dirname + "/.env" });
 
 
 const modifyEnv = (key, value) => {
