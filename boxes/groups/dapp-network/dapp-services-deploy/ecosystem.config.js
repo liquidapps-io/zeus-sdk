@@ -41,6 +41,7 @@ const dspAccount = getParam("DSP_ACCOUNT", "dsp account name");
 const dspKey = getParam("DSP_PRIVATE_KEY", "dsp private key");
 const nodeosHost = getParam("NODEOS_HOST", "nodeos hostname", 'localhost');
 const nodePort = getParam("NODEOS_PORT", "nodeos api port", 8888);
+const nodeSecured = getParam("NODEOS_SECURED", "nodeos secured", "false", ['false', 'true']);
 let nodeosZmqPort = 5557;
 let nodeosWebSocketPort = 8887;
 switch (demuxBackend) {
@@ -66,6 +67,7 @@ module.exports = {
                 NODEOS_CHAINID: chainId,
                 NODEOS_HOST: nodeosHost,
                 NODEOS_PORT: nodePort,
+                NODEOS_SECURED: nodeSecured,
                 DSP_ACCOUNT: dspAccount,
                 DSP_PRIVATE_KEY: dspKey,
             }
@@ -79,6 +81,7 @@ module.exports = {
                 NODEOS_CHAINID: chainId,
                 NODEOS_HOST: nodeosHost,
                 NODEOS_PORT: nodePort,
+                NODEOS_SECURED: nodeSecured,
                 NODEOS_ZMQ_PORT: nodeosZmqPort,
                 NODEOS_WEBSOCKET_PORT: nodeosWebSocketPort,
                 SOCKET_MODE: 'sub',
@@ -94,6 +97,7 @@ module.exports = {
                 NODEOS_CHAINID: chainId,
                 NODEOS_HOST: nodeosHost,
                 NODEOS_PORT: nodePort,
+                NODEOS_SECURED: nodeSecured,
                 IPFS_HOST: ipfsHost,
                 IPFS_PORT: ipfsPort,
                 IPFS_PROTOCOL: ipfsProto,
