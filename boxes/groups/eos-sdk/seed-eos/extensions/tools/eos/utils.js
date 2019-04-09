@@ -21,8 +21,8 @@ let networks = {
     },
     "kylin": {
         chainId: "5fff1dae8dc8e2fc4d5b23b2c7665c97f9e9d8edf2b6485a86ba311c25639191",
-        host: "api.kylin.eoseco.com",
-        port: 80,
+        host: "api.kylin.eosbeijing.one",
+        port: 8880,
         secured: false
     },
     "mainnet": {
