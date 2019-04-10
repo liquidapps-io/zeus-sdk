@@ -829,7 +829,7 @@ const handlers = {
 
             var abi = localTypes.get('abi_def').deserialize(buffer);
             abis[actData.account] = abi;
-            // console.log(`setabi for ${actData.account} - updating Serializer`);
+            console.log(`setabi for ${actData.account} - updating Serializer`);
         }
         // else
         //     console.log("system", account,method,code,actData, events);
@@ -976,8 +976,11 @@ async function transactionHandler(tx) {
     }
 
 }
-
+var c = 35000000;
+var c2 = 0;
 var types;
+var head_block = 0;
+var current_block = 0;
 ws.on('message', async function incoming(data) {
     if (!expectingABI) {
         var buffer = new Serialize.SerialBuffer({
@@ -987,12 +990,15 @@ ws.on('message', async function incoming(data) {
         });
 
         const realData = types.get('result').deserialize(buffer);
-
-        // console.log(realData);
+        if (++c % 10000 == 0 && current_block === 0)
+            console.log(`syncing ${c / 1000000}M (${head_block / 1000000}M}`);
+        head_block = realData[1].head.block_num;
         if (!realData[1].traces)
             return;
         var traces = Buffer.from(realData[1].traces, 'hex');
-
+        current_block = realData[1].this_block.block_num;
+        if (++c2 % 10000 == 0)
+            console.log("at", current_block - head_block);
 
         try {
 
@@ -1011,6 +1017,7 @@ ws.on('message', async function incoming(data) {
             });
 
             var count = buffer2.getVaruint32();
+            console.log("count", count)
             for (var i = 0; i < count; i++) {
                 const transactionTrace = types.get('transaction_trace').deserialize(buffer2);
                 await transactionHandler(transactionTrace[1]);
@@ -1019,7 +1026,7 @@ ws.on('message', async function incoming(data) {
 
         }
         catch (e) {
-            console.log(e);
+            console.error(e.message);
             return;
         }
 
@@ -1039,11 +1046,11 @@ ws.on('message', async function incoming(data) {
     // console.log('types',types.get('request'));
     //   abiObjSer = eos.fc.abiCache.abi('request', abi);
     types.get('request').serialize(buffer, ['get_blocks_request_v0', {
-        "start_block_num": 0,
+        "start_block_num": 35000000,
         "end_block_num": 4294967295,
         "max_messages_in_flight": 4294967295,
         "have_positions": [],
-        "irreversible_only": true,
+        "irreversible_only": false,
         "fetch_block": true,
         "fetch_traces": true,
         "fetch_deltas": false
