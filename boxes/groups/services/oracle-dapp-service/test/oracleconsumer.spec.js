@@ -50,7 +50,7 @@ describe(`Oracle Service Test Contract`, () => {
         (async() => {
             try {
                 var res = await testcontract.testget({
-                    uri: "https://ipfs.io/ipfs/Qmaisz6NMhDB51cCvNWa1GMS7LU1pAxdF4Ld6Ft9kZEP2a",
+                    uri: Buffer.from("https://ipfs.io/ipfs/Qmaisz6NMhDB51cCvNWa1GMS7LU1pAxdF4Ld6Ft9kZEP2a", 'utf8'),
                     expectedfield: "Hello from IPFS Gateway Checker\n",
                 }, {
                     authorization: `${code}@active`,

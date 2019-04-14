@@ -6,6 +6,7 @@
   ],
   "dependencies":[
     "log-dapp-service",
-    "ipfs-dapp-service"
+    "ipfs-dapp-service",
+    "oracle-dapp-service"
   ]
 }

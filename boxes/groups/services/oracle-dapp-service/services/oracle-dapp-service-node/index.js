@@ -25,13 +25,13 @@ var handlers = {
 nodeFactory('oracle', {
     geturi: async({ event, rollback }, { uri }) => {
         if (rollback) return;
-        const parts = uri.split("://", 2);
+        const parts = Buffer.from(uri, 'hex').toString('utf8').split("://", 2);
         const proto = parts[0];
         const address = parts[1];
         const handler = handlers[proto];
 
         if (!handler)
-            throw new Error("unsupported protocol");
+            throw new Error(`unsupported protocol ${proto}`);
         const data = await handler({ proto, address });
         return {
             uri,

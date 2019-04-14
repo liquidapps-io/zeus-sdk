@@ -208,10 +208,11 @@ const generateServiceHppFile = (serviceModel) => {
 #include "../dappservices/dappservices.hpp"\n
 #define SVC_RESP_${upperName}(name) \\
     SVC_RESP_X(${name},name)
+    
+#define SVC_CONTRACT_NAME_${upperName} ${getContractAccountFor(serviceModel)} \n
 
 #include "../dappservices/_${name}_impl.hpp"\n
 
-#define SVC_CONTRACT_NAME_${upperName} ${getContractAccountFor(serviceModel)} \n
 
 #ifdef ${upperName}_DAPPSERVICE_ACTIONS_MORE
 #define ${upperName}_DAPPSERVICE_ACTIONS \\

@@ -6,16 +6,16 @@
         "geturi": {
             "blocking": true,
             "request": {
-                "uri": "std::string"
+                "uri": "std::vector<char>"
             },
             "callback": {
                 "size": "uint32_t",
-                "uri": "std::string",
+                "uri": "std::vector<char>",
                 "data": "std::vector<char>"
             },
             "signal": {
                 "size": "uint32_t",
-                "uri": "std::string"
+                "uri": "std::vector<char>"
             }
         }
     }
