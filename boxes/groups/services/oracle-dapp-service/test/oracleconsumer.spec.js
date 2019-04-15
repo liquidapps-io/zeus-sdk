@@ -57,10 +57,6 @@ describe(`Oracle Service Test Contract`, () => {
                     broadcast: true,
                     sign: true
                 });
-                // var eventResp = JSON.parse(res.processed.action_traces[0].console);
-                // assert.equal(eventResp.etype, "service_request", "wrong etype");
-                // assert.equal(eventResp.provider,"", "wrong provider");
-                // assert.equal(eventResp.action, "cleanup", "wrong action");
                 done();
             }
             catch (e) {
@@ -68,5 +64,82 @@ describe(`Oracle Service Test Contract`, () => {
             }
         })();
     });
+    it('Oracle History Get', done => {
+        (async() => {
+            try {
+                var res = await testcontract.testget({
+                    uri: Buffer.from(`self_history://${code}/-1/-1/-1/action_trace.act.hex_data`, 'utf8'),
+                    expectedfield: "4368747470733a2f2f697066732e696f2f697066732f516d6169737a364e4d68444235316343764e576131474d53374c55317041786446344c64364674396b5a4550326100",
+                }, {
+                    authorization: `${code}@active`,
+                    broadcast: true,
+                    sign: true
+                });
+                done();
+            }
+            catch (e) {
+                done(e);
+            }
+        })();
+    });
+
+    it('Oracle IBC Block Fetch', done => {
+        (async() => {
+            try {
+                var res = await testcontract.testget({
+                    uri: Buffer.from(`sister_chain_block://mainnet/10000000/transaction_mroot`, 'utf8'),
+                    expectedfield: "82af715868dc7cd32fea5bdc2ba993382271f66aea5407981e640a976536b5d8",
+                }, {
+                    authorization: `${code}@active`,
+                    broadcast: true,
+                    sign: true
+                });
+                done();
+            }
+            catch (e) {
+                done(e);
+            }
+        })();
+    });
+
+    it('Facts - What is the average air speed velocity of a laden swallow?', done => {
+        (async() => {
+            try {
+                var res = await testcontract.testget({
+                    uri: Buffer.from(`wolfram_alpha://What is the average air speed velocity of a laden swallow?`, 'utf8'),
+                    expectedfield: "What do you mean, an African or European Swallow?",
+                }, {
+                    authorization: `${code}@active`,
+                    broadcast: true,
+                    sign: true
+                });
+                done();
+            }
+            catch (e) {
+                done(e);
+            }
+        })();
+    });
+
+
+
+    it('Random Number', done => {
+        (async() => {
+            try {
+                var res = await testcontract.testrnd({
+                    uri: Buffer.from(`random://1024`, 'utf8'),
+                }, {
+                    authorization: `${code}@active`,
+                    broadcast: true,
+                    sign: true
+                });
+            }
+            catch (e) {
+                done(e);
+            }
+        })();
+    });
+
+
 
 });

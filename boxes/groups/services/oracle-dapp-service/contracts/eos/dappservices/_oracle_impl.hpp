@@ -7,26 +7,18 @@ using std::vector;
 
 
 const checksum256 hashData(vector<char> data){ 
-  auto buffer = data; 
-  //char *c = new char[buffer.size()+1]; 
-  char* c = (char*) malloc(buffer.size()+1); 
-  memcpy(c, buffer.data(), buffer.size()); 
-  c[buffer.size()] = 0; 
-  capi_checksum256 *hash_val = (capi_checksum256 *) malloc(32); 
-  sha256(c, buffer.size(), hash_val); 
-//   const int8_t *p32 = reinterpret_cast<const int8_t*>(&hash_val);
-  char * placeholder = (char*) malloc(32);
-  memcpy(placeholder , hash_val, 32 );
-//   std::string str(s);
-//   const char *p32 = reinterpret_cast<const char*>(&hash_val); 
-  std::vector<char> hash_ret = std::vector<char>(placeholder,placeholder + 32); 
-      uint64_t * p64 = (uint64_t*) malloc(32);
+    auto buffer = data; 
+    char* c = (char*) malloc(buffer.size()+1); 
+    memcpy(c, buffer.data(), buffer.size()); 
+    c[buffer.size()] = 0; 
+    capi_checksum256 *hash_val = (capi_checksum256 *) malloc(32); 
+    sha256(c, buffer.size(), hash_val); 
+    char * placeholder = (char*) malloc(32);
+    memcpy(placeholder , hash_val, 32 );
+    std::vector<char> hash_ret = std::vector<char>(placeholder,placeholder + 32); 
+    uint64_t * p64 = (uint64_t*) malloc(32);
     memcpy(p64 , hash_ret.data(), 32 );
-
-    // std::vector<char> multiHashPart(ipfshash.begin() + 4, ipfshash.end());
-    // const uint64_t *p64 = reinterpret_cast<const uint64_t *>(&ipfshash);
     return checksum256::make_from_word_sequence<uint64_t>(p64[0], p64[1], p64[2], p64[3]);
-
 } 
 
 struct provider_result {

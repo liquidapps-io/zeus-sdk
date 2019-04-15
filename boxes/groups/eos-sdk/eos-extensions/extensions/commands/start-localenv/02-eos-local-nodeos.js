@@ -31,6 +31,7 @@ module.exports = async(args) => {
         "--plugin eosio::history_api_plugin",
         "--plugin eosio::http_plugin",
         "--delete-all-blocks",
+        "--filter-on=*",
         "-d ~/.zeus/nodeos/data",
         "--config-dir ~/.zeus/nodeos/config",
         "--http-server-address=0.0.0.0:8888",
