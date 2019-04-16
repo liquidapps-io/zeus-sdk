@@ -50,9 +50,9 @@ public:
 
  [[eosio::action]] void xsignal(name service, name action,
                  name provider, name package, std::vector<char> signalRawData) {
-    if (current_receiver() != service.value || _self != service) 
+    if (current_receiver() != service || _self != service) 
       return;
-    require_auth(_code);
+    require_auth(get_first_receiver());
     ${M('HANDLECASE_SIGNAL_TYPE')}
   }
   DAPPSERVICE_PROVIDER_BASIC_ACTIONS
@@ -208,10 +208,11 @@ const generateServiceHppFile = (serviceModel) => {
 #include "../dappservices/dappservices.hpp"\n
 #define SVC_RESP_${upperName}(name) \\
     SVC_RESP_X(${name},name)
+    
+#define SVC_CONTRACT_NAME_${upperName} ${getContractAccountFor(serviceModel)} \n
 
 #include "../dappservices/_${name}_impl.hpp"\n
 
-#define SVC_CONTRACT_NAME_${upperName} ${getContractAccountFor(serviceModel)} \n
 
 #ifdef ${upperName}_DAPPSERVICE_ACTIONS_MORE
 #define ${upperName}_DAPPSERVICE_ACTIONS \\

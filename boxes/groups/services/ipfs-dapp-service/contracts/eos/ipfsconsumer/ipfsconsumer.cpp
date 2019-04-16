@@ -18,6 +18,6 @@ CONTRACT_START()
     auto uri = setData(data);
   }
  [[eosio::action]] void testget(std::string uri, uint32_t expectedfield) {
-    eosio_assert(getData<testentry>(uri).field1 == expectedfield, "wrong size");
+    eosio::check(getData<testentry>(uri).field1 == expectedfield, "wrong size");
   }
 CONTRACT_END((testset)(testget))

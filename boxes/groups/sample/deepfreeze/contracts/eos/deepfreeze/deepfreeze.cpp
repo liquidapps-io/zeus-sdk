@@ -33,7 +33,7 @@ CONTRACT_START()
             .send();
       }
       
-     [[eosio::action]] void transfer( name from,
+     void transfer( name from,
                      name to,
                      asset        quantity,
                      string       memo ){
@@ -44,11 +44,11 @@ CONTRACT_START()
             return;
         if (memo.size() > 0){
           name to_act = name(memo.c_str());
-          eosio_assert(is_account(to_act), "The account name supplied is not valid");
+          eosio::check(is_account(to_act), "The account name supplied is not valid");
           require_recipient(to_act);
           from = to_act;
         }            
-        extended_asset received(quantity, _code);
+        extended_asset received(quantity, get_first_receiver());
         add_cold_balance(from, received);
      }
      

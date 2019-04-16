@@ -1,11 +1,11 @@
 #pragma once
 
-#include <eosiolib/action.hpp>
-#include <eosiolib/asset.hpp>
-#include <eosiolib/contract.hpp>
-#include <eosiolib/dispatcher.hpp>
-#include <eosiolib/eosio.hpp>
-#include <eosiolib/name.hpp>
+#include <eosio/action.hpp>
+#include <eosio/asset.hpp>
+#include <eosio/contract.hpp>
+#include <eosio/dispatcher.hpp>
+#include <eosio/eosio.hpp>
+#include <eosio/name.hpp>
 #include "../Common/base/base64.hpp"
 #include "../Common/events.hpp"
 #include <boost/preprocessor/control/iif.hpp>
@@ -13,7 +13,7 @@
 #include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/seq/for_each_i.hpp>
 #include <boost/preprocessor/seq/push_back.hpp>
-#include <eosiolib/singleton.hpp>
+#include <eosio/singleton.hpp>
 using namespace eosio;
 
 using eosio::name;
@@ -151,7 +151,7 @@ using eosio::symbol_code;
     EMIT_REQUEST_SVC_EVENT(name(current_receiver()), service, actionName,      \
                            provider, encodedData.c_str());                     \
     if (request.fail)                                                          \
-      eosio_assert(false, "required service");                               \
+      eosio::check(false, "required service");                               \
   }                                                                            \
   SVC_ACTION_METHOD(aname, action_args)
 
@@ -193,7 +193,7 @@ struct usage_t {
 
 #define EOSIO_DISPATCH_SVC_TRX(contract, methods)    \
   extern "C" {                                                                 \
-  [[noreturn]] void apply(uint64_t receiver, uint64_t code, uint64_t action) { \
+  void apply(uint64_t receiver, uint64_t code, uint64_t action) { \
     if (code != receiver && action == "transfer"_n.value) {                    \
       eosio::execute_action(eosio::name(receiver), eosio::name(code),          \
                             &contract::transfer);                              \
@@ -211,7 +211,7 @@ struct usage_t {
 
 #define EOSIO_DISPATCH_SVC(contract, methods)        \
   extern "C" {                                                                 \
-  [[noreturn]] void apply(uint64_t receiver, uint64_t code, uint64_t action) { \
+  void apply(uint64_t receiver, uint64_t code, uint64_t action) { \
     if (code == receiver) {                                                    \
       switch (action) {                                                        \
         EOSIO_DISPATCH_HELPER(contract, methods)                               \
@@ -401,7 +401,7 @@ void dispatchUsage(usage_t usage_report) {
 #define DAPPSERVICE_PROVIDER_ACTIONS                                               \
   template <typename T>                                                        \
   void _xsignal_provider(name actionName, name provider,name package, T signalData) {       \
-    auto payer = _code;                                                        \
+    auto payer = get_first_receiver();                                                        \
     std::vector<name> providers;                                               \
     if (provider != ""_n)                                                      \
       providers.push_back(provider);                                           \
@@ -411,7 +411,7 @@ void dispatchUsage(usage_t usage_report) {
     auto currentProvider = provider;                                            \
       providermodels_t providermodels(_self, currentProvider.value);           \
       auto providerModel = providermodels.find(package.value);                       \
-      eosio_assert (providerModel != providermodels.end(), "package not found");\
+      eosio::check (providerModel != providermodels.end(), "package not found");\
       auto model = providerModel->model;                                        \
       auto usageResult = model.calc_usage(payer, currentProvider, signalData); \
       usageResult.provider = currentProvider;                                  \
@@ -426,7 +426,7 @@ void dispatchUsage(usage_t usage_report) {
     require_auth(provider);                                                    \
     providermodels_t providermodels(_self, provider.value);                    \
     auto providerModel = providermodels.find(model.package_id.value);                       \
-    eosio_assert(providerModel == providermodels.end(), "already exists");\
+    eosio::check(providerModel == providermodels.end(), "already exists");\
     providermodels.emplace(provider, [&](auto &s) {\
           s.model = model.model;\
           s.package_id = model.package_id;\
@@ -435,7 +435,7 @@ void dispatchUsage(usage_t usage_report) {
 
 #define EOSIO_DISPATCH_SVC_PROVIDER(contract)                                  \
   extern "C" {                                                                 \
-  [[noreturn]] void apply(uint64_t receiver, uint64_t code, uint64_t action) { \
+  void apply(uint64_t receiver, uint64_t code, uint64_t action) { \
     if (code == receiver) {                                                    \
       switch (action) { EOSIO_DISPATCH_HELPER(contract, (regprovider)) }       \
     } else                                                                     \

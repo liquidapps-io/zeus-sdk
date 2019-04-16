@@ -41,8 +41,8 @@ CONTRACT_START()
     LOG_DEBUG("uri: " + uri + ",uri2: " + uri2);
     auto dataRes = getData<testentry>(uri);
     auto dataRes2 = getData<testentry>(uri2);
-    eosio_assert(dataRes.field1 + 10 == data.field1, "wrong field1");
-    eosio_assert(dataRes2.field1 == data.field1 , "wrong field1");
+    eosio::check(dataRes.field1 + 10 == data.field1, "wrong field1");
+    eosio::check(dataRes2.field1 == data.field1 , "wrong field1");
   }
  [[eosio::action]] void testpl1(testentry data) {
     LOG_INFO("starting for plist");
@@ -50,17 +50,17 @@ CONTRACT_START()
     rootEntry.setObject(data);
     auto testBytes = rootEntry.pack();
     testentry objdeser = rootEntry.getObject<testentry>();
-    eosio_assert(objdeser.field1 == data.field1, "ser/deser failed for field1");
-    eosio_assert(objdeser.field2 == data.field2, "ser/deser failed for field2");
-    eosio_assert(objdeser.field3 == data.field3, "ser/deser failed for field3");
+    eosio::check(objdeser.field1 == data.field1, "ser/deser failed for field1");
+    eosio::check(objdeser.field2 == data.field2, "ser/deser failed for field2");
+    eosio::check(objdeser.field3 == data.field3, "ser/deser failed for field3");
     
     auto rootEntry2 = plistentry::unpack(testBytes);
     // LOG_DEBUG("ser:"+ toBase64(rootEntry2.pack()));
     
     testentry objdeser2 = rootEntry2.getObject<testentry>();
-    eosio_assert(objdeser2.field1 == data.field1, "ser/deser failed for field1");
-    eosio_assert(objdeser2.field2 == data.field2, "ser/deser failed for field2");
-    eosio_assert(objdeser2.field3 == data.field3, "ser/deser failed for field3");
+    eosio::check(objdeser2.field1 == data.field1, "ser/deser failed for field1");
+    eosio::check(objdeser2.field2 == data.field2, "ser/deser failed for field2");
+    eosio::check(objdeser2.field3 == data.field3, "ser/deser failed for field3");
     
     
     plistentry rootEntryEmb;
@@ -69,9 +69,9 @@ CONTRACT_START()
 
     plistentry&  rootEntryEmbRes = rootEntryEmb2.getPL();
     testentry objdeser3 = rootEntryEmbRes.getObject<testentry>();
-    eosio_assert(objdeser3.field1 == data.field1, "ser/deser failed for field1");
-    eosio_assert(objdeser3.field2 == data.field2, "ser/deser failed for field2");
-    eosio_assert(objdeser3.field3 == data.field3, "ser/deser failed for field3");
+    eosio::check(objdeser3.field1 == data.field1, "ser/deser failed for field1");
+    eosio::check(objdeser3.field2 == data.field2, "ser/deser failed for field2");
+    eosio::check(objdeser3.field3 == data.field3, "ser/deser failed for field3");
   }
  [[eosio::action]] void testpl2(testentry data) {
     LOG_INFO("starting test for plist ipfs");
@@ -81,9 +81,9 @@ CONTRACT_START()
     auto testBytes = rootEntry.pack();
     // LOG_INFO("b64 ser:"+ fc::base64_encode(string(testBytes.begin(),testBytes.end())));
     testentry objdeser = rootEntry.getObject<testentry>();
-    eosio_assert(objdeser.field1 == data.field1, "ser/deser failed for field1");
-    eosio_assert(objdeser.field2 == data.field2, "ser/deser failed for field2");
-    eosio_assert(objdeser.field3 == data.field3, "ser/deser failed for field3");
+    eosio::check(objdeser.field1 == data.field1, "ser/deser failed for field1");
+    eosio::check(objdeser.field2 == data.field2, "ser/deser failed for field2");
+    eosio::check(objdeser.field3 == data.field3, "ser/deser failed for field3");
     
     auto rootEntry2 = plistentry::unpack(testBytes);
     
@@ -94,9 +94,9 @@ CONTRACT_START()
     
     auto rootEntryEmbRes = rootEntryEmb.getPL();
     testentry objdeser3 = rootEntryEmbRes.getObject<testentry>();
-    eosio_assert(objdeser3.field1 == data.field1, "ser/deser failed for field1");
-    eosio_assert(objdeser3.field2 == data.field2, "ser/deser failed for field2");
-    eosio_assert(objdeser3.field3 == data.field3, "ser/deser failed for field3");
+    eosio::check(objdeser3.field1 == data.field1, "ser/deser failed for field1");
+    eosio::check(objdeser3.field2 == data.field2, "ser/deser failed for field2");
+    eosio::check(objdeser3.field3 == data.field3, "ser/deser failed for field3");
   }
 
  [[eosio::action]] void testpl3(testentry data) {
@@ -132,10 +132,10 @@ CONTRACT_START()
     auto objdeser3vec2 = objdeser3vecplist[0].getVec<testentry>();
     auto objdeser3 = objdeser3vec2[0];
     auto objdeser32 = objdeser3vec2[1];
-    eosio_assert(objdeser3.field1 == data.field1, "ser/deser failed for field1");
-    eosio_assert(objdeser3.field2 == data.field2, "ser/deser failed for field2");
-    eosio_assert(objdeser3.field3 == data.field3, "ser/deser failed for field3");
-    eosio_assert(objdeser32.field3 == 0xdeaddead, "ser/deser failed for field3");
+    eosio::check(objdeser3.field1 == data.field1, "ser/deser failed for field1");
+    eosio::check(objdeser3.field2 == data.field2, "ser/deser failed for field2");
+    eosio::check(objdeser3.field3 == data.field3, "ser/deser failed for field3");
+    eosio::check(objdeser32.field3 == 0xdeaddead, "ser/deser failed for field3");
   }
  [[eosio::action]] void testpl4(testentry data) {
     LOG_INFO("starting test for vectors+ipfs");
@@ -171,10 +171,10 @@ CONTRACT_START()
     auto objdeser3vec2 = item.getVec<testentry>();
     auto objdeser3a = objdeser3vec2[0];
     auto objdeser3b = objdeser3vec2[1];
-    eosio_assert(objdeser3a.field1 == data.field1, "ser/deser failed for field1");
-    eosio_assert(objdeser3a.field2 == data.field2, "ser/deser failed for field2");
-    eosio_assert(objdeser3a.field3 == data.field3, "ser/deser failed for field3");
-    eosio_assert(objdeser3b.field3 == 0xdeaddead, "ser/deser failed for field3");
+    eosio::check(objdeser3a.field1 == data.field1, "ser/deser failed for field1");
+    eosio::check(objdeser3a.field2 == data.field2, "ser/deser failed for field2");
+    eosio::check(objdeser3a.field3 == data.field3, "ser/deser failed for field3");
+    eosio::check(objdeser3b.field3 == 0xdeaddead, "ser/deser failed for field3");
   }
  [[eosio::action]] void testpl4b(testentry data) {
     LOG_INFO("starting test for vectors+ipfs chunks");
@@ -206,24 +206,24 @@ CONTRACT_START()
     
 
     std::vector<plistentry> objdeser3vecplist = rootEntryEmb.getPLVec();
-    eosio_assert(num == objdeser3vecplist.size(), ("array deser failed. items: "+ fc::to_string(objdeser3vecplist.size())).c_str());
+    eosio::check(num == objdeser3vecplist.size(), ("array deser failed. items: "+ fc::to_string(objdeser3vecplist.size())).c_str());
     plistentry rootEntryEmb2 = plistentry::unpack(rootEntryEmb.pack());
     // LOG_DEBUG("rawvalue n:" + toBase64(rootEntryEmb2.pack()));
     // LOG_DEBUG("rawvalue o:" + toBase64(vec));
     
 
     objdeser3vecplist = rootEntryEmb2.getPLVec();
-    eosio_assert(num == objdeser3vecplist.size(), ("array deser failed after unpack. items: "+ fc::to_string(objdeser3vecplist.size())).c_str());
+    eosio::check(num == objdeser3vecplist.size(), ("array deser failed after unpack. items: "+ fc::to_string(objdeser3vecplist.size())).c_str());
     auto item = objdeser3vecplist[num-1];
 
     
     auto objdeser3vec2 = item.getVec<testentry>();
     auto objdeser3a = objdeser3vec2[0];
     auto objdeser3b = objdeser3vec2[1];
-    eosio_assert(objdeser3a.field1 == data.field1, "ser/deser failed for field1");
-    eosio_assert(objdeser3a.field2 == data.field2, "ser/deser failed for field2");
-    eosio_assert(objdeser3a.field3 == data.field3, "ser/deser failed for field3");
-    eosio_assert(objdeser3b.field3 == 0xdeaddead, "ser/deser failed for field3");
+    eosio::check(objdeser3a.field1 == data.field1, "ser/deser failed for field1");
+    eosio::check(objdeser3a.field2 == data.field2, "ser/deser failed for field2");
+    eosio::check(objdeser3a.field3 == data.field3, "ser/deser failed for field3");
+    eosio::check(objdeser3b.field3 == 0xdeaddead, "ser/deser failed for field3");
   }
  [[eosio::action]] void testpl5(testentry data) {
     LOG_INFO("starting test for serde ipfs");
@@ -249,9 +249,9 @@ CONTRACT_START()
     auto packed = node.pack();
     auto unpacked = plisttreeNode::unpack(packed);
     auto dataRes = unpacked.getValue<testentry>();
-    eosio_assert(dataRes.field1 == data.field1, "ser/deser failed for field1");
-    eosio_assert(dataRes.field2 == data.field2, "ser/deser failed for field2");
-    eosio_assert(dataRes.field3 == data.field3, "ser/deser failed for field3");
+    eosio::check(dataRes.field1 == data.field1, "ser/deser failed for field1");
+    eosio::check(dataRes.field2 == data.field2, "ser/deser failed for field2");
+    eosio::check(dataRes.field3 == data.field3, "ser/deser failed for field3");
   }
   
  [[eosio::action]] void testpltree2(testentry data) {
@@ -274,7 +274,7 @@ CONTRACT_START()
     auto packed2 = unpacked.pack();
     // LOG_DEBUG("packed2:" + toBase64(packed2));
 
-    eosio_assert(packed == packed2, "ser/deser failed");
+    eosio::check(packed == packed2, "ser/deser failed");
     
     auto children = unpacked.getChildNodes();
     
@@ -282,9 +282,9 @@ CONTRACT_START()
     // auto item = children[2].valueEntry;
     // LOG_DEBUG("packed:" + toBase64(item.raw_value));
     auto dataRes = children[2].getValue<testentry>();
-    eosio_assert(dataRes.field1 == data.field1, "ser/deser failed for field1");
-    eosio_assert(dataRes.field2 == data.field2, "ser/deser failed for field2");
-    eosio_assert(dataRes.field3 == data.field3, "ser/deser failed for field3");
+    eosio::check(dataRes.field1 == data.field1, "ser/deser failed for field1");
+    eosio::check(dataRes.field2 == data.field2, "ser/deser failed for field2");
+    eosio::check(dataRes.field3 == data.field3, "ser/deser failed for field3");
   }
 
  [[eosio::action]] void testpltree3(testentry data) {
@@ -317,7 +317,7 @@ CONTRACT_START()
     auto packed2 = unpacked.pack();
     // LOG_DEBUG("packed2:" + toBase64(packed2));
 
-    eosio_assert(packed == packed2, "ser/deser failed");
+    eosio::check(packed == packed2, "ser/deser failed");
     
     
     auto currReadNode = unpacked;
@@ -330,9 +330,9 @@ CONTRACT_START()
     // auto item = currReadNode.valueEntry;
     // // LOG_DEBUG("packed:" + toBase64(item.raw_value));
     auto dataRes = currReadNode.getValue<testentry>();
-    eosio_assert(dataRes.field1 == data.field1, "ser/deser failed for field1");
-    eosio_assert(dataRes.field2 == data.field2, "ser/deser failed for field2");
-    eosio_assert(dataRes.field3 == data.field3, "ser/deser failed for field3");
+    eosio::check(dataRes.field1 == data.field1, "ser/deser failed for field1");
+    eosio::check(dataRes.field2 == data.field2, "ser/deser failed for field2");
+    eosio::check(dataRes.field3 == data.field3, "ser/deser failed for field3");
   }
 
  [[eosio::action]] void testpltree4(testentry data) {
@@ -365,7 +365,7 @@ CONTRACT_START()
     auto packed2 = unpacked.pack();
     // LOG_DEBUG("packed2:" + toBase64(packed2));
 
-    eosio_assert(packed == packed2, "ser/deser failed");
+    eosio::check(packed == packed2, "ser/deser failed");
     
     
     auto currReadNode = unpacked;
@@ -378,9 +378,9 @@ CONTRACT_START()
     // auto item = currReadNode.valueEntry;
     // // LOG_DEBUG("packed:" + toBase64(item.raw_value));
     auto dataRes = currReadNode.getValue<testentry>();
-    eosio_assert(dataRes.field1 == data.field1, "ser/deser failed for field1");
-    eosio_assert(dataRes.field2 == data.field2, "ser/deser failed for field2");
-    eosio_assert(dataRes.field3 == data.field3, "ser/deser failed for field3");
+    eosio::check(dataRes.field1 == data.field1, "ser/deser failed for field1");
+    eosio::check(dataRes.field2 == data.field2, "ser/deser failed for field2");
+    eosio::check(dataRes.field3 == data.field3, "ser/deser failed for field3");
   }
   
  [[eosio::action]] void testmidx1(testentry data) {
@@ -392,8 +392,8 @@ CONTRACT_START()
       e.field3 = data.field3;
     });
     auto existing = entries.find(data.field1);
-    eosio_assert(existing != entries.end(), "item missing");
-    eosio_assert(existing->field2 == data.field2,"failed for field2");
+    eosio::check(existing != entries.end(), "item missing");
+    eosio::check(existing->field2 == data.field2,"failed for field2");
     
     
   }
@@ -408,8 +408,8 @@ CONTRACT_START()
     
     testentries_t entries2(_self, _self.value);
     auto existing = entries2.find(data.field1);
-    eosio_assert(existing != entries2.end(), "item missing");
-    eosio_assert(existing->field2 == data.field2,"failed for field2");
+    eosio::check(existing != entries2.end(), "item missing");
+    eosio::check(existing->field2 == data.field2,"failed for field2");
   }  
   
 CONTRACT_END((test)(testpl1)(testpl2)(testpl3)(testpl4)(testpl4b)(testpltree1)(testpltree2)(testpltree3)(testpltree4)(testmidx1)(testmidx2))

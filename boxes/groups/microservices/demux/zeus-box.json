@@ -7,7 +7,6 @@
   "install": {
     "npm":{
       "zeromq": true, 
-      "--zmq-external": true, 
       "@types/jest": "^23.3.1",
       "babel-polyfill": "^6.26.0",
       "eosjs-ecc": "^4.0.1",

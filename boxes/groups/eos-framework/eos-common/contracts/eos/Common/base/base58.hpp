@@ -133,6 +133,6 @@ static std::vector<char> base58_encode(std::vector<char> data) {
 static std::vector<char> base58_decode(std::vector<char> data) {
     string str(data.begin(),data.end());
     std::vector<unsigned char> result;
-    eosio_assert(DecodeBase58(str.c_str(), result),"base58 decode failed");
+    eosio::check(DecodeBase58(str.c_str(), result),"base58 decode failed");
     return std::vector<char>( result.begin(), result.end() );
 }

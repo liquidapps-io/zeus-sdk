@@ -1,8 +1,8 @@
 #pragma once
 #include <string>
 #include <vector>
-#include <eosiolib/eosio.hpp>
-#include <eosiolib/crypto.h>
+#include <eosio/eosio.hpp>
+#include <eosio/crypto.hpp>
 using std::vector;
 
 #define CRON_DAPPSERVICE_ACTIONS_MORE() \
@@ -11,4 +11,4 @@ static std::vector<char> schedule_timer(name timer,std::vector<char> payload, ui
 }  \
 SVC_RESP_CRON(schedule)(name> timer,std::vector<char> payload, uint32_t seconds){ \
     timer_callback(timer, payload, seconds);\
-} \
+} 

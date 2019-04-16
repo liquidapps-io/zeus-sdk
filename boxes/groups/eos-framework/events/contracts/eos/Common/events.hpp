@@ -1,5 +1,5 @@
 #pragma once
-#include <eosiolib/print.hpp>
+#include <eosio/print.hpp>
 
 using eosio::print;
 

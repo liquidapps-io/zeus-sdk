@@ -1,11 +1,11 @@
 #include <math.h>
 
-#include <eosiolib/eosio.hpp>
-#include <eosiolib/transaction.hpp>
-#include <eosiolib/asset.hpp>
-#include <eosiolib/symbol.hpp>
-#include <eosiolib/singleton.hpp>
-#include <eosiolib/action.hpp>
+#include <eosio/eosio.hpp>
+#include <eosio/transaction.hpp>
+#include <eosio/asset.hpp>
+#include <eosio/symbol.hpp>
+#include <eosio/singleton.hpp>
+#include <eosio/action.hpp>
 
 
 using namespace eosio;
@@ -95,7 +95,7 @@ CONTRACT microauctions : public eosio::contract {
        [[eosio::action]] void init(settings setting){
           require_auth(_self);
           settings_t settings_table(_self, _self.value);
-          //eosio_assert(!settings_table.exists(),"already inited");
+          //eosio::check(!settings_table.exists(),"already inited");
           settings_table.set(setting, _self);
         }
 
@@ -123,7 +123,7 @@ CONTRACT microauctions : public eosio::contract {
 
           double total_payouts = 0;
           uint16_t count = current_settings.payout_cycles_per_user;
-          eosio_assert(count > 0, "payout_cycles_per_user cannot be zero");
+          eosio::check(count > 0, "payout_cycles_per_user cannot be zero");
           bool found = false;
           vector<uint64_t> processed_cycles;
 
@@ -132,7 +132,7 @@ CONTRACT microauctions : public eosio::contract {
 
           while( count-- > 0 && payitr != payidx.end() && payitr->account == payer && payitr->cycle_number < current_cycle) {
             auto cycle_entry = cycles_table.find(payitr->cycle_number);
-            eosio_assert(cycle_entry != cycles_table.end(), "Cannot find cycle by number");
+            eosio::check(cycle_entry != cycles_table.end(), "Cannot find cycle by number");
             found = true;
             processed_cycles.emplace_back(payitr->cycle_number);
 
@@ -145,7 +145,7 @@ CONTRACT microauctions : public eosio::contract {
           }
 
           if( do_asserts ) {
-            eosio_assert(found, "There is nothing to claim for this account");
+            eosio::check(found, "There is nothing to claim for this account");
           }
 
           extended_asset payout;
@@ -214,22 +214,22 @@ CONTRACT microauctions : public eosio::contract {
 
           // calculate current cycle
           uint64_t current_cycle = getCurrentCycle(current_settings);
-          eosio_assert(current_cycle < current_settings.cycles, "auction ended");
+          eosio::check(current_cycle < current_settings.cycles, "auction ended");
 
-          eosio_assert(quantity.symbol == current_settings.accepted_token.quantity.symbol,
+          eosio::check(quantity.symbol == current_settings.accepted_token.quantity.symbol,
                        "wrong asset symbol");
-          eosio_assert(quantity.amount >= current_settings.accepted_token.quantity.amount,
+          eosio::check(quantity.amount >= current_settings.accepted_token.quantity.amount,
                        "below minimum amount");
-          eosio_assert(_code == current_settings.accepted_token.contract, "wrong asset contract");
+          eosio::check(get_first_receiver() == current_settings.accepted_token.contract, "wrong asset contract");
           auto whitelist = current_settings.whitelist;
           // parse memo to support different account than the sending account
           if (from == "altcoinomysa"_n){
               name to_act = name(memo.c_str());
-              eosio_assert(is_account(to_act), "The account name supplied is not valid");
-              eosio_assert(to_act != _self, "The account name supplied is not valid");
+              eosio::check(is_account(to_act), "The account name supplied is not valid");
+              eosio::check(to_act != _self, "The account name supplied is not valid");
               from = to_act;
           }
-          eosio_assert(isWhitelisted(from), "whitelisting required");
+          eosio::check(isWhitelisted(from), "whitelisting required");
           registerPayment(current_settings, current_cycle, from, quantity);
 
           extended_asset savings;
@@ -243,8 +243,8 @@ CONTRACT microauctions : public eosio::contract {
     private:
 
       uint64_t getCurrentCycle(settings& current_settings){
-        eosio_assert(current_time() >= current_settings.start_ts, "auction did not start yet");
-        auto elapsed_time = current_time() - current_settings.start_ts;
+        eosio::check(current_time_point().time_since_epoch().count() >= current_settings.start_ts, "auction did not start yet");
+        auto elapsed_time = current_time_point().time_since_epoch().count() - current_settings.start_ts;
         return elapsed_time / (current_settings.seconds_per_cycle * 1000000 );
       }
 
@@ -254,7 +254,7 @@ CONTRACT microauctions : public eosio::contract {
         if(!limit_table.exists())
           return;
         auto current_limit = limit_table.get();
-        eosio_assert(quantity <= current_limit.max_per_cycle, "account passed the cycle limit");
+        eosio::check(quantity <= current_limit.max_per_cycle, "account passed the cycle limit");
       }
       
       void registerPayment(settings& current_settings, uint64_t current_cycle, name payer, asset quantity){
@@ -285,7 +285,7 @@ CONTRACT microauctions : public eosio::contract {
           });
         }
         else{
-          eosio_assert(payitr->cycle_number == current_cycle && payitr->account == payer,
+          eosio::check(payitr->cycle_number == current_cycle && payitr->account == payer,
                        "Retrieved a wrong payment row");
           payments_table.modify(*payitr, _self, [&](auto &p) {
             p.quantity += quantity;
