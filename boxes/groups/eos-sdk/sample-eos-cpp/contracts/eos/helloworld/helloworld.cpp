@@ -1,4 +1,4 @@
-#include <eosiolib/eosio.hpp>
+#include <eosio/eosio.hpp>
 #include "../Common/events.hpp"
 
 using namespace eosio;

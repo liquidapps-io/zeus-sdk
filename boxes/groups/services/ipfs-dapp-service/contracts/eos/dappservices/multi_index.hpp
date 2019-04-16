@@ -14,10 +14,10 @@
 #include <algorithm>
 #include <memory>
 #include <cmath>
-#include <eosiolib/action.h>
-#include <eosiolib/name.hpp>
-#include <eosiolib/serialize.hpp>
-#include <eosiolib/datastream.hpp>
+#include <eosio/action.h>
+#include <eosio/name.hpp>
+#include <eosio/serialize.hpp>
+#include <eosio/datastream.hpp>
 
 
 namespace dapp {

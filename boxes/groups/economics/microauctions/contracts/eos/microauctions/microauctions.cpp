@@ -1,11 +1,11 @@
 #include <math.h>
 
-#include <eosiolib/eosio.hpp>
-#include <eosiolib/transaction.hpp>
-#include <eosiolib/asset.hpp>
-#include <eosiolib/symbol.hpp>
-#include <eosiolib/singleton.hpp>
-#include <eosiolib/action.hpp>
+#include <eosio/eosio.hpp>
+#include <eosio/transaction.hpp>
+#include <eosio/asset.hpp>
+#include <eosio/symbol.hpp>
+#include <eosio/singleton.hpp>
+#include <eosio/action.hpp>
 
 
 using namespace eosio;

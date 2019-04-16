@@ -1,7 +1,7 @@
 #include "./dappservices.hpp"
 #include <cmath>
-#include <eosiolib/eosio.hpp>
-#include <eosiolib/transaction.hpp>
+#include <eosio/eosio.hpp>
+#include <eosio/transaction.hpp>
 using namespace eosio;
 using namespace std;
 

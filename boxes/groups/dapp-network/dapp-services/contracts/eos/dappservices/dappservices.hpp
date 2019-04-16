@@ -1,11 +1,11 @@
 #pragma once
 
-#include <eosiolib/action.hpp>
-#include <eosiolib/asset.hpp>
-#include <eosiolib/contract.hpp>
-#include <eosiolib/dispatcher.hpp>
-#include <eosiolib/eosio.hpp>
-#include <eosiolib/name.hpp>
+#include <eosio/action.hpp>
+#include <eosio/asset.hpp>
+#include <eosio/contract.hpp>
+#include <eosio/dispatcher.hpp>
+#include <eosio/eosio.hpp>
+#include <eosio/name.hpp>
 #include "../Common/base/base64.hpp"
 #include "../Common/events.hpp"
 #include <boost/preprocessor/control/iif.hpp>
@@ -13,7 +13,7 @@
 #include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/seq/for_each_i.hpp>
 #include <boost/preprocessor/seq/push_back.hpp>
-#include <eosiolib/singleton.hpp>
+#include <eosio/singleton.hpp>
 using namespace eosio;
 
 using eosio::name;

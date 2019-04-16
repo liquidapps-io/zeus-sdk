@@ -1,8 +1,8 @@
 #pragma once
 #include <string>
 #include <vector>
-#include <eosiolib/eosio.hpp>
-#include <eosiolib/crypto.h>
+#include <eosio/eosio.hpp>
+#include <eosio/crypto.h>
 using std::vector;
 
 

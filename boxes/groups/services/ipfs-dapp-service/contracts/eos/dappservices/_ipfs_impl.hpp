@@ -2,8 +2,8 @@
 #include "../Common/base/base58.hpp"
 #include <string>
 #include <vector>
-#include <eosiolib/eosio.hpp>
-#include <eosiolib/crypto.h>
+#include <eosio/eosio.hpp>
+#include <eosio/crypto.h>
 using std::vector;
 using ipfsmultihash_t = std::vector<char>; 
 
