@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include <eosio/eosio.hpp>
-#include <eosio/crypto.h>
+#include <eosio/crypto.hpp>>
 using std::vector;
 
 
