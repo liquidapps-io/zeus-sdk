@@ -14,7 +14,7 @@
 #include <algorithm>
 #include <memory>
 #include <cmath>
-#include <eosio/action.h>
+#include <eosio/action.hpp>>
 #include <eosio/name.hpp>
 #include <eosio/serialize.hpp>
 #include <eosio/datastream.hpp>
