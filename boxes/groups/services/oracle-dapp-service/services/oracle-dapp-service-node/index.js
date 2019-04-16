@@ -294,7 +294,8 @@ const foreignChains = {
                 method: 'POST',
                 body
             });
-            return await r.json();
+            const a = await r.json();
+            return a;
         },
         "history": async({ parts, address, endpoint }) => {
             const blockNum = parts[2];
@@ -313,6 +314,8 @@ const foreignChains = {
                 method: 'POST',
                 body
             });
+            console.log('got here');
+
             return await r.json();
         },
         "balance": async({ parts, address, endpoint }) => {
@@ -438,34 +441,35 @@ const foreignChains = {
         "endpoints": ['wss://s1.ripple.com:443'],
         "balance": async({ parts, address, endpoint }) => {
             const rippleAddress = parts[2];
-            const RippleAPI = require('ripple-lib');
+            const RippleAPI = require('ripple-lib').RippleAPI;
             const api = new RippleAPI({ server: endpoint });
+
             await api.connect();
-            const res = api.getBalances(rippleAddress);
-            api.disconnect();
+            const res = await api.getBalances(rippleAddress);
+            await api.disconnect();
             return res;
         },
         "ledger": async({ parts, address, endpoint }) => {
-            const RippleAPI = require('ripple-lib');
+            const RippleAPI = require('ripple-lib').RippleAPI;
             const api = new RippleAPI({ server: endpoint });
             await api.connect();
-            const res = api.getLedger({
+            const res = await api.getLedger({
                 ledgerVersion: "validated",
                 includeAllData: true,
                 includeTransactions: true,
                 includeState: true
             });
-            api.disconnect();
+            await api.disconnect();
             return res;
         },
         "transactions": async({ parts, address, endpoint }) => {
             const rippleAddress = parts[2];
 
-            const RippleAPI = require('ripple-lib');
+            const RippleAPI = require('ripple-lib').RippleAPI;
             const api = new RippleAPI({ server: endpoint });
             await api.connect();
-            const res = api.getTransactions(rippleAddress);
-            api.disconnect();
+            const res = await api.getTransactions(rippleAddress);
+            await api.disconnect();
             return res;
         }
     }
@@ -480,10 +484,13 @@ const foreignChainHandler = async({ address }) => {
     const parts = address.split('/');
     const chain = parts[0];
     const type = parts[1];
+    const field = parts[parts.length - 1];
+    if (field === 'dummy')
+        return "test-dummy"
     const chainEntry = foreignChains[chain];
     const endpoint = await getEndpointForChain({ chain, address, type });
     const res = await chainEntry[type]({ address, parts, endpoint });
-    const field = parts[parts.length - 1];
+
     return (field !== "") ?
         extractPath(res, field) : res;
 }
@@ -501,7 +508,6 @@ var handlers = {
     "sister_chain_state": undefined,
     "foreign_chain": foreignChainHandler,
     "past_self_state": undefined,
-    "sister_chain_state": undefined,
     "random": randomHandler,
 };
 nodeFactory('oracle', {
@@ -515,7 +521,7 @@ nodeFactory('oracle', {
         if (!handler)
             throw new Error(`unsupported protocol ${proto}`);
         try {
-            const data = await handler({ proto, address });
+            let data = await handler({ proto, address });
             return {
                 uri,
                 data: data,
