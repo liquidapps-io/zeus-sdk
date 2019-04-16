@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include <eosio/eosio.hpp>
-#include <eosio/crypto.hpp>>
+#include <eosio/crypto.hpp>
 using std::vector;
 using ipfsmultihash_t = std::vector<char>; 
 
@@ -13,17 +13,13 @@ using ipfsmultihash_t = std::vector<char>;
 
 const std::vector<char> hashData(vector<char> data){ 
   auto buffer = data; 
-  //char *c = new char[buffer.size()+1]; 
   char* c = (char*) malloc(buffer.size()+1); 
   memcpy(c, buffer.data(), buffer.size()); 
   c[buffer.size()] = 0; 
-  capi_checksum256 *hash_val = (capi_checksum256 *) malloc(32); 
+  checksum256 *hash_val = (checksum256 *) malloc(32); 
   sha256(c, buffer.size(), hash_val); 
-//   const int8_t *p32 = reinterpret_cast<const int8_t*>(&hash_val);
   char * placeholder = (char*) malloc(32);
   memcpy(placeholder , hash_val, 32 );
-//   std::string str(s);
-//   const char *p32 = reinterpret_cast<const char*>(&hash_val); 
   std::vector<char> hash_ret = std::vector<char>(placeholder,placeholder + 32); 
   return hash_ret; 
 } 
@@ -47,7 +43,7 @@ static bool is_equal(ipfsmultihash_t &a,ipfsmultihash_t &b){
 } 
 static void assert_ipfsmultihash(std::vector<char> data, ipfsmultihash_t hash) {
     ipfsmultihash_t calcedhash = data_to_ipfsmultihash(data);
-    eosio_assert(is_equal(calcedhash,hash),"hashes not equel");
+    eosio::check(is_equal(calcedhash,hash),"hashes not equel");
 }
 
 static std::string ipfsmultihash_to_uri(ipfsmultihash_t ipfshash) {
@@ -142,7 +138,7 @@ SVC_RESP_IPFS(warmup)(uint32_t size,std::string uri,std::vector<char> data, name
     auto _self = name(current_receiver()); \
     ipfsentries_t entries(_self, _self.value);  \
     auto currentUri = data_to_uri(data); \
-    eosio_assert(currentUri == uri, "wrong uri"); \
+    eosio::check(currentUri == uri, "wrong uri"); \
     auto cidx = entries.get_index<"byhash"_n>(); \
     auto existing = cidx.find(uri_to_key256(uri)); \
     if(existing != cidx.end()) return; \

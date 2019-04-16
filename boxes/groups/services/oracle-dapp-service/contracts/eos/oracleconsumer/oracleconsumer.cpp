@@ -10,7 +10,7 @@
 
 CONTRACT_START()
  [[eosio::action]] void testget(std::vector<char>  uri, std::vector<char> expectedfield) {
-    eosio_assert(getURI(uri, [&]( auto& results ) { 
+    eosio::check(getURI(uri, [&]( auto& results ) { 
       return results[0].result;
     }) == expectedfield, "wrong data");
   }

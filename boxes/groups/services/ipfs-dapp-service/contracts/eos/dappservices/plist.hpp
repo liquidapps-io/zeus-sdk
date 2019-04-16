@@ -643,7 +643,7 @@ class plistentry {
         }else if(size <= 16){
             pred.basic.code = (pred_code_t)PRED_VALUE_UINT_128;
         }else{
-            eosio_assert(false,"num too big"); // should never happen
+            eosio::check(false,"num too big"); // should never happen
         }
         raw_value = set_raw(_raw_value);
         return *this;
@@ -664,7 +664,7 @@ class plistentry {
     //     }else if(size <= 16){
     //         pred.basic.code = (pred_code_t)PRED_VALUE_INT_128;
     //     }else{
-    //         eosio_assert(false,"num too big"); // should never happen
+    //         eosio::check(false,"num too big"); // should never happen
     //     }
     //     return *this;
     // }
@@ -931,7 +931,7 @@ class plistentry {
     
 
     std::vector<plistentry> getPLVec() { 
-        eosio_assert(data_is_array, "not an array type  - for vector<plistentry>");
+        eosio::check(data_is_array, "not an array type  - for vector<plistentry>");
         uint32_t position = 0;
         std::vector<plistentry> res;
         
@@ -972,7 +972,7 @@ class plistentry {
     }    
     template<typename T> 
     std::vector<T> getVec() { 
-        eosio_assert(data_is_array, "not an array type - for vector<T>");
+        eosio::check(data_is_array, "not an array type - for vector<T>");
         uint32_t position = 0;
         std::vector<T> res = std::vector<T>();
         std::vector<char> currentBuffer;
@@ -1293,7 +1293,7 @@ class plistentry {
                 varsize = true;
                 // bigger. need varsize. determine size
                 if(raw_size >= 262144){
-                    eosio_assert(false,std::string("too big " + fc::to_string(raw_size)).c_str());
+                    eosio::check(false,std::string("too big " + fc::to_string(raw_size)).c_str());
                 }
                 else if(raw_size > 65535){
                     basicSize = DS_3V;

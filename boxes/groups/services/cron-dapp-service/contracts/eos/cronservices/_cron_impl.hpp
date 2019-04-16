@@ -11,4 +11,4 @@ static std::vector<char> schedule_timer(name timer,std::vector<char> payload, ui
 }  \
 SVC_RESP_CRON(schedule)(name> timer,std::vector<char> payload, uint32_t seconds){ \
     timer_callback(timer, payload, seconds);\
-} \
+} 

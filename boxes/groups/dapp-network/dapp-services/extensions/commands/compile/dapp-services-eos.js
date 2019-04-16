@@ -50,9 +50,9 @@ public:
 
  [[eosio::action]] void xsignal(name service, name action,
                  name provider, name package, std::vector<char> signalRawData) {
-    if (current_receiver() != service.value || _self != service) 
+    if (current_receiver() != service || _self != service) 
       return;
-    require_auth(_code);
+    require_auth(get_first_receiver());
     ${M('HANDLECASE_SIGNAL_TYPE')}
   }
   DAPPSERVICE_PROVIDER_BASIC_ACTIONS

@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include <eosio/eosio.hpp>
-#include <eosio/crypto.hpp>>
+#include <eosio/crypto.hpp>
 using std::vector;
 
 
@@ -11,14 +11,7 @@ const checksum256 hashData(vector<char> data){
     char* c = (char*) malloc(buffer.size()+1); 
     memcpy(c, buffer.data(), buffer.size()); 
     c[buffer.size()] = 0; 
-    capi_checksum256 *hash_val = (capi_checksum256 *) malloc(32); 
-    sha256(c, buffer.size(), hash_val); 
-    char * placeholder = (char*) malloc(32);
-    memcpy(placeholder , hash_val, 32 );
-    std::vector<char> hash_ret = std::vector<char>(placeholder,placeholder + 32); 
-    uint64_t * p64 = (uint64_t*) malloc(32);
-    memcpy(p64 , hash_ret.data(), 32 );
-    return checksum256::make_from_word_sequence<uint64_t>(p64[0], p64[1], p64[2], p64[3]);
+    return sha256(c, buffer.size());
 } 
 
 struct provider_result {

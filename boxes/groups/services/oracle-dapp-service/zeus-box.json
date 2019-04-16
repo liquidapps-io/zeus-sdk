@@ -14,8 +14,10 @@
       "oracleconsumer": true
     },
     "npm":{
-      "node-fetch": true
-      
+      "node-fetch": true,
+      "tronweb": true,
+      "ripple-lib":true,
+      "bitcoin-core":true
     }
   }
 }

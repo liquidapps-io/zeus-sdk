@@ -14,10 +14,11 @@
 #include <algorithm>
 #include <memory>
 #include <cmath>
-#include <eosio/action.hpp>>
+#include <eosio/action.hpp>
 #include <eosio/name.hpp>
 #include <eosio/serialize.hpp>
 #include <eosio/datastream.hpp>
+#include <eosio/crypto.hpp>
 
 
 namespace dapp {
@@ -427,7 +428,7 @@ private:
             node._keys.erase(node._keys.begin() + i);
             return;
         }
-        eosio_assert(found, "not found");
+        eosio::check(found, "not found");
         
         if(node.is_underflow()){
             // merge
@@ -450,7 +451,7 @@ private:
         auto found = false;
         // insert the value in place
         for (int i = 0; i < keys.size(); i++) {
-            eosio_assert(keys[i] != key, "already exists");
+            eosio::check(keys[i] != key, "already exists");
             found = keys[i] >= key;
             if(!found)
                 continue;
@@ -628,10 +629,9 @@ uint64_t _calcBucket(vector<char> fullKey){
     char* c = (char*) malloc(buffer.size()+1);
     memcpy(c, buffer.data(), buffer.size());
     c[buffer.size()] = 0;
-    capi_checksum256 *hash_val = (capi_checksum256 *) malloc(32);
-    sha256(c, buffer.size(), hash_val);
+    auto hash_val = sha256(c, buffer.size());
     uint64_t * p64a = (uint64_t*) malloc(32);
-    memcpy(p64a, hash_val, 32 );
+    memcpy(p64a, &hash_val, 32 );
     uint64_t res = *(p64a+3);
     return res;
 }
@@ -699,7 +699,7 @@ class sharded_hashtree_t{
         auto sb = getBucketShard(primary);
         auto bucketData = getBucket(sb, false);
         bucketParsedParts_t bucketParsedParts = _parseCacheBucket(bucketData,  sb.scope,  sb.key);
-        eosio_assert(!bucketParsedParts.include, "key already exists");
+        eosio::check(!bucketParsedParts.include, "key already exists");
         bucketParsedParts.value = value;
         bucketParsedParts.include = true;
         bucketData = _combineParsedBucketParts(bucketParsedParts);
@@ -710,7 +710,7 @@ class sharded_hashtree_t{
         auto sb = getBucketShard(primary);
         auto bucketData = getBucket(sb, false);
         bucketParsedParts_t bucketParsedParts = _parseCacheBucket(bucketData,  sb.scope,  sb.key);
-        eosio_assert(bucketParsedParts.include, "key not found");
+        eosio::check(bucketParsedParts.include, "key not found");
         bucketParsedParts.value = value;
         bucketData = _combineParsedBucketParts(bucketParsedParts);
         setBucket(sb, bucketData);
@@ -720,7 +720,7 @@ class sharded_hashtree_t{
         auto sb = getBucketShard(primary);
         auto bucketData = getBucket(sb, false);
         bucketParsedParts_t bucketParsedParts = _parseCacheBucket(bucketData,  sb.scope,  sb.key);
-        eosio_assert(bucketParsedParts.include, "key not found");
+        eosio::check(bucketParsedParts.include, "key not found");
         // remove key
         bucketParsedParts.include = false;
         bucketData = _combineParsedBucketParts(bucketParsedParts);
@@ -745,8 +745,8 @@ class sharded_hashtree_t{
     // add cache for shard data and bucket
     std::vector<char> getBucket(bucket_t& sb, bool pin = false) const{
         // get pointer from RAM
-        auto _self = name(current_receiver());
-        shardbucket_t _shardbucket_table(_self,current_receiver());
+        auto _self = current_receiver();
+        shardbucket_t _shardbucket_table(_self,current_receiver().value);
         auto shardData = _shardbucket_table.find(sb.shard);
         if(shardData == _shardbucket_table.end()){
             auto emptyDataHash = uri_to_ipfsmultihash(ipfs_svc_helper::setRawData(emptyentry(), true));
@@ -777,9 +777,9 @@ class sharded_hashtree_t{
     }
     
     void setBucket(bucket_t& sb, std::vector<char> data){
-        shardbucket_t _shardbucket_table(name(current_receiver()),current_receiver());
+        shardbucket_t _shardbucket_table(current_receiver(),current_receiver().value);
         auto shardData = _shardbucket_table.find(sb.shard);
-        eosio_assert(shardData != _shardbucket_table.end(), "shard not found");
+        eosio::check(shardData != _shardbucket_table.end(), "shard not found");
         auto shard_uri = shardData->shard_uri;
         auto bucket_data = ipfs_svc_helper::getData<shardbucket_data>(ipfsmultihash_to_uri(shard_uri), false);
         
@@ -884,7 +884,7 @@ struct b_const_iterator : public std::iterator<std::bidirectional_iterator_tag, 
          }
 
          b_const_iterator& operator++() {
-            eosio_assert( _inner != nullptr, "cannot increment end iterator" );
+            eosio::check( _inner != nullptr, "cannot increment end iterator" );
             (*_inner)++;
             // uint64_t next_pk;
             // auto next_itr = db_next_i64( _item->__primary_itr, &next_pk );
@@ -900,12 +900,12 @@ struct b_const_iterator : public std::iterator<std::bidirectional_iterator_tag, 
 
             // if( !_item ) {
             // //   auto ei = db_end_i64(_multidx->get_code().value, _multidx->get_scope(), static_cast<uint64_t>(TableName));
-            //   eosio_assert( ei != -1, "cannot decrement end iterator when the table is empty" );
+            //   eosio::check( ei != -1, "cannot decrement end iterator when the table is empty" );
             // //   prev_itr = db_previous_i64( ei , &prev_pk );
-            //   eosio_assert( prev_itr >= 0, "cannot decrement end iterator when the table is empty" );
+            //   eosio::check( prev_itr >= 0, "cannot decrement end iterator when the table is empty" );
             // } else {
             // //   prev_itr = db_previous_i64( _item->__primary_itr, &prev_pk );
-            //   eosio_assert( prev_itr >= 0, "cannot decrement iterator at beginning of table" );
+            //   eosio::check( prev_itr >= 0, "cannot decrement iterator at beginning of table" );
             // }
             (*_inner)--;
             // _item = &_multidx->load_object_by_primary_iterator( prev_itr );
@@ -950,7 +950,7 @@ struct h_const_iterator : public std::iterator<std::bidirectional_iterator_tag, 
          }
 
          h_const_iterator& operator++() {
-            eosio_assert( _inner != nullptr, "cannot increment end iterator" );
+            eosio::check( _inner != nullptr, "cannot increment end iterator" );
             return *this;
          }
          h_const_iterator& operator--() {
@@ -1036,7 +1036,7 @@ typedef h_const_iterator const_iterator;
       const_iterator emplace( name payer, Lambda&& constructor ) {
          using namespace _multi_index_detail;
 
-         eosio_assert( _code.value == current_receiver(), "cannot create objects in table of another contract" ); // Quick fix for mutating db using multi_index that shouldn't allow mutation. Real fix can come in RC2.
+         eosio::check( _code == current_receiver(), "cannot create objects in table of another contract" ); // Quick fix for mutating db using multi_index that shouldn't allow mutation. Real fix can come in RC2.
 
             T obj = T();
             constructor( obj );
@@ -1055,7 +1055,7 @@ typedef h_const_iterator const_iterator;
       }
       template<typename Lambda>
       void modify( const_iterator itr, name payer, Lambda&& updater ) {
-         eosio_assert( itr != end(), "cannot pass end iterator to modify" );
+         eosio::check( itr != end(), "cannot pass end iterator to modify" );
 
          modify( *itr, payer, std::forward<Lambda&&>(updater) );
       }
@@ -1065,13 +1065,13 @@ typedef h_const_iterator const_iterator;
       void modify( const T& obj, name payer, Lambda&& updater ) {
          using namespace _multi_index_detail;
 
-         eosio_assert( _code.value == current_receiver(), "cannot modify objects in table of another contract" ); // Quick fix for mutating db using multi_index that shouldn't allow mutation. Real fix can come in RC2.
+         eosio::check( _code == current_receiver(), "cannot modify objects in table of another contract" ); // Quick fix for mutating db using multi_index that shouldn't allow mutation. Real fix can come in RC2.
          auto pk = obj.primary_key();
 
          auto& mutableobj = const_cast<T&>(obj); // Do not forget the auto& otherwise it would make a copy and thus not update at all.
          updater( mutableobj );
 
-         eosio_assert( pk == obj.primary_key(), "updater cannot change primary key when modifying an object" );
+         eosio::check( pk == obj.primary_key(), "updater cannot change primary key when modifying an object" );
          
          auto buffer = eosio::pack(obj);
          auto uri = ipfs_svc_helper::setRawData(buffer);
@@ -1082,7 +1082,7 @@ typedef h_const_iterator const_iterator;
       }
       const T& get( uint64_t primary, const char* error_msg = "unable to find key" )const {
          auto result = find( primary );
-         eosio_assert( result != cend(), error_msg );
+         eosio::check( result != cend(), error_msg );
          return *result;
       }
       const_iterator find( uint64_t primary )const {
@@ -1095,7 +1095,7 @@ typedef h_const_iterator const_iterator;
       }
 
       const_iterator erase( const_iterator itr ) {
-         eosio_assert( itr != end(), "cannot pass end iterator to erase" );
+         eosio::check( itr != end(), "cannot pass end iterator to erase" );
 
          const auto& obj = *itr;
          ++itr;

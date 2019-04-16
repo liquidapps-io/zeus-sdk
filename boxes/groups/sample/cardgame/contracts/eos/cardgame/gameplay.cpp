@@ -38,7 +38,7 @@ void cardgame::draw_one_card(vector<uint8_t>& deck, vector<uint8_t>& hand) {
       break;
     }
   }
-  eosio_assert(first_empty_slot != -1, "No empty slot in the player's hand");
+  eosio::check(first_empty_slot != -1, "No empty slot in the player's hand");
 
   // Assign the card to the first empty slot in the hand
   hand[first_empty_slot] = deck[deck_card_idx];

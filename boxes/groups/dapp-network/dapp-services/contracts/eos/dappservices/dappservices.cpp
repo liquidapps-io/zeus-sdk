@@ -158,7 +158,7 @@ public:
 
  [[eosio::action]] void create(uint64_t maximum_supply_amount, double inflation_per_block, uint64_t inflation_starts_at) {
     require_auth(_self);
-    eosio_assert(maximum_supply_amount > 0, "max-supply must be positive");
+    eosio::check(maximum_supply_amount > 0, "max-supply must be positive");
     auto issuer = _self;
     asset maximum_supply;
     auto sym = DAPPSERVICES_SYMBOL;
@@ -169,9 +169,9 @@ public:
     stats_ext statxstable(_self, sym.code().raw());
     auto existing = statstable.find(sym.code().raw());
     auto existingx = statxstable.find(sym.code().raw());
-    eosio_assert(existing == statstable.end(),
+    eosio::check(existing == statstable.end(),
                  "token with symbol already exists");
-    eosio_assert(existingx == statxstable.end(),
+    eosio::check(existingx == statxstable.end(),
                  "token with symbol already exists");
 
     statxstable.emplace(_self, [&](auto &s) {
@@ -193,9 +193,9 @@ public:
         newpackage.package_id, newpackage.service, newpackage.provider);
     auto cidx = packages.get_index<"bypkg"_n>();
     auto existing = cidx.find(idxKey);
-    eosio_assert(existing == cidx.end(), "already exists");
+    eosio::check(existing == cidx.end(), "already exists");
 
-    eosio_assert(newpackage.quota.symbol == DAPPSERVICES_QUOTA_SYMBOL, "wrong symbol");
+    eosio::check(newpackage.quota.symbol == DAPPSERVICES_QUOTA_SYMBOL, "wrong symbol");
 
     packages.emplace(newpackage.provider, [&](package &r) {
       // start disabled.
@@ -223,7 +223,7 @@ public:
         package_id, service, provider);
     auto cidx = packages.get_index<"bypkg"_n>();
     auto existing = cidx.find(idxKey);
-    eosio_assert(existing != cidx.end(), "missing package");
+    eosio::check(existing != cidx.end(), "missing package");
     cidx.modify(existing, eosio::same_payer, [&](package &r) {
       // start disabled.
       // r.enabled = true;
@@ -248,8 +248,8 @@ public:
   //                                                         provider);
   //   auto cidx = packages.get_index<"bypkg"_n>();
   //   auto existing = cidx.find(idxKey);
-  //   eosio_assert(existing != cidx.end(), "package must exist");
-  //   eosio_assert(existing->enabled, "already disabled");
+  //   eosio::check(existing != cidx.end(), "package must exist");
+  //   eosio::check(existing->enabled, "already disabled");
   //   cidx.modify(existing, eosio::same_payer,
   //               [&](package &r) { r.enabled = false; });
   // }
@@ -259,30 +259,30 @@ public:
   //                                                         provider);
   //   auto cidx = packages.get_index<"bypkg"_n>();
   //   auto existing = cidx.find(idxKey);
-  //   eosio_assert(existing != cidx.end(), "package must exist");
-  //   eosio_assert(!existing->enabled, "already enabled");
+  //   eosio::check(existing != cidx.end(), "package must exist");
+  //   eosio::check(!existing->enabled, "already enabled");
   //   cidx.modify(existing, eosio::same_payer,
   //               [&](package &r) { r.enabled = true; });
   // }
 
  [[eosio::action]] void issue(name to, asset quantity, string memo) {
     auto sym = quantity.symbol;
-    eosio_assert(sym.is_valid(), "invalid symbol name");
-    eosio_assert(memo.size() <= 256, "memo has more than 256 bytes");
+    eosio::check(sym.is_valid(), "invalid symbol name");
+    eosio::check(memo.size() <= 256, "memo has more than 256 bytes");
 
     auto sym_name = sym.code().raw();
     stats statstable(_self, sym_name);
     auto existing = statstable.find(sym_name);
-    eosio_assert(existing != statstable.end(),
+    eosio::check(existing != statstable.end(),
                  "token with symbol does not exist, create token before issue");
     const auto &st = *existing;
     require_auth(st.issuer);
-    eosio_assert(quantity.is_valid(), "invalid quantity");
-    eosio_assert(quantity.amount > 0, "must issue positive quantity");
+    eosio::check(quantity.is_valid(), "invalid quantity");
+    eosio::check(quantity.amount > 0, "must issue positive quantity");
 
-    eosio_assert(quantity.symbol == st.supply.symbol,
+    eosio::check(quantity.symbol == st.supply.symbol,
                  "symbol precision mismatch");
-    eosio_assert(quantity.amount <= st.max_supply.amount - st.supply.amount,
+    eosio::check(quantity.amount <= st.max_supply.amount - st.supply.amount,
                  "quantity exceeds available supply");
 
     statstable.modify(st, eosio::same_payer,
@@ -299,20 +299,20 @@ public:
  [[eosio::action]] void retire(asset quantity, string memo) {
 
     auto sym = quantity.symbol;
-    eosio_assert(sym.is_valid(), "invalid symbol name");
-    eosio_assert(memo.size() <= 256, "memo has more than 256 bytes");
+    eosio::check(sym.is_valid(), "invalid symbol name");
+    eosio::check(memo.size() <= 256, "memo has more than 256 bytes");
 
     auto sym_name = sym.code().raw();
     stats statstable(_self, sym_name);
     auto existing = statstable.find(sym_name);
-    eosio_assert(existing != statstable.end(),
+    eosio::check(existing != statstable.end(),
                  "token with symbol does not exist");
     const auto &st = *existing;
     require_auth(st.issuer);
-    eosio_assert(quantity.is_valid(), "invalid quantity");
-    eosio_assert(quantity.amount > 0, "must retire positive quantity");
+    eosio::check(quantity.is_valid(), "invalid quantity");
+    eosio::check(quantity.amount > 0, "must retire positive quantity");
 
-    eosio_assert(quantity.symbol == st.supply.symbol,
+    eosio::check(quantity.symbol == st.supply.symbol,
                  "symbol precision mismatch");
 
     statstable.modify(st, eosio::same_payer,
@@ -321,9 +321,9 @@ public:
   }
 
  [[eosio::action]] void transfer(name from, name to, asset quantity, string memo) {
-    eosio_assert(from != to, "cannot transfer to self");
+    eosio::check(from != to, "cannot transfer to self");
     require_auth(from);
-    eosio_assert(is_account(to), "to account does not exist");
+    eosio::check(is_account(to), "to account does not exist");
     auto sym = quantity.symbol.code().raw();
     stats statstable(_self, sym);
     const auto &st = statstable.get(sym);
@@ -331,11 +331,11 @@ public:
     require_recipient(from);
     require_recipient(to);
 
-    eosio_assert(quantity.is_valid(), "invalid quantity");
-    eosio_assert(quantity.amount > 0, "must transfer positive quantity");
-    eosio_assert(quantity.symbol == st.supply.symbol,
+    eosio::check(quantity.is_valid(), "invalid quantity");
+    eosio::check(quantity.amount > 0, "must transfer positive quantity");
+    eosio::check(quantity.symbol == st.supply.symbol,
                  "symbol precision mismatch");
-    eosio_assert(memo.size() <= 256, "memo has more than 256 bytes");
+    eosio::check(memo.size() <= 256, "memo has more than 256 bytes");
 
     auto payer = has_auth(to) ? to : from;
     applyInflation();
@@ -349,7 +349,7 @@ public:
 
     stats statstable(_self, sym);
     const auto &st = statstable.get(sym, "symbol does not exist");
-    eosio_assert(st.supply.symbol.code().raw() == sym,
+    eosio::check(st.supply.symbol.code().raw() == sym,
                  "symbol precision mismatch");
 
     accounts acnts(_self, owner.value);
@@ -364,9 +364,9 @@ public:
     require_auth(owner);
     accounts acnts(_self, owner.value);
     auto it = acnts.find(symbol.raw());
-    eosio_assert(it != acnts.end(), "Balance row already deleted or never "
+    eosio::check(it != acnts.end(), "Balance row already deleted or never "
                                     "existed. Action won't have any effect.");
-    eosio_assert(it->balance.amount == 0,
+    eosio::check(it->balance.amount == 0,
                  "Cannot close because the balance is not zero.");
     acnts.erase(it);
   }
@@ -377,9 +377,9 @@ public:
         accountext::_by_account_service_provider(owner, service, provider);
     auto cidx = accountexts.get_index<"byprov"_n>();
     auto acct = cidx.find(idxKey);
-    eosio_assert(acct != cidx.end(), "Balance row already deleted or never "
+    eosio::check(acct != cidx.end(), "Balance row already deleted or never "
                                     "existed. Action won't have any effect.");
-    eosio_assert(acct->balance.amount == 0,
+    eosio::check(acct->balance.amount == 0,
                  "Cannot close because the balance is not zero.");
     cidx.erase(acct);
   }
@@ -398,10 +398,10 @@ public:
 
  [[eosio::action]] void xsignal(name service, name action, name provider, name package,
                  std::vector<char> signalRawData) {
-    require_auth(_code);
+    require_auth(get_first_receiver());
     string str(signalRawData.begin(), signalRawData.end());
     auto encodedData = fc::base64_encode(str);                                 
-    EMIT_SIGNAL_SVC_EVENT(name(_code), service, action, provider, package,
+    EMIT_SIGNAL_SVC_EVENT(name(get_first_receiver()), service, action, provider, package,
                           encodedData.c_str());
     require_recipient(service);
     require_recipient(provider);
@@ -428,7 +428,7 @@ public:
     require_recipient(provider);
     require_recipient(service);
     dist_rewards(to, provider, service);
-    auto current_time_ms = current_time() / 1000;
+    auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     uint64_t unstake_time = current_time_ms + getUnstakeRemaining(to,provider,service);
     
     // set account->provider->service->unstake_time
@@ -462,13 +462,13 @@ public:
  [[eosio::action]] void refund(name to, name provider, name service, symbol_code symcode) {
     require_recipient(provider);
     require_recipient(service);
-    auto current_time_ms = current_time() / 1000;
+    auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     refunds_table refunds_tbl(_self, to.value);
     auto idxKey =
         refundreq::_by_symbol_service_provider(symcode, service, provider);
     auto cidx = refunds_tbl.get_index<"byprov"_n>();
     auto req = cidx.find(idxKey);
-    eosio_assert(req != cidx.end(), "refund request not found");
+    eosio::check(req != cidx.end(), "refund request not found");
     dist_rewards(to, provider, service);
     uint64_t secondsLeft = 
         (req->unstake_time - current_time_ms) / 1000; // calc how much left
@@ -512,12 +512,12 @@ public:
 
  [[eosio::action]] void claimrewards(name provider) {
     require_auth(provider);
-    auto current_time_ms = current_time() / 1000;
+    auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     rewards_t rewards(_self, provider.value);
     auto reward = rewards.find(DAPPSERVICES_SYMBOL.code().raw());
-    eosio_assert(reward != rewards.end(), "no pending rewards");
+    eosio::check(reward != rewards.end(), "no pending rewards");
     auto min_interval = 24 * 60 * 60 * 1000;
-    eosio_assert(reward->last_usage + min_interval < current_time_ms, "already claimed in the last 24h");
+    eosio::check(reward->last_usage + min_interval < current_time_ms, "already claimed in the last 24h");
     asset rewardAsset;
     rewards.modify(reward, eosio::same_payer, [&](auto &a) {
       rewardAsset = a.balance;
@@ -537,11 +537,11 @@ private:
   inline void sub_total_staked(asset quantity) {
     stats_ext statsexts(_self, quantity.symbol.code().raw());
     auto existing = statsexts.find(quantity.symbol.code().raw());
-    eosio_assert(existing != statsexts.end(),
+    eosio::check(existing != statsexts.end(),
                  "token with symbol does not exist");
     const auto &st = *existing;
-    eosio_assert(quantity.amount > 0, "must unstake positive quantity");
-    eosio_assert(quantity.amount <= st.staked.amount,
+    eosio::check(quantity.amount > 0, "must unstake positive quantity");
+    eosio::check(quantity.amount <= st.staked.amount,
                  "quantity exceeds available supply");
     statsexts.modify(st, eosio::same_payer,
                      [&](auto &s) { s.staked -= quantity; });
@@ -550,10 +550,10 @@ private:
   inline void add_total_staked(asset quantity) {
     stats_ext statsexts(_self, quantity.symbol.code().raw());
     auto existing = statsexts.find(quantity.symbol.code().raw());
-    eosio_assert(existing != statsexts.end(),
+    eosio::check(existing != statsexts.end(),
                  "token with symbol does not exist");
     const auto &st = *existing;
-    eosio_assert(quantity.amount > 0, "must stake positive quantity");
+    eosio::check(quantity.amount > 0, "must stake positive quantity");
     statsexts.modify(st, eosio::same_payer,
                      [&](auto &s) { s.staked += quantity; });
   }
@@ -562,7 +562,7 @@ private:
 
     const auto &from =
         from_acnts.get(quantity.symbol.code().raw(), "no balance object found");
-    eosio_assert(from.balance.amount >= quantity.amount, "overdrawn balance");
+    eosio::check(from.balance.amount >= quantity.amount, "overdrawn balance");
 
     from_acnts.modify(from, owner, [&](auto &a) { a.balance -= quantity; });
   }
@@ -574,16 +574,16 @@ private:
         accountext::_by_account_service_provider(owner, service, provider);
     auto cidx = accountexts.get_index<"byprov"_n>();
     auto acct = cidx.find(idxKey);
-    eosio_assert(acct != cidx.end(), "no balance object for provider");
-    eosio_assert(acct->balance >= quantity, "overdrawn balance");
+    eosio::check(acct != cidx.end(), "no balance object for provider");
+    eosio::check(acct->balance >= quantity, "overdrawn balance");
 
     cidx.modify(acct, eosio::same_payer,
                 [&](auto &a) { a.balance -= quantity; });
                 
-    auto current_time_ms = current_time() / 1000;
+    auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     rewards_t rewards(_self, provider.value);
     auto reward = rewards.find(DAPPSERVICES_SYMBOL.code().raw());
-    eosio_assert(reward != rewards.end(), "provider not found");
+    eosio::check(reward != rewards.end(), "provider not found");
     rewards.modify(reward, _self, [&](auto &a) { 
       a.total_staked -= quantity; 
     });
@@ -597,12 +597,12 @@ private:
     auto cidx = accountexts.get_index<"byprov"_n>();
     auto acct = cidx.find(idxKey);
 
-    eosio_assert(acct != cidx.end(), "must choose package first");
+    eosio::check(acct != cidx.end(), "must choose package first");
 
     cidx.modify(acct, eosio::same_payer,
                 [&](auto &a) { a.balance += quantity; });
                 
-    auto current_time_ms = current_time() / 1000;
+    auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     rewards_t rewards(_self, provider.value);
     auto reward = rewards.find(DAPPSERVICES_SYMBOL.code().raw());
     if (reward != rewards.end()) {
@@ -647,8 +647,8 @@ private:
     auto cidx = accountexts.get_index<"byprov"_n>();
 
     auto acct = cidx.find(idxKey);
-    eosio_assert(acct != cidx.end(), "no quota for this provider");
-    eosio_assert(acct->quota >= quantity, "not enough quota for this provider");
+    eosio::check(acct != cidx.end(), "no quota for this provider");
+    eosio::check(acct->quota >= quantity, "not enough quota for this provider");
     auto newQuantity = acct->quota;
     if(acct->quota < quantity){
         return false;
@@ -663,7 +663,7 @@ private:
         accountext::_by_account_service_provider(owner, service, provider);
     auto cidx = accountexts.get_index<"byprov"_n>();
     auto acct = cidx.find(idxKey);
-    eosio_assert(acct != cidx.end(), "must choose package first");
+    eosio::check(acct != cidx.end(), "must choose package first");
     cidx.modify(acct, eosio::same_payer, [&](auto &a) { a.quota += quantity; });
   }
 
@@ -695,15 +695,15 @@ private:
     stats statstable(_self, sym.code().raw());
     auto existingx = statsexts.find(sym.code().raw());
     auto existing = statstable.find(sym.code().raw());
-    eosio_assert(existingx != statsexts.end(),
+    eosio::check(existingx != statsexts.end(),
                  "token with symbol does not exist");
-    eosio_assert(existing != statstable.end(),
+    eosio::check(existing != statstable.end(),
                  "token with symbol does not exist");
     const auto &stx = *existingx;
     const auto &st = *existing;
     double inflation = stx.inflation_per_block;
     
-    auto current_time_ms = current_time() / 1000;
+    auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     
     uint64_t last_inflation_ts = stx.last_inflation_ts;
     
@@ -737,7 +737,7 @@ private:
   uint64_t getUnstakeRemaining(name payer, name provider, name service) {
 
     auto sym = DAPPSERVICES_SYMBOL;
-    auto current_time_ms = current_time() / 1000;
+    auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     accountexts_t accountexts(_self, sym.code().raw());
     auto idxKey =
         accountext::_by_account_service_provider(payer, service, provider);
@@ -771,7 +771,7 @@ private:
   }
   void refillPackage(name payer, name provider, name service,
                      accountext & acct) {
-    auto current_time_ms = current_time() / 1000;
+    auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     if (acct.package_end > current_time_ms) // not expired yet
       return;
 
@@ -804,7 +804,7 @@ private:
   }
   void dist_rewards(name payer, name provider, name service) {
     applyInflation();
-    auto current_time_ms = (current_time() / 1000);
+    auto current_time_ms = (current_time_point().time_since_epoch().count() / 1000);
     // set last_block
     rewards_t rewards(_self, provider.value);
     auto reward = rewards.find(DAPPSERVICES_SYMBOL.code().raw());
@@ -826,7 +826,7 @@ private:
       
       stats_ext statsexts(_self, sym.code().raw());
       auto existingx = statsexts.find(sym.code().raw());
-      eosio_assert(existingx != statsexts.end(),
+      eosio::check(existingx != statsexts.end(),
                  "token with symbol does not exist");
       const auto &stx = *existingx;
       
@@ -836,7 +836,7 @@ private:
         auto current_stake = reward->total_staked.amount;
         stats statstable(_self, sym.code().raw());
         auto existing = statstable.find(sym.code().raw());
-        eosio_assert(existing != statstable.end(),
+        eosio::check(existing != statstable.end(),
                      "token with symbol does not exist");
         const auto &st = *existing;
         auto totalStakeFactor = (1.0 * st.supply.amount) / stx.staked.amount;
@@ -865,20 +865,20 @@ private:
 
   void giveRewards(name provider, name service, asset quantity) {
     auto sym = DAPPSERVICES_SYMBOL;
-    auto current_time_ms = (current_time() / 1000);
+    auto current_time_ms = (current_time_point().time_since_epoch().count() / 1000);
     
     stats statstable(_self, sym.code().raw());
     auto existing = statstable.find(sym.code().raw());
     
-    eosio_assert(existing != statstable.end(),
+    eosio::check(existing != statstable.end(),
                  "token with symbol does not exist, create token before issue");
     const auto &st = *existing;
-    eosio_assert(quantity.is_valid(), "invalid quantity");
-    eosio_assert(quantity.amount > 0, "must issue positive quantity");
+    eosio::check(quantity.is_valid(), "invalid quantity");
+    eosio::check(quantity.amount > 0, "must issue positive quantity");
 
-    eosio_assert(quantity.symbol == st.supply.symbol,
+    eosio::check(quantity.symbol == st.supply.symbol,
                  "symbol precision mismatch");
-    eosio_assert(quantity.amount <= st.max_supply.amount - st.supply.amount,
+    eosio::check(quantity.amount <= st.max_supply.amount - st.supply.amount,
                  "quantity exceeds available supply");
 
     
@@ -905,15 +905,15 @@ private:
   const currency_stats &getSymbolStats(symbol sym) {
     stats statstable(_self, sym.code().raw());
     auto existing = statstable.find(sym.code().raw());
-    eosio_assert(sym.is_valid(), "invalid symbol name");
-    eosio_assert(existing != statstable.end(),
+    eosio::check(sym.is_valid(), "invalid symbol name");
+    eosio::check(existing != statstable.end(),
                  "token with symbol does not exist");
     return *existing;
   }
 };
 
 extern "C" {
-[[noreturn]] void apply(uint64_t receiver, uint64_t code, uint64_t action) {
+void apply(uint64_t receiver, uint64_t code, uint64_t action) {
   if (code == receiver) {
     switch (action) {
       EOSIO_DISPATCH_HELPER(
