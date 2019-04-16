@@ -133,6 +133,7 @@ describe(`Oracle Service Test Contract`, () => {
                     broadcast: true,
                     sign: true
                 });
+                done();
             }
             catch (e) {
                 done(e);
