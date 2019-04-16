@@ -16,10 +16,9 @@ const std::vector<char> hashData(vector<char> data){
   char* c = (char*) malloc(buffer.size()+1); 
   memcpy(c, buffer.data(), buffer.size()); 
   c[buffer.size()] = 0; 
-  checksum256 *hash_val = (checksum256 *) malloc(32); 
-  sha256(c, buffer.size(), hash_val); 
+  auto hash_val = sha256(c, buffer.size()); 
   char * placeholder = (char*) malloc(32);
-  memcpy(placeholder , hash_val, 32 );
+  memcpy(placeholder , &hash_val, 32 );
   std::vector<char> hash_ret = std::vector<char>(placeholder,placeholder + 32); 
   return hash_ret; 
 } 
