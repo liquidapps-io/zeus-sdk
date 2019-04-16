@@ -623,13 +623,7 @@ static bucketParsedParts_t _parseCacheBucket(vector<char> dictStr, uint64_t scop
     // append.
     return bucketParsedParts;
 }
-extern "C" {
-   struct __attribute__((aligned (16))) capi_checksum256 { uint8_t hash[32]; };
- 
-   __attribute__((eosio_wasm_import))
-   void sha256( const char* data, uint32_t length, capi_checksum256* hash );
 
-}
 uint64_t _calcBucket(vector<char> fullKey){
     auto buffer = fullKey;
     char* c = (char*) malloc(buffer.size()+1);
