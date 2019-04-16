@@ -77,6 +77,7 @@ static std::vector<char> getURI(std::vector<char> uri, Lambda&& combinator){  \
         name nextProvider = _getNextProvider(*existing, providers); \
         SEND_SVC_REQUEST_P(geturi,nextProvider, uri); \
     } \
+    return std::vector<char>();\
 }  \
 static void updateOracleResult(std::vector<char> uri, name provider, std::vector<char> result){  \
     auto _self = name(current_receiver()); \
