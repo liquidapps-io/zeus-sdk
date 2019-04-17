@@ -46,7 +46,7 @@ var eosconfig = {
     expireInSeconds: 1200,
     sign: true,
 };
-
+var eosdspconfig = { ...eosconfig };
 if (network.secured) {
     eosconfig.httpsEndpoint = 'https://' + network.host + ':' + network.port;
 }
@@ -76,6 +76,8 @@ proxy.on('error', function(err, req, res) {
 //     return Eos.modules.format.decodeName(tmp.toString(), true);
 // }
 var eosPrivate = new Eos(eosconfig);
+eosdspconfig.httpEndpoint = `http://${process.env.NODEOS_HOST_DSP || 'localhost'}:${process.env.NODEOS_HOST_DSP_PORT || 13015}`;
+var eosDSPGateway = new Eos(eosdspconfig);
 const forwardEvent = async(act, endpoint, redirect) => {
     if (redirect)
         return endpoint;
@@ -93,7 +95,7 @@ const resolveBackendServiceData = async(service, provider) => {
     var loadedExtension = loadedExtensions.find(a => getContractAccountFor(a) == service);
     if (!loadedExtension)
         return;
-    var host = process.env[`DAPPSERVICE_HOST_${loadedExtension.name.toUpperCase()}`];
+    var host = process.env[`DAPPSERVICE_HOST_${ loadedExtension.name.toUpperCase() }`];
     if (!host)
         host = 'localhost';
     return {
@@ -463,4 +465,4 @@ const generateABI =
 
 
 
-module.exports = { deserialize, generateABI, genNode, genApp, forwardEvent, resolveProviderData, resolveProvider, processFn, handleAction, paccount, proxy, eosPrivate, eosconfig, nodeosEndpoint, resolveProviderPackage }
+module.exports = { deserialize, generateABI, genNode, genApp, forwardEvent, resolveProviderData, resolveProvider, processFn, handleAction, paccount, proxy, eosPrivate, eosconfig, nodeosEndpoint, resolveProviderPackage, eosDSPGateway }
