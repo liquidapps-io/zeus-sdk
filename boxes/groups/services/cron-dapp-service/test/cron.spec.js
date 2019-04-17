@@ -48,7 +48,7 @@ describe(`Cron Service Test Contract`, () => {
     });
 
     var account = code;
-    it('Cron test', done => {
+    it('Cron test - every 2 seconds', done => {
         (async() => {
             try {
                 var res = await testcontract.testschedule({}, {
@@ -65,7 +65,7 @@ describe(`Cron Service Test Contract`, () => {
                     "limit": 100
                 });
                 console.log(res);
-                assert.equal(res.rows[0].counter, "3", "counter did not increase");
+                assert.equal(res.rows[0].counter, "4", "counter did not increase");
 
                 done();
             }
