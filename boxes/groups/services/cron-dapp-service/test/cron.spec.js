@@ -9,12 +9,14 @@ const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
 const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
+const delay = ms => new Promise(res => setTimeout(res, ms))
 
 var contractCode = 'cronconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
 describe(`Cron Service Test Contract`, () => {
     var testcontract;
     const code = 'test1';
+    var eosvram;
     before(done => {
         (async() => {
             try {
@@ -32,7 +34,7 @@ describe(`Cron Service Test Contract`, () => {
                     var keys = await getCreateKeys(account);
                     config.keyProvider = keys.privateKey;
                 }
-                var eosvram = deployedContract.eos;
+                eosvram = deployedContract.eos;
                 config.httpEndpoint = "http://localhost:13015";
                 eosvram = new Eos(config);
 
@@ -46,7 +48,7 @@ describe(`Cron Service Test Contract`, () => {
     });
 
     var account = code;
-    it('Cron test', done => {
+    it('Cron test - every 2 seconds', done => {
         (async() => {
             try {
                 var res = await testcontract.testschedule({}, {
@@ -54,6 +56,16 @@ describe(`Cron Service Test Contract`, () => {
                     broadcast: true,
                     sign: true
                 });
+                await delay(15000);
+                res = await eosvram.getTableRows({
+                    "json": true,
+                    "scope": code,
+                    "code": code,
+                    "table": "stat",
+                    "limit": 100
+                });
+                assert.equal(res.rows[0].counter, "4", "counter did not increase");
+
                 done();
             }
             catch (e) {

@@ -1,5 +1,5 @@
 var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
-const { deserialize, generateABI, genNode, eosPrivate, paccount, forwardEvent, resolveProviderData, resolveProvider, resolveProviderPackage } = require('../dapp-services-node/common');
+const { deserialize, generateABI, genNode, eosPrivate, eosDSPGateway, paccount, forwardEvent, resolveProviderData, resolveProvider, resolveProviderPackage } = require('../dapp-services-node/common');
 const { getCreateKeys } = require('../../extensions/tools/eos/utils');
 
 
@@ -10,16 +10,19 @@ nodeFactory('cron', {
     schedule: async({ rollback, replay, event, exception }, { timer, payload, seconds }) => {
         if (exception || replay || rollback || process.env.PASSIVE_DSP_NODE)
             return;
+
         const { payer, packageid, current_provider } = event;
+        console.log('setting timer', payer, timer);
         const timerId = timers[`${payer}_${timer}`];
         if (timerId) {
             clearTimeout(timerId);
         }
         if (seconds == 0) return;
         timers[`${payer}_${timer}`] = setTimeout(async() => {
+            console.log('firing timer', payer, timer);
             let key;
             delete timers[`${payer}_${timer}`];
-            var contract = await eosPrivate.contract(payer);
+            var contract = await eosDSPGateway.contract(payer);
             if (!process.env.DSP_PRIVATE_KEY)
                 key = await getCreateKeys(paccount);
             try {

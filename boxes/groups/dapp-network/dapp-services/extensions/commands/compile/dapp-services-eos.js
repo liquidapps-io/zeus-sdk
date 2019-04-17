@@ -36,6 +36,10 @@ public:
   DAPPSERVICE_PROVIDER_ACTIONS
   ${upperName}_DAPPSERVICE_ACTIONS
   ${M('STANDARD_USAGE_MODEL')}
+
+#ifdef ${upperName}_DAPPSERVICE_SERVICE_MORE
+  ${upperName}_DAPPSERVICE_SERVICE_MORE
+#endif
   
   struct model_t {
     ${M('HANDLE_MODEL_SIGNAL_FIELD')}
@@ -55,6 +59,7 @@ public:
     require_auth(get_first_receiver());
     ${M('HANDLECASE_SIGNAL_TYPE')}
   }
+  
   DAPPSERVICE_PROVIDER_BASIC_ACTIONS
 };
 
@@ -214,26 +219,30 @@ const generateServiceHppFile = (serviceModel) => {
 #include "../dappservices/_${name}_impl.hpp"\n
 
 
+#define ${upperName}_DAPPSERVICE_BASE_ACTIONS \\
+  ${commandsCodeText} \\
+  ${commandsHelpersCodeText}
+
+
 #ifdef ${upperName}_DAPPSERVICE_ACTIONS_MORE
 #define ${upperName}_DAPPSERVICE_ACTIONS \\
-  ${commandsCodeText} \\
-  ${commandsHelpersCodeText} \\
+  ${upperName}_DAPPSERVICE_BASE_ACTIONS \\
   ${upperName}_DAPPSERVICE_ACTIONS_MORE() \n
 
 #else
 #define ${upperName}_DAPPSERVICE_ACTIONS \\
-  ${commandsCodeText} \\
-  ${commandsHelpersCodeText}
+  ${upperName}_DAPPSERVICE_BASE_ACTIONS 
 #endif
-
 
 
 #ifndef ${upperName}_SVC_COMMANDS
 #define ${upperName}_SVC_COMMANDS() ${commandNames.map(commandName=>`(x${commandName})`).join('')}\n
 
+#ifndef ${upperName}_DAPPSERVICE_SKIP_HELPER
 struct ${name}_svc_helper{
     ${upperName}_DAPPSERVICE_ACTIONS
 };
+#endif
 
 #endif`;
 
