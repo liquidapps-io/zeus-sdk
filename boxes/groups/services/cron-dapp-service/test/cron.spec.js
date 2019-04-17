@@ -64,7 +64,6 @@ describe(`Cron Service Test Contract`, () => {
                     "table": "stat",
                     "limit": 100
                 });
-                console.log(res);
                 assert.equal(res.rows[0].counter, "4", "counter did not increase");
 
                 done();
