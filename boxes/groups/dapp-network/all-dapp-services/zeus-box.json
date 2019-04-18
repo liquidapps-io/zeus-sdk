@@ -8,6 +8,7 @@
     "log-dapp-service",
     "ipfs-dapp-service",
     "cron-dapp-service",
+    "vaccounts-dapp-service",
     "oracle-dapp-service"
   ]
 }
