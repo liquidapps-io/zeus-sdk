@@ -11,6 +11,10 @@
   "engines": {
     "node": ">=8.2.1"
   },
+  "go-ipfs": {
+    "version": "v0.4.20",
+    "distUrl": "https://s3.us-east-2.amazonaws.com/liquidapps.artifacts/ipfs/go-ipfs_v0.4.20_linux-amd64.tar.gz"
+  },
   "dependencies":{
      "big-integer": "^1.6.36",
       "bytebuffer": "^5.0.1",
