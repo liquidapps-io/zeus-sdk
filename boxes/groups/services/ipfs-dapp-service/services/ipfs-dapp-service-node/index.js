@@ -57,7 +57,7 @@ const readPointer = async(hash, contract) => {
         "index_position": 2,
         "limit": 1
     };
-    // var res = await eos.getTableRows(payload);
+    // console.log("payload", payload);
     const res = await rpc.get_table_rows(payload);
     var result = res.rows.find(a => a);
 
@@ -81,14 +81,12 @@ const hashData256 = (data) => {
 
 
 const calculateBucketShard = (key, scope, buckets, shards) => {
-    if (isUpperCase(scope))
-        scope = nameToString(Buffer.from(stringToName(scope)));
-    if (isUpperCase(key))
-        key = nameToString(Buffer.from(stringToName(key)));
-
+    scope = nameToString(Buffer.from(stringToName(scope)));
+    key = nameToString(Buffer.from(stringToName(key)));
     const fullkey = `${scope}-${key}`;
     const hashedKey = hashData(fullkey).match(/.{2}/g).reverse().join("");
     var num = new BigNumber(hashedKey, 16);
+    console.log("fullkey", fullkey, "num", num.toString());
     var bucket = num.mod(buckets).toNumber();
     var shard = num.idiv(Math.pow(2, 6)).mod(shards).toNumber();
     return { shard, bucket }
@@ -132,14 +130,15 @@ const stringToSymbol = (str) => {
 
 const stringToNameInner = (str) => {
     const pad = '\0'.repeat(8 - str.length);
-    return Buffer.from(pad + str).toString();
+    return Buffer.from(pad + str);
 }
 
 const stringToName = (str) => {
+    if (typeof str === 'number')
+        return Buffer.from(new BigNumber(str), 'hex');
     if (isUpperCase(str))
         return stringToSymbol(str);
-    else
-        return stringToNameInner(Buffer.from(new BigNumber(Eos.modules.format.encodeName(str).toString()).toString(16), 'hex').toString());
+    return Buffer.from(new BigNumber(Eos.modules.format.encodeName(str).toString()).toString(16), 'hex');
 }
 const nameToString = (name) => {
     const tmp = new BigNumber(name.toString('hex'), 16);
@@ -184,8 +183,8 @@ const extractRowFromShardData = async(shardData, bucket, scope, key, contract) =
 const getRowRaw = async(contract, table, scope, key, buckets, shards) => {
     const { shard, bucket } = calculateBucketShard(key, scope, buckets, shards);
     console.log("shard, bucket", shard, bucket);
-    scope = stringToName(scope);
-    key = stringToName(key);
+    scope = stringToNameInner(stringToName(scope)).toString();
+    key = stringToNameInner(stringToName(key)).toString();
     console.log("scope, key", scope, key);
     const shardData = await fetchShard(contract, table, shard);
     console.log("shardData", shardData);
@@ -215,7 +214,7 @@ async function verifyIPFSConnection() {
         console.log("ipfs connection established");
     }
     catch (e) {
-        console.error("ipfs connection failed");
+        console.error(`ipfs connection failed, IPFS_HOST = ${process.env.IPFS_HOST}`);
         process.exit(1);
     }
 

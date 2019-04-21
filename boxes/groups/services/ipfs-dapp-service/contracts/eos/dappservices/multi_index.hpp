@@ -632,7 +632,7 @@ uint64_t _calcBucket(vector<char> fullKey){
     capi_checksum256 *hash_val = (capi_checksum256 *) malloc(32); 
     sha256(c, buffer.size(), hash_val); 
     uint64_t * p64a = (uint64_t*) malloc(32);
-    memcpy(p64a, &hash_val, 32 );
+    memcpy(p64a, hash_val, 32 );
     uint64_t res = *(p64a+3);
     return res;
 }

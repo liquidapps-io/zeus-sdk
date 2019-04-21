@@ -55,7 +55,7 @@ module.exports = async(args) => {
                 moreargs = [...moreargs,
                     "--trace-history",
                     "--plugin eosio::state_history_plugin",
-                    "--state-history-endpoint 127.0.0.1:8889"
+                    "--state-history-endpoint 0.0.0.0:8889"
                 ];
                 ports = [...ports,
                     "-p 8889:8889"
