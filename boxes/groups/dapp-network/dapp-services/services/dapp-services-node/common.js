@@ -103,14 +103,50 @@ const resolveBackendServiceData = async(service, provider) => {
         endpoint: `http://${host}:${loadedExtension.port}`
     }
 }
-const resolveExternalProviderData = async(service, provider) => {
-    throw new Error("Not Supported yet");
+const resolveExternalProviderData = async(service, provider, packageid) => {
+    var key = getSvcProviderPkgKey(service, provider, packageid);
+
+
+
+    const payload = {
+        "json": true,
+        "scope": dappServicesContract,
+        "code": dappServicesContract,
+        "table": "package",
+        "lower_bound": key,
+        "key_type": 'sha256',
+        "encode_type": 'hex',
+        "index_position": 2,
+        "limit": 1
+    };
+    const packages = await rpc.get_table_rows(payload);
+    const result = packages.rows.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service);
+    if (result.length === 0)
+        throw new Error(`resolveExternalProviderData failed ${provider} ${service} ${packageid}`);
+
+    return {
+        internal: true,
+        endpoint: result.endpoint
+    }
+
 }
 
+const resolveProviderData = async(service, provider, packageid) =>
+    ((paccount == provider) ? resolveBackendServiceData : resolveExternalProviderData)(service, provider, packageid);
 
-const resolveProviderData = async(service, provider) =>
-    ((paccount == provider) ? resolveBackendServiceData : resolveExternalProviderData)(service, provider);
-
+const getSvcProviderPkgKey = (service, provider, packageid) => {
+    // package_id service.value, provider.value
+    var encodedProvider = new BigNumber(Eos.modules.format.encodeName(provider, true));
+    var encodedService = new BigNumber(Eos.modules.format.encodeName(service, true));
+    var encodedNone = new BigNumber(0);
+    var encodedPackage = new BigNumber(Eos.modules.format.encodeName(packageid, true));
+    encodedService = (toBound(encodedService.toString(16), 8));
+    encodedProvider = (toBound(encodedProvider.toString(16), 8));
+    encodedPackage = (toBound(encodedPackage.toString(16), 8));
+    encodedNone = (toBound(encodedNone.toString(16), 8));
+    var concated = encodedPackage + encodedNone + encodedProvider + encodedService;
+    return concated;
+}
 const getSvcPayerKey = (payer, service) => {
     var encodedPayer = new BigNumber(Eos.modules.format.encodeName(payer, true));
     var encodedService = new BigNumber(Eos.modules.format.encodeName(service, true));

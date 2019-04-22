@@ -341,8 +341,9 @@ describe(`Oracle Service Test Contract`, () => {
     it('Random Number', done => {
         (async() => {
             try {
+                var id = 100;
                 var res = await testcontract.testrnd({
-                    uri: Buffer.from(`random://1024`, 'utf8'),
+                    uri: Buffer.from(`random://1024/${id}`, 'utf8'),
                 }, {
                     authorization: `${code}@active`,
                     broadcast: true,
