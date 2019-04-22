@@ -5,7 +5,7 @@ require("babel-polyfill");
 if (process.env.DAEMONIZE_PROCESS)
     require('daemonize-process')();
 
-const { genNode, genApp, paccount, processFn, forwardEvent, resolveProviderData, resolveProvider } = require('./common');
+const { genNode, genApp, paccount, processFn, forwardEvent, resolveProviderData, resolveProvider, resolveProviderPackage } = require('./common');
 const actionHandlers = {
     'service_request': async(act, simulated) => {
         let { service, provider } = act.event;
@@ -17,7 +17,8 @@ const actionHandlers = {
         else {
             provider = await resolveProvider(payer, service, provider);
         }
-        var providerData = await resolveProviderData(service, provider);
+        var packageid = isReplay ? "replaypackage" : await resolveProviderPackage(payer, service, provider);
+        var providerData = await resolveProviderData(service, provider, packageid);
         if (!providerData)
             throw new Error("provider data not found");
         if (act.exception || paccount == provider)
@@ -27,9 +28,10 @@ const actionHandlers = {
         if (simulated)
             return;
         let { service, provider } = act.event;
+        var packageid = act.event.package;
         if (paccount != provider)
             return;
-        var providerData = await resolveProviderData(service, provider);
+        var providerData = await resolveProviderData(service, provider, packageid);
         if (!providerData)
             throw new Error("provider data not found");
         return await forwardEvent(act, providerData.endpoint);
@@ -40,7 +42,8 @@ const actionHandlers = {
         let { service, provider } = act.event;
         if (paccount != provider)
             return;
-        var providerData = await resolveProviderData(service, provider);
+        var packageid = act.event.package;
+        var providerData = await resolveProviderData(service, provider, packageid);
         if (!providerData)
             throw new Error("provider data not found");
         return await forwardEvent(act, providerData.endpoint);

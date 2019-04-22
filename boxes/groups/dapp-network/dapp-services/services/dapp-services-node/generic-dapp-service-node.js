@@ -79,7 +79,7 @@ const actionHandlers = {
             await handleRequest(handler, act, packageid, serviceName, handlers.abi);
             return "retry";
         }
-        var providerData = await resolveProviderData(service, provider);
+        var providerData = await resolveProviderData(service, provider, packageid);
         if (!providerData)
             return;
 

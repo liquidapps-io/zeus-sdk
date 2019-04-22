@@ -3,7 +3,10 @@
 #include <vector>
 #include <eosio/eosio.hpp>
 #include <eosio/crypto.hpp>
+#include <eosio/transaction.hpp>
+#include "../Common/base/base64.hpp"
 using std::vector;
+using namespace eosio;
 
 extern "C" {
    struct __attribute__((aligned (16))) capi_checksum256 { uint8_t hash[32]; };
@@ -59,8 +62,28 @@ static std::vector<char> _extractResults(const oracleentry& existing, Lambda&& c
 static name _getNextProvider(const oracleentry& existing, std::vector<name> providers){  \
     return providers[existing.results.size()]; \
 } \
+static checksum256 transaction_id() { \
+   using namespace eosio; \
+   checksum256 h; \
+   auto size = transaction_size(); \
+   char buf[size]; \
+   uint32_t read = read_transaction( buf, size ); \
+   check( size == read, "read_transaction failed"); \
+   return sha256(buf, read); \
+} \
 template<typename Lambda> \
 static std::vector<char> getURI(std::vector<char> uri, Lambda&& combinator){  \
+    checksum256 trxId = transaction_id(); \
+    auto trxIdp = trxId.data(); \
+    std::string trxIdStr(trxIdp, trxIdp + trxId.size()); \
+    auto pubTime = tapos_block_prefix(); \
+    std::string uristr(uri.begin(), uri.end()); \
+    auto s = fc::base64_encode(trxIdStr) + "://" + fc::to_string(pubTime) + "://" + uristr;\
+    std::vector<char> idUri(s.begin(), s.end()); \
+    return _getURI(idUri, combinator); \
+}\
+template<typename Lambda> \
+static std::vector<char> _getURI(std::vector<char> uri, Lambda&& combinator){  \
     auto providers = getProvidersForAccount(name(current_receiver()), TONAME(SVC_CONTRACT_NAME_ORACLE)); \
     auto _self = name(current_receiver()); \
     oracleentries_t entries(_self, _self.value);  \
@@ -72,7 +95,9 @@ static std::vector<char> getURI(std::vector<char> uri, Lambda&& combinator){  \
     } \
     else {\
         if(existing->results.size() >= providers.size()){\
-            return _extractResults(*existing, combinator);\
+            auto results = _extractResults(*existing, combinator);\
+            cidx.erase(existing);\
+            return results; \
         }\
         name nextProvider = _getNextProvider(*existing, providers); \
         SEND_SVC_REQUEST_P(geturi,nextProvider, uri); \

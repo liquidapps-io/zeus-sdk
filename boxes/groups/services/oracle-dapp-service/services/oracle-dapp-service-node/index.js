@@ -513,11 +513,16 @@ var handlers = {
 nodeFactory('oracle', {
     geturi: async({ event, rollback }, { uri }) => {
         if (rollback) return;
-        const parts = Buffer.from(uri, 'hex').toString('utf8').split("://", 2);
-        const proto = parts[0];
-        const address = parts[1];
-        const handler = handlers[proto];
+        const payloadStr = Buffer.from(uri, 'hex').toString('utf8');
 
+        const payloadParts = payloadStr.split("://", 4);
+        let partIdx = 0;
+        const trxId = payloadParts[partIdx++];
+        const tapos = payloadParts[partIdx++];
+        const proto = payloadParts[partIdx++];
+        const address = payloadParts[partIdx++];
+        const handler = handlers[proto];
+        console.log("req", trxId, tapos, proto, address);
         if (!handler)
             throw new Error(`unsupported protocol ${proto}`);
         try {
