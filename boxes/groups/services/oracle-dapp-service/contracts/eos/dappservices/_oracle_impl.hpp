@@ -8,15 +8,6 @@
 using std::vector;
 using namespace eosio;
 
-extern "C" {
-   struct __attribute__((aligned (16))) capi_checksum256 { uint8_t hash[32]; };
- 
-   __attribute__((eosio_wasm_import))
-   void sha256( const char* data, uint32_t length, capi_checksum256* hash );
-
-}
-
-
 const checksum256 hashData(vector<char> data){ 
     auto buffer = data; 
     char* c = (char*) malloc(buffer.size()+1); 

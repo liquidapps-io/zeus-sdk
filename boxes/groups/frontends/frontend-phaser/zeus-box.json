@@ -1,0 +1,35 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "commands": {
+    "Deploy Frontend": "zeus deploy frontend main",
+    "Run Locally": "zeus run frontend main"
+  },
+  "install":{
+    "npm-in-dirs":{
+      "frontends/main":{
+        "npm": {
+          "@material-ui/core": "^1.5.1",
+          "bignumber.js": "^7.2.1",
+          "clean-webpack-plugin": "0.1.19",
+          "copy-webpack-plugin": "^4.5.2",
+          "html-webpack-plugin": "3.2.0",
+          "raw-loader": "^0.5.1",
+          "static-server": "^2.2.1",
+          "webpack": "^3.4.1",
+          "webpack-dev-server": "^2.11.0",
+          "webpack-hot-middleware": "2.22.0",
+          "webpack-livereload-plugin": "2.1.1",
+          "phaser": "^3.3.0"
+        },
+        "npm-scripts": {
+          "build": "webpack",
+          "start": "npm run build && webpack-dev-server --port=8000"
+        }
+      }
+    }
+  },
+  "dependencies":["seed-frontends","seed-eos", "core-extensions", "hooks-npm", "frontend-main"]
+}

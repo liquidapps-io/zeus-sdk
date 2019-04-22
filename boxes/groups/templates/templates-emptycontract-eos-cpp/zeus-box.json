@@ -1,0 +1,22 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "commands": {
+    "Create contract from template": "zeus create contract somecontract"
+  },  
+  "dependencies":[
+    "hooks-npm",
+    "mocha","seed-eos", "seed-migrations", "hooks-cpp-contracts","eos-common",
+    "all-dapp-services",
+    "seed-models","templates-extensions"
+  ],
+  "install":{
+    "contracts":{
+    }
+  },
+  "hooks": {
+  }
+
+}
