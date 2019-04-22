@@ -25,7 +25,13 @@ using eosio::checksum256;
 using eosio::symbol_code;
 
 #include "dappservices.config.hpp"
+extern "C" {
+   struct __attribute__((aligned (16))) capi_checksum256 { uint8_t hash[32]; };
+ 
+   __attribute__((eosio_wasm_import))
+   void sha256( const char* data, uint32_t length, capi_checksum256* hash );
 
+}
 #define DAPPSERVICES_SYMBOL symbol(symbol_code("DAPP"), 4)
 #define DAPPSERVICES_QUOTA_SYMBOL symbol(symbol_code("QUOTA"), 4)
 #define EXPAND(...) __VA_ARGS__

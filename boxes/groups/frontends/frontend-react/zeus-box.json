@@ -1,0 +1,34 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "commands": {
+    "Deploy Frontend": "zeus deploy frontend main",
+    "Run Locally": "zeus run frontend main"
+  },
+  "install":{
+    "npm-in-dirs":{
+      "frontends/main":{
+        "npm": {
+          "@material-ui/core": "^1.5.1",
+          "big-integer": "^1.6.36",
+          "bytebuffer": "^5.0.1",
+          "react": "^16.4.2",
+          "react-dom": "^16.4.2",
+          "react-grid-layout": "^0.16.6",
+          "react-scripts": "^1.1.5",
+          "scatter-js": "^2.5.2",
+          "stream-buffers": "^3.0.1"
+        },
+        "npm-scripts": {
+          "start": "react-scripts start",
+          "build": "react-scripts build && sed 's/\\\"\\/static/\\\"\\.\\/static/g' -i build/index.html",
+          "test": "react-scripts test --env=jsdom",
+          "eject": "react-scripts eject"
+        }
+      }
+    }
+  },
+  "dependencies":["seed-frontends","seed-eos", "core-extensions", "hooks-npm", "frontend-main"]
+}

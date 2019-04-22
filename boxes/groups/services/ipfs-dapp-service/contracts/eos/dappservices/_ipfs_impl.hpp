@@ -10,14 +10,8 @@ using ipfsmultihash_t = std::vector<char>;
 #ifndef DAPP_RAM_PAYER
 #define DAPP_RAM_PAYER _self
 #endif
-extern "C" {
-   struct __attribute__((aligned (16))) capi_checksum256 { uint8_t hash[32]; };
- 
-   __attribute__((eosio_wasm_import))
-   void sha256( const char* data, uint32_t length, capi_checksum256* hash );
 
-}
-const std::vector<char> hashData(vector<char> data){ 
+const std::vector<char> hashDataV(vector<char> data){ 
   auto buffer = data; 
   char* c = (char*) malloc(buffer.size()+1); 
   memcpy(c, buffer.data(), buffer.size()); 
@@ -38,7 +32,7 @@ static ipfsmultihash_t data_to_ipfsmultihash(std::vector<char> data) {
     res.push_back(0x55);
     res.push_back(0x12);
     res.push_back(0x20);
-    std::vector<char> hash = hashData(data); 
+    std::vector<char> hash = hashDataV(data); 
     auto it = hash.begin(); 
     while (it != hash.end()) 
         res.push_back(*(it++)); 

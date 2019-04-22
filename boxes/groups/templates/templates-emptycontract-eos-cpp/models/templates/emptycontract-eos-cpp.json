@@ -1,0 +1,9 @@
+{
+    "name": "emptycontract-eos-cpp",
+    "args":[
+        "contractname"
+    ],
+    "optionals":[
+        "contractname"
+    ]
+}
