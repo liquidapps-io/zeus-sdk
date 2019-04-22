@@ -1,17 +1,20 @@
 'use strict';
 
-var yeoman = require('yeoman-generator');
+var Generator = require('yeoman-generator');
 const _ = require('lodash');
 const fs = require('fs');
 
-module.exports = yeoman.generators.Base.extend({
-    // The name `constructor` is important here
-    constructor: function(args, opts) {
-        yeoman.generators.Base.apply(this, arguments);
 
+module.exports = class extends Generator {
+    // The name `constructor` is important here
+    constructor(args, opts) {
+        // Calling the super constructor is important so our generator is correctly set up
+        super(args, opts);
         this.argument("contractname", { type: String, required: true });
-    },
-    write1: function() {
+    }
+
+
+    write1() {
         var name = _.kebabCase(this.options.contractname);
         this.fs.copyTpl(
             this.templatePath('**'),
@@ -37,5 +40,9 @@ ExternalProject_Add(
    BUILD_ALWAYS 1
 )\n`;
         fs.writeFileSync(this.destinationPath('', 'contracts/eos/CMakeLists.txt'), originalContent.concat(toAppendContent));
+
+
+
+
     }
-});
+};
