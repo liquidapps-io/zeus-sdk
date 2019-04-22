@@ -9,12 +9,16 @@ module.exports = async(args, zeusbox) => {
         console.log(emojMap.eight_pointed_black_star + 'NPM Install', packages.yellow);
         try {
             await execPromise(`npm install --loglevel error ${packages}`, {
-                cwd: path.resolve('.')
+                cwd: path.resolve('.'),
+                env: {
+                    ...process.env,
+                    GO_IPFS_DIST_URL: 'https://s3.us-east-2.amazonaws.com/liquidapps.artifacts'
+                }
             })
         }
         catch (e) {
             console.error(e.stderr);
-            if(packages === 'ipfs go-ipfs-dep ipfsd-ctl')
+            if (packages === 'ipfs go-ipfs-dep ipfsd-ctl')
                 return
             throw new Error('npm install failed');
         }
