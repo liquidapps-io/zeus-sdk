@@ -1,0 +1,21 @@
+{
+    "name": "vaccounts",
+    "port": 13129,
+    "contract": "accountless1",
+    "commands": {
+        "vexec": {
+            "blocking": false,
+            "request": {
+            },
+            "callback": {
+                "payload": "std::vector<char>",
+                "sig": "eosio::signature",
+                "pubkey": "eosio::public_key"
+            },
+            "signal": {
+                "sig": "eosio::signature",
+                "pubkey": "eosio::public_key"
+            }
+        }
+    }
+}

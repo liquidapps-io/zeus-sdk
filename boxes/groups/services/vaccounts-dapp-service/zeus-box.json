@@ -1,0 +1,22 @@
+{
+  "ignore": [
+    "README.md",
+    "LICENSE",    
+    "zeus-box.json"
+  ],
+  "dependencies":[
+    "dapp-services",
+    "seed-utils",
+    "mocha",
+    "hooks-cpp-contracts"],
+  "install":{
+    "contracts":{
+      "vaccountsservice": true,
+      "vaccountsconsumer": true
+    },
+    "npm":{
+      "node-fetch": true
+      
+    }
+  }
+}
