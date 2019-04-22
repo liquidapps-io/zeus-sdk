@@ -99,8 +99,10 @@ const sisterChainHistoryHandler = async({ proto, address }) => {
 };
 
 const randomHandler = async({ proto, address }) => {
-    // random://1024
-    const range = parseInt(address);
+    // random://1024/id
+    const parts = address.split('/');
+    const range = parseInt(parts[0]);
+
     return Math.floor(Math.random() * range).toString();
 }
 const sisterChainBlocksHandler = async({ proto, address }) => {
