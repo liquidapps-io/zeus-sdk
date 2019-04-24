@@ -7,7 +7,6 @@
     <header id="nav" v-if="!frameMode">
       <h1 id="logo-block">
         <router-link to="/">
-          <v-icon name="code" scale="2"/>
           <span style="margin-left:5px" class="logo-name">Zeus IDE</span>
         </router-link>
       </h1>
@@ -65,7 +64,7 @@
                         <span class="radio"></span> Light
                       </label>
                       <label class="input-checkbox checkboxCont">
-                        <input type="radio" v-model="embedConfig.theme" value="monokai">
+                        <input type="radio" v-model="embedConfig.theme" value="darcula">
                         <span class="radio"></span> Dark
                       </label>
                     </div>
@@ -461,7 +460,7 @@
           </div>
           <!-- <codemirror v-model="clientResult" :options="cmOptions"></codemirror> -->
           <div class="vue-codemirror">
-            <div class="CodeMirror cm-s-monokai">
+            <div class="CodeMirror cm-s-darcula">
               <div class="results-container">
                 <p v-for="log in clientResults">
                   <template v-if="typeof log == 'string'">
@@ -563,7 +562,7 @@
           </div>
           <!-- <codemirror v-model="clientResult" :options="cmOptions"></codemirror> -->
           <div class="vue-codemirror">
-            <div class="CodeMirror cm-s-monokai">
+            <div class="CodeMirror cm-s-darcula">
               <div class="results-container">
                 <p v-for="log in clientResults">
                   <template v-if="typeof log == 'string'">
@@ -600,7 +599,7 @@
 // language
 import "codemirror/mode/javascript/javascript.js";
 // theme css
-import "codemirror/theme/monokai.css";
+import "codemirror/theme/darcula.css";
 // theme css
 import "codemirror/theme/eclipse.css";
 // require active-line.js
@@ -718,7 +717,7 @@ export default {
       }`,
       localConfig: {},
       networkShowMode: true,
-      currentTheme: "monokai",
+      currentTheme: "darcula",
       networkList: networkHelper.getAvaibleNetwork(),
       currentNetwork: currentNetwork,
       currentNetworkInfo: networkHelper.getNetworkInfo(currentNetwork),
@@ -791,7 +790,7 @@ export default {
         keyMap: "sublime",
         matchBrackets: true,
         showCursorWhenSelecting: true,
-        theme: "monokai"
+        theme: "darcula"
         // extraKeys: { "Ctrl": "autocomplete" }
       },
       cmOptions: {
@@ -813,7 +812,7 @@ export default {
         keyMap: "sublime",
         matchBrackets: true,
         showCursorWhenSelecting: true,
-        theme: "monokai"
+        theme: "darcula"
         // readOnly: true
         // extraKeys: { "Ctrl": "autocomplete" }
       },
@@ -846,10 +845,10 @@ export default {
     );
     this.currentHttpEndpoint = this.currentEndpoint.ssl_endpoint;
 
-    this.readCli = Eos({
-      chainId: network.chainId,
-      httpEndpoint: "https://" + network.host
-    });
+    // this.readCli = Eos({
+    //   chainId: network.chainId,
+    //   httpEndpoint: "https://" + network.host
+    // });
 
     var params = this.$route.params;
     if (params.project) {

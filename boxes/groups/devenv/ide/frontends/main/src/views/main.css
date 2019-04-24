@@ -65,11 +65,11 @@ body {
   margin: 0;
   padding: 0;
   font-size: 13px;
-  /* background: rgb(39, 40, 34) */
+  /* background: #1e1e1e */
 }
 
 #app {
-  background: rgb(39, 40, 34);
+  background: #1e1e1e;
 }
 
 a {
@@ -84,8 +84,8 @@ p {
 header {
   height: 60px;
   /* background: rgb(30, 31, 28); */
-  background: rgb(65, 67, 57);
-  box-shadow: 0 0 5px rgba(28, 33, 40, 0);
+  background: #2B2B2B;
+  box-shadow: 0 0 5px #3e3e3e;
   position: relative;
   z-index: 100;
   width: 100vw;
@@ -96,7 +96,7 @@ header {
 }
 
 #editor .gutter {
-  background: rgb(65, 67, 57);
+  background: #2B2B2B;
   position: relative;
 }
 
@@ -139,8 +139,8 @@ header {
   top: 60px;
   bottom: 26px;
   left: 0;
-  border-right: 1px solid rgb(65, 67, 57);
-  background: rgb(39, 40, 34);
+  border-right: 1px solid ;
+  background: ;
   display: flex;
   flex-direction: column;
   z-index: 20;
@@ -219,7 +219,7 @@ header {
 .twitterCont {
   padding: 10px;
   display: block;
-  border-top: 1px solid rgb(65, 67, 57);
+  border-top: 1px solid #2B2B2B;
 }
 
 #sidebar #sidebar-main {
@@ -356,7 +356,7 @@ header h1 {
 
 #actions .action-item a.ai-button.selected,
 #actions .action-item a.ai-button:hover {
-  border-bottom: 1px solid #a6e22e;
+  border-bottom: 1px solid #2e2ee2;
 }
 
 #actions .action-item a.ai-button {
@@ -367,7 +367,7 @@ header h1 {
   line-height: 60px;
   /* color: #fbfbfb; */
   color: #ddd;
-  border-bottom: 1px solid #414339;
+  border-bottom: 1px solid #3f3f3f;
 
 }
 
@@ -1756,7 +1756,7 @@ input[type="button"].btn-block {
   height: 26px;
   line-height: 26px;
   padding: 0 13px;
-  background: rgb(65, 67, 57)
+  background: #2B2B2B
 }
 
 #bottom-bar svg {
@@ -1965,7 +1965,7 @@ input[type="button"].btn-block {
 }
 
 .file-list li.file-item.active {
-  background: rgb(65, 67, 57);
+  background: #2B2B2B;
 }
 
 .file-list li .file-name {
@@ -1991,7 +1991,7 @@ input[type="button"].btn-block {
 }
 
 .multi-file-mode .file-tabs {
-  background: rgb(65, 67, 57);
+  background: #2B2B2B;
   height: 35px;
   box-shadow: #181818 0px 0px 5px;
   border-top: 1px solid #1e1e1e;

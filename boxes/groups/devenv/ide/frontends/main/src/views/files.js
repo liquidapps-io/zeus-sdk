@@ -19,13 +19,13 @@ function arrayBufferToBufferCycle(ab) {
 
 export default {
 
-    initFileManager(){
+    initFileManager() {
 
         var self = this;
 
-        if(this.$refs.filer){
+        if (this.$refs.filer) {
 
-            this.$refs.filer.onchange = function(e){
+            this.$refs.filer.onchange = function(e) {
                 console.log(e, this.files);
                 var fileObject = this.files[0];
                 var fileName = fileObject.name;
@@ -36,48 +36,50 @@ export default {
                     content: '',
                     isLeader: false
                 }
-                
+
                 var fileReader = new FileReader();
                 fileReader.onload = function() {
-                    if(isWasm){
+                    if (isWasm) {
                         var wasmContent = arrayBufferToBuffer(this.result).toString("hex");
                         newFile.content = 'can not display';
                         newFile.hexData = wasmContent;
                         newFile.compiled = true;
                         console.log('ready', arrayBufferToBuffer(this.result).toString("hex"));
-                    }else{
+                    }
+                    else {
                         newFile.content = this.result;
                         console.log(this.result);
                     }
                     self.files.push(newFile);
                 }
 
-                if(isWasm){
+                if (isWasm) {
                     fileReader.readAsArrayBuffer(fileObject);
-                }else{
+                }
+                else {
                     fileReader.readAsText(fileObject);
                 }
             }
             console.log('this.$refs.filer', this.$refs);
         }
-        
+
     },
 
-    initEditor(){
+    initEditor() {
         var openedFilesSatus = this.getOpenedFileFromLocal();
         var editorFiles = [];
         console.log('openedFiles', openedFilesSatus, this.isMobile);
         this.files.forEach((file) => {
-            if(this.isMobile){
+            if (this.isMobile) {
                 editorFiles.push(file);
                 return;
             }
-            if(openedFilesSatus.files.indexOf(file.fileName) > -1){
+            if (openedFilesSatus.files.indexOf(file.fileName) > -1) {
                 console.log('openedFiles', file)
                 editorFiles.push(file);
             }
 
-            if(openedFilesSatus.selected && openedFilesSatus.selected == file.fileName){
+            if (openedFilesSatus.selected && openedFilesSatus.selected == file.fileName) {
                 this.currentEditFileName = file.fileName;
                 this.currentEditFile = file;
             }
@@ -86,21 +88,22 @@ export default {
         this.editorFiles = editorFiles;
     },
 
-    editorAfterProjectLoad(){
+    editorAfterProjectLoad() {
 
-        if(!this.editorFiles.length){
-            if(this.isMobile){
+        if (!this.editorFiles.length) {
+            if (this.isMobile) {
                 this.editorFiles = this.files;
-            }else{
+            }
+            else {
                 this.editorFiles = [this.files[0]];
             }
         }
-       
-        if(!this.currentEditFileName) this.openFile(this.files[0]);
 
-        console.log('editorAfterProjectLoad',  this.files[0]);
+        if (!this.currentEditFileName) this.openFile(this.files[0]);
+
+        console.log('editorAfterProjectLoad', this.files[0]);
     },
-    createFile(){
+    createFile() {
         var newFile = {
             fileName: 'untitled.cpp',
             content: '',
@@ -112,52 +115,52 @@ export default {
         this.autoSaveCode();
     },
 
-    handleFileContextmenu(Vnode){
+    handleFileContextmenu(Vnode) {
         currentSelectedFileIndex = Vnode.data.key;
         console.log('vnode', Vnode, currentSelectedFileIndex)
     },
 
-    handleSelectAsMain(){
+    handleSelectAsMain() {
         var currentFile = this.files[currentSelectedFileIndex];
         console.log('handleSelectAsMain', currentFile)
-        if(!currentFile.compiled && currentFile.fileName.indexOf('cpp') < 0){
+        if (!currentFile.compiled && currentFile.fileName.indexOf('cpp') < 0) {
             alert('not cpp file');
             return;
         }
 
-        this.files =  this.files.map((file) => {
-            if(file.isLeader){
+        this.files = this.files.map((file) => {
+            if (file.isLeader) {
                 delete file.isLeader;
             }
             return file;
         });
-     
+
         currentFile.isLeader = true;
         console.log('handleRename', arguments, currentSelectedFileIndex, currentFile);
         this.$forceUpdate();
         this.autoSaveCode();
     },
 
-    handleRename(){
+    handleRename() {
         var currentFile = this.files[currentSelectedFileIndex];
         currentFile.edit = true;
         console.log('handleRename', arguments, currentSelectedFileIndex, currentFile);
         this.$forceUpdate();
         this.autoSaveCode();
     },
-    handleDelete(){
+    handleDelete() {
         this.files.splice(currentSelectedFileIndex, 1);
         console.log('handleDelete', arguments);
         this.autoSaveCode();
     },
 
-    handleEdit(file){
+    handleEdit(file) {
 
-        var duplicateFiles = this.files.filter(function (item){ 
+        var duplicateFiles = this.files.filter(function(item) {
             return item != file && item.fileName == file.fileName
         });
 
-        if(duplicateFiles.length){
+        if (duplicateFiles.length) {
             alert('duplicate file name');
             return;
         }
@@ -173,10 +176,11 @@ export default {
         this.autoSaveCode();
     },
 
-    openFile(file, index){
-        if(this.editorFiles.indexOf(file) > -1){
+    openFile(file, index) {
+        if (this.editorFiles.indexOf(file) > -1) {
             console.log('file exist');
-        }else{
+        }
+        else {
             this.editorFiles.push(file);
         }
 
@@ -186,95 +190,96 @@ export default {
         this.saveEditorStatus();
 
     },
-    selectFile(file){
+    selectFile(file) {
 
         console.log('this.currentEditFileName', this.currentEditFileName)
 
-        this.currentEditFileName = file.fileName; 
+        this.currentEditFileName = file.fileName;
         this.currentEditFile = file;
         console.log('selectFile', this)
         this.saveEditorStatus();
     },
-    closeFile(file, index){
-        var leftFiles = this.editorFiles.filter(function (item){ 
+    closeFile(file, index) {
+        var leftFiles = this.editorFiles.filter(function(item) {
             return item != file
         });
 
-        var lastFile = leftFiles[leftFiles.length-1];
+        var lastFile = leftFiles[leftFiles.length - 1];
 
-        if(lastFile){
-            this.selectFile(leftFiles[leftFiles.length-1]);
-        }else{
+        if (lastFile) {
+            this.selectFile(leftFiles[leftFiles.length - 1]);
+        }
+        else {
             this.currentEditFile = {};
             this.currentEditFileName = '';
-        }   
-       
+        }
+
         this.editorFiles = leftFiles;
 
         this.saveEditorStatus();
         console.log('leftFiles', leftFiles);
     },
 
-    saveEditorStatus(){
+    saveEditorStatus() {
         var openedFiles = this.editorFiles.map((f) => {
             return f.fileName;
         })
         window.localStorage.setItem('openedFiles', JSON.stringify({
             selected: this.currentEditFileName,
-            files:  openedFiles.join(',')
+            files: openedFiles.join(',')
         }));
     },
 
-    getOpenedFileFromLocal(){
+    getOpenedFileFromLocal() {
         var files = window.localStorage.getItem('openedFiles');
-        if(files) return JSON.parse(files);
+        if (files) return JSON.parse(files);
         return {
             files: []
         };
     },
 
-    getFileCodeOptions(file){
+    getFileCodeOptions(file) {
         console.log('getFileCodeOptions', file)
-       var Options = {
-        tabSize: 2,
-        styleActiveLine: false,
-        lineNumbers: true,
-        styleSelectedText: false,
-        line: true,
-        foldGutter: true,
-        gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
-        highlightSelectionMatches: { showToken: /\w/, annotateScrollbar: true },
-        mode: "text/javascript",
-        // hint.js options
-        hintOptions: {
-            // 当匹配只有一项的时候是否自动补全
-            completeSingle: false
-        },
-        //快捷键 可提供三种模式 sublime、emacs、vim
-        keyMap: "sublime",
-        matchBrackets: true,
-        showCursorWhenSelecting: true,
-        theme: "monokai"
-        // extraKeys: { "Ctrl": "autocomplete" }
+        var Options = {
+            tabSize: 2,
+            styleActiveLine: false,
+            lineNumbers: true,
+            styleSelectedText: false,
+            line: true,
+            foldGutter: true,
+            gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+            highlightSelectionMatches: { showToken: /\w/, annotateScrollbar: true },
+            mode: "text/javascript",
+            // hint.js options
+            hintOptions: {
+                // 当匹配只有一项的时候是否自动补全
+                completeSingle: false
+            },
+            //快捷键 可提供三种模式 sublime、emacs、vim
+            keyMap: "sublime",
+            matchBrackets: true,
+            showCursorWhenSelecting: true,
+            theme: "darcula"
+            // extraKeys: { "Ctrl": "autocomplete" }
         }
 
-        if(file.fileName && (file.fileName.indexOf('cpp') > -1  || file.fileName.indexOf('hpp') > -1 )){
-        Options.mode = 'text/x-c++src';
+        if (file.fileName && (file.fileName.indexOf('cpp') > -1 || file.fileName.indexOf('hpp') > -1)) {
+            Options.mode = 'text/x-c++src';
         }
 
-        if(file.fileName && (file.fileName.indexOf('java') > -1)){
-        Options.mode = 'text/x-java';
+        if (file.fileName && (file.fileName.indexOf('java') > -1)) {
+            Options.mode = 'text/x-java';
         }
 
         console.log('getFileCodeOptions', Options)
         return Options;
     },
 
-    exportState(){
+    exportState() {
         this.stateDatabase = JSON.stringify(window.localStorage);
     },
 
-    importState(){
+    importState() {
 
 
     }
