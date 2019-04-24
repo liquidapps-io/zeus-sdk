@@ -172,18 +172,6 @@ _endpoints['eosmain'] = [{
     "producer": "argentinaeos"
 }, {
     "location": {
-        "name": "Singapore",
-        "country": "SG",
-        "latitude": 0,
-        "longitude": 0
-    },
-    "node_type": "full",
-    "p2p_endpoint": "",
-    "api_endpoint": "http://api-mainnet.eosgravity.com",
-    "ssl_endpoint": "https://api-mainnet.eosgravity.com",
-    "producer": "eosisgravity"
-}, {
-    "location": {
         "name": "Tokyo",
         "country": "JP",
         "latitude": 35.7090259,
