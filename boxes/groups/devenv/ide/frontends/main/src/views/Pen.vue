@@ -884,7 +884,7 @@ export default {
 
   mounted: function() {
     console.log("projectId", this.projectId);
-    this.initTour();
+    // this.initTour();
     // this.emebedFrameURL =
     //         window.location.origin +'/#'+ (this.$route.fullPath.indexOf('?') > -1
     //             ? this.$route.fullPath+'&frame=1' :
