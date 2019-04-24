@@ -18,7 +18,7 @@ module.exports = async(args, zeusbox) => {
         }
         catch (e) {
             console.error(e.stderr);
-            if (packages === 'ipfs go-ipfs-dep ipfsd-ctl')
+            if (packages === 'ipfs go-ipfs-dep ipfsd-ctl' && e.stderr.indexOf("ERR!") === -1)
                 return
             throw new Error('npm install failed');
         }
