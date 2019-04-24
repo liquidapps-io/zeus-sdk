@@ -1,0 +1,54 @@
+{
+    "version": "eosio::abi/1.0",
+    "types": [],
+    "structs": [
+        {
+            "name": "account",
+            "base": "",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "string"
+                },
+                {
+                    "name": "balance",
+                    "type": "unit64"
+                }
+            ]
+        },
+        {
+            "name": "create",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "content",
+                    "type": "string"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "action": "create",
+            "type": "create"
+        }
+    ],
+    "tables": [
+        {
+            "name": "account",
+            "type": "account",
+            "index_type": "i64",
+            "key_names": [
+                "account",
+                "name"
+            ],
+            "key_types": [
+                "name"
+            ]
+        }
+    ]
+}

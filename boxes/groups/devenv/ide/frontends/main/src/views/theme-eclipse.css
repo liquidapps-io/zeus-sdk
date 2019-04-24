@@ -1,0 +1,34 @@
+#app.theme-eclipse{
+    background: white;
+}
+
+.theme-eclipse .editor-tabs{
+    background: white;
+    border-top: none;
+    box-shadow: #999 0px 0px 5px;
+}
+
+.theme-eclipse .editor-tabs .editor-tab{
+    border-right: 0;
+}
+
+.theme-eclipse  a{
+    color: #333
+}
+
+.theme-eclipse  .editor-tabs .editor-tab.active{
+    background: none;
+    border-bottom: 3px solid #FF1717
+}
+
+.theme-eclipse  ::-webkit-scrollbar-track-piece{
+  background-color:  #eee;  
+}
+
+.theme-eclipse  ::-webkit-scrollbar-thumb{
+  background: #ddd;   
+}
+
+.theme-eclipse  ::-webkit-scrollbar-thumb:hover{
+  background: #ddd; 
+}

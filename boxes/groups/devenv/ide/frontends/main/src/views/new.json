@@ -1,0 +1,10 @@
+{
+    "name": "CryptoKylin TestNet",
+    "key": "cryptokylin",
+    "chainId": "5fff1dae8dc8e2fc4d5b23b2c7665c97f9e9d8edf2b6485a86ba311c25639191",
+    "explorer": "https://tools.cryptokylin.io/",
+    "endpoints": [{
+        "ssl_endpoint": "https://jungle.eosio.cr",
+        "producer": "activeeoscom"
+    }]
+}
