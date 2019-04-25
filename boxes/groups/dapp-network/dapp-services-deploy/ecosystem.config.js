@@ -58,6 +58,7 @@ switch (demuxBackend) {
 }
 
 module.exports = {
+    force: true,
     apps: [{
             name: 'dapp-services-node',
             script: __dirname + '/services/dapp-services-node/index.js',
