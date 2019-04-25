@@ -431,7 +431,9 @@ public:
     auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     uint64_t unstake_time = current_time_ms + getUnstakeRemaining(to,provider,service);
     
-    // set account->provider->service->unstake_time
+    auto sym = quantity.symbol;
+    eosio::check(DAPPSERVICES_SYMBOL == sym,
+                 "wrong symbol or precision");
 
     refunds_table refunds_tbl(_self, to.value);
     auto idxKey = refundreq::_by_symbol_service_provider(
@@ -460,6 +462,7 @@ public:
   }
 
  [[eosio::action]] void refund(name to, name provider, name service, symbol_code symcode) {
+    require_auth(to);
     require_recipient(provider);
     require_recipient(service);
     auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
@@ -485,7 +488,9 @@ public:
         accountext::_by_account_service_provider(to, service, provider);
     auto cidxacct = accountexts.get_index<"byprov"_n>();
     auto acct = cidxacct.find(idxKeyAcct);
-    if(acct != cidxacct.end()){
+    auto sym = quantity.symbol;
+    
+    if(acct != cidxacct.end() && DAPPSERVICES_SYMBOL == sym){
       if(quantity > acct->balance)
         quantity = acct->balance;
       sub_provider_balance(to, service, provider, quantity);

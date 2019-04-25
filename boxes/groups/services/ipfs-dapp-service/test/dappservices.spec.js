@@ -286,6 +286,31 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
             }
         })();
     });
+    it('Simple package and unstake', done => {
+        (async() => {
+            try {
+                var selectedPackage = 'test1231';
+                var testContractAccount = "consumer5";
+                var package_period = 20;
+                var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
+                await deployServicePackage({ package_id: selectedPackage, package_period });
+                await selectPackage({ deployedContract, selectedPackage });
+                await stake({ deployedContract, selectedPackage });
+                var failed = false;
+                try {
+                    await unstake({ deployedContract, selectedPackage, amount: "500.000" });
+                }
+                catch (e) {
+                    failed = true;
+                }
+                assert(failed, 'should have failed for bad unstake');
+                done();
+            }
+            catch (e) {
+                done(e);
+            }
+        })();
+    });
     it('Simple package and double unstake', done => {
         (async() => {
             try {
@@ -374,18 +399,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
             }
         })();
     });
-    // todo:
-    // out of quota test
-    // quota refill
-    // free packages
-    // cost of units
-    // inflation 
-    // claim rewards 
-    // multiple providers
-    // zero providers
-    // unqualified usage permissions
-    // unqualified provider permissions
-    // unstake timers
+
 
 
 });
