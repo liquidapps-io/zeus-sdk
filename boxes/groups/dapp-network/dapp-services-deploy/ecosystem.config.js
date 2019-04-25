@@ -104,6 +104,34 @@ module.exports = {
                 DSP_ACCOUNT: dspAccount,
                 DSP_PRIVATE_KEY: dspKey,
             }
+        },
+        {
+            name: 'cron-dapp-service-node',
+            script: __dirname + '/services/cron-dapp-service-node/index.js',
+            autorestart: true,
+            cwd: __dirname,
+            env: {
+                NODEOS_CHAINID: chainId,
+                NODEOS_HOST: nodeosHost,
+                NODEOS_PORT: nodePort,
+                NODEOS_SECURED: nodeSecured,
+                DSP_ACCOUNT: dspAccount,
+                DSP_PRIVATE_KEY: dspKey,
+            }
+        },
+        {
+            name: 'oracle-dapp-service-node',
+            script: __dirname + '/services/oracle-dapp-service-node/index.js',
+            autorestart: true,
+            cwd: __dirname,
+            env: {
+                NODEOS_CHAINID: chainId,
+                NODEOS_HOST: nodeosHost,
+                NODEOS_PORT: nodePort,
+                NODEOS_SECURED: nodeSecured,
+                DSP_ACCOUNT: dspAccount,
+                DSP_PRIVATE_KEY: dspKey,
+            }
         }
     ]
 };
