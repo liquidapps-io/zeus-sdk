@@ -5,13 +5,13 @@ const token = process.env.DFUSE_API_KEY;
 const dfuse_endpoint = process.env.DFUSE_ENDPOINT || "mainnet.eos.dfuse.io";
 const fetch = require('node-fetch');
 const blockCount = process.env.BLOCK_COUNT_PER_QUERY || 1000000;
-const rpc = new JsonRpc(`https://${dfuse_endpoint}`, { fetch, token })
+let rpc = new JsonRpc(`https://${dfuse_endpoint}`, { fetch, token })
 
 const contractAccount = process.env.CONTRACT;
 const Eos = require('eosjs');
 const endpoint = `http${process.env.NODEOS_SECURED == "true" ? "s" : ""}://${process.env.NODEOS_HOST || "localhost"}:${process.env.NODEOS_PORT || "13115"}`;
 const url = `${endpoint}/event`;
-const { Serialize } = require('./services/demux/eosjs2');
+const { Serialize } = require('../../services/demux/eosjs2');
 const { TextDecoder, TextEncoder } = require('text-encoding');
 const { hexToUint8Array, arrayToHex } = Serialize;
 
@@ -57,12 +57,17 @@ const getTransactions = async(handle, startat, cursor) => {
         response = await rpc.search_transactions(searchQuery, { start_block: startat, sort: 'asc', block_count: blockCount, cursor, limit: 100 });
     }
     catch (e) {
+        console.log(e);
         e.response.body.pipe(process.stdout);
         return;
     }
     if (!response.transactions || response.transactions.length === 0)
         return;
-    await Promise.all(response.transactions.map(trx => handle(trx.lifecycle)));
+    for (var i = 0; i < response.transactions.length; i++) {
+        const trx = response.transactions[i];
+        await handle(trx.lifecycle);
+    }
+
     if (response.cursor)
         await getTransactions(handle, startat, response.cursor);
 }
@@ -73,7 +78,7 @@ var start = new Date();
 var remainingTime;
 var passedTime;
 var speed;
-async function clean(hexData) {
+async function replay(hexData) {
     if (hexData.length == 0)
         return;
     var buffer = new Serialize.SerialBuffer({
@@ -138,10 +143,10 @@ async function clean(hexData) {
         speed = (totalSize / (1024 * passedTime)).toFixed(2);
     }
     process.stdout.write("\r");
-    process.stdout.write(`sent ${thelowest} ${cnt} saved ${(totalSize / (1024)).toFixed(2)}KB ${speed}KB/s                    `);
+    process.stdout.write(`sent ${cnt} saved ${(totalSize / (1024)).toFixed(2)}KB ${speed}KB/s Block:${lastBlock}                    `);
 
 }
-var thelowest = 0;
+var c = 0;
 
 function chunk(arr, len) {
 
@@ -156,48 +161,61 @@ function chunk(arr, len) {
     return chunks;
 }
 var res = [];
+var tempToken = null;
 
-let lastBlock = 48623067;
+let lastBlock = 45419901;
 async function run(lower_bound) {
+    const response = await rpc.auth_issue(token);
+    tempToken = response.token;
+    rpc = new JsonRpc(`https://${dfuse_endpoint}`, { fetch, token: tempToken });
+
 
     while (true) {
         var found = false;
-        await getTransactions(trx => {
+        await getTransactions(async trx => {
             const curLastBlock = parseInt(trx.execution_trace.block_num);
             if (curLastBlock >= lastBlock)
                 lastBlock = curLastBlock + 1;
             // res.push(trx);
             // handleSingleTrx(trx)
-            handleSingleTrx(trx);
+            await handleSingleTrx(trx);
             found = true;
+            if (res.length >= 10000) {
+
+                const ares = res.map(a => a.console).filter(a => a !== '');
+
+
+                // console.log("\nparsing", res.length, ares.length, lastBlock);
+                res = [];
+                var events = [];
+                ares.forEach(a => {
+                    a.split('\n').forEach(line => {
+                        try {
+                            const event = JSON.parse(line)
+                            events.push(event);
+                        }
+                        catch (e) {}
+                    })
+                });
+                var commits = events.filter(a => a.etype === "service_request" && a.service === "ipfsservice1" &&
+                    (a.action === "commit" || a.action === "cleanup")).map(a => a.data)
+                commits = [...new Set(commits)];
+
+                var chunks = chunk(commits, 5);
+                for (var i = chunks.length; i--;) {
+                    var entries = chunks[i];
+                    await Promise.all(entries.map(a => {
+                        return replay(Buffer.from(a, 'base64').toString('hex'));
+                    }));
+                }
+
+            }
             // lastBlock = trxs[trxs.length - 1].execution_trace.block_num;
         }, lastBlock);
         if (!found)
             break;
     }
-    // res = res.map(a =>action_traces)
-    var events = [];
-    res = res.map(a => a.console).filter(a => a !== '');
-    res.forEach(a => {
-        a.split('\n').forEach(line => {
-            try {
-                const event = JSON.parse(line)
-                events.push(event);
-            }
-            catch (e) {}
-        })
-    });
-    var commits = events.filter(a => a.etype === "service_request" && a.service === "ipfsservice1" &&
-        (a.action === "commit" || a.action === "cleanup")).map(a => a.data)
-    commits = [...new Set(commits)];
-    var chunks = chunk(commits, 1);
-    for (var i = chunks.length; i--;) {
-        var entries = chunks[i];
-        // console.log(entries);
-        await Promise.all(entries.map(a => {
-            return clean(Buffer.from(a, 'base64').toString('hex'));
-        }));
-    }
+    console.log('\nhave more');
     if (res.more) {
         return run(res.rows[res.rows.length - 1].id);
     }
