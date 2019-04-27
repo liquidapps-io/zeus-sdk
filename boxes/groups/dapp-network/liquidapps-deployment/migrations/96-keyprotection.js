@@ -2,7 +2,7 @@ const { getEos, loadSettings } = require('../settings');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 var args = getDefaultArgs();
 
-const protectAccount = async(account) => {
+const protectAccount = async (account) => {
   // get current for account eos
   // set keys
   var settings = await loadSettings();
@@ -20,7 +20,7 @@ const protectAccount = async(account) => {
       accounts: [{
         permission: { actor: account, permission: 'eosio.code' },
         weight: 1
-      }],
+      }]
     }
   }, { authorization: `${account}@owner` });
 
@@ -31,12 +31,12 @@ const protectAccount = async(account) => {
     auth: {
       threshold: 1,
       keys: [{ key: newOwnerPublicKey, weight: 1 }],
-      accounts: [],
+      accounts: []
     }
   }, { authorization: `${account}@owner` });
-}
+};
 
-module.exports = async function() {
+module.exports = async function () {
   var settings = await loadSettings();
   if (!settings.protect) return;
 

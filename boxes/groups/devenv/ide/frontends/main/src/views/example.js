@@ -1,13 +1,11 @@
 export default {
 
+  eos: {
 
-
-    eos: {
-
-        files: [{
-                fileName: 'eosio.token.cpp',
-                isLeader: true,
-                content: `/**
+    files: [{
+      fileName: 'eosio.token.cpp',
+      isLeader: true,
+      content: `/**
 *  @file
 *  @copyright defined in eos/LICENSE.txt
 */
@@ -127,11 +125,11 @@ void token::add_balance( account_name owner, asset value, account_name ram_payer
 } /// namespace eosio
 
 EOSIO_ABI( eosio::token, (create)(issue)(transfer) )`
-            },
+    },
 
-            {
-                fileName: 'eosio.token.hpp',
-                content: `/**
+    {
+      fileName: 'eosio.token.hpp',
+      content: `/**
 *  @file
 *  @copyright defined in eos/LICENSE.txt
 */
@@ -214,11 +212,11 @@ namespace eosio {
     }
 
 } /// namespace eosio`
-            },
+    },
 
-            {
-                fileName: 'eosio.token.abi',
-                content: `{
+    {
+      fileName: 'eosio.token.abi',
+      content: `{
 "version": "eosio::abi/1.0",
 "types": [{
     "new_type_name": "account_name",
@@ -296,10 +294,10 @@ namespace eosio {
 "ricardian_clauses": [],
 "abi_extensions": []
 }`
-            },
-            {
-                fileName: 'client.js',
-                content: `(async () => {
+    },
+    {
+      fileName: 'client.js',
+      content: `(async () => {
 try{
     
     console.log('contract', contract.create)
@@ -312,8 +310,8 @@ try{
     console.log(e);
 }
 })(); `
-            }
-        ]
     }
+    ]
+  }
 
-}
+};

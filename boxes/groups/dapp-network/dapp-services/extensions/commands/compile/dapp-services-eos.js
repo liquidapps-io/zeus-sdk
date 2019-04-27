@@ -1,10 +1,8 @@
 var path = require('path');
 var fs = require('fs');
-const { loadModels } = require("../../tools/models");
-const { emojMap } = require("../../helpers/_exec");
-const { dappServicesContract, getContractAccountFor } = require("../../tools/eos/dapp-services");
-
-
+const { loadModels } = require('../../tools/models');
+const { emojMap } = require('../../helpers/_exec');
+const { dappServicesContract, getContractAccountFor } = require('../../tools/eos/dapp-services');
 
 const CMAKELISTS_FILE = `
 get_filename_component(PROJ_NAME "\${CMAKE_CURRENT_SOURCE_DIR}" NAME )
@@ -16,16 +14,15 @@ if(EOSIO_CDT_ROOT STREQUAL "" OR NOT EOSIO_CDT_ROOT)
 endif()
 add_executable( \${PROJ_NAME} \${ARGN} \${PROJ_NAME} \${PROJ_NAME}.cpp )
 include_directories( \${PROJ_NAME} PUBLIC ./ )
-`
-
+`;
 
 const generateServiceCppFile = (serviceModel) => {
-    var name = serviceModel.name;
-    var commandNames = Object.keys(serviceModel.commands);
-    var M = (macro) => commandNames.map(commandName => `${macro}(${commandName})`).join('\n');
-    var upperName = name.toUpperCase();
+  var name = serviceModel.name;
+  var commandNames = Object.keys(serviceModel.commands);
+  var M = (macro) => commandNames.map(commandName => `${macro}(${commandName})`).join('\n');
+  var upperName = name.toUpperCase();
 
-    return `#define SVC_NAME ${name}
+  return `#define SVC_NAME ${name}
 #include "../dappservices/${name}.hpp"
 CONTRACT ${name}service : public eosio::contract {
   using contract::contract;
@@ -64,152 +61,149 @@ public:
 };
 
 EOSIO_DISPATCH_SVC_PROVIDER(${name}service)\n`;
-
-}
+};
 
 const generateServiceAbiFile = (serviceModel) => {
-    const abi = {
-        "____comment": "This file was generated with dapp-services-eos. DO NOT EDIT " + new Date().toUTCString(),
-        "version": "eosio::abi/1.0",
-        "structs": [{
-                "name": "model_t",
-                "base": "",
-                "fields": []
-            },
-            {
-                "name": "providermdl",
-                "base": "",
-                "fields": [{
-                        "name": "model",
-                        "type": "model_t"
-                    },
-                    {
-                        "name": "package_id",
-                        "type": "name"
-                    }
-                ]
-            },
-            {
-                "name": "xsignal",
-                "base": "",
-                "fields": [{
-                        "name": "service",
-                        "type": "name"
-                    },
-                    {
-                        "name": "action",
-                        "type": "name"
-                    },
-                    {
-                        "name": "provider",
-                        "type": "name"
-                    },
-                    {
-                        "name": "package",
-                        "type": "name"
-                    },
-                    {
-                        "name": "signalRawData",
-                        "type": "bytes"
-                    }
-                ]
-            },
-            {
-                "name": "regprovider",
-                "base": "",
-                "fields": [{
-                        "name": "provider",
-                        "type": "name"
-                    },
-                    {
-                        "name": "model",
-                        "type": "providermdl"
-                    }
-                ]
-            }
-        ],
-        "types": [],
-        "actions": [{
-                "name": "xsignal",
-                "type": "xsignal",
-                "ricardian_contract": ""
-            },
-            {
-                "name": "regprovider",
-                "type": "regprovider",
-                "ricardian_contract": ""
-            }
-        ],
-        "tables": [{
-            "name": "providermdl",
-            "type": "providermdl",
-            "index_type": "i64",
-            "key_names": [],
-            "key_types": []
-        }],
-        "ricardian_clauses": [],
-        "abi_extensions": []
-    };
-    const structs = abi.structs;
-    const model_fields = structs.find(a => a.name == "model_t").fields;
-
-    function addCmd(cmdName) {
-        structs.push({
-            "name": `${cmdName}_model_t`,
-            "base": "",
-            "fields": [{
-                "name": "cost_per_action",
-                "type": "uint64"
-            }]
-        });
-        model_fields.push({
-            "name": `${cmdName}_model_field`,
-            "type": `${cmdName}_model_t`
-        });
+  const abi = {
+    '____comment': 'This file was generated with dapp-services-eos. DO NOT EDIT ' + new Date().toUTCString(),
+    'version': 'eosio::abi/1.0',
+    'structs': [{
+      'name': 'model_t',
+      'base': '',
+      'fields': []
+    },
+    {
+      'name': 'providermdl',
+      'base': '',
+      'fields': [{
+        'name': 'model',
+        'type': 'model_t'
+      },
+      {
+        'name': 'package_id',
+        'type': 'name'
+      }
+      ]
+    },
+    {
+      'name': 'xsignal',
+      'base': '',
+      'fields': [{
+        'name': 'service',
+        'type': 'name'
+      },
+      {
+        'name': 'action',
+        'type': 'name'
+      },
+      {
+        'name': 'provider',
+        'type': 'name'
+      },
+      {
+        'name': 'package',
+        'type': 'name'
+      },
+      {
+        'name': 'signalRawData',
+        'type': 'bytes'
+      }
+      ]
+    },
+    {
+      'name': 'regprovider',
+      'base': '',
+      'fields': [{
+        'name': 'provider',
+        'type': 'name'
+      },
+      {
+        'name': 'model',
+        'type': 'providermdl'
+      }
+      ]
     }
-    Object.keys(serviceModel.commands).forEach(addCmd);
-    return JSON.stringify(abi, null, 2);
-}
+    ],
+    'types': [],
+    'actions': [{
+      'name': 'xsignal',
+      'type': 'xsignal',
+      'ricardian_contract': ''
+    },
+    {
+      'name': 'regprovider',
+      'type': 'regprovider',
+      'ricardian_contract': ''
+    }
+    ],
+    'tables': [{
+      'name': 'providermdl',
+      'type': 'providermdl',
+      'index_type': 'i64',
+      'key_names': [],
+      'key_types': []
+    }],
+    'ricardian_clauses': [],
+    'abi_extensions': []
+  };
+  const structs = abi.structs;
+  const model_fields = structs.find(a => a.name == 'model_t').fields;
+
+  function addCmd (cmdName) {
+    structs.push({
+      'name': `${cmdName}_model_t`,
+      'base': '',
+      'fields': [{
+        'name': 'cost_per_action',
+        'type': 'uint64'
+      }]
+    });
+    model_fields.push({
+      'name': `${cmdName}_model_field`,
+      'type': `${cmdName}_model_t`
+    });
+  }
+  Object.keys(serviceModel.commands).forEach(addCmd);
+  return JSON.stringify(abi, null, 2);
+};
 
 const generateCommandCodeText = (serviceName, commandName, commandModel, serviceContract) => {
+  var fnArgs = (args) => Object.keys(args).map(name => `((${args[name]})(${name}))`).join('');
+  var fnPassArgs = (args) => Object.keys(args).join(', ');
 
-    var fnArgs = (args) => Object.keys(args).map(name => `((${args[name]})(${name}))`).join('');
-    var fnPassArgs = (args) => Object.keys(args).join(', ');
-
-    return `SVC_ACTION(${commandName}, ${commandModel.blocking}, ${fnArgs(commandModel.request)},     \
+  return `SVC_ACTION(${commandName}, ${commandModel.blocking}, ${fnArgs(commandModel.request)},     \
          ${fnArgs(commandModel.signal)}, \
          ${fnArgs(commandModel.callback)},"${serviceContract}"_n) { \
-    _${serviceName}_${commandName}(${fnPassArgs({...commandModel.callback,'current_provider':'name'})}); \
+    _${serviceName}_${commandName}(${fnPassArgs({ ...commandModel.callback, 'current_provider': 'name' })}); \
     SEND_SVC_SIGNAL(${commandName}, current_provider, package, ${fnPassArgs(commandModel.signal)})                         \
-};`
-
+};`;
 };
 
 const generateCommandHelperCodeText = (serviceName, commandName, commandModel) => {
-    var rargs = commandModel.request;
-    var argsKeys = Object.keys(rargs);
+  var rargs = commandModel.request;
+  var argsKeys = Object.keys(rargs);
 
-    var fnArgs = argsKeys.join(', ');
+  var fnArgs = argsKeys.join(', ');
 
-    rargs = { ...rargs, 'current_provider': 'name' };
-    var fnArgsWithType = argsKeys.map(name => `${rargs[name]} ${name}`).join(', ');
+  rargs = { ...rargs, 'current_provider': 'name' };
+  var fnArgsWithType = argsKeys.map(name => `${rargs[name]} ${name}`).join(', ');
 
-    return `static void svc_${serviceName}_${commandName}(${fnArgsWithType}) { \
+  return `static void svc_${serviceName}_${commandName}(${fnArgsWithType}) { \
     SEND_SVC_REQUEST(${commandName}, ${fnArgs}) \
-};`
-}
+};`;
+};
 const generateServiceHppFile = (serviceModel) => {
-    var name = serviceModel.name;
-    var upperName = name.toUpperCase();
-    var commandNames = Object.keys(serviceModel.commands);
-    var commandsCodeText = commandNames.map(
-        commandName => generateCommandCodeText(name, commandName,
-            serviceModel.commands[commandName], getContractAccountFor(serviceModel))).join('\\\n');
-    var commandsHelpersCodeText = commandNames.map(
-        commandName => generateCommandHelperCodeText(name, commandName,
-            serviceModel.commands[commandName], getContractAccountFor(serviceModel))).join('\\\n');
+  var name = serviceModel.name;
+  var upperName = name.toUpperCase();
+  var commandNames = Object.keys(serviceModel.commands);
+  var commandsCodeText = commandNames.map(
+    commandName => generateCommandCodeText(name, commandName,
+      serviceModel.commands[commandName], getContractAccountFor(serviceModel))).join('\\\n');
+  var commandsHelpersCodeText = commandNames.map(
+    commandName => generateCommandHelperCodeText(name, commandName,
+      serviceModel.commands[commandName], getContractAccountFor(serviceModel))).join('\\\n');
 
-    return `#pragma once
+  return `#pragma once
 #include "../dappservices/dappservices.hpp"\n
 #define SVC_RESP_${upperName}(name) \\
     SVC_RESP_X(${name},name)
@@ -236,7 +230,7 @@ const generateServiceHppFile = (serviceModel) => {
 
 
 #ifndef ${upperName}_SVC_COMMANDS
-#define ${upperName}_SVC_COMMANDS() ${commandNames.map(commandName=>`(x${commandName})`).join('')}\n
+#define ${upperName}_SVC_COMMANDS() ${commandNames.map(commandName => `(x${commandName})`).join('')}\n
 
 #ifndef ${upperName}_DAPPSERVICE_SKIP_HELPER
 struct ${name}_svc_helper{
@@ -245,37 +239,33 @@ struct ${name}_svc_helper{
 #endif
 
 #endif`;
-
-
-}
-
-const compileDappService = async(serviceModel) => {
-    var name = serviceModel.name;
-    var targetFolder = path.resolve(`./contracts/eos/${name}service`);
-    if (!fs.existsSync(targetFolder))
-        fs.mkdirSync(targetFolder);
-    try {
-        // generate files
-        fs.writeFileSync(path.resolve(`./contracts/eos/${name}service/${name}service.cpp`),
-            await generateServiceCppFile(serviceModel));
-        fs.writeFileSync(path.resolve(`./contracts/eos/${name}service/${name}service.abi`),
-            await generateServiceAbiFile(serviceModel));
-        fs.writeFileSync(path.resolve(`./contracts/eos/${name}service/CMakeLists.txt`),
-            CMAKELISTS_FILE);
-
-        fs.writeFileSync(path.resolve(`./contracts/eos/dappservices/${name}.hpp`),
-            await generateServiceHppFile(serviceModel));
-        console.log(emojMap.alembic + `CodeGen Service ${name.green}`)
-    }
-    catch (e) {
-        throw new Error(emojMap.white_frowning_face + `CodeGen Service: ${name.green} Service: ${e}`);
-    }
 };
-const generateConfig = async() => {
-    fs.writeFileSync(path.resolve(`./contracts/eos/dappservices/dappservices.config.hpp`),
-        `#define DAPPSERVICES_CONTRACT "${dappServicesContract}"_n\n`);
-}
-module.exports = async(args) => {
-    await Promise.all((await loadModels('dapp-services')).map(compileDappService));
-    await generateConfig();
-}
+
+const compileDappService = async (serviceModel) => {
+  var name = serviceModel.name;
+  var targetFolder = path.resolve(`./contracts/eos/${name}service`);
+  if (!fs.existsSync(targetFolder)) { fs.mkdirSync(targetFolder); }
+  try {
+    // generate files
+    fs.writeFileSync(path.resolve(`./contracts/eos/${name}service/${name}service.cpp`),
+      await generateServiceCppFile(serviceModel));
+    fs.writeFileSync(path.resolve(`./contracts/eos/${name}service/${name}service.abi`),
+      await generateServiceAbiFile(serviceModel));
+    fs.writeFileSync(path.resolve(`./contracts/eos/${name}service/CMakeLists.txt`),
+      CMAKELISTS_FILE);
+
+    fs.writeFileSync(path.resolve(`./contracts/eos/dappservices/${name}.hpp`),
+      await generateServiceHppFile(serviceModel));
+    console.log(emojMap.alembic + `CodeGen Service ${name.green}`);
+  } catch (e) {
+    throw new Error(emojMap.white_frowning_face + `CodeGen Service: ${name.green} Service: ${e}`);
+  }
+};
+const generateConfig = async () => {
+  fs.writeFileSync(path.resolve(`./contracts/eos/dappservices/dappservices.config.hpp`),
+    `#define DAPPSERVICES_CONTRACT "${dappServicesContract}"_n\n`);
+};
+module.exports = async (args) => {
+  await Promise.all((await loadModels('dapp-services')).map(compileDappService));
+  await generateConfig();
+};

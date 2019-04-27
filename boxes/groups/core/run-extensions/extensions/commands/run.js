@@ -1,1 +1,1 @@
-module.exports = require('../helpers/genericCommand')("run");
+module.exports = require('../helpers/genericCommand')('run');

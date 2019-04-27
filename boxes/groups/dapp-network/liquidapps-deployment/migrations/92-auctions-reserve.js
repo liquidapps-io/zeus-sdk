@@ -1,6 +1,6 @@
 const { loadSettings, getCreateAccount, deployer, artifacts } = require('../settings');
 
-module.exports = async function() {
+module.exports = async function () {
   const settings = await loadSettings();
   const auctions = settings.auctions;
   const whitelisted = auctions.whitelisted;
@@ -13,5 +13,4 @@ module.exports = async function() {
   // whitelisted
   safeAccount = whitelisted.safeAccount;
   keys = await getCreateAccount(safeAccount);
-
 };

@@ -15,12 +15,12 @@ if (process.env.NODE_ENV === 'development') {
 
 const composedEnhancers = compose(
   ...enhancers
-)
+);
 
 const store = createStore(
   rootReducer,
   initialState,
   composedEnhancers
-)
+);
 
 export default store;

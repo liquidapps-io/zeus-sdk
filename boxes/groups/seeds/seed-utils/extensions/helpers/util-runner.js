@@ -1,17 +1,16 @@
-const {execPromise} = require('./_exec') ;
+const { execPromise } = require('./_exec');
 const path = require('path');
 
-module.exports = (filePath)=> {
-    var cmd = path.basename(filePath, '.js');
-    return {
+module.exports = (filePath) => {
+  var cmd = path.basename(filePath, '.js');
+  return {
     description: `runs the ${cmd} utilility`,
     builder: (yargs) => {
-        yargs.example(`$0 run ${cmd}`);
+      yargs.example(`$0 run ${cmd}`);
     },
     command: `${cmd}`,
-    handler:async (args)=>{
-        
-        var stdout = await execPromise(`node utils/${cmd}/dist/index.js`); 
-        
+    handler: async (args) => {
+      var stdout = await execPromise(`node utils/${cmd}/dist/index.js`);
     }
-}};
+  };
+};

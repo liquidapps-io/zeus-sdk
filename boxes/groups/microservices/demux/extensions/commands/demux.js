@@ -1,1 +1,1 @@
-module.exports = require('../helpers/genericCommand')("demux");
+module.exports = require('../helpers/genericCommand')('demux');

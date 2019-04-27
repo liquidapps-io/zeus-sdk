@@ -1,1 +1,1 @@
-module.exports = require('../helpers/genericCommand')("register");
+module.exports = require('../helpers/genericCommand')('register');
