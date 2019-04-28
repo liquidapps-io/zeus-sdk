@@ -1,6 +1,6 @@
 const { loadSettings, getCreateAccount, deployer, artifacts } = require('../settings');
 
-module.exports = async function(args) {
+module.exports = async function (args) {
   const settings = await loadSettings();
   const dappTokenSettings = settings.dapptoken;
   const contractI = artifacts.require(`./dappservices/`);

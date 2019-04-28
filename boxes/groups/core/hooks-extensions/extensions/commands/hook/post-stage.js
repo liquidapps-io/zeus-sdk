@@ -1,1 +1,1 @@
-module.exports = require("../../tools/hooks")("post-stage")
+module.exports = require('../../tools/hooks')('post-stage');

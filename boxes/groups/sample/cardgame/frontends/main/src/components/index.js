@@ -7,5 +7,5 @@ export {
   App,
   Button,
   Game,
-  Login,
-}
+  Login
+};

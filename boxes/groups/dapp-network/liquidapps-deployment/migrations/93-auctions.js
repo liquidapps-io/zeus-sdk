@@ -1,6 +1,6 @@
 const { fmt, loadSettings, deployer, artifacts } = require('../settings');
 
-const deployAuctionInstance = async(auctionInstance) => {
+const deployAuctionInstance = async (auctionInstance) => {
   const settings = await loadSettings();
   const distribution = settings.distribution;
   const auctionsPortion = distribution.auctions;
@@ -23,7 +23,6 @@ const deployAuctionInstance = async(auctionInstance) => {
 
   const deployedContract = await deployer.deploy(contractI, account);
 
-
   const instance = deployedContract.contractInstance;
   const dappTokenSettings = settings.dapptoken;
   await instance.init({
@@ -38,7 +37,7 @@ const deployAuctionInstance = async(auctionInstance) => {
         contract: dappTokenSettings.account,
         amount: fmt(perCycle),
         precision: 4,
-        symbol: "DAPP"
+        symbol: 'DAPP'
       },
       accepted_token: {
         contract: accepted.contract,
@@ -48,20 +47,18 @@ const deployAuctionInstance = async(auctionInstance) => {
       },
       payout_cycles_per_user: 10,
       payouts_per_payin: 5,
-      payouts_delay_sec: 10,
+      payouts_delay_sec: 10
     }
   }, {
     authorization: `${account}@active`,
     broadcast: true,
     sign: true
   });
-}
+};
 
-module.exports = async function() {
+module.exports = async function () {
   var settings = await loadSettings();
   var auctions = settings.auctions;
   await deployAuctionInstance(auctions.whitelisted);
   await deployAuctionInstance(auctions.standard);
-
-
 };

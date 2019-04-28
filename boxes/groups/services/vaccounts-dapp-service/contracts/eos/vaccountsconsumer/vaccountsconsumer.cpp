@@ -25,6 +25,14 @@ CONTRACT_START()
     print(b + c);
     print("\n");
   }
+  
+  [[eosio::action]] void hello2(name vaccount, uint64_t b, uint64_t c) {
+    print("hello2(default action) from ");
+    print(vaccount);
+    print(" ");
+    print(b + c);
+    print("\n");
+  }
   [[eosio::action]] void regaccount(name vaccount) {
     setKey(vaccount, get_current_public_key());
   }
@@ -32,10 +40,13 @@ CONTRACT_START()
   void execute_vaccounts_action(action act){
     switch(act.name.value){
       case name("hello").value:
-        hello("1"_n, 1, 2);
+        hello("vaccount1"_n, 1, 2);
         break;
       case name("regaccount").value:
-        regaccount("1"_n);
+        regaccount("vaccount1"_n);
+        break;
+      default:
+        hello2("nobody"_n, 1, 2);
         break;
     }
   }
@@ -60,4 +71,4 @@ CONTRACT_START()
     return vkeys_table.get().pubkey;
   }
   
-CONTRACT_END((hello)(regaccount))
+CONTRACT_END((hello)(hello2)(regaccount))

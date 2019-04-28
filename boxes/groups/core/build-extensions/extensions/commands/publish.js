@@ -1,1 +1,1 @@
-module.exports = require('../helpers/genericCommand')("publish");
+module.exports = require('../helpers/genericCommand')('publish');

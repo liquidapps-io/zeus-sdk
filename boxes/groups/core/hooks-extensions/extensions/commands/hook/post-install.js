@@ -1,1 +1,1 @@
-module.exports = require("../../tools/hooks")("post-install")
+module.exports = require('../../tools/hooks')('post-install');

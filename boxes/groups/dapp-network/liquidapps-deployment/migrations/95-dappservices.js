@@ -1,6 +1,6 @@
 const { loadSettings, deployer, artifacts } = require('../settings');
 
-module.exports = async function() {
+module.exports = async function () {
   var settings = await loadSettings();
   var services = settings.services;
   await Promise.all(Object.keys(services).map(async serviceContract => {

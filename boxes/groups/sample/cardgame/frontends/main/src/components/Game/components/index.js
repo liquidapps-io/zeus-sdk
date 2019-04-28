@@ -13,5 +13,5 @@ export {
   HandCards,
   PlayerInfo,
   PlayerProfile,
-  Resolution,
-}
+  Resolution
+};

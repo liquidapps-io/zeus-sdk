@@ -1,1 +1,1 @@
-module.exports = require('../helpers/genericCommand')("sample-parentcmd");
+module.exports = require('../helpers/genericCommand')('sample-parentcmd');

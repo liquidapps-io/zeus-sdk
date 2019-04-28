@@ -1,1 +1,1 @@
-module.exports = require("../../tools/hooks")("post-unpack")
+module.exports = require('../../tools/hooks')('post-unpack');
