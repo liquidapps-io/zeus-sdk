@@ -180,7 +180,7 @@ describe(`vAccounts Service Test Contract`, () => {
                     }
                 });
 
-                assert.equal(res.result.processed.action_traces[0].console, "hello from 1 3\n", "wrong content");
+                assert.equal(res.result.processed.action_traces[0].console, "hello from vaccount1 3\n", "wrong content");
 
                 done();
             }
