@@ -59,7 +59,10 @@ describe(`vAccounts Service Test Contract`, () => {
         (async() => {
             try {
                 var deployedContract = await deployer.deploy(ctrt, code);
+                var deployedContract2 = await deployer.deploy(ctrt, "test2v");
                 await genAllocateDAPPTokens(deployedContract, "vaccounts");
+                await genAllocateDAPPTokens(deployedContract2, "vaccounts");
+
                 // create token
                 var keys = await getCreateKeys(account);
                 config.keyProvider = keys.privateKey;
@@ -189,7 +192,7 @@ describe(`vAccounts Service Test Contract`, () => {
             }
         })();
     });
-    it('Wrong key', done => {
+    it('Wrong sig', done => {
         (async() => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();
@@ -199,6 +202,41 @@ describe(`vAccounts Service Test Contract`, () => {
                     payload: "8468635b7f379feeb95500000000010000000000ea305500409e9a2264b89a010000000000ea305500000000a8ed3232660000000000ea305500a6823403ea30550100000001000240cc0bf90a5656c8bb81f0eb86f49f89613c5cd988c018715d4646c6bd0ad3d8010000000100000001000240cc0bf90a5656c8bb81f0eb86f49f89613c5cd988c018715d4646c6bd0ad3d80100000000"
                 }, "SIG_K1_K8Up3NhbzVY7dcwMY6cRS84KzvNJC8aKkdCiX16Z9d7WE8DPRsCrgBL4YZg3sfQYGZ66D7kKT8ee9vFVmrq6SxAfYx3LRB");
                 assert.equal(JSON.parse(res.error.details[0].message).error.details[0].method, "assert_recover_key", "should have failed with assert_recover_key");
+                done();
+            }
+            catch (e) {
+                done(e);
+            }
+        })();
+    });
+    it('Wrong account key', done => {
+        (async() => {
+            try {
+                let privateWif = (await PrivateKey.randomKey()).toWif();
+                var res = await runTrx({
+                    contract_code: "test2v",
+                    wif: privateWif,
+                    payload: {
+                        name: "regaccount",
+                        data: {
+                            vaccount: "vaccount1"
+                        }
+                    }
+                });
+                privateWif = (await PrivateKey.randomKey()).toWif();
+                res = await runTrx({
+                    contract_code: "test2v",
+                    wif: privateWif,
+                    payload: {
+                        name: "hello",
+                        data: {
+                            vaccount: "vaccount1",
+                            b: 1,
+                            c: 2
+                        }
+                    }
+                });
+                assert.equal(JSON.parse(res.error.details[0].message).error.details[0].message, "assertion failure with message: wrong public key", "should have failed with 'wrong public key'");
                 done();
             }
             catch (e) {
