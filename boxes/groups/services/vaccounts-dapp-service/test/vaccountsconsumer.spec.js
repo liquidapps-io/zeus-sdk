@@ -206,7 +206,7 @@ describe(`vAccounts Service Test Contract`, () => {
             }
         })();
     });
-    it('fallback', done => {
+    it('Action Fallback', done => {
         (async() => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();
