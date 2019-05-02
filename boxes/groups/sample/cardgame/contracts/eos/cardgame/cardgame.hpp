@@ -1,6 +1,7 @@
 #pragma once
 
 #include <eosio/eosio.hpp>
+#include <eosio/system.hpp>
 #include "../dappservices/multi_index.hpp"
 #define DAPPSERVICES_ACTIONS() \
   XSIGNAL_DAPPSERVICE_ACTION \

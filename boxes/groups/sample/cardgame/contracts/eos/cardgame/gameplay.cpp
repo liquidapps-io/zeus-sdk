@@ -12,7 +12,7 @@ int cardgame::random(const int range) {
 
   // Generate new seed value using the existing seed value
   int prime = 65537;
-  auto new_seed_value = (seed_iterator->value + now()) % prime;
+  auto new_seed_value = (seed_iterator->value + eosio::current_time_point().sec_since_epoch()) % prime;
   
   // Store the updated seed value in the table
   _seed.modify( seed_iterator, _self, [&]( auto& s ) {
