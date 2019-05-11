@@ -5,25 +5,52 @@ const getDefaultArgs = require('../../extensions/helpers/getDefaultArgs');
 
 var url = getUrl(getDefaultArgs());
 
-const httpGetHandler = async ({ proto, address }) => {
+function split2(str, separator, limit) {
+  if (limit == 0) return [str];
+  var a = str.split(separator, limit);
+  if (a.length == limit) {
+    let s = a.join(separator) + separator;
+    a.push(str.substr(s.length));
+    return a;
+  }
+  else {
+    return [str];
+  }
+}
+const httpGetHandler = async({ proto, address }) => {
   const r = await fetch(`${proto}://${address}`, { method: 'GET' });
-  return await r.text();
+  return new Buffer(await r.text());
 };
 
-const httpPostHandler = async ({ proto, address }) => {
+const httpPostHandler = async({ proto, address }) => {
+  const parts = address.split('/', 2);
+  const body = Buffer.from(parts[0], 'base64').toString();
+  address = parts[1];
+  const r = await fetch(`${proto}://${address}`, { method: 'POST', body });
+  return new Buffer(await r.text());
+};
+const httpGetHandlerJSON = async({ proto, address }) => {
+  const r = await fetch(`${proto}://${address}`, { method: 'GET' });
+  var item = await r.text();
+
+  return new Buffer(extractPath(item, field));
+};
+
+const httpPostHandlerJSON = async({ proto, address }) => {
   const parts = address.split('/');
   const body = Buffer.from(parts[0], 'base64').toString();
   address = parts[1];
   const r = await fetch(`${proto}://${address}`, { method: 'POST', body });
-  return await r.text();
+  var item = await r.text();
+  return new Buffer(extractPath(item, field));
 };
 
-const wolframAlphaHandler = async ({ proto, address }) => {
+const wolframAlphaHandler = async({ proto, address }) => {
   // mock for tests:
   if (address == 'What is the average air speed velocity of a laden swallow?') { return 'What do you mean, an African or European Swallow?'; }
   return await httpGetHandler({ proto: 'http', address: `api.wolframalpha.com/v1/result?i=${escape(address)}&appid=${process.env.WOLFRAM_APP_ID || 'DEMO'}` });
 };
-const historyHandler = async ({ proto, address }) => {
+const historyHandler = async({ proto, address }) => {
   //  self_history://account/pos/offset/inner_offset/field
 
   const parts = address.split('/');
@@ -68,7 +95,7 @@ const extractPath = (item, field) => {
   const fieldPath = field.split('.');
   return fieldPath.reduce((accumulator, currentPathPart) => accumulator[currentPathPart], item);
 };
-const sisterChainHistoryHandler = async ({ proto, address }) => {
+const sisterChainHistoryHandler = async({ proto, address }) => {
   //  sister_chain_history://chain/account/pos/offset/inner_offset/field
 
   const parts = address.split('/');
@@ -96,14 +123,14 @@ const sisterChainHistoryHandler = async ({ proto, address }) => {
   return extractPath(item, field);
 };
 
-const randomHandler = async ({ proto, address }) => {
+const randomHandler = async({ proto, address }) => {
   // random://1024/id
   const parts = address.split('/');
   const range = parseInt(parts[0]);
 
   return Math.floor(Math.random() * range).toString();
 };
-const sisterChainBlocksHandler = async ({ proto, address }) => {
+const sisterChainBlocksHandler = async({ proto, address }) => {
   // sister_chain_block://chain/id/field
 
   const parts = address.split('/');
@@ -132,7 +159,7 @@ const foreignChains = {
       username: 'user',
       password: 'password'
     }],
-    'balance': async ({ parts, address, endpoint }) => {
+    'balance': async({ parts, address, endpoint }) => {
       const account = parts[2];
       const BTClient = require('bitcoin-core');
       const client = new BTClient(endpoint);
@@ -140,7 +167,7 @@ const foreignChains = {
         account, 0
       );
     },
-    'block': async ({ parts, address, endpoint }) => {
+    'block': async({ parts, address, endpoint }) => {
       const blockHash = parts[2];
 
       const BTClient = require('bitcoin-core');
@@ -149,7 +176,7 @@ const foreignChains = {
         blockHash
       );
     },
-    'history': async ({ parts, address, endpoint }) => {
+    'history': async({ parts, address, endpoint }) => {
       const account = parts[2];
       const count = parts[3];
       const BTClient = require('bitcoin-core');
@@ -159,7 +186,7 @@ const foreignChains = {
         count
       );
     },
-    'transaction': async ({ parts, address, endpoint }) => {
+    'transaction': async({ parts, address, endpoint }) => {
       const txid = parts[2];
       const BTClient = require('bitcoin-core');
       const client = new BTClient(endpoint);
@@ -173,7 +200,7 @@ const foreignChains = {
       username: 'user',
       password: 'password'
     }],
-    'balance': async ({ parts, address, endpoint }) => {
+    'balance': async({ parts, address, endpoint }) => {
       const account = parts[2];
       const BTClient = require('bitcoin-core');
       const client = new BTClient(endpoint);
@@ -181,7 +208,7 @@ const foreignChains = {
         account, 0
       );
     },
-    'block': async ({ parts, address, endpoint }) => {
+    'block': async({ parts, address, endpoint }) => {
       const blockHash = parts[2];
 
       const BTClient = require('bitcoin-core');
@@ -190,7 +217,7 @@ const foreignChains = {
         blockHash
       );
     },
-    'history': async ({ parts, address, endpoint }) => {
+    'history': async({ parts, address, endpoint }) => {
       const account = parts[2];
       const count = parts[3];
       const BTClient = require('bitcoin-core');
@@ -200,7 +227,7 @@ const foreignChains = {
         count
       );
     },
-    'transaction': async ({ parts, address, endpoint }) => {
+    'transaction': async({ parts, address, endpoint }) => {
       const txid = parts[2];
       const BTClient = require('bitcoin-core');
       const client = new BTClient(endpoint);
@@ -214,7 +241,7 @@ const foreignChains = {
       username: 'user',
       password: 'password'
     }],
-    'balance': async ({ parts, address, endpoint }) => {
+    'balance': async({ parts, address, endpoint }) => {
       const account = parts[2];
       const BTClient = require('bitcoin-core');
       const client = new BTClient(endpoint);
@@ -222,7 +249,7 @@ const foreignChains = {
         account, 0
       );
     },
-    'block': async ({ parts, address, endpoint }) => {
+    'block': async({ parts, address, endpoint }) => {
       const blockHash = parts[2];
 
       const BTClient = require('bitcoin-core');
@@ -231,7 +258,7 @@ const foreignChains = {
         blockHash
       );
     },
-    'history': async ({ parts, address, endpoint }) => {
+    'history': async({ parts, address, endpoint }) => {
       const account = parts[2];
       const count = parts[3];
       const BTClient = require('bitcoin-core');
@@ -241,7 +268,7 @@ const foreignChains = {
         count
       );
     },
-    'transaction': async ({ parts, address, endpoint }) => {
+    'transaction': async({ parts, address, endpoint }) => {
       const txid = parts[2];
       const BTClient = require('bitcoin-core');
       const client = new BTClient(endpoint);
@@ -253,17 +280,17 @@ const foreignChains = {
       'http://cardanoexplorer.com'
       // process.env.CARDANO_API || `http://localhost:8090`
     ],
-    'blocks': async ({ parts, address, endpoint }) => {
+    'blocks': async({ parts, address, endpoint }) => {
       const page = parts[2];
       const r = await fetch(`${endpoint}/api/blocks/pages?page=${page}`);
       return await r.json();
     },
-    'history': async ({ parts, address, endpoint }) => {
+    'history': async({ parts, address, endpoint }) => {
       const blockHash = parts[2];
       const r = await fetch(`${endpoint}/api/blocks/txs/${blockHash}`);
       return await r.json();
     },
-    'state': async ({ parts, address, endpoint }) => {
+    'state': async({ parts, address, endpoint }) => {
       const cardanoAddress = parts[2];
       const r = await fetch(`${endpoint}/api/addresses/summary/${cardanoAddress}`);
       return await r.json();
@@ -274,7 +301,7 @@ const foreignChains = {
       'https://mainnet.infura.io'
       // process.env.ETHEREUM_JSONRPC_API || `http://localhost:....`
     ],
-    'block_number': async ({ parts, address, endpoint }) => {
+    'block_number': async({ parts, address, endpoint }) => {
       const body = JSON.stringify({
         'jsonrpc': '2.0',
         'method': 'eth_blockNumber',
@@ -289,7 +316,7 @@ const foreignChains = {
       });
       return await r.json();
     },
-    'history': async ({ parts, address, endpoint }) => {
+    'history': async({ parts, address, endpoint }) => {
       const blockNum = parts[2];
       const body = JSON.stringify({
         'jsonrpc': '2.0',
@@ -310,7 +337,7 @@ const foreignChains = {
 
       return await r.json();
     },
-    'balance': async ({ parts, address, endpoint }) => {
+    'balance': async({ parts, address, endpoint }) => {
       const ethereumAddress = parts[2];
       const blockTag = parts[3] || 'latest';
       const body = JSON.stringify({
@@ -330,7 +357,7 @@ const foreignChains = {
       });
       return await r.json();
     },
-    'storage': async ({ parts, address, endpoint }) => {
+    'storage': async({ parts, address, endpoint }) => {
       const ethereumAddress = parts[2];
       const position = parts[3];
       const blockTag = parts[4] || 'latest';
@@ -387,7 +414,7 @@ const foreignChains = {
       'http://47.75.249.4:8090',
       'https://api.trongrid.io'
     ],
-    'balance': async ({ parts, address, endpoint }) => {
+    'balance': async({ parts, address, endpoint }) => {
       const tronAddress = parts[2];
       const TronWeb = require('tronweb');
       const tronWeb = new TronWeb({
@@ -395,14 +422,14 @@ const foreignChains = {
       });
       return await tronWeb.trx.getBalance(tronAddress);
     },
-    'block_number': async ({ parts, address, endpoint }) => {
+    'block_number': async({ parts, address, endpoint }) => {
       const TronWeb = require('tronweb');
       const tronWeb = new TronWeb({
         fullHost: endpoint
       });
       return await tronWeb.trx.getCurrentBlock();
     },
-    'block': async ({ parts, address, endpoint }) => {
+    'block': async({ parts, address, endpoint }) => {
       const block_hash = parts[2];
       const TronWeb = require('tronweb');
       const tronWeb = new TronWeb({
@@ -410,7 +437,7 @@ const foreignChains = {
       });
       return await tronWeb.trx.getBlock(block_hash);
     },
-    'transactions': async ({ parts, address, endpoint }) => {
+    'transactions': async({ parts, address, endpoint }) => {
       const block_hash = parts[2];
       const TronWeb = require('tronweb');
       const tronWeb = new TronWeb({
@@ -418,7 +445,7 @@ const foreignChains = {
       });
       return await tronWeb.trx.getTransactionFromBlock(block_hash);
     },
-    'transaction': async ({ parts, address, endpoint }) => {
+    'transaction': async({ parts, address, endpoint }) => {
       const tx_hash = parts[2];
       const TronWeb = require('tronweb');
       const tronWeb = new TronWeb({
@@ -429,7 +456,7 @@ const foreignChains = {
   },
   'ripple': {
     'endpoints': ['wss://s1.ripple.com:443'],
-    'balance': async ({ parts, address, endpoint }) => {
+    'balance': async({ parts, address, endpoint }) => {
       const rippleAddress = parts[2];
       const RippleAPI = require('ripple-lib').RippleAPI;
       const api = new RippleAPI({ server: endpoint });
@@ -439,7 +466,7 @@ const foreignChains = {
       await api.disconnect();
       return res;
     },
-    'ledger': async ({ parts, address, endpoint }) => {
+    'ledger': async({ parts, address, endpoint }) => {
       const RippleAPI = require('ripple-lib').RippleAPI;
       const api = new RippleAPI({ server: endpoint });
       await api.connect();
@@ -452,7 +479,7 @@ const foreignChains = {
       await api.disconnect();
       return res;
     },
-    'transactions': async ({ parts, address, endpoint }) => {
+    'transactions': async({ parts, address, endpoint }) => {
       const rippleAddress = parts[2];
 
       const RippleAPI = require('ripple-lib').RippleAPI;
@@ -465,11 +492,11 @@ const foreignChains = {
   }
 };
 
-const getEndpointForChain = async ({ chain, address, type }) => {
+const getEndpointForChain = async({ chain, address, type }) => {
   const chainEntry = foreignChains[chain];
   return chainEntry.endpoints[0];
 };
-const foreignChainHandler = async ({ address }) => {
+const foreignChainHandler = async({ address }) => {
   const parts = address.split('/');
   const chain = parts[0];
   const type = parts[1];
@@ -479,8 +506,8 @@ const foreignChainHandler = async ({ address }) => {
   const endpoint = await getEndpointForChain({ chain, address, type });
   const res = await chainEntry[type]({ address, parts, endpoint });
 
-  return (field !== '')
-    ? extractPath(res, field) : res;
+  return (field !== '') ?
+    extractPath(res, field) : res;
 };
 
 var handlers = {
@@ -488,6 +515,10 @@ var handlers = {
   'https': httpGetHandler,
   'https+post': httpPostHandler,
   'http+post': httpPostHandler,
+  'http+json': httpGetHandlerJSON,
+  'https+json': httpGetHandlerJSON,
+  'https+post+json': httpPostHandlerJSON,
+  'http+post+json': httpPostHandlerJSON,
   'wolfram_alpha': wolframAlphaHandler,
   'self_history': historyHandler,
   'sister_chain_history': sisterChainHistoryHandler,
@@ -498,7 +529,7 @@ var handlers = {
   'random': randomHandler
 };
 nodeFactory('oracle', {
-  geturi: async ({ event, rollback }, { uri }) => {
+  geturi: async({ event, rollback }, { uri }) => {
     if (rollback) return;
     const payloadStr = Buffer.from(uri, 'hex').toString('utf8');
 
@@ -518,7 +549,8 @@ nodeFactory('oracle', {
         data: data,
         size: data.length
       };
-    } catch (e) {
+    }
+    catch (e) {
       console.error(e);
       throw e;
     }

@@ -1,0 +1,15 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "commands": {
+    "Test": "zeus test"
+  },
+  "dependencies":["seed-eos", "events", "token", "mocha", "eos-common",  "hooks-cpp-contracts","dapp-services"],
+  "install":{
+    "contracts":{
+      "airhodl": true
+    }
+  }
+}

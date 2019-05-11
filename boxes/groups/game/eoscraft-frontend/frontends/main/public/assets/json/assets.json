@@ -1,0 +1,90 @@
+{
+    "base":"https://s3.amazonaws.com/liquidapps.games-assets/eoscraft/",
+    "image": {        
+        "special_text_border2": "assets/image/special_text_border2.png",
+        "special_text_border1": "assets/image/special_text_border1.png",
+        "desert_background_dark": "assets/image/desert_background_dark.png",
+        "button_a": "assets/image/button_a.png",
+        "button_d": "assets/image/button_d.png",
+        "button_n": "assets/image/button_n.png",
+        "button_h": "assets/image/button_h.png",
+        "button2_a": "assets/image/button2_a.png",
+        "button2_n": "assets/image/button2_n.png",
+        "button2_h": "assets/image/button2_h.png",
+        "button2_d": "assets/image/button2_d.png",
+        "check_a": "assets/image/check_a.png",
+        "check_n": "assets/image/check_n.png",
+        "check_h": "assets/image/check_h.png",
+        
+        "down_a": "assets/image/Scroll/down_a.png",
+        "down_n": "assets/image/Scroll/down_n.png",
+        "down_h": "assets/image/Scroll/down_h.png",
+        "up_a": "assets/image/Scroll/up_a.png",
+        "up_n": "assets/image/Scroll/up_n.png",
+        "up_h": "assets/image/Scroll/up_h.png",
+        
+        "scroll_a": "assets/image/Scroll/scroll_active.png",
+        "scroll_h": "assets/image/Scroll/scroll_hover.png",
+        "trail": "assets/image/Scroll/trail.png",        
+        "bg_generic": "assets/image/locations/generic.png",        
+
+        "top_bg": "assets/image/top_bg.png",
+        "text_border": "assets/image/text_border.png",
+        "form_account": "assets/image/form_account.png",
+        "left_side_bg": "assets/image/left_side_bg.png",
+        "window": "assets/image/window.png",
+        "market_window": "assets/image/market_window.png",
+        "inventory_window": "assets/image/inventory_window.png",
+        "inventory_item": "assets/image/inventory_item.png",        
+        "crafting_book": "assets/image/crafting_book.png",
+        "entry_highlight": "assets/image/entry_highlight.png",
+        "slot_materials": "assets/image/slot_materials.png",       
+        "eoscraft": "assets/image/EOSCraft.png",
+        "mapicon_generic": "assets/image/map_icons/generic.png",
+        "mapicon_inventory": "assets/image/map_icons/bag_t.png",
+        "mapicon_market": "assets/image/map_icons/market.png",
+        "back_to_map": "assets/image/map_icons/back_to_map.png",
+        "quest_imp": "assets/image/map_icons/quest_imp.png",        
+        "check_mark": "assets/image/check_mark_t.png",
+        "exit": "assets/image/exit_t.png",
+        "logo_credits":"assets/image/logo_credits.png",
+        "mapicon_credits":"assets/image/map_icons/credits.png"
+
+    },    
+    "audio": {
+        "welcome" : {
+            "mp3" : "assets/audio/music/welcome.mp3"
+        },
+       
+        "click" : {
+            "wav" : "assets/audio/sfx/click.wav"
+        },
+        "move" : {
+            "mp3" : "assets/audio/sfx/move.mp3"
+        },
+        "movemap" : {
+            "wav" : "assets/audio/sfx/movemap.wav"
+        },
+        "buy" : {
+            "wav" : "assets/audio/sfx/buy.wav"
+        },
+        "sell" : {
+            "wav" : "assets/audio/sfx/sell.wav"
+        },
+        "imported_account" : {
+            "wav" : "assets/audio/sfx/imported_account.wav"
+        },
+        "craft_generic":{
+            "mp3" : "assets/audio/sfx/crafting/generic.mp3"
+        },
+        "music_generic":{
+            "mp3" : "assets/audio/music/generic.mp3"
+        },
+        "itemsfx_generic":{
+            "wav" : "assets/audio/sfx/items/generic.wav"
+        },
+        "craft_failed": {
+            "wav" : "assets/audio/sfx/craft_failed.wav"
+        }
+    }
+}
