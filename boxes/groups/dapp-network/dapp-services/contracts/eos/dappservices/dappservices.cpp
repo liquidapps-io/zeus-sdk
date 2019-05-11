@@ -484,7 +484,7 @@ public:
   }
 
   [[eosio::action]] void staketo(name from, name to, name provider, name service, asset quantity) {
-    eosio::check(false,"Staking is temporarily frozen while we migrate tables"); //TODO: Remove after migration
+    // eosio::check(false,"Staking is temporarily frozen while we migrate tables"); //TODO: Remove after migration
     require_auth(from);
     require_recipient(provider);
     require_recipient(service);
@@ -500,6 +500,7 @@ public:
   }
 
   [[eosio::action]] void unstaketo(name from, name to, name provider, name service, asset quantity) {
+    // eosio::check(false,"Staking is temporarily frozen while we migrate tables"); //TODO: Remove after migration
     require_auth(from);
     require_recipient(provider);
     require_recipient(service);
@@ -562,6 +563,7 @@ public:
   }
 
   [[eosio::action]] void refundto(name from, name to, name provider, name service, symbol_code symcode) {
+    // eosio::check(false,"Staking is temporarily frozen while we migrate tables"); //TODO: Remove after migration
     //no auth required
     auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     refunds_table refunds_tbl(_self, from.value);
