@@ -6,42 +6,51 @@ const getDefaultArgs = require('../../extensions/helpers/getDefaultArgs');
 var url = getUrl(getDefaultArgs());
 
 function split2(str, separator, limit) {
-  if (limit == 0) return [str];
-  var a = str.split(separator, limit);
-  if (a.length == limit) {
-    let s = a.join(separator) + separator;
-    a.push(str.substr(s.length));
-    return a;
+  limit--;
+  str = str.split(separator);
+
+  if (str.length > limit) {
+    var ret = str.splice(0, limit);
+    ret.push(str.join(separator));
+
+    return ret;
   }
-  else {
-    return [str];
-  }
+
+  return str;
 }
 const httpGetHandler = async({ proto, address }) => {
+  proto = proto.split("+")[0];
   const r = await fetch(`${proto}://${address}`, { method: 'GET' });
   return new Buffer(await r.text());
 };
 
 const httpPostHandler = async({ proto, address }) => {
-  const parts = address.split('/', 2);
+  const parts = split2(address, '/', 2);
   const body = Buffer.from(parts[0], 'base64').toString();
   address = parts[1];
+  proto = proto.split("+")[0];
   const r = await fetch(`${proto}://${address}`, { method: 'POST', body });
   return new Buffer(await r.text());
 };
 const httpGetHandlerJSON = async({ proto, address }) => {
-  const r = await fetch(`${proto}://${address}`, { method: 'GET' });
-  var item = await r.text();
+  const parts = split2(address, '/', 2);
+  var field = parts[0];
+  var urlPart = parts[1];
+  proto = proto.split("+")[0];
+  const r = await fetch(`${proto}://${urlPart}`, { method: 'GET' });
+  var item = await r.json();
 
   return new Buffer(extractPath(item, field));
 };
 
 const httpPostHandlerJSON = async({ proto, address }) => {
-  const parts = address.split('/');
+  const parts = split2(address, '/', 2);
   const body = Buffer.from(parts[0], 'base64').toString();
-  address = parts[1];
-  const r = await fetch(`${proto}://${address}`, { method: 'POST', body });
-  var item = await r.text();
+  var field = parts[0];
+  var urlPart = parts[1];
+  proto = proto.split("+")[0];
+  const r = await fetch(`${proto}://${urlPart}`, { method: 'POST', body });
+  var item = await r.json();
   return new Buffer(extractPath(item, field));
 };
 
