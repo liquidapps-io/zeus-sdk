@@ -25,7 +25,7 @@ module.exports = {
     }).example(`$0 ${cmd}`);
   },
   command: `${cmd} <frontend>`,
-  handler: async (args) => {
+  handler: async(args) => {
     if (args.frontend) {
       if (args.build) { await buildFrontend.handler(args); }
 
@@ -38,7 +38,7 @@ module.exports = {
 
         var hash = lines[lines.length - 2].split(' ')[1];
         var uri = `ipfs://${hash}`;
-        var ipfsUrl = `https://cloudflare-ipfs.com/ipfs/${hash}`;
+        var ipfsUrl = `https://ipfs.io/ipfs/${hash}`;
 
         if (args.register) {
           var metadata = `{\\"enabled\\": true, \\"ipfshash\\":\\"${hash}\\", \\"name\\": \\"${args.registerName || args.register}\\"}`;
@@ -48,7 +48,8 @@ module.exports = {
         }
 
         console.log(emojMap.ok + `frontend deployed to ${ipfsUrl}`);
-      } else {
+      }
+      else {
         var stdout = await execPromise(`${process.env.NPM || 'npm'} run deploy`, {
           // cwd: path.resolve("./contracts/eos")
           env: process.env,
@@ -58,7 +59,8 @@ module.exports = {
       }
 
       // console.log(stdout);
-    } else {
+    }
+    else {
       throw new Error('all not supported yet');
     }
   }

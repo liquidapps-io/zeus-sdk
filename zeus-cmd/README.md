@@ -2,9 +2,13 @@
   ____   ___   _   _   ___ 
  |_  /  / _ \ | | | | / __|
   / /  |  __/ | |_| | \__ \
- /___|  \___|  \__,_| |___/  cmd
+ /___|  \___|  \__,_| |___/  SDK
             
-Extensible command-line tool - part of the Zeus SDK
 ```
 
-Visit https://docs.liquidapps.io/en/v1.2/developers/zeus-getting-started.html
+Visit https://docs.liquidapps.io
+
+
+[![Documentation Status](https://readthedocs.org/projects/liquidapps/badge/?version=stable)](https://docs.liquidapps.io)
+
+[![npm version](https://badge.fury.io/js/%40liquidapps%2Fzeus-cmd.svg)](https://badge.fury.io/js/%40liquidapps%2Fzeus-cmd)

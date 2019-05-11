@@ -2,6 +2,7 @@
 
 const webpack = require('webpack');
 const path = require('path');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {
 
@@ -9,24 +10,26 @@ module.exports = {
   devtool: 'source-map',
   output: {
     path: path.resolve(__dirname, 'build'),
-    publicPath: '/build/',
+    publicPath: './',
     filename: 'project.bundle.js'
   },
 
   module: {
-    rules: [
-      {
-        test: [ /\.vert$/, /\.frag$/ ],
-        use: 'raw-loader'
-      }
-    ]
+    rules: [{
+      test: [/\.vert$/, /\.frag$/],
+      use: 'raw-loader'
+    }]
   },
 
   plugins: [
+
     new webpack.DefinePlugin({
       'CANVAS_RENDERER': JSON.stringify(true),
       'WEBGL_RENDERER': JSON.stringify(true)
-    })
+    }),
+    new CopyWebpackPlugin([
+      { from: 'public' },
+    ]),
   ]
 
 };
