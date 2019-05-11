@@ -56,7 +56,6 @@ describe(`${contractCode} Contract`, () => {
         await genAllocateEOSTokens(testuser1);
         await genAllocateEOSTokens(testuser2);
         await genAllocateEOSTokens(testuser3);
-        await genAllocateEOSTokens(testuserAlt);
 
         testcontract = await eos.contract(code);
 
