@@ -18,6 +18,8 @@ using namespace std;
 CONTRACT dappservices : public eosio::contract {
 public:
   using contract::contract;
+  
+  
   TABLE account {
     asset balance;
     uint64_t primary_key() const { return balance.symbol.code().raw(); }
@@ -37,23 +39,48 @@ public:
     uint64_t primary_key() const { return staked.symbol.code().raw(); }
   };
 
+  //START THIRD PARTY STAKING MODS
   TABLE refundreq {
     uint64_t id;
+    name account; //ADDED: account that was staked to
     asset amount;
     name provider;
     name service;
     uint64_t unstake_time;
     uint64_t primary_key() const { return id; }
     checksum256 by_symbol_service_provider() const {
-      return _by_symbol_service_provider(amount.symbol.code(), service,
+      return _by_symbol_service_provider(amount.symbol.code(), account, service,
                                            provider);
     }
     static checksum256 _by_symbol_service_provider(symbol_code symbolCode,
-                                                name service, name provider) {
+                                  name account, name service, name provider) {
       return checksum256::make_from_word_sequence<uint64_t>(
-          0ULL, symbolCode.raw(), service.value, provider.value);
+          symbolCode.raw(), account.value, service.value, provider.value);
     }
   };
+
+  
+  //we will scope to the payer/thirdparty
+  TABLE staking {    
+    uint64_t id;            //id to ensure uniqueness
+
+    name account;           //account that was staked to
+    asset balance;
+    name provider;
+    name service;
+
+    uint64_t primary_key() const { return id; }
+
+    checksum256 by_account_service_provider() const {
+      return _by_account_service_provider(account, service, provider);
+    }
+    static checksum256 _by_account_service_provider(name account,
+                                                name service, name provider) {
+      return checksum256::make_from_word_sequence<uint64_t>(
+          0ULL, account.value, service.value, provider.value);
+    }
+  };
+  //END THIRD PARTY STAKING MODS
 
   TABLE package {
     uint64_t id;
@@ -114,7 +141,7 @@ public:
       return _by_account_service(account, service);
     }
     static uint128_t _by_account_service(name account, name service) {
-      return ((uint128_t)account.value<<64) | service.value;
+      return (uint128_t{account.value}<<64) | service.value;
     }
     static checksum256 _by_account_service_provider(name account, name service,
                                                  name provider) {
@@ -123,11 +150,16 @@ public:
     }
   };
 
+  //ADDING TYPE DEFS
+
+  
   typedef eosio::multi_index<
-      "refundreq"_n, refundreq,
+      "refunds"_n, refundreq,
       indexed_by<"byprov"_n,
                  const_mem_fun<refundreq, checksum256,
-                               &refundreq::by_symbol_service_provider>>>
+                               &refundreq::by_symbol_service_provider>
+                >
+      >
       refunds_table;
 
   typedef eosio::multi_index<
@@ -154,7 +186,13 @@ public:
                                >
       accountexts_t; 
 
-  // token
+  typedef eosio::multi_index<
+      "staking"_n, staking,
+      indexed_by<"byprov"_n,
+                 const_mem_fun<staking, checksum256,
+                               &staking::by_account_service_provider>>
+                               >
+      staking_t;     
 
  [[eosio::action]] void create(uint64_t maximum_supply_amount, double inflation_per_block, uint64_t inflation_starts_at) {
     require_auth(_self);
@@ -199,7 +237,7 @@ public:
 
     packages.emplace(newpackage.provider, [&](package &r) {
       // start disabled.
-      r.enabled = true;
+      //r.enabled = true;
       r.id = packages.available_primary_key();
       r.provider = newpackage.provider;
       r.service = newpackage.service;
@@ -413,20 +451,60 @@ public:
     require_recipient(provider);
   }
 
+ [[eosio::action]] void migratestake(uint64_t id) {
+   accountexts_t accountexts(_self, DAPPSERVICES_SYMBOL.code().raw());
+    auto acct = accountexts.find(id);
+    //we want to fail gracefully for the batches
+    if(acct != accountexts.end()) {
+      name owner = acct->account;
+      name service = acct->service;
+      name provider = acct->provider;
+      asset quantity = acct->balance;
+
+      staking_t stakes(_self, owner.value);
+      auto stakeKey = staking::_by_account_service_provider(owner, service, provider);
+      auto stakeIdx = stakes.get_index<"byprov"_n>();
+      auto stake = stakeIdx.find(stakeKey);
+
+      //they already have a stake in the new system, we can skip
+      if(stake == stakeIdx.end()) {
+        stakes.emplace(_self, [&](auto &a) { 
+          a.id = stakes.available_primary_key();        
+          a.account = owner;  
+          a.balance = quantity;
+          a.service = service;
+          a.provider = provider;           
+        });
+      }
+    }
+ }
+
  [[eosio::action]] void stake(name from, name provider, name service, asset quantity) {
+    staketo(from, from, provider, service, quantity);
+  }
+
+  [[eosio::action]] void staketo(name from, name to, name provider, name service, asset quantity) {
+    // eosio::check(false,"Staking is temporarily frozen while we migrate tables"); //TODO: Remove after migration
     require_auth(from);
     require_recipient(provider);
     require_recipient(service);
-    dist_rewards(from, provider, service);
-    add_provider_balance(from, service, provider, quantity);
+    require_recipient(to);
+    dist_rewards(to, provider, service);
+    add_provider_balance(from, to, service, provider, quantity);
     sub_balance(from, quantity);
     add_total_staked(quantity);
   }
 
  [[eosio::action]] void unstake(name to, name provider, name service, asset quantity) {
-    require_auth(to);
+    unstaketo(to,to,provider,service,quantity);
+  }
+
+  [[eosio::action]] void unstaketo(name from, name to, name provider, name service, asset quantity) {
+    // eosio::check(false,"Staking is temporarily frozen while we migrate tables"); //TODO: Remove after migration
+    require_auth(from);
     require_recipient(provider);
     require_recipient(service);
+    require_recipient(to);
     dist_rewards(to, provider, service);
     auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     uint64_t unstake_time = current_time_ms + getUnstakeRemaining(to,provider,service);
@@ -435,9 +513,27 @@ public:
     eosio::check(DAPPSERVICES_SYMBOL == sym,
                  "wrong symbol or precision");
 
-    refunds_table refunds_tbl(_self, to.value);
+
+    // Reduce stake tables and ensure we don't unstake more than we staked
+    // We can now assume that the sum of stake and refund tables
+    // will always equal the accountext balance
+    staking_t stakes(_self, from.value);
+    auto stakeKey = staking::_by_account_service_provider(to, service, provider);
+    auto stakeIdx = stakes.get_index<"byprov"_n>();
+    auto stake = stakeIdx.find(stakeKey);
+    eosio::check(stake != stakeIdx.end(), "stake not found");
+    eosio::check(quantity.amount <= stake->balance.amount, "you cannot unstake more than you have staked");
+
+    if(quantity.amount < stake->balance.amount) {
+      stakeIdx.modify(stake, eosio::same_payer,
+                      [&](auto &a) { a.balance -= quantity; });
+    } else {
+      stakeIdx.erase(stake);
+    }
+
+    refunds_table refunds_tbl(_self, from.value);
     auto idxKey = refundreq::_by_symbol_service_provider(
-        quantity.symbol.code(), service, provider);
+        quantity.symbol.code(), to, service, provider);
     auto cidx = refunds_tbl.get_index<"byprov"_n>();
     auto req = cidx.find(idxKey);
     if (req != cidx.end()) {
@@ -446,9 +542,10 @@ public:
         r.amount += quantity;
       });
     } else {
-      refunds_tbl.emplace(to, [&](refundreq &r) {
+      refunds_tbl.emplace(from, [&](refundreq &r) {
         r.id = refunds_tbl.available_primary_key();
         r.unstake_time = unstake_time;
+        r.account = to;
         r.amount = quantity;
         r.provider = provider;
         r.service = service;
@@ -458,17 +555,20 @@ public:
         (unstake_time - current_time_ms) / 1000; // calc how much left
     if(unstake_time < current_time_ms || secondsLeft == 0)
       secondsLeft = 1;
-    scheduleRefund(secondsLeft, to, provider, service, quantity.symbol.code());
+    scheduleRefund(secondsLeft, from, to, provider, service, quantity.symbol.code());
   }
 
  [[eosio::action]] void refund(name to, name provider, name service, symbol_code symcode) {
-    require_auth(to);
-    require_recipient(provider);
-    require_recipient(service);
+    refundto(to,to,provider,service,symcode);
+  }
+
+  [[eosio::action]] void refundto(name from, name to, name provider, name service, symbol_code symcode) {
+    // eosio::check(false,"Staking is temporarily frozen while we migrate tables"); //TODO: Remove after migration
+    //no auth required
     auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
-    refunds_table refunds_tbl(_self, to.value);
+    refunds_table refunds_tbl(_self, from.value);
     auto idxKey =
-        refundreq::_by_symbol_service_provider(symcode, service, provider);
+        refundreq::_by_symbol_service_provider(symcode, to, service, provider);
     auto cidx = refunds_tbl.get_index<"byprov"_n>();
     auto req = cidx.find(idxKey);
     eosio::check(req != cidx.end(), "refund request not found");
@@ -478,7 +578,7 @@ public:
     if(req->unstake_time < current_time_ms)
       secondsLeft = 0;
     if (secondsLeft > 0) {
-      scheduleRefund(secondsLeft, to, provider, service, symcode);
+      scheduleRefund(secondsLeft, from, to, provider, service, symcode);
       return;
     }
 
@@ -491,13 +591,29 @@ public:
     auto sym = quantity.symbol;
     
     if(acct != cidxacct.end() && DAPPSERVICES_SYMBOL == sym){
-      if(quantity > acct->balance)
-        quantity = acct->balance;
+      // we don't need this because refunds never exceed stakes now
+      // if(quantity > acct->balance) 
+      //   quantity = acct->balance;  
+
+      require_recipient(provider);
+      require_recipient(service);    
+
       sub_provider_balance(to, service, provider, quantity);
       sub_total_staked(quantity);
-      add_balance(to, quantity, to);
+      add_balance(from, quantity, from);
+
+      action(permission_level{_self, "active"_n}, 
+        _self, "refreceipt"_n,
+        std::make_tuple(_self, from, quantity))
+      .send();
     }
     cidx.erase(req);
+  }
+
+  [[eosio::action]] void refreceipt(name from, name to, asset quantity) {
+    require_auth(_self);
+    require_recipient(from);
+    require_recipient(to);
   }
 
  [[eosio::action]] void usage(usage_t usage_report) {
@@ -594,7 +710,7 @@ private:
     });
   }
   
-  void add_provider_balance(name owner, name service, name provider,
+  void add_provider_balance(name payer, name owner, name service, name provider,
                             asset quantity) {
     accountexts_t accountexts(_self, DAPPSERVICES_SYMBOL.code().raw());
     auto idxKey =
@@ -606,6 +722,27 @@ private:
 
     cidx.modify(acct, eosio::same_payer,
                 [&](auto &a) { a.balance += quantity; });
+
+
+    //START STAKETO MODIFICATION
+    staking_t stakes(_self, payer.value);
+    auto stakeKey = staking::_by_account_service_provider(owner, service, provider);
+    auto stakeIdx = stakes.get_index<"byprov"_n>();
+    auto stake = stakeIdx.find(stakeKey);
+
+    if(stake != stakeIdx.end()) {
+      stakeIdx.modify(stake, eosio::same_payer,
+                      [&](auto &a) { a.balance += quantity; });
+    } else {
+      stakes.emplace(payer, [&](auto &a) { 
+        a.id = stakes.available_primary_key();        
+        a.account = owner;  
+        a.balance = quantity;
+        a.service = service;
+        a.provider = provider;           
+      });
+    }
+    //END STAKETO MODIFICATION            
                 
     auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     rewards_t rewards(_self, provider.value);
@@ -683,17 +820,22 @@ private:
     }
   }
 
-  void scheduleRefund(uint32_t seconds, name to, name provider, name service,
+  //MODIFIED FOR STAKE TO
+  void scheduleRefund(uint32_t seconds, name from, name to, name provider, name service,
                       symbol_code symcode) {
     using namespace eosio;
     auto trx = transaction();
     trx.actions.emplace_back(
         std::vector<permission_level>{{name(current_receiver()), "active"_n}},
-        _self, "refund"_n, std::make_tuple(to, provider, service, symcode));
+        _self, "refundto"_n, std::make_tuple(from, to, provider, service, symcode));
     trx.delay_sec = seconds;
-    cancel_deferred(to.value);
-    trx.send(to.value, _self, true);
+
+    uint128_t defidx = (uint128_t{from.value}<<64) | to.value;
+    cancel_deferred(defidx);
+    trx.send(defidx, _self, true);
   }
+
+
   void applyInflation() {
     auto sym = DAPPSERVICES_SYMBOL;
     stats_ext statsexts(_self, sym.code().raw());
@@ -922,9 +1064,11 @@ void apply(uint64_t receiver, uint64_t code, uint64_t action) {
   if (code == receiver) {
     switch (action) {
       EOSIO_DISPATCH_HELPER(
-          dappservices, (usage)(stake)(unstake)(refund)(claimrewards)(create)(
-                          issue)(transfer)(open)(close)(retire)(selectpkg)(
-                          regpkg)(closeprv)(modifypkg))
+          dappservices, (usage)(stake)(unstake)(refund)
+                        (staketo)(unstaketo)(refundto)(refreceipt)
+                        (claimrewards)(create)(issue)(transfer)
+                        (open)(close)(retire)
+                        (selectpkg)(regpkg)(closeprv)(modifypkg))
     }
   } else {
     switch (action) { EOSIO_DISPATCH_HELPER(dappservices, (xsignal)) }

@@ -3,17 +3,24 @@ import BootScene from './scenes/boot';
 import PreloadScene from './scenes/preload';
 
 import TitleScreen from './scenes/title';
+import Preload2Scene from './scenes/preload2';
+
+import GameScreen from './scenes/game';
+import MapScreen from './scenes/map';
+import MarketScreen from './scenes/market';
+import InventoryScreen from './scenes/inventory';
+import CreditsScreen from './scenes/credits';
 
 var ratio = 1920 / 1079;
 var height = window.innerHeight;
 var width = window.innerWidth - 50;
 width = 1920; // Math.min(width,1920);
 height = 1079; // width / ratio;
-var config = { type: Phaser.WEBGL, scene: [BootScene, PreloadScene, TitleScreen], width, height };
+var config = { type: Phaser.WEBGL, scene: [BootScene, PreloadScene, TitleScreen, Preload2Scene, GameScreen, MapScreen, MarketScreen, InventoryScreen, CreditsScreen], width, height };
 
 window.addEventListener('load', () => {
-  window.musicOff = localStorage.getItem('musicOff') == 'true';
-  window.sfxOff = localStorage.getItem('sfxOff') == 'true';
+  window.musicOff = window.localStorage.getItem('musicOff') == 'true';
+  window.sfxOff = window.localStorage.getItem('sfxOff') == 'true';
   document.getElementById('loading').setAttribute('style', 'display: none;');
   window.game = new Phaser.Game(config);
 });
@@ -21,15 +28,16 @@ window.addEventListener('load', () => {
 window.toggleMusic = () => {
   window.musicOff = !window.musicOff;
   if (window.currentMusic) {
-    if (window.musicOff) { window.currentMusic.stop(); } else {
+    if (window.musicOff) { window.currentMusic.stop(); }
+    else {
       window.currentMusic.play({ loop: true });
     }
   }
-  localStorage.setItem('musicOff', window.musicOff);
+  window.localStorage.setItem('musicOff', window.musicOff);
 };
 window.toggleSfx = () => {
   window.sfxOff = !window.sfxOff;
-  localStorage.setItem('sfxOff', window.sfxOff);
+  window.localStorage.setItem('sfxOff', window.sfxOff);
 };
 
 window.fadeIn = (scene, music) => {
@@ -88,11 +96,11 @@ window.placeOptionIcons = (scene, x, y) => {
   sfxIcon.setInteractive();
   musicIcon.setInteractive();
   const content = scene.add.container(0, 0, [sfxIcon, labelSfx, musicIcon, labelMusic]);
-  musicIcon.on('pointerdown', function (pointer) {
+  musicIcon.on('pointerdown', function(pointer) {
     window.toggleMusic();
     musicIcon.setTexture(window.musicOff ? 'exit' : 'check_mark');
   });
-  sfxIcon.on('pointerdown', function (pointer) {
+  sfxIcon.on('pointerdown', function(pointer) {
     window.toggleSfx();
     sfxIcon.setTexture(window.sfxOff ? 'exit' : 'check_mark');
   });
@@ -177,7 +185,7 @@ window.floatingNotificationItem = (scene, item, count, x, y) => {
   content.add(icon);
   content.width = icon.x + label.width;
   content.height = 32;
-  floatingNotification(scene, content, x, y);
+  window.floatingNotification(scene, content, x, y);
 };
 window.floatingNotification = (scene, content, x, y) => {
   var _padding = 10;

@@ -263,23 +263,48 @@ struct usage_t {
     uint64_t primary_key() const { return staked.symbol.code().raw(); }
   };
 
+  //START THIRD PARTY STAKING MODS
   TABLE refundreq {
     uint64_t id;
+    name account; //ADDED: account that was staked to
     asset amount;
     name provider;
     name service;
     uint64_t unstake_time;
     uint64_t primary_key() const { return id; }
     checksum256 by_symbol_service_provider() const {
-      return _by_symbol_service_provider(amount.symbol.code(), service,
+      return _by_symbol_service_provider(amount.symbol.code(), account, service,
                                            provider);
     }
     static checksum256 _by_symbol_service_provider(symbol_code symbolCode,
-                                                name service, name provider) {
+                                  name account, name service, name provider) {
       return checksum256::make_from_word_sequence<uint64_t>(
-          0ULL, symbolCode.raw(), service.value, provider.value);
+          symbolCode.raw(), account.value, service.value, provider.value);
     }
   };
+
+  
+  //we will scope to the payer/thirdparty
+  TABLE staking {    
+    uint64_t id;            //id to ensure uniqueness
+
+    name account;           //account that was staked to
+    asset balance;
+    name provider;
+    name service;
+
+    uint64_t primary_key() const { return id; }
+
+    checksum256 by_account_service_provider() const {
+      return _by_account_service_provider(account, service, provider);
+    }
+    static checksum256 _by_account_service_provider(name account,
+                                                name service, name provider) {
+      return checksum256::make_from_word_sequence<uint64_t>(
+          0ULL, account.value, service.value, provider.value);
+    }
+  };
+  //END THIRD PARTY STAKING MODS
 
   TABLE package {
     uint64_t id;
@@ -297,7 +322,7 @@ struct usage_t {
     asset min_stake_quantity;
     uint32_t min_unstake_period; // commitment
     // uint32_t min_staking_period;
-    // bool enabled;
+    bool enabled;
 
     uint64_t primary_key() const { return id; }
     checksum256 by_package_service_provider() const {
@@ -349,29 +374,9 @@ struct usage_t {
     }
   };
 
-  typedef eosio::multi_index<
-      "refundreq"_n, refundreq,
-      indexed_by<"byprov"_n,
-                 const_mem_fun<refundreq, checksum256,
-                               &refundreq::by_symbol_service_provider>
-                >
-      >
-      refunds_table;
+//MOVED TYPE DEFS TO CLASS
 
-  typedef eosio::multi_index<
-      "package"_n, package,
-      indexed_by<"bypkg"_n,
-                 const_mem_fun<package, checksum256,
-                               &package::by_package_service_provider>>>
-      packages_t;
-
-  typedef eosio::multi_index<"stat"_n, currency_stats> stats;
-  typedef eosio::multi_index<"statext"_n, currency_stats_ext> stats_ext;
-  typedef eosio::multi_index<"accounts"_n, account> accounts;
-  typedef eosio::multi_index<"reward"_n, reward> rewards_t;
-  
-  
-  typedef eosio::multi_index<
+typedef eosio::multi_index<
       "accountext"_n, accountext,
       indexed_by<"byprov"_n,
                  const_mem_fun<accountext, checksum256,
@@ -380,7 +385,7 @@ struct usage_t {
                  const_mem_fun<accountext, uint128_t,
                                &accountext::by_account_service>>
                                >
-      accountexts_t; 
+      accountexts_t;     
 
 std::vector<name> getProvidersForAccount(name account, name service) {       
   // get from service account                                                
@@ -391,11 +396,13 @@ std::vector<name> getProvidersForAccount(name account, name service) {
   auto acct = cidx.find(idxKey);                                               
   std::vector<name> result; 
   while(acct != cidx.end()){ 
+    if(acct->account != account || acct->service != service) return result;
     result.push_back(acct->provider); 
     acct++;
   }
   return result; 
-} 
+}     
+
 
 void dispatchUsage(usage_t usage_report) { 
   action(permission_level{name(current_receiver()), "active"_n},              

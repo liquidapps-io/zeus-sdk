@@ -4,5 +4,5 @@
     "zeus-box.json",
     "zeus-config.js"
   ],
-  "dependencies":["helloworld", "all-dapp-services", "microauctions" ]
+  "dependencies":["helloworld", "all-dapp-services", "microauctions", "cardgame", "airhodl" ]
 }

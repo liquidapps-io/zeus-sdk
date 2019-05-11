@@ -2,7 +2,7 @@ import 'mocha';
 require('babel-core/register');
 require('babel-polyfill');
 const { assert } = require('chai'); // Using Assert style
-const { getNetwork, getCreateKeys, getCreateAccount } = require('../extensions/tools/eos/utils');
+const { getNetwork, getCreateKeys, getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
 var Eos = require('eosjs');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 
@@ -29,7 +29,7 @@ var generateModel = (commandNames, cost_per_action = 1) => {
   return model;
 };
 
-async function deployServicePackage ({ serviceName = 'ipfs', serviceContractAccount = null, package_id = 'default', quota = '1.0000', min_stake_quantity = '1.0000', min_unstake_period = 10, package_period = 20, cost_per_action = 1 }) {
+async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccount = null, package_id = 'default', quota = '1.0000', min_stake_quantity = '1.0000', min_unstake_period = 10, package_period = 20, cost_per_action = 1 }) {
   var models = await loadModels('dapp-services');
   var serviceModel = models.find(a => a.name == serviceName);
   var deployedServices = await deployer.deploy(servicesC, servicescontract);
@@ -93,7 +93,7 @@ async function deployServicePackage ({ serviceName = 'ipfs', serviceContractAcco
   return deployedService;
 }
 
-async function allocateDAPPTokens (deployedContract) {
+async function allocateDAPPTokens(deployedContract) {
   var key = await getCreateKeys(dappServicesContract);
   let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
   var contract = deployedContract.address;
@@ -108,7 +108,7 @@ async function allocateDAPPTokens (deployedContract) {
     keyProvider: [key.privateKey]
   });
 }
-async function selectPackage ({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1', selectedPackage = 'default' }) {
+async function selectPackage({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1', selectedPackage = 'default' }) {
   var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
   var service = model.contract;
   let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
@@ -125,7 +125,7 @@ async function selectPackage ({ deployedContract, serviceName = 'ipfs', provider
   });
 }
 
-async function stake ({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1', amount = '500.0000' }) {
+async function stake({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1', amount = '500.0000' }) {
   var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
   var service = model.contract;
   var contract = deployedContract.address;
@@ -142,7 +142,26 @@ async function stake ({ deployedContract, serviceName = 'ipfs', provider = 'ppro
   });
 }
 
-async function unstake ({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1', amount = '500.0000' }) {
+async function staketo({ deployedPayer, deployedContract, serviceName = 'ipfs', provider = 'pprovider1', amount = '500.0000' }) {
+  var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
+  var service = model.contract;
+  var contract = deployedContract.address;
+  var payer = deployedPayer.address;
+  let servicesTokenContract = await deployedPayer.eos.contract(dappServicesContract);
+  await servicesTokenContract.staketo({
+    from: payer,
+    to: contract,
+    service,
+    provider,
+    quantity: `${amount} DAPP`
+  }, {
+    authorization: `${payer}@active`,
+    broadcast: true,
+    sign: true
+  });
+}
+
+async function unstake({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1', amount = '500.0000' }) {
   var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
   var service = model.contract;
   var contract = deployedContract.address;
@@ -159,7 +178,26 @@ async function unstake ({ deployedContract, serviceName = 'ipfs', provider = 'pp
   });
 }
 
-async function refund ({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1' }) {
+async function unstaketo({ deployedPayer, deployedContract, serviceName = 'ipfs', provider = 'pprovider1', amount = '500.0000' }) {
+  var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
+  var service = model.contract;
+  var contract = deployedContract.address;
+  var payer = deployedPayer.address;
+  let servicesTokenContract = await deployedPayer.eos.contract(dappServicesContract);
+  await servicesTokenContract.unstaketo({
+    from: payer,
+    to: contract,
+    service,
+    provider,
+    quantity: `${amount} DAPP`
+  }, {
+    authorization: `${payer}@active`,
+    broadcast: true,
+    sign: true
+  });
+}
+
+async function refund({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1' }) {
   var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
   var service = model.contract;
   var contract = deployedContract.address;
@@ -175,12 +213,46 @@ async function refund ({ deployedContract, serviceName = 'ipfs', provider = 'ppr
       broadcast: true,
       sign: true
     });
-  } catch (e) {
+  }
+  catch (e) {
 
   }
 }
 
-async function deployConsumerContract (code) {
+async function refundto({ deployedPayer, deployedContract, serviceName = 'ipfs', provider = 'pprovider1' }) {
+  var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
+  var service = model.contract;
+  var contract = deployedContract.address;
+  var payer = deployedPayer.address;
+  let servicesTokenContract = await deployedPayer.eos.contract(dappServicesContract);
+  try {
+    await servicesTokenContract.refundto({
+      from: payer,
+      to: contract,
+      service,
+      provider,
+      symcode: `DAPP`
+    }, {
+      authorization: `${payer}@active`,
+      broadcast: true,
+      sign: true
+    });
+  }
+  catch (e) {
+
+  }
+}
+
+async function deployPayer(code) {
+  var deployedContract = await getCreateAccount(code);
+  var eos = await getEos(code);
+  deployedContract.address = code;
+  deployedContract.eos = eos;
+  await allocateDAPPTokens(deployedContract);
+  return deployedContract;
+}
+
+async function deployConsumerContract(code) {
   var deployedContract = await deployer.deploy(ctrt, code);
   await allocateDAPPTokens(deployedContract);
   // create token
@@ -198,8 +270,10 @@ async function deployConsumerContract (code) {
   var testcontract = await eosvram.contract(code);
   return { testcontract, deployedContract };
 }
+
+
 describe(`DAPP Services Provider & Packages Tests`, () => {
-  const invokeService = async (code, testcontract) => {
+  const invokeService = async(code, testcontract) => {
     var res = await testcontract.testget({
       uri: 'ipfs://zb2rhnaYrUde9d7h13vHTXeWcBJcBpEFdMgAcbXbFfM5aQxgK',
       expectedfield: 123
@@ -216,7 +290,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
   };
 
   it('Simple package and action', done => {
-    (async () => {
+    (async() => {
       try {
         var selectedPackage = 'test124';
         var testContractAccount = 'consumer2';
@@ -243,41 +317,15 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         await invokeService(testContractAccount, testcontract);
         await delaySec(package_period);
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();
   });
+
   it('Simple package and unstake', done => {
-    (async () => {
-      try {
-        var selectedPackage = 'test123';
-        var testContractAccount = 'consumer1';
-        var package_period = 20;
-        var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
-        await deployServicePackage({ package_id: selectedPackage, package_period });
-        await selectPackage({ deployedContract, selectedPackage });
-        await stake({ deployedContract, selectedPackage });
-        await invokeService(testContractAccount, testcontract);
-        await unstake({ deployedContract, selectedPackage });
-        await delaySec(package_period + 1);
-        await refund({ deployedContract, selectedPackage });
-        await delaySec(package_period + 1);
-        var failed = false;
-        try {
-          await invokeService(testContractAccount, testcontract);
-        } catch (e) {
-          failed = true;
-        }
-        assert(failed, 'should have failed for no package');
-        done();
-      } catch (e) {
-        done(e);
-      }
-    })();
-  });
-  it('Simple package and unstake', done => {
-    (async () => {
+    (async() => {
       try {
         var selectedPackage = 'test1231';
         var testContractAccount = 'consumer5';
@@ -289,18 +337,20 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         var failed = false;
         try {
           await unstake({ deployedContract, selectedPackage, amount: '500.000' });
-        } catch (e) {
+        }
+        catch (e) {
           failed = true;
         }
         assert(failed, 'should have failed for bad unstake');
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();
   });
   it('Simple package and double unstake', done => {
-    (async () => {
+    (async() => {
       try {
         var selectedPackage = 'test121';
         var testContractAccount = 'consumer3';
@@ -318,18 +368,20 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         var failed = false;
         try {
           await invokeService(testContractAccount, testcontract);
-        } catch (e) {
+        }
+        catch (e) {
           failed = true;
         }
         assert(failed, 'should have failed for no package');
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();
   });
   it('Simple package and double unstake too much', done => {
-    (async () => {
+    (async() => {
       try {
         var selectedPackage = 'test111';
         var testContractAccount = 'consumer4';
@@ -340,26 +392,56 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         await stake({ deployedContract, selectedPackage });
         await invokeService(testContractAccount, testcontract);
         await unstake({ deployedContract, selectedPackage, amount: '250.0000' });
-        await unstake({ deployedContract, selectedPackage, amount: '251.0000' });
-        await delaySec(package_period + 1);
-        await refund({ deployedContract, selectedPackage });
-        await delaySec(package_period + 1);
         var failed = false;
         try {
-          await invokeService(testContractAccount, testcontract);
-        } catch (e) {
+          await unstake({ deployedContract, selectedPackage, amount: '251.0000' });
+
+        }
+        catch (e) {
           failed = true;
         }
         assert(failed, 'should have failed for no package');
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();
   });
-
+  it('Simple package and unstake third party', done => {
+    (async() => {
+      try {
+        var selectedPackage = 'third123';
+        var testContractPayer = 'payer2';
+        var testContractAccount = 'recip2';
+        var package_period = 20;
+        var deployedPayer = await deployPayer(testContractPayer);
+        var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
+        await deployServicePackage({ package_id: selectedPackage, package_period });
+        await selectPackage({ deployedContract, selectedPackage });
+        await staketo({ deployedPayer, deployedContract, selectedPackage });
+        await invokeService(testContractAccount, testcontract);
+        await unstaketo({ deployedPayer, deployedContract, selectedPackage });
+        await delaySec(package_period + 1);
+        await refundto({ deployedPayer, deployedContract, selectedPackage });
+        await delaySec(package_period + 1);
+        var failed = false;
+        try {
+          await invokeService(testContractAccount, testcontract);
+        }
+        catch (e) {
+          failed = true;
+        }
+        assert(failed, 'should have failed for no package');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
   it('not enough stake', done => {
-    (async () => {
+    (async() => {
       try {
         var selectedPackage = 'test1111';
         var testContractAccount = 'con14';
@@ -371,12 +453,14 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         var failed = false;
         try {
           await invokeService(testContractAccount, testcontract);
-        } catch (e) {
+        }
+        catch (e) {
           failed = true;
         }
         assert(failed, 'should have failed for not enough stake');
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();

@@ -1,0 +1,32 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "commands": {
+  },
+  "install":{
+    "npm-in-dirs":{
+      "frontends/main":{
+        "npm": {
+          "eosjs": true,
+          "eosjs-ecc": true,
+          "scatterjs-core": true,
+          "scatterjs-plugin-eosjs": true,
+          "scatterjs-plugin-eosjs2": true,
+          "scatterjs-plugin-tron":true,
+          "scatterjs-plugin-web3":true,
+          "tronweb":true,
+          "web3":true,
+          "eos-transit":true,
+          "eos-transit-scatter-provider":true,
+          "eos-transit-meetone-provider":true,
+          "eos-transit-tokenpocket-provider":true,
+          "eos-transit-lynx-provider":true,
+          "eos-transit-ledger-provider":true
+        }
+      }
+    }
+  },
+  "dependencies":["seed-frontends", "core-extensions", "hooks-npm", "frontend-main"]
+}
