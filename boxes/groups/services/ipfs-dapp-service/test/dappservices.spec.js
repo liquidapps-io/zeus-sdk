@@ -323,36 +323,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
       }
     })();
   });
-  it('Simple package and unstake', done => {
-    (async() => {
-      try {
-        var selectedPackage = 'test123';
-        var testContractAccount = 'consumer1';
-        var package_period = 20;
-        var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
-        await deployServicePackage({ package_id: selectedPackage, package_period });
-        await selectPackage({ deployedContract, selectedPackage });
-        await stake({ deployedContract, selectedPackage });
-        await invokeService(testContractAccount, testcontract);
-        await unstake({ deployedContract, selectedPackage });
-        await delaySec(package_period + 1);
-        await refund({ deployedContract, selectedPackage });
-        await delaySec(package_period + 1);
-        var failed = false;
-        try {
-          await invokeService(testContractAccount, testcontract);
-        }
-        catch (e) {
-          failed = true;
-        }
-        assert(failed, 'should have failed for no package');
-        done();
-      }
-      catch (e) {
-        done(e);
-      }
-    })();
-  });
+
   it('Simple package and unstake', done => {
     (async() => {
       try {
