@@ -21,7 +21,7 @@ function split2(str, separator, limit) {
 const httpGetHandler = async({ proto, address }) => {
   proto = proto.split("+")[0];
   const r = await fetch(`${proto}://${address}`, { method: 'GET' });
-  return new Buffer(await r.text());
+  return Buffer.from(await r.text());
 };
 
 const httpPostHandler = async({ proto, address }) => {
@@ -30,7 +30,7 @@ const httpPostHandler = async({ proto, address }) => {
   address = parts[1];
   proto = proto.split("+")[0];
   const r = await fetch(`${proto}://${address}`, { method: 'POST', body });
-  return new Buffer(await r.text());
+  return Buffer.from(await r.text());
 };
 const httpGetHandlerJSON = async({ proto, address }) => {
   const parts = split2(address, '/', 2);
@@ -40,7 +40,7 @@ const httpGetHandlerJSON = async({ proto, address }) => {
   const r = await fetch(`${proto}://${urlPart}`, { method: 'GET' });
   var item = await r.json();
 
-  return new Buffer(extractPath(item, field));
+  return extractPath(item, field);
 };
 
 const httpPostHandlerJSON = async({ proto, address }) => {
@@ -51,7 +51,7 @@ const httpPostHandlerJSON = async({ proto, address }) => {
   proto = proto.split("+")[0];
   const r = await fetch(`${proto}://${urlPart}`, { method: 'POST', body });
   var item = await r.json();
-  return new Buffer(extractPath(item, field));
+  return extractPath(item, field);
 };
 
 const wolframAlphaHandler = async({ proto, address }) => {
@@ -102,7 +102,9 @@ const resolveHistoryEndpointForSisterChain = (chain) => {
 };
 const extractPath = (item, field) => {
   const fieldPath = field.split('.');
-  return fieldPath.reduce((accumulator, currentPathPart) => accumulator[currentPathPart], item);
+  const res = fieldPath.reduce((accumulator, currentPathPart) => accumulator[currentPathPart], item);
+  if (res)
+    return Buffer.from(res, 'utf8');
 };
 const sisterChainHistoryHandler = async({ proto, address }) => {
   //  sister_chain_history://chain/account/pos/offset/inner_offset/field
@@ -551,8 +553,10 @@ nodeFactory('oracle', {
     const handler = handlers[proto];
     console.log('req', trxId, tapos, proto, address);
     if (!handler) { throw new Error(`unsupported protocol ${proto}`); }
+
     try {
       let data = await handler({ proto, address });
+      console.log('resp', data);
       return {
         uri,
         data: data,
