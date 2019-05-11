@@ -392,13 +392,10 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         await stake({ deployedContract, selectedPackage });
         await invokeService(testContractAccount, testcontract);
         await unstake({ deployedContract, selectedPackage, amount: '250.0000' });
-        await unstake({ deployedContract, selectedPackage, amount: '251.0000' });
-        await delaySec(package_period + 1);
-        await refund({ deployedContract, selectedPackage });
-        await delaySec(package_period + 1);
         var failed = false;
         try {
-          await invokeService(testContractAccount, testcontract);
+          await unstake({ deployedContract, selectedPackage, amount: '251.0000' });
+
         }
         catch (e) {
           failed = true;
