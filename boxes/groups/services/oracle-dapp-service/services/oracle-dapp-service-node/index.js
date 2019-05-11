@@ -56,7 +56,7 @@ const httpPostHandlerJSON = async({ proto, address }) => {
 
 const wolframAlphaHandler = async({ proto, address }) => {
   // mock for tests:
-  if (address == 'What is the average air speed velocity of a laden swallow?') { return 'What do you mean, an African or European Swallow?'; }
+  if (address == 'What is the average air speed velocity of a laden swallow?') { return Buffer.from('What do you mean, an African or European Swallow?'); }
   return await httpGetHandler({ proto: 'http', address: `api.wolframalpha.com/v1/result?i=${escape(address)}&appid=${process.env.WOLFRAM_APP_ID || 'DEMO'}` });
 };
 const historyHandler = async({ proto, address }) => {
@@ -512,7 +512,7 @@ const foreignChainHandler = async({ address }) => {
   const chain = parts[0];
   const type = parts[1];
   const field = parts[parts.length - 1];
-  if (field === 'dummy') { return 'test-dummy'; }
+  if (field === 'dummy') { return Buffer.from('test-dummy'); }
   const chainEntry = foreignChains[chain];
   const endpoint = await getEndpointForChain({ chain, address, type });
   const res = await chainEntry[type]({ address, parts, endpoint });
