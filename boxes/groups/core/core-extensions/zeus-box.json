@@ -15,7 +15,6 @@
       "localenv-extensions",
       "upgrade-extensions",
       "unbox-extensions",
-      "build-extensions",
       "create-extensions",
       "hooks-extensions",
       "update-extensions"

@@ -23,7 +23,6 @@
           "webpack-hot-middleware": "2.22.0",
           "webpack-livereload-plugin": "2.1.1",
           "webpack-cli":true,
-          "copy-webpack-plugin":true,
           "phaser": "^3.3.0"
         },
         "npm-scripts": {
