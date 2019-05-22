@@ -1,8 +1,9 @@
 #pragma once
 
-#include <eosiolib/asset.hpp>
-#include <eosiolib/eosio.hpp>
-#include <eosiolib/time.hpp>
+
+#include <eosio/asset.hpp>
+#include <eosio/eosio.hpp>
+#include <eosio/system.hpp>
 
 #include <string>
 
@@ -11,7 +12,9 @@ using namespace std;
 
 namespace airhodl {
 
-   const name TOKEN = "dappservices"_n;
+   const name     DAPP_TOKEN = "dappservices"_n;
+   const symbol   DAPP_SYMBOL = symbol("DAPP",4);
+   const symbol   HODL_SYMBOL = symbol("DAPPHDL",4);
 
    class [[eosio::contract("airhodl")]] airhodl : public contract {
       public:
@@ -25,13 +28,13 @@ namespace airhodl {
          void issue( name to, asset quantity, string memo );
 
          [[eosio::action]]
-         void activate( const symbol& symbol, time_point_sec start, time_point_sec end);
+         void activate( time_point start, time_point end);
 
          [[eosio::action]]
-         void grab( name owner, const symbol& symbol, name ram_payer );
+         void grab( name owner, name ram_payer );
 
          [[eosio::action]]
-         void withdraw( name owner, const symbol& symbol );
+         void withdraw( name owner );
 
          [[eosio::action]] 
          void stake( name owner, name provider, name service, asset quantity);
@@ -39,8 +42,11 @@ namespace airhodl {
          [[eosio::action]] 
          void unstake( name owner, name provider, name service, asset quantity);
 
-         //external action to watch
-         void refund(name from, name to, asset quantity);
+         [[eosio::action]] 
+         void refund( name owner, name provider, name service );
+
+         [[eosio::on_notify("dappservices::refreceipt")]]
+         void on_receipt(name from, name to, asset quantity);         
 
          static asset get_supply( name token_contract_account, symbol_code sym_code )
          {
@@ -65,6 +71,7 @@ namespace airhodl {
 
          struct [[eosio::table]] account {
             asset    balance;
+            asset    allocation;
             asset    staked;
             bool     claimed;
 
@@ -76,8 +83,8 @@ namespace airhodl {
             asset    max_supply;
             name     issuer;
             asset    forfeiture;
-            time_point_sec vesting_start;
-            time_point_sec vesting_end;
+            time_point vesting_start;
+            time_point vesting_end;
 
             uint64_t primary_key()const { return supply.symbol.code().raw(); }
          };

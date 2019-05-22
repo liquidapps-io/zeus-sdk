@@ -6,7 +6,7 @@
   "commands": {
     "Test": "zeus test"
   },
-  "dependencies":["seed-eos", "events", "token", "mocha", "eos-common",  "hooks-cpp-contracts","dapp-services"],
+  "dependencies":["ipfs-dapp-service"],
   "install":{
     "contracts":{
       "airhodl": true

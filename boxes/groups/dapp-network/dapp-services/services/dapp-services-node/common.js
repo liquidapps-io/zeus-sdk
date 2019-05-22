@@ -17,26 +17,26 @@ const { JsonRpc } = eosjs2;
 var url = getUrl(getDefaultArgs());
 const rpc = new JsonRpc(url, { fetch });
 const networks = [{
-  name: 'Main Net',
-  host: 'node2.liquideos.com',
-  port: 80,
-  chainId: 'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906',
-  secured: false
-},
-{
-  name: 'Jungle Testnet',
-  host: 'jungle.cryptolions.io',
-  // secured: true,
-  chainId: '038f4b0fc8ff18a4f0842a8f0564611f6e96e8535901dd45e43ac8691a1c4dca',
-  port: 18888
-},
-{
-  name: 'Localhost',
-  host: process.env.NODEOS_HOST || 'localhost',
-  secured: process.env.NODEOS_SECURED === 'true' || false,
-  port: process.env.NODEOS_PORT || 8888,
-  chainId: process.env.NODEOS_CHAINID
-}
+    name: 'Main Net',
+    host: 'node2.liquideos.com',
+    port: 80,
+    chainId: 'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906',
+    secured: false
+  },
+  {
+    name: 'Jungle Testnet',
+    host: 'jungle.cryptolions.io',
+    // secured: true,
+    chainId: '038f4b0fc8ff18a4f0842a8f0564611f6e96e8535901dd45e43ac8691a1c4dca',
+    port: 18888
+  },
+  {
+    name: 'Localhost',
+    host: process.env.NODEOS_HOST || 'localhost',
+    secured: process.env.NODEOS_SECURED === 'true' || false,
+    port: process.env.NODEOS_PORT || 8888,
+    chainId: process.env.NODEOS_CHAINID
+  }
 ];
 
 var defaultIndex = 2;
@@ -49,14 +49,16 @@ var eosconfig = {
 var eosdspconfig = { ...eosconfig };
 if (network.secured) {
   eosconfig.httpsEndpoint = 'https://' + network.host + ':' + network.port;
-} else {
+  eosconfig.httpEndpoint = 'http://' + network.host + ':' + network.port;
+}
+else {
   eosconfig.httpEndpoint = 'http://' + network.host + ':' + network.port;
 }
 
 const nodeosEndpoint = eosconfig.httpEndpoint || eosconfig.httpsEndpoint;
 const proxy = httpProxy.createProxyServer();
 
-proxy.on('error', function (err, req, res) {
+proxy.on('error', function(err, req, res) {
   if (err) {
     console.error(err);
   }
@@ -75,14 +77,14 @@ proxy.on('error', function (err, req, res) {
 var eosPrivate = new Eos(eosconfig);
 eosdspconfig.httpEndpoint = `http://${process.env.NODEOS_HOST_DSP || 'localhost'}:${process.env.NODEOS_HOST_DSP_PORT || 13015}`;
 var eosDSPGateway = new Eos(eosdspconfig);
-const forwardEvent = async (act, endpoint, redirect) => {
+const forwardEvent = async(act, endpoint, redirect) => {
   if (redirect) { return endpoint; }
 
   const r = await fetch(endpoint + '/event', { method: 'POST', body: JSON.stringify(act) });
   await r.text();
 };
 
-const resolveBackendServiceData = async (service, provider) => {
+const resolveBackendServiceData = async(service, provider) => {
   // console.log('resolving backend service for', service, provider);
   // read from local service models
   var loadedExtensions = await loadModels('dapp-services');
@@ -95,7 +97,7 @@ const resolveBackendServiceData = async (service, provider) => {
     endpoint: `http://${host}:${loadedExtension.port}`
   };
 };
-const resolveExternalProviderData = async (service, provider, packageid) => {
+const resolveExternalProviderData = async(service, provider, packageid) => {
   var key = getSvcProviderPkgKey(service, provider, packageid);
 
   const payload = {
@@ -119,7 +121,7 @@ const resolveExternalProviderData = async (service, provider, packageid) => {
   };
 };
 
-const resolveProviderData = async (service, provider, packageid) =>
+const resolveProviderData = async(service, provider, packageid) =>
   ((paccount == provider) ? resolveBackendServiceData : resolveExternalProviderData)(service, provider, packageid);
 
 const getSvcProviderPkgKey = (service, provider, packageid) => {
@@ -141,7 +143,7 @@ const getSvcPayerKey = (payer, service) => {
   encodedPayer = (toBound(encodedPayer.toString(16), 8));
   return '0x' + encodedService + encodedPayer;
 };
-const getProviders = async (payer, service, provider) => {
+const getProviders = async(payer, service, provider) => {
   const payload = {
     'json': true,
     'scope': 'DAPP',
@@ -160,13 +162,13 @@ const getProviders = async (payer, service, provider) => {
 };
 const toBound = (numStr, bytes) =>
   `${(new Array(bytes * 2 + 1).join('0') + numStr).substring(numStr.length).toUpperCase()}`;
-const resolveProviderPackage = async (payer, service, provider) => {
+const resolveProviderPackage = async(payer, service, provider) => {
   const serviceWithStakingResult = await getProviders(payer, service, provider);
   var foundPacakges = serviceWithStakingResult[0];
   return foundPacakges.package ? foundPacakges.package : foundPacakges.pending_package;
 };
 
-const resolveProvider = async (payer, service, provider) => {
+const resolveProvider = async(payer, service, provider) => {
   if (provider != '') { return provider; }
   const serviceWithStakingResult = await getProviders(payer, service, provider);
 
@@ -177,18 +179,19 @@ const resolveProvider = async (payer, service, provider) => {
   return intersectLists[Math.floor(Math.random() * intersectLists.length)];
 };
 
-const processFn = async (actionHandlers, actionObject, simulated, serviceName, handlers) => {
+const processFn = async(actionHandlers, actionObject, simulated, serviceName, handlers) => {
   var actionHandler = actionHandlers[actionObject.event.etype];
   if (!actionHandler) { return; }
   try {
     return await actionHandler(actionObject, simulated, serviceName, handlers);
-  } catch (e) {
+  }
+  catch (e) {
     console.error(e);
     throw e;
   }
 };
 
-async function parsedAction (actionHandlers, account, method, code, actData, events, simulated, serviceName, handlers) {
+async function parsedAction(actionHandlers, account, method, code, actData, events, simulated, serviceName, handlers) {
   for (var i = 0; i < events.length; i++) {
     var event = events[i];
     var actionObject = {
@@ -202,16 +205,17 @@ async function parsedAction (actionHandlers, account, method, code, actData, eve
   }
 }
 
-async function parseEvents (text) {
+async function parseEvents(text) {
   return text.split('\n').map(a => {
     if (a === '') { return null; }
     try {
       return JSON.parse(a);
-    } catch (e) {}
+    }
+    catch (e) {}
   }).filter(a => a);
 }
 
-const handleAction = async (actionHandlers, action, simulated, serviceName, handlers) => {
+const handleAction = async(actionHandlers, action, simulated, serviceName, handlers) => {
   var res = [];
 
   var events = await parseEvents(action.console);
@@ -224,11 +228,12 @@ const handleAction = async (actionHandlers, action, simulated, serviceName, hand
   return res;
 };
 
-const rollBack = async (garbage, actionHandlers, serviceName, handlers) => {
+const rollBack = async(garbage, actionHandlers, serviceName, handlers) => {
   return await Promise.all(garbage.map(async rollbackAction => {
     try {
       return processFn(actionHandlers, rollbackAction, true, serviceName, handlers);
-    } catch (e) {}
+    }
+    catch (e) {}
   }));
 };
 const notFound = (res, message = 'bad endpoint') => {
@@ -241,10 +246,10 @@ const notFound = (res, message = 'bad endpoint') => {
   }));
 };
 var getRawBody = require('raw-body');
-const genNode = async (actionHandlers, port, serviceName, handlers, abi) => {
+const genNode = async(actionHandlers, port, serviceName, handlers, abi) => {
   if (handlers) { handlers.abi = abi; }
   const app = genApp();
-  app.use(async (req, res, next) => {
+  app.use(async(req, res, next) => {
     var uri = req.originalUrl;
     var isServiceRequest = uri.indexOf('/event') == 0;
     var isServiceAPIRequest = uri.indexOf('/v1/dsp/') == 0;
@@ -267,7 +272,7 @@ const genNode = async (actionHandlers, port, serviceName, handlers, abi) => {
 
     getRawBody(req, {
       length: req.headers['content-length']
-    }, async function (err, string) {
+    }, async function(err, string) {
       if (err) return next(err);
       var body = JSON.parse(string.toString());
 
@@ -275,7 +280,8 @@ const genNode = async (actionHandlers, port, serviceName, handlers, abi) => {
         try {
           await processFn(actionHandlers, body, false, serviceName, handlers);
           res.send(JSON.stringify('ok'));
-        } catch (e) {
+        }
+        catch (e) {
           res.status(500);
           res.send(JSON.stringify({
             code: 500,
@@ -298,7 +304,8 @@ const genNode = async (actionHandlers, port, serviceName, handlers, abi) => {
         req.body = body;
         try {
           await method(req, res);
-        } catch (e) {
+        }
+        catch (e) {
           res.status(500);
           res.send(JSON.stringify({
             code: 500,
@@ -326,7 +333,8 @@ const genNode = async (actionHandlers, port, serviceName, handlers, abi) => {
               for (var i = 0; i < jsons.length; i++) {
                 try {
                   currentEvent = JSON.parse(jsons[i]);
-                } catch (e) {
+                }
+                catch (e) {
                   continue;
                 }
                 var currentActionObject = {
@@ -349,7 +357,8 @@ const genNode = async (actionHandlers, port, serviceName, handlers, abi) => {
                 garbage.push({ ...actionObject, rollback: true });
                 console.log('Service request done:', trys++);
                 continue;
-              } else if (endpoint) {
+              }
+              else if (endpoint) {
                 r = await fetch(endpoint + uri, { method: 'POST', body: JSON.stringify(body) });
                 resText = await r.text();
                 rText = JSON.parse(resText);
@@ -360,7 +369,8 @@ const genNode = async (actionHandlers, port, serviceName, handlers, abi) => {
               return;
             }
             await rollBack(garbage, actionHandlers, serviceName, handlers);
-          } else {
+          }
+          else {
             for (var i = 0; i < rText.processed.action_traces.length; i++) {
               var action = rText.processed.action_traces[i];
               // skip actions that were already done previously (in exception)
@@ -369,7 +379,8 @@ const genNode = async (actionHandlers, port, serviceName, handlers, abi) => {
           }
           res.status(r.status);
           res.send(JSON.stringify(rText));
-        } catch (e) {
+        }
+        catch (e) {
           await rollBack(garbage, actionHandlers, serviceName, handlers);
           console.error(e);
           res.status(500);
@@ -457,7 +468,7 @@ const generateCommandABI = (commandName, commandModel) => {
 };
 
 const generateABI =
-    (serviceModel) =>
-      Object.keys(serviceModel.commands).map(c => generateCommandABI(c, serviceModel.commands[c]));
+  (serviceModel) =>
+  Object.keys(serviceModel.commands).map(c => generateCommandABI(c, serviceModel.commands[c]));
 
 module.exports = { deserialize, generateABI, genNode, genApp, forwardEvent, resolveProviderData, resolveProvider, processFn, handleAction, paccount, proxy, eosPrivate, eosconfig, nodeosEndpoint, resolveProviderPackage, eosDSPGateway };

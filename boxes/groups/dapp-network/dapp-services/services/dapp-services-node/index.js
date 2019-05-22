@@ -6,13 +6,14 @@ if (process.env.DAEMONIZE_PROCESS) { require('daemonize-process')(); }
 
 const { genNode, genApp, paccount, processFn, forwardEvent, resolveProviderData, resolveProvider, resolveProviderPackage } = require('./common');
 const actionHandlers = {
-  'service_request': async (act, simulated) => {
+  'service_request': async(act, simulated) => {
     let { service, provider } = act.event;
     var payer = act.event.payer ? act.event.payer : act.receiver;
     let isReplay = act.replay;
     if (isReplay && provider == '') {
       provider = paccount;
-    } else {
+    }
+    else {
       provider = await resolveProvider(payer, service, provider);
     }
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider);
@@ -20,7 +21,7 @@ const actionHandlers = {
     if (!providerData) { throw new Error('provider data not found'); }
     if (act.exception || paccount == provider) { return await forwardEvent(act, providerData.endpoint, act.exception); }
   },
-  'service_signal': async (act, simulated) => {
+  'service_signal': async(act, simulated) => {
     if (simulated) { return; }
     let { service, provider } = act.event;
     var packageid = act.event.package;
@@ -29,7 +30,7 @@ const actionHandlers = {
     if (!providerData) { throw new Error('provider data not found'); }
     return await forwardEvent(act, providerData.endpoint);
   },
-  'usage_report': async (act, simulated) => {
+  'usage_report': async(act, simulated) => {
     if (simulated) { return; }
     let { service, provider } = act.event;
     if (paccount != provider) { return; }
@@ -43,7 +44,7 @@ const actionHandlers = {
 genNode(actionHandlers, process.env.PORT || 3115, 'services');
 var isReplay = false;
 const appWebHookListener = genApp();
-appWebHookListener.post('/', async (req, res) => {
+appWebHookListener.post('/', async(req, res) => {
   // var account = req.body.account;
   // var method = req.body.method;
   // var receiver = req.body.receiver;
@@ -55,4 +56,4 @@ appWebHookListener.post('/', async (req, res) => {
   res.send(JSON.stringify('ok'));
 });
 
-appWebHookListener.listen(process.env.WEBHOOKPORT || 8812, () => console.log(`service node webhook listening on port ${process.env.WEBHOOKPORT || 8812}!`));
+appWebHookListener.listen(process.env.WEBHOOK_DAPP_PORT || 8812, () => console.log(`service node webhook listening on port ${process.env.WEBHOOKPORT || 8812}!`));

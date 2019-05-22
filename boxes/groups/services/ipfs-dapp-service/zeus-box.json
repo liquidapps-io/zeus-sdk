@@ -16,9 +16,9 @@
     },
     "npm":{
       "ipfs-api": "^24.0.2",
+      "lru-cache": true,
       "dfuse-eoshttp-js":true,
       "node-fetch": true
-      
     }
   }
 }

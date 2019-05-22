@@ -94,7 +94,7 @@ void coldtoken::add_balance( name owner, asset value, name ram_payer)
     owner.value, // scope
     1024,  // optional: shards per table
     64,  // optional: buckets per shard
-    true, // optional: pin shards in RAM - (buckets per shard) X (shards per table) X 32B - 2MB in this example
+    false, // optional: pin shards in RAM - (buckets per shard) X (shards per table) X 32B - 2MB in this example
     false // optional: pin buckets in RAM - keeps most of the data in RAM. should be evicted manually after the process
     );
    auto to = to_acnts.find( value.symbol.code().raw() );
@@ -111,7 +111,7 @@ void coldtoken::add_balance( name owner, asset value, name ram_payer)
 
 void coldtoken::sub_balance( name owner, asset value)
 {
-   accounts_t from_acnts(  _self, owner.value, 1024, 64, true, false);
+   accounts_t from_acnts(  _self, owner.value, 1024, 64, false, false);
   const auto& from = from_acnts.get( value.symbol.code().raw(), "no balance object found" );
    eosio::check( from.balance.amount >= value.amount, "overdrawn balance" );
   if( from.balance.amount == value.amount ) {

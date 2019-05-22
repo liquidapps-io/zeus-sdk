@@ -61,10 +61,10 @@ static ipfsmultihash_t uri_to_ipfsmultihash(std::string uri) {
 
 static eosio::checksum256 ipfsmultihash_to_key256(ipfsmultihash_t ipfshash) {
     // skip 4 bytes 
+    std::vector<char> multiHashPart(ipfshash.begin() + 4, ipfshash.end());
     uint64_t * p64 = (uint64_t*) malloc(32);
-    memcpy(p64 , ipfshash.data(), 32 );
+    memcpy(p64 , multiHashPart.data(), 32 );
 
-    // std::vector<char> multiHashPart(ipfshash.begin() + 4, ipfshash.end());
     // const uint64_t *p64 = reinterpret_cast<const uint64_t *>(&ipfshash);
     return checksum256::make_from_word_sequence<uint64_t>(p64[0], p64[1], p64[2], p64[3]);
 }

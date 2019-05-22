@@ -412,7 +412,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
     (async() => {
       try {
         var selectedPackage = 'third123';
-        var testContractPayer = 'payer2';
+        var testContractPayer = 'dappairhodl1';
         var testContractAccount = 'recip2';
         var package_period = 20;
         var deployedPayer = await deployPayer(testContractPayer);

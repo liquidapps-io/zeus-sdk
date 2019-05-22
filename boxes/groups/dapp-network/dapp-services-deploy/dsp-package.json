@@ -65,7 +65,8 @@
     "babel-preset-latest": "^6.24.1",
     "babel-preset-stage-3": "^6.24.1",
     "babel-core": "^6.26.3",
-    "zeromq": "^5.1.0"
+    "zeromq": "^5.1.0",
+    "toml": "^3.0.0"
   },
   "bin": {
     "setup-dsp": "./setup.js"

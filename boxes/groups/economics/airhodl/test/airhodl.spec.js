@@ -1,78 +1,291 @@
-import { assert } from 'chai';
 import 'mocha';
 require('babel-core/register');
 require('babel-polyfill');
+const { assert } = require('chai'); // Using Assert style
+const { getNetwork, getCreateKeys, getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
+var Eos = require('eosjs');
+const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
-const { getEos, getCreateAccount, getCreateKeys } = require('../extensions/tools/eos/utils');
+const { dappServicesContract } = require('../extensions/tools/eos/dapp-services');
+const { loadModels } = require('../extensions/tools/models');
+
+const servicescontract = dappServicesContract;
+var servicesC = artifacts.require(`./dappservices/`);
+
+const hodlcontract = 'dappairhodl1';
+var hodlC = artifacts.require(`./airhodl/`);
+
 const delay = ms => new Promise(res => setTimeout(res, ms));
+const delaySec = sec => delay(sec * 1000);
 
-var args = getDefaultArgs();
-var systemToken = (args.creator !== 'eosio') ? 'EOS' : 'SYS';
+var generateModel = (commandNames, cost_per_action = 1) => {
+  var model = {};
+  commandNames.forEach(a => {
+    model[`${a}_model_field`] = {
+      cost_per_action
+    };
+  });
+  return model;
+};
 
-async function genAllocateEOSTokens(account) {
-  const keys = await getCreateAccount(account, args);
-  const { creator } = args;
-  var eos = await getEos(creator, args);
-  let servicesTokenContract = await eos.contract('eosio.token');
+async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccount = null, package_id = 'default', quota = '1.0000', min_stake_quantity = '1.0000', min_unstake_period = 10, package_period = 20, cost_per_action = 1 }) {
+  var models = await loadModels('dapp-services');
+  //var serviceModel = models.find(a => a.name == serviceName);
+  var deployedServices = await deployer.deploy(servicesC, servicescontract);
+   
 
-  await servicesTokenContract.issue({
-    to: account,
-    quantity: `10000.0000 ${systemToken}`,
-    memo: 'seed transfer'
+  var provider = 'pprovider1';
+  var key = await getCreateAccount(provider);
+
+  //create ipfs account
+  await getCreateAccount(serviceName);
+  //var serviceContract = serviceContractAccount || serviceModel.contract;
+
+  // reg provider packages
+  await deployedServices.contractInstance.regpkg({
+    newpackage: {
+      id: 0,
+      provider,
+      api_endpoint: `http://localhost:98765`,
+      package_json_uri: 'http://someuri/dsp-package1.json',
+      enabled: 0,
+      service: serviceName,
+      package_id,
+      quota: `${quota} QUOTA`,
+      min_stake_quantity: `${min_stake_quantity} DAPP`,
+      min_unstake_period: min_unstake_period,
+      package_period: package_period
+    }
   }, {
-    authorization: `eosio@active`,
+    authorization: `${provider}@active`,
+    broadcast: true,
+    sign: true,
+    keyProvider: [key.privateKey]
+  });
+
+  await deployedServices.contractInstance.modifypkg({
+    provider,
+    api_endpoint: `http://localhost:98765`,
+    package_json_uri: '',
+    service: serviceName,
+    package_id
+  }, {
+    authorization: `${provider}@active`,
+    broadcast: true,
+    sign: true,
+    keyProvider: [key.privateKey]
+  });
+
+  return deployedServices;
+}
+
+async function allocateDAPPTokens(deployedContract,quantity='1000.0000 DAPP') {
+  var key = await getCreateKeys(dappServicesContract);
+  let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
+  var contract = deployedContract.address;
+  await servicesTokenContract.issue({
+    to: contract,
+    quantity,
+    memo: ''
+  }, {
+    authorization: `${dappServicesContract}@active`,
+    broadcast: true,
+    sign: true,
+    keyProvider: [key.privateKey]
+  });
+}
+
+async function allocateHODLTokens(deployedContract,quantity='1000.0000 DAPPHDL') {
+  var key = await getCreateKeys(hodlcontract);
+  let servicesTokenContract = await deployedContract.eos.contract(hodlcontract);
+  var contract = deployedContract.address;
+  await servicesTokenContract.issue({
+    to: contract,
+    quantity,
+    memo: ''
+  }, {
+    authorization: `${hodlcontract}@active`,
+    broadcast: true,
+    sign: true,
+    keyProvider: [key.privateKey]
+  });
+}
+
+
+async function selectPackage({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1', selectedPackage = 'default' }) {
+  //var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
+  //var service = model.contract;
+  let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
+  var contract = deployedContract.address;
+  await servicesTokenContract.selectpkg({
+    owner: contract,
+    provider,
+    service: serviceName,
+    'package': selectedPackage
+  }, {
+    authorization: `${contract}@active`,
     broadcast: true,
     sign: true
   });
 }
 
-const contractCode = 'airhodl';
-var contractArtifact = artifacts.require(`./${contractCode}/`);
-var tokenContract = artifacts.require(`./Token/`);
-describe(`${contractCode} Contract`, () => {
-  var testcontract;
-  var disttokenContract;
-  const code = 'auction1';
-  const distokenSymbol = 'NEW';
-  const disttoken = 'distoken';
-  const testuser1 = 'testuser1';
-  const testuser2 = 'testuser2';
-  const testuser3 = 'testuser3';
-  const savings_account = 'savinga';
-  var eos;
-  before(done => {
+async function stake({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1', amount = '500.0000' }) {
+  // var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
+  // var service = model.contract;
+  var contract = deployedContract.address;
+  let servicesTokenContract = await deployedContract.eos.contract(hodlcontract);
+  await servicesTokenContract.stake({
+    owner: contract,
+    service: serviceName,
+    provider,
+    quantity: `${amount} DAPPHDL`
+  }, {
+    authorization: `${contract}@active`,
+    broadcast: true,
+    sign: true
+  });
+}
+
+async function unstake({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1', amount = '500.0000' }) {
+  var contract = deployedContract.address;
+  let servicesTokenContract = await deployedContract.eos.contract(hodlcontract);
+  await servicesTokenContract.unstake({
+    owner: contract,
+    service: serviceName,
+    provider,
+    quantity: `${amount} DAPPHDL`
+  }, {
+    authorization: `${contract}@active`,
+    broadcast: true,
+    sign: true
+  });
+}
+
+async function withdraw({ deployedContract}) {
+  var contract = deployedContract.address;
+  let servicesTokenContract = await deployedContract.eos.contract(hodlcontract);
+  await servicesTokenContract.withdraw({
+    owner: contract
+  }, {
+    authorization: `${contract}@active`,
+    broadcast: true,
+    sign: true
+  });
+}
+
+function checkDateParse(date) {
+  const result = Date.parse(date);
+  if (Number.isNaN(result)) {
+      throw new Error('Invalid time format');
+  }
+  return result;
+}
+
+function dateToTimePoint(date) {
+  return Math.round(checkDateParse(date + 'Z') * 1000);
+}
+
+
+
+async function activate({ deployedContract, start, end}) {
+var key = await getCreateKeys(hodlcontract);
+let servicesTokenContract = await deployedContract.eos.contract(hodlcontract);
+await servicesTokenContract.activate({
+  start:dateToTimePoint(start),
+  end:dateToTimePoint(end)
+}, {
+  authorization: `${hodlcontract}@active`,
+  broadcast: true,
+  sign: true,
+  keyProvider: [key.privateKey]
+});
+}
+
+async function refund({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1' }) {
+  // var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
+  // var service = model.contract;
+  var contract = deployedContract.address;
+  let servicesTokenContract = await deployedContract.eos.contract(hodlcontract);
+  try {
+    await servicesTokenContract.refund({
+      owner: contract,
+      service: serviceName,
+      provider
+    }, {
+      authorization: `${contract}@active`,
+      broadcast: true,
+      sign: true
+    });
+  }
+  catch (e) {
+
+  }
+}
+
+
+async function deployDAPPAccount(code) {
+  var deployedContract = await getCreateAccount(code);
+  var eos = await getEos(code);
+  deployedContract.address = code;
+  deployedContract.eos = eos;
+  await allocateDAPPTokens(deployedContract);
+  return deployedContract;
+}
+
+async function deployHODLAccount(code) {
+  var deployedContract = await getCreateAccount(code);
+  var eos = await getEos(code);
+  deployedContract.address = code;
+  deployedContract.eos = eos;
+  await allocateHODLTokens(deployedContract);
+  return deployedContract;
+}
+
+describe(`AirHODL Tests`, () => {
+  it('Create AirHODL', done => {
+    (async() => {
+      try {        
+        await deployServicePackage({});
+        var deployedHODL = await deployer.deploy(hodlC, hodlcontract);
+        await allocateDAPPTokens(deployedHODL,'100000000.0000 DAPP');
+        var hodlkey = await getCreateKeys(hodlcontract);
+        await deployedHODL.contractInstance.create({
+          issuer:hodlcontract,
+          maximum_supply: '100000000.0000 DAPPHDL'
+        }, {
+          authorization: `${hodlcontract}@active`,
+          broadcast: true,
+          sign: true,
+          keyProvider: [hodlkey.privateKey]
+        });
+        var deployedAccount = await deployHODLAccount('test1');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it('Simple package and unstake', done => {
     (async() => {
       try {
-        var deployedContract = await deployer.deploy(contractArtifact, code);
-        var deployedToken = await deployer.deploy(tokenContract, disttoken);
-        disttokenContract = await deployedToken.eos.contract(disttoken);
+        var selectedPackage = 'default';
+        var testContractAccount = 'consumer1';
+        var deployedContract = await deployHODLAccount(testContractAccount);        
+        await selectPackage({ deployedContract, selectedPackage });
+        await stake({ deployedContract, selectedPackage });
 
-        await getCreateAccount(savings_account, args);
-
-        eos = deployedContract.eos;
-        await genAllocateEOSTokens(testuser1);
-        await genAllocateEOSTokens(testuser2);
-        await genAllocateEOSTokens(testuser3);
-
-        testcontract = await eos.contract(code);
-
+        var failed = false;
         try {
-          await disttokenContract.create(disttoken, `10000000000.0000 ${distokenSymbol}`, {
-            authorization: `${disttoken}@active`,
-            broadcast: true,
-            sign: true
-          });
+          await unstake({ deployedContract, selectedPackage, amount: '550.0000' });
         }
         catch (e) {
-
+          failed = true;
         }
-
-        console.error('init airhodl');
-
-
+        assert(failed, 'should have failed for bad unstake');
         done();
       }
       catch (e) {
@@ -81,14 +294,21 @@ describe(`${contractCode} Contract`, () => {
     })();
   });
 
-  const _selfopts = {
-    authorization: [`${code}@active`]
-  };
 
-
-  it('stub', done => {
+  it('Simple package and double unstake', done => {
     (async() => {
       try {
+        var selectedPackage = 'default';
+        var testContractAccount = 'consumer2';
+        var package_period = 20;
+        var deployedContract = await deployHODLAccount(testContractAccount);
+        await selectPackage({ deployedContract, selectedPackage });
+        await stake({ deployedContract, selectedPackage });
+        await unstake({ deployedContract, selectedPackage, amount: '249.0000' });
+        await unstake({ deployedContract, selectedPackage, amount: '251.0000' });
+        await delaySec(package_period + 1);
+        await refund({ deployedContract, selectedPackage });
+        await delaySec(package_period + 1);
         done();
       }
       catch (e) {
@@ -97,5 +317,190 @@ describe(`${contractCode} Contract`, () => {
     })();
   });
 
+  it('Simple package and double unstake too much', done => {
+    (async() => {
+      try {
+        var selectedPackage = 'default';
+        var testContractAccount = 'consumer3';
+        var deployedContract = await deployHODLAccount(testContractAccount);
+        await selectPackage({ deployedContract, selectedPackage });
+        await stake({ deployedContract, selectedPackage });
+        await unstake({ deployedContract, selectedPackage, amount: '250.0000' });
+        var failed = false;
+        try {
+          await unstake({ deployedContract, selectedPackage, amount: '251.0000' });
+
+        }
+        catch (e) {
+          failed = true;
+        }
+        assert(failed, 'should have failed for bad unstake');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+
+  it('Attempts to withdraw prior to activation', done => {
+    (async() => {
+      try {
+        var selectedPackage = 'default';
+        var testContractAccount = 'consumer4';
+        var deployedContract = await deployHODLAccount(testContractAccount);
+        
+        let table = await deployedContract.eos.getInfo({
+          json: true,
+        });
+
+        let startDate = new Date(table.head_block_time);
+        let endDate = new Date(table.head_block_time);
+        startDate.setMinutes(startDate.getMinutes()-1);
+        endDate.setMinutes(endDate.getMinutes()+2);
+        let start = startDate.toISOString();
+        start = start.substr(0,start.length-1);
+        let end = endDate.toISOString();
+        end = end.substr(0,end.length-1);
+
+        var failed = false;
+        try {
+          await withdraw({ deployedContract });
+        }
+        catch (e) {
+          failed = true;
+        }
+        assert(failed, 'should have failed for not activated');
+        await activate({deployedContract, start, end});
+        
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it('Attempts to withdraw after activation', done => {
+    (async() => {
+      try {
+        var selectedPackage = 'default';
+        var testContractAccount = 'consumer5';
+        var deployedContract = await deployHODLAccount(testContractAccount);
+        await allocateDAPPTokens(deployedContract,'1.0000 DAPP');
+
+        let table = await deployedContract.eos.getTableRows({
+          code:dappServicesContract,
+          scope:testContractAccount,
+          table:'accounts',
+          json: true,
+        });
+        let oldBalance = table.rows[0].balance.replace(' DAPP','');
+
+        await delaySec(61);
+        await withdraw({ deployedContract });
+        
+
+        table = await deployedContract.eos.getTableRows({
+          code:dappServicesContract,
+          scope:testContractAccount,
+          table:'accounts',
+          json: true,
+        });
+        let newBalance = table.rows[0].balance.replace(' DAPP','');
+
+        table = await deployedContract.eos.getTableRows({
+          code:hodlcontract,
+          scope:'DAPPHDL',
+          table:'stat',
+          json: true,
+        });
+        let forfeit = table.rows[0].forfeiture.replace(' DAPPHDL','');
+
+        assert(newBalance > oldBalance, 'should have withdrawn tokens');
+        assert(forfeit > 0, 'should have forfeit tokens');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it('Stake  after activation and withdrawal by other', done => {
+    (async() => {
+      try {
+        var selectedPackage = 'default';
+        var testContractAccount = 'consumer11';
+        var package_period = 20;
+        var deployedContract = await deployHODLAccount(testContractAccount);    
+        await allocateDAPPTokens(deployedContract,'1.0000 DAPP');    
+        await selectPackage({ deployedContract, selectedPackage });
+        await stake({ deployedContract, selectedPackage });
+
+        let table = await deployedContract.eos.getTableRows({
+          code:hodlcontract,
+          scope:testContractAccount,
+          table:'accounts',
+          json: true,
+        });
+        let oldBalance = table.rows[0].balance.replace(' DAPPHDL','');
+        assert(oldBalance > 500, 'should have a larger balance');
+
+        var failed = false;
+        try {
+          await withdraw({ deployedContract });
+        }
+        catch (e) {
+          failed = true;
+        }
+        assert(failed, 'should have failed for still staked');
+
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  
+  it('Attempts to withdraw after completion', done => {
+    (async() => {
+      try {
+        var selectedPackage = 'default';
+        var testContractAccount = 'consumer12';
+        var deployedContract = await deployHODLAccount(testContractAccount);
+        await allocateDAPPTokens(deployedContract,'1.0000 DAPP');
+
+        let table = await deployedContract.eos.getTableRows({
+          code:dappServicesContract,
+          scope:testContractAccount,
+          table:'accounts',
+          json: true,
+        });
+        let oldBalance = table.rows[0].balance.replace(' DAPP','');
+
+        await delaySec(61);
+        await withdraw({ deployedContract });
+        
+
+        table = await deployedContract.eos.getTableRows({
+          code:dappServicesContract,
+          scope:testContractAccount,
+          table:'accounts',
+          json: true,
+        });
+        let newBalance = table.rows[0].balance.replace(' DAPP','');
+
+        assert(newBalance > oldBalance && newBalance > 1001, 'should have withdrawn tokens');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
 
 });

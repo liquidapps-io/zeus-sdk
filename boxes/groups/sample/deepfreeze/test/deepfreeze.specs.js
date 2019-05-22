@@ -27,7 +27,7 @@ describe(`${contractCode} Contract`, () => {
   var symbol = 'TEST';
 
   before(done => {
-    (async () => {
+    (async() => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
 
@@ -71,14 +71,15 @@ describe(`${contractCode} Contract`, () => {
         testcontract = await eosvram.contract(code2);
         freezecontract = await eosvram.contract(code);
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();
   });
 
   it('deepfreeze', done => {
-    (async () => {
+    (async() => {
       try {
         var failed = false;
         // create token
@@ -117,7 +118,8 @@ describe(`${contractCode} Contract`, () => {
             keyProvider: [key.privateKey],
             sign: true
           });
-        } catch (e) {
+        }
+        catch (e) {
           failed = true;
         }
         assert(failed, 'should have failed');
@@ -165,7 +167,8 @@ describe(`${contractCode} Contract`, () => {
             keyProvider: [key.privateKey],
             sign: true
           });
-        } catch (e) {
+        }
+        catch (e) {
           failed = true;
         }
         assert(failed, 'should have failed');
@@ -181,14 +184,15 @@ describe(`${contractCode} Contract`, () => {
         });
 
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();
   });
 
-  it('airdrop', done => {
-    (async () => {
+  it.skip('airdrop', done => {
+    (async() => {
       try {
         // create token
         var key = await getCreateKeys(testuser);
@@ -213,7 +217,7 @@ describe(`${contractCode} Contract`, () => {
         count = 10;
         for (var i = 0; i < chars.length; i++) {
           for (var i2 = 0; i2 < chars.length; i2++) {
-            async function txu (user) {
+            async function txu(user) {
               try {
                 var res = testtoken.transfer({
                   from: testuser,
@@ -228,7 +232,8 @@ describe(`${contractCode} Contract`, () => {
                 });
                 console.log('done', user);
                 return res;
-              } catch (e) {
+              }
+              catch (e) {
                 console.log('failed for', user);
               }
             }
@@ -243,7 +248,8 @@ describe(`${contractCode} Contract`, () => {
         }
         await Promise.all(promises);
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();
