@@ -8,7 +8,7 @@ const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
+const { genAllocateDAPPTokens, readVRAMData } = require('../extensions/tools/eos/dapp-services');
 
 var contractCode = 'coldtoken';
 var ctrt = artifacts.require(`./${contractCode}/`);
@@ -19,6 +19,7 @@ describe(`${contractCode} Contract`, () => {
 
   const code = 'airairairair';
   const code2 = 'airairairai2';
+  var testUser = "tt11";
   var account = code;
 
   const getTestAccountName = (num) => {
@@ -34,10 +35,11 @@ describe(`${contractCode} Contract`, () => {
     return s;
   };
   before(done => {
-    (async () => {
+    (async() => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
         var deployedContract2 = await deployer.deploy(ctrt, code2);
+        var deployedContract3 = await deployer.deploy(ctrt, testUser);
         await genAllocateDAPPTokens(deployedContract, 'ipfs');
         // create token
         var selectedNetwork = getNetwork(getDefaultArgs());
@@ -56,14 +58,16 @@ describe(`${contractCode} Contract`, () => {
 
         testcontract = await eosvram.contract(code);
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();
   });
   // console.log("codekey",codekey);
+
   it('transfer', done => {
-    (async () => {
+    (async() => {
       try {
         var symbol = 'AIR';
         var failed = false;
@@ -121,15 +125,75 @@ describe(`${contractCode} Contract`, () => {
             broadcast: true,
             sign: true
           });
-        } catch (e) {
+        }
+        catch (e) {
           failed = true;
         }
         assert(failed, 'should have failed big transfer');
-
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();
   });
+
+  it('issue and read', done => {
+    (async() => {
+      try {
+        var symbol = 'AIRU';
+
+        // create token
+        await testcontract.create({
+          issuer: code,
+          maximum_supply: `1000000000.0000 ${symbol}`
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+        var testtoken = testcontract;
+        await testtoken.issue({
+          to: testUser,
+          quantity: `1000.0000 ${symbol}`,
+          memo: ''
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+        await delay(7000);
+        var tableRes = await readVRAMData({
+          contract: code,
+          key: symbol,
+          table: "accounts",
+          scope: testUser
+        });
+        assert(tableRes.row.balance == `1000.0000 ${symbol}`, "wrong balance");
+        await testtoken.issue({
+          to: testUser,
+          quantity: `1000.0000 ${symbol}`,
+          memo: ''
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+        await delay(7000);
+        tableRes = await readVRAMData({
+          contract: code,
+          key: symbol,
+          table: "accounts",
+          scope: testUser
+        });
+        assert(tableRes.row.balance == `2000.0000 ${symbol}`, "wrong balance");
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+
 });

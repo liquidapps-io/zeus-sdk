@@ -1,7 +1,7 @@
 const fs = require('fs');
 const { execPromise, emojMap } = require('../../helpers/_exec');
 const path = require('path');
-module.exports = async (args, zeusbox) => {
+module.exports = async(args, zeusbox) => {
   if (!zeusbox.install) { return; }
   if (zeusbox.install.npm) {
     var packages = Object.keys(zeusbox.install.npm).join(' ');
@@ -11,10 +11,11 @@ module.exports = async (args, zeusbox) => {
         cwd: path.resolve('.'),
         env: {
           ...process.env,
-          GO_IPFS_DIST_URL: 'https://s3.us-east-2.amazonaws.com/liquidapps.artifacts'
+          // GO_IPFS_DIST_URL: 'https://s3.us-east-2.amazonaws.com/liquidapps.artifacts'
         }
       });
-    } catch (e) {
+    }
+    catch (e) {
       console.error(e.stderr);
       if (packages === 'ipfs go-ipfs-dep ipfsd-ctl' && e.stderr.indexOf('ERR!') === -1) { return; }
       throw new Error('npm install failed');

@@ -20,20 +20,61 @@ const fetch = require('node-fetch');
 
 var url = getUrl(getDefaultArgs());
 const rpc = new JsonRpc(url, { fetch });
+const cacheMB = 256;
+const cacheHours = 12;
+const cacheMinutes = 60 * cacheHours;
+const ipfsTimeoutSeconds = process.env.IPFS_TIMEOUT_SECONDS || 15;
+const ipfsTimeout = ipfsTimeoutSeconds * 1000;
+var LRU = require("lru-cache"),
+  options = {
+    max: 1024 * 1024 * cacheMB,
+    updateAgeOnGet: true,
+    length: function(n, key) { return n.length },
+    maxAge: 1000 * 60 * cacheMinutes
+  },
+  cache = new LRU(options)
 
-const saveToIPFS = async (data) => {
+
+
+const saveToIPFS = async(data) => {
   // console.log('writing data: ' +data);
-  const filesAdded = await ipfs.files.add(Buffer.from(data, 'hex'), { 'raw-leaves': true, 'cid-version': 1 });
+  const bufData = Buffer.from(data, 'hex');
+  const hash = hashData256(bufData);
+  const uri = converToUri("01551220" + hash);
+
+  var cachedValue = cache.get(uri);
+  if (cachedValue) {
+    console.log(`already cached ${uri}`);
+    return uri;
+  }
+
+  const filesAdded = await ipfs.files.add(bufData, { 'raw-leaves': true, 'cid-version': 1 });
   var theHash = filesAdded[0].hash;
   console.log('commited to: ipfs://' + theHash);
-  return `ipfs://${theHash}`;
+  const resUri = `ipfs://${theHash}`;
+  if (resUri != uri)
+    throw new Error(`uris mismatch ${resUri} != ${uri}`);
+  cache.set(uri, bufData);
+  return uri;
 };
 
-const readFromIPFS = async (uri) => {
+const readFromIPFS = async(uri) => {
+  var cachedValue = cache.get(uri);
+  if (cachedValue) {
+    console.log('getting from cache', uri);
+    return cachedValue;
+  }
   console.log('getting', uri);
   const fileName = uri.split('ipfs://', 2)[1];
-  var res = await ipfs.files.get(fileName);
-  return Buffer.from(res[0].content);
+  var res = await Promise.race([
+    ipfs.files.get(fileName),
+    new Promise((resolve, reject) => {
+      setTimeout(() => { reject('ipfsentry not found') }, ipfsTimeout);
+    })
+  ]);
+  var data = Buffer.from(res[0].content);
+  cache.set(uri, data);
+  return data;
 };
 
 const converToUri = (hash) => {
@@ -41,30 +82,36 @@ const converToUri = (hash) => {
   const address = multihash.toB58String(bytes);
   return 'ipfs://z' + address;
 };
+const readPointer = async(hashWithPrefix, contract) => {
+  var hash = hashWithPrefix.toString('hex').slice(8);
+  var matchHash = hash;
+  // matchHash = matchHash.match(/.{32}/g).reverse().join('');
+  // matchHash = matchHash.match(/.{2}/g).reverse().join('');
 
-const readPointer = async (hash, contract) => {
-  var lower_bound = new BigNumber(hash.toString('hex').slice(8), 16);
-  var matchHash = hash.toString('hex').slice(8).match(/.{2}/g).reverse().join('');
+  console.log("matchHash", hash, matchHash);
+
   const payload = {
     'json': true,
     'scope': contract,
     'code': contract,
     'table': 'ipfsentry',
     'lower_bound': matchHash,
-    'upper_bound': lower_bound.plus(1).toString(16),
     'key_type': 'sha256',
     'encode_type': 'hex',
     'index_position': 2,
     'limit': 1
   };
-    // console.log("payload", payload);
+  // console.log("payload", payload);
   const res = await rpc.get_table_rows(payload);
-  var result = res.rows.find(a => a);
-
-  if (!result) {
-    const uri = converToUri(hash);
+  const uri = converToUri(hashWithPrefix);
+  var result = res.rows.find(a => {
+    var myHash = hashData256(Buffer.from(a.data, 'hex'));
+    return myHash == hash
+  });
+  if (!result)
     return readFromIPFS(uri);
-  }
+
+  console.log(`uri: ${uri} from cache`);
   return Buffer.from(result.data, 'hex');
 };
 const hashData = (data) => {
@@ -78,9 +125,13 @@ const hashData256 = (data) => {
   return hash.hex();
 };
 
+const prepKeyForCalc = (key) => {
+  return nameToString(Buffer.from(stringToName(key)));
+}
+
 const calculateBucketShard = (key, scope, buckets, shards) => {
-  scope = nameToString(Buffer.from(stringToName(scope)));
-  key = nameToString(Buffer.from(stringToName(key)));
+  scope = prepKeyForCalc(scope);
+  key = prepKeyForCalc(key);
   const fullkey = `${scope}-${key}`;
   const hashedKey = hashData(fullkey).match(/.{2}/g).reverse().join('');
   var num = new BigNumber(hashedKey, 16);
@@ -90,7 +141,7 @@ const calculateBucketShard = (key, scope, buckets, shards) => {
   return { shard, bucket };
 };
 
-const parseShard = async (shardRaw) => {
+const parseShard = async(shardRaw) => {
   var pos = 1;
   const res = [];
   while (pos < shardRaw.length) {
@@ -99,7 +150,7 @@ const parseShard = async (shardRaw) => {
   }
   return res;
 };
-const fetchShard = async (contract, table, shard) => {
+const fetchShard = async(contract, table, shard) => {
   // get eos client instance
   var res = await eos.getTableRows({
     'json': true,
@@ -116,12 +167,12 @@ const fetchShard = async (contract, table, shard) => {
   return parseShard(shardRaw);
 };
 
-function isUpperCase (str) {
+function isUpperCase(str) {
   return str !== str.toLowerCase();
 }
 const stringToSymbol = (str) => {
   const pad = '\0'.repeat(8 - str.length);
-  return Buffer.from(str + pad).toString();
+  return Buffer.from(str + pad);
 };
 
 const stringToNameInner = (str) => {
@@ -138,7 +189,7 @@ const nameToString = (name) => {
   const tmp = new BigNumber(name.toString('hex'), 16);
   return Eos.modules.format.decodeName(tmp.toString(), true);
 };
-const parseBucket = async (bucketRawData) => {
+const parseBucket = async(bucketRawData) => {
   const bucket = {};
   var pos = 0;
   while (pos < bucketRawData.length) {
@@ -152,18 +203,18 @@ const parseBucket = async (bucketRawData) => {
   }
   return bucket;
 };
-const fetchBucket = async (bucketPointer, contract) => {
+const fetchBucket = async(bucketPointer, contract) => {
   var bucketRawData = await readPointer(bucketPointer, contract);
   return parseBucket(bucketRawData);
 };
 
-const extractRowFromBucket = async (bucketData, scope, key, contract) => {
+const extractRowFromBucket = async(bucketData, scope, key, contract) => {
   const rowPointer = bucketData[`${scope}.${key}`];
   console.log('rowPointer', rowPointer);
   if (rowPointer) { return await readPointer(rowPointer, contract); }
 };
 
-const extractRowFromShardData = async (shardData, bucket, scope, key, contract) => {
+const extractRowFromShardData = async(shardData, bucket, scope, key, contract) => {
   if (!shardData) { return; }
   const bucketPointer = shardData[bucket];
   const bucketData = await fetchBucket(bucketPointer, contract);
@@ -171,18 +222,18 @@ const extractRowFromShardData = async (shardData, bucket, scope, key, contract) 
   return await extractRowFromBucket(bucketData, scope, key, contract);
 };
 
-const getRowRaw = async (contract, table, scope, key, buckets, shards) => {
+const getRowRaw = async(contract, table, scope, key, buckets, shards) => {
   const { shard, bucket } = calculateBucketShard(key, scope, buckets, shards);
   console.log('shard, bucket', shard, bucket);
   scope = stringToNameInner(stringToName(scope)).toString();
   key = stringToNameInner(stringToName(key)).toString();
   console.log('scope, key', scope, key);
   const shardData = await fetchShard(contract, table, shard);
-  console.log('shardData', shardData);
+  // console.log('shardData', shardData);
   return await extractRowFromShardData(shardData, bucket, scope, key, contract);
 };
 
-const deserializeRow = async (contract, table, rowRaw) => {
+const deserializeRow = async(contract, table, rowRaw) => {
   if (!rowRaw) { return; }
   // get abi
   const abi = await eos.getAbi(contract);
@@ -196,12 +247,13 @@ const deserializeRow = async (contract, table, rowRaw) => {
   return deserialize(abi.abi.structs, rowRaw, structName);
 };
 
-async function verifyIPFSConnection () {
+async function verifyIPFSConnection() {
   try {
     await saveToIPFS('');
     console.log('ipfs connection established');
-  } catch (e) {
-    console.error(`ipfs connection failed, IPFS_HOST = ${process.env.IPFS_HOST}`);
+  }
+  catch (e) {
+    console.error(`ipfs connection failed (${e}), IPFS_HOST = ${process.env.IPFS_HOST}`);
     process.exit(1);
   }
 }
@@ -209,7 +261,7 @@ async function verifyIPFSConnection () {
 verifyIPFSConnection();
 
 nodeFactory('ipfs', {
-  commit: async ({ rollback, replay, exception }, { data }) => {
+  commit: async({ rollback, replay, exception }, { data }) => {
     if (rollback) { return; }
     const uri = await saveToIPFS(data);
     if (process.env.PASSIVE_DSP_NODE == 'true' || replay || exception) {
@@ -220,7 +272,7 @@ nodeFactory('ipfs', {
       size: data.length / 2
     };
   },
-  warmup: async ({ event, rollback }, { uri }) => {
+  warmup: async({ event, rollback }, { uri }) => {
     if (rollback) {
       // rollback warmup
       event.action = 'cleanup';
@@ -229,7 +281,8 @@ nodeFactory('ipfs', {
         size: 0,
         uri
       };
-    } else {
+    }
+    else {
       var data = await readFromIPFS(uri);
       return {
         uri,
@@ -238,7 +291,7 @@ nodeFactory('ipfs', {
       };
     }
   },
-  cleanup: async ({ rollback, exception, replay }, { uri }) => {
+  cleanup: async({ rollback, exception, replay }, { uri }) => {
     if (rollback || exception || replay) { return; }
     console.log('cleanup', uri);
     return {
@@ -247,20 +300,24 @@ nodeFactory('ipfs', {
     };
   },
   api: {
-    get_table_row: async ({ body }, res) => {
-      const { contract, table, scope, key } = body;
-      const buckets = body.buckets ? body.buckets : 64;
-      const shards = body.shards ? body.shards : 1024;
-      const rowRaw = await getRowRaw(contract, table, scope, key, buckets, shards);
-      console.log('rowRaw', rowRaw);
-      const row = await deserializeRow(contract, table, rowRaw);
-      // get abi
-      // parse object
-      if (!row) {
-        res.status(400);
-        res.send(JSON.stringify({ error: 'key not found' }));
-      } else {
+    get_table_row: async({ body }, res) => {
+      try {
+        const { contract, table, scope, key } = body;
+        const buckets = body.buckets ? body.buckets : 64;
+        const shards = body.shards ? body.shards : 1024;
+        const rowRaw = await getRowRaw(contract, table, scope, key, buckets, shards);
+        console.log('rowRaw', rowRaw);
+        const row = await deserializeRow(contract, table, rowRaw);
+        // get abi
+        // parse object
+        if (!row)
+          throw new Error('key not found');
         res.send(JSON.stringify({ row }));
+      }
+      catch (e) {
+        res.status(400);
+        console.error("error:", e);
+        res.send(JSON.stringify({ error: e.toString() }));
       }
     }
   }
