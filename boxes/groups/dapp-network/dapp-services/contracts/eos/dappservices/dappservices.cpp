@@ -18,6 +18,8 @@ using namespace std;
 CONTRACT dappservices : public eosio::contract {
 public:
   using contract::contract;
+
+  const name HODL_ACCOUNT = "dappairhodl1"_n;
   
   
   TABLE account {
@@ -485,6 +487,10 @@ public:
 
   [[eosio::action]] void staketo(name from, name to, name provider, name service, asset quantity) {
     // eosio::check(false,"Staking is temporarily frozen while we migrate tables"); //TODO: Remove after migration
+    
+    if(from != to) {
+      eosio::check(from == HODL_ACCOUNT,"third party staking only allowed for AirHODL");
+    }
     require_auth(from);
     require_recipient(provider);
     require_recipient(service);
