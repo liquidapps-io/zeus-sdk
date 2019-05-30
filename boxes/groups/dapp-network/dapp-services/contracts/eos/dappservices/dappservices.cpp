@@ -5,6 +5,8 @@
 using namespace eosio;
 using namespace std;
 
+// #define MIGRATION_MODE true
+
 #define EMIT_USAGE_REPORT_EVENT(usageResult)                                   \
   START_EVENT("usage_report", "1.4")                                           \
   EVENTKV("payer", (usageResult).payer)                                        \
@@ -454,6 +456,8 @@ public:
   }
 
  [[eosio::action]] void migratestake(uint64_t id) {
+#ifdef MIGRATION_MODE    
+
    accountexts_t accountexts(_self, DAPPSERVICES_SYMBOL.code().raw());
     auto acct = accountexts.find(id);
     //we want to fail gracefully for the batches
@@ -479,6 +483,7 @@ public:
         });
       }
     }
+#endif
  }
 
  [[eosio::action]] void stake(name from, name provider, name service, asset quantity) {
@@ -486,8 +491,10 @@ public:
   }
 
   [[eosio::action]] void staketo(name from, name to, name provider, name service, asset quantity) {
-    // eosio::check(false,"Staking is temporarily frozen while we migrate tables"); //TODO: Remove after migration
-    
+#ifdef MIGRATION_MODE    
+    eosio::check(false,"Staking is temporarily frozen while we migrate tables"); //TODO: Remove after migration
+#endif    
+
     if(from != to) {
       eosio::check(from == HODL_ACCOUNT,"third party staking only allowed for AirHODL");
     }
@@ -569,7 +576,9 @@ public:
   }
 
   [[eosio::action]] void refundto(name from, name to, name provider, name service, symbol_code symcode) {
-    // eosio::check(false,"Staking is temporarily frozen while we migrate tables"); //TODO: Remove after migration
+#ifdef MIGRATION_MODE    
+    eosio::check(false,"Staking is temporarily frozen while we migrate tables"); //TODO: Remove after migration
+#endif
     //no auth required
     auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     refunds_table refunds_tbl(_self, from.value);
@@ -610,7 +619,7 @@ public:
 
       action(permission_level{_self, "active"_n}, 
         _self, "refreceipt"_n,
-        std::make_tuple(_self, from, quantity))
+        std::make_tuple(from, to, quantity))
       .send();
     }
     cidx.erase(req);

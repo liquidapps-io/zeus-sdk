@@ -163,6 +163,18 @@ async function unstake({ deployedContract, serviceName = 'ipfs', provider = 'ppr
   });
 }
 
+async function refresh({ deployedContract}) {
+  var contract = deployedContract.address;
+  let servicesTokenContract = await deployedContract.eos.contract(hodlcontract);
+  await servicesTokenContract.refresh({
+    owner: contract
+  }, {
+    authorization: `${contract}@active`,
+    broadcast: true,
+    sign: true
+  });
+}
+
 async function withdraw({ deployedContract}) {
   var contract = deployedContract.address;
   let servicesTokenContract = await deployedContract.eos.contract(hodlcontract);
@@ -260,32 +272,6 @@ describe(`AirHODL Tests`, () => {
           sign: true,
           keyProvider: [hodlkey.privateKey]
         });
-        var deployedAccount = await deployHODLAccount('test1');
-        done();
-      }
-      catch (e) {
-        done(e);
-      }
-    })();
-  });
-
-  it('Simple package and unstake', done => {
-    (async() => {
-      try {
-        var selectedPackage = 'default';
-        var testContractAccount = 'consumer1';
-        var deployedContract = await deployHODLAccount(testContractAccount);        
-        await selectPackage({ deployedContract, selectedPackage });
-        await stake({ deployedContract, selectedPackage });
-
-        var failed = false;
-        try {
-          await unstake({ deployedContract, selectedPackage, amount: '550.0000' });
-        }
-        catch (e) {
-          failed = true;
-        }
-        assert(failed, 'should have failed for bad unstake');
         done();
       }
       catch (e) {
@@ -295,167 +281,116 @@ describe(`AirHODL Tests`, () => {
   });
 
 
-  it('Simple package and double unstake', done => {
+  it('Payout logic testing', done => {
     (async() => {
       try {
         var selectedPackage = 'default';
-        var testContractAccount = 'consumer2';
-        var package_period = 20;
-        var deployedContract = await deployHODLAccount(testContractAccount);
-        await selectPackage({ deployedContract, selectedPackage });
-        await stake({ deployedContract, selectedPackage });
-        await unstake({ deployedContract, selectedPackage, amount: '249.0000' });
-        await unstake({ deployedContract, selectedPackage, amount: '251.0000' });
-        await delaySec(package_period + 1);
-        await refund({ deployedContract, selectedPackage });
-        await delaySec(package_period + 1);
-        done();
-      }
-      catch (e) {
-        done(e);
-      }
-    })();
-  });
-
-  it('Simple package and double unstake too much', done => {
-    (async() => {
-      try {
-        var selectedPackage = 'default';
-        var testContractAccount = 'consumer3';
-        var deployedContract = await deployHODLAccount(testContractAccount);
-        await selectPackage({ deployedContract, selectedPackage });
-        await stake({ deployedContract, selectedPackage });
-        await unstake({ deployedContract, selectedPackage, amount: '250.0000' });
-        var failed = false;
-        try {
-          await unstake({ deployedContract, selectedPackage, amount: '251.0000' });
-
-        }
-        catch (e) {
-          failed = true;
-        }
-        assert(failed, 'should have failed for bad unstake');
-        done();
-      }
-      catch (e) {
-        done(e);
-      }
-    })();
-  });
-
-
-  it('Attempts to withdraw prior to activation', done => {
-    (async() => {
-      try {
-        var selectedPackage = 'default';
-        var testContractAccount = 'consumer4';
-        var deployedContract = await deployHODLAccount(testContractAccount);
+        var account1 = 'consumer1';
+        var account2 = 'consumer2';
+        var account3 = 'consumer3';
+        var deployed1 = await deployHODLAccount(account1);
+        var deployed2 = await deployHODLAccount(account2);
+        var deployed3 = await deployHODLAccount(account3);
+        await allocateDAPPTokens(deployed2,'1.0000 DAPP');
+        await allocateDAPPTokens(deployed3,'1.0000 DAPP');
         
-        let table = await deployedContract.eos.getInfo({
+        let table = await deployed1.eos.getInfo({
           json: true,
         });
 
         let startDate = new Date(table.head_block_time);
         let endDate = new Date(table.head_block_time);
-        startDate.setMinutes(startDate.getMinutes()-1);
+        startDate.setMinutes(startDate.getMinutes());
         endDate.setMinutes(endDate.getMinutes()+2);
         let start = startDate.toISOString();
         start = start.substr(0,start.length-1);
         let end = endDate.toISOString();
         end = end.substr(0,end.length-1);
 
-        var failed = false;
-        try {
-          await withdraw({ deployedContract });
-        }
-        catch (e) {
-          failed = true;
-        }
-        assert(failed, 'should have failed for not activated');
-        await activate({deployedContract, start, end});
-        
-        done();
-      }
-      catch (e) {
-        done(e);
-      }
-    })();
-  });
+        await withdraw({ deployedContract: deployed1 });
 
-  it('Attempts to withdraw after activation', done => {
-    (async() => {
-      try {
-        var selectedPackage = 'default';
-        var testContractAccount = 'consumer5';
-        var deployedContract = await deployHODLAccount(testContractAccount);
-        await allocateDAPPTokens(deployedContract,'1.0000 DAPP');
-
-        let table = await deployedContract.eos.getTableRows({
-          code:dappServicesContract,
-          scope:testContractAccount,
-          table:'accounts',
-          json: true,
-        });
-        let oldBalance = table.rows[0].balance.replace(' DAPP','');
-
-        await delaySec(61);
-        await withdraw({ deployedContract });
-        
-
-        table = await deployedContract.eos.getTableRows({
-          code:dappServicesContract,
-          scope:testContractAccount,
-          table:'accounts',
-          json: true,
-        });
-        let newBalance = table.rows[0].balance.replace(' DAPP','');
-
-        table = await deployedContract.eos.getTableRows({
+        table = await deployed1.eos.getTableRows({
           code:hodlcontract,
           scope:'DAPPHDL',
           table:'stat',
           json: true,
         });
         let forfeit = table.rows[0].forfeiture.replace(' DAPPHDL','');
+        let supply = table.rows[0].supply.replace(' DAPPHDL','');
 
-        assert(newBalance > oldBalance, 'should have withdrawn tokens');
-        assert(forfeit > 0, 'should have forfeit tokens');
-        done();
-      }
-      catch (e) {
-        done(e);
-      }
-    })();
-  });
+        console.log('After account 1 withdrawn stats');
+        console.log(table); //for debugging and eye check
 
-  it('Stake  after activation and withdrawal by other', done => {
-    (async() => {
-      try {
-        var selectedPackage = 'default';
-        var testContractAccount = 'consumer11';
-        var package_period = 20;
-        var deployedContract = await deployHODLAccount(testContractAccount);    
-        await allocateDAPPTokens(deployedContract,'1.0000 DAPP');    
-        await selectPackage({ deployedContract, selectedPackage });
-        await stake({ deployedContract, selectedPackage });
+        assert(forfeit == 1000, 'should have forfeit tokens');
+        assert(supply == 3000, 'should not have changed supply');
 
-        let table = await deployedContract.eos.getTableRows({
+        await activate({deployedContract: deployed2, start, end});   
+
+        //test 50% (ish) condition
+        await delaySec(60);
+        await withdraw({ deployedContract: deployed2 });
+
+        table = await deployed2.eos.getTableRows({
           code:hodlcontract,
-          scope:testContractAccount,
+          scope:'DAPPHDL',
+          table:'stat',
+          json: true,
+        });
+
+        console.log('After account 2 withdrawn stats');
+        console.log(table); //for debugging and eye check
+
+        let forfeit2 = table.rows[0].forfeiture.replace(' DAPPHDL','');
+        let supply2 = table.rows[0].supply.replace(' DAPPHDL','');
+
+        table = await deployed2.eos.getTableRows({
+          code:dappServicesContract,
+          scope:account2,
           table:'accounts',
           json: true,
         });
-        let oldBalance = table.rows[0].balance.replace(' DAPPHDL','');
-        assert(oldBalance > 500, 'should have a larger balance');
 
-        var failed = false;
-        try {
-          await withdraw({ deployedContract });
-        }
-        catch (e) {
-          failed = true;
-        }
-        assert(failed, 'should have failed for still staked');
+        console.log('After account 2 withdrawn balance');
+        console.log(table); //for debugging and eye check
+
+        let balance2 = table.rows[0].balance.replace(' DAPP','') - 1;
+
+        assert(forfeit2 >= 750, 'should have forfeit tokens');
+        assert(supply2 <= 2250, 'should have changed supply');
+        assert(balance2 >= 750, 'should have received 50% vesting');
+
+        //test 100% (ish) condition
+        await delaySec(65);
+        await withdraw({ deployedContract: deployed3 });
+
+        table = await deployed3.eos.getTableRows({
+          code:hodlcontract,
+          scope:'DAPPHDL',
+          table:'stat',
+          json: true,
+        });
+
+        console.log('After account 3 withdrawn stats');
+        console.log(table); //for debugging and eye check
+
+        let forfeit3 = table.rows[0].forfeiture.replace(' DAPPHDL','');
+        let supply3 = table.rows[0].supply.replace(' DAPPHDL','');
+
+        table = await deployed3.eos.getTableRows({
+          code:dappServicesContract,
+          scope:account3,
+          table:'accounts',
+          json: true,
+        });
+
+        console.log('After account 3 withdrawn balance');
+        console.log(table); //for debugging and eye check
+
+        let balance3 = table.rows[0].balance.replace(' DAPP','') - 1;
+
+        assert(balance3 == 3000 - balance2, 'should have withdrawn all tokens');
+        assert(forfeit3 == 0, 'should be no balance');
+        assert(supply3 == 0, 'should have changed supply');       
 
         done();
       }
@@ -464,43 +399,4 @@ describe(`AirHODL Tests`, () => {
       }
     })();
   });
-
-  
-  it('Attempts to withdraw after completion', done => {
-    (async() => {
-      try {
-        var selectedPackage = 'default';
-        var testContractAccount = 'consumer12';
-        var deployedContract = await deployHODLAccount(testContractAccount);
-        await allocateDAPPTokens(deployedContract,'1.0000 DAPP');
-
-        let table = await deployedContract.eos.getTableRows({
-          code:dappServicesContract,
-          scope:testContractAccount,
-          table:'accounts',
-          json: true,
-        });
-        let oldBalance = table.rows[0].balance.replace(' DAPP','');
-
-        await delaySec(61);
-        await withdraw({ deployedContract });
-        
-
-        table = await deployedContract.eos.getTableRows({
-          code:dappServicesContract,
-          scope:testContractAccount,
-          table:'accounts',
-          json: true,
-        });
-        let newBalance = table.rows[0].balance.replace(' DAPP','');
-
-        assert(newBalance > oldBalance && newBalance > 1001, 'should have withdrawn tokens');
-        done();
-      }
-      catch (e) {
-        done(e);
-      }
-    })();
-  });
-
 });

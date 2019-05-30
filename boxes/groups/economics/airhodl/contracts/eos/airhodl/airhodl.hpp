@@ -28,6 +28,12 @@ namespace airhodl {
          void issue( name to, asset quantity, string memo );
 
          [[eosio::action]]
+         void update( name issuer );
+
+         [[eosio::action]]
+         void reclaim( name from );
+
+         [[eosio::action]]
          void activate( time_point start, time_point end);
 
          [[eosio::action]]
@@ -35,6 +41,9 @@ namespace airhodl {
 
          [[eosio::action]]
          void withdraw( name owner );
+
+         [[eosio::action]]
+         void refresh( name owner );
 
          [[eosio::action]] 
          void stake( name owner, name provider, name service, asset quantity);

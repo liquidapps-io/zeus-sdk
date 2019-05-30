@@ -27,6 +27,18 @@ void airhodl::create( name   issuer,
     });
 }
 
+void airhodl::update(name issuer)
+{
+    require_auth( _self );
+    stats statstable( _self, HODL_SYMBOL.code().raw() );
+    auto existing = statstable.find( HODL_SYMBOL.code().raw() );
+    eosio::check( existing != statstable.end(), "token with symbol does not exist" );
+
+    statstable.modify( existing, eosio::same_payer, [&]( auto& s ) {
+       s.issuer = issuer;
+    });
+}
+
 void airhodl::activate( time_point start, time_point end) {
    auto sym_code_raw = HODL_SYMBOL.code().raw();
 
@@ -45,7 +57,23 @@ void airhodl::activate( time_point start, time_point end) {
    });   
 }
 
-
+void airhodl::reclaim(name from){
+    auto sym = HODL_SYMBOL;
+    auto sym_code_raw = sym.code().raw();
+    stats statstable( _self, sym.code().raw() );
+    auto existing = statstable.find( sym_code_raw );
+    eosio::check( existing != statstable.end(), "token with symbol does not exist, create token before activation" );
+    const auto& st = *existing;
+    require_auth( st.issuer );
+    accounts from_acnts( _self, from.value );
+    const auto& user_state = from_acnts.get( sym_code_raw, "no balance object found" );
+    auto quantity = user_state.allocation;
+    eosio::check( quantity.amount <= st.supply.amount, "quantity exceeds available supply");
+    statstable.modify( st, eosio::same_payer, [&]( auto& s ) {
+       s.supply -= quantity;
+    });
+    from_acnts.erase(user_state);
+}
 void airhodl::issue( name to, asset quantity, string memo )
 {
     auto sym = quantity.symbol;
@@ -107,9 +135,6 @@ void airhodl::withdraw( name owner ) {
    eosio::check( existing != statstable.end(), "symbol does not exist for withdrawal" );
    const auto& st = *existing;
 
-   //Check if vesting has started
-   eosio::check(st.vesting_start <= current_time_point() && st.vesting_start > time_point(), "vesting has not started");
-
    //Find hodlaccts
    accounts from_acnts( _self, owner.value );
    const auto& from = from_acnts.get( sym_code_raw, "no balance object found" );
@@ -118,15 +143,20 @@ void airhodl::withdraw( name owner ) {
    eosio::check(from.staked.amount == 0, "you must fully unstake to withdraw");
 
    //calculate vesting ratio
-   
    auto time_elapsed = current_time_point() - st.vesting_start;
    auto vesting_duration = st.vesting_end - st.vesting_start;
    double vesting_ratio = double(time_elapsed.count()) / double(vesting_duration.count());
+   if(vesting_ratio > 1.0)
+      vesting_ratio = 1.0;
+   
+   //vesting hasn't started yet, force ratio
+   if(st.vesting_start == time_point())
+      vesting_ratio = 0.0;   
 
    //calculate vested_balance
    uint64_t balance_vested = static_cast<uint64_t>(vesting_ratio * double(from.allocation.amount));
    uint64_t balance_forfeited = from.allocation.amount - balance_vested;
-   double   bonus_share = double(st.forfeiture.amount) * (double(from.allocation.amount) / double(st.supply.amount));
+   double   bonus_share = double(st.forfeiture.amount) * (double(from.allocation.amount) / double(st.supply.amount - st.forfeiture.amount));
    uint64_t bonus_vested = static_cast<uint64_t>(vesting_ratio * bonus_share);
    asset    payout = asset(balance_vested + bonus_vested, DAPP_SYMBOL);
 
@@ -141,15 +171,18 @@ void airhodl::withdraw( name owner ) {
    //erase hodlaccts table
    from_acnts.erase(from);
 
-   //must have opened a balance of DAPP to receive the transfer
-   token_accounts token_acnts(DAPP_TOKEN,owner.value);
-   const auto& token = token_acnts.get( DAPP_SYMBOL.code().raw(), "no destination balance found. please open an account with dappservices" );
-
+   
    //transfer tokens
-   action(permission_level{_self, "active"_n}, 
-      DAPP_TOKEN, "transfer"_n,
-      std::make_tuple(_self, owner, payout, std::string("Withdrawal from AirHODL")))
-   .send();
+   if(payout.amount > 0) {
+      //must have opened a balance of DAPP to receive the transfer
+      token_accounts token_acnts(DAPP_TOKEN,owner.value);
+      const auto& token = token_acnts.get( DAPP_SYMBOL.code().raw(), "no destination balance found. please open an account with dappservices" );
+
+      action(permission_level{_self, "active"_n}, 
+         DAPP_TOKEN, "transfer"_n,
+         std::make_tuple(_self, owner, payout, std::string("Withdrawal from AirHODL")))
+      .send();
+   }   
 }
 
 void airhodl::stake( name owner, name provider, name service, asset quantity) {
@@ -196,7 +229,7 @@ void airhodl::add_balance( name owner, asset value, name ram_payer )
    auto to = to_acnts.find( value.symbol.code().raw() );
    if( to == to_acnts.end() ) {
       to_acnts.emplace( ram_payer, [&]( auto& a ){
-        a.balance = value;
+        a.balance.symbol = value.symbol;
         a.allocation = value;
         a.staked.symbol = value.symbol;
         a.claimed = false;
@@ -208,13 +241,13 @@ void airhodl::add_balance( name owner, asset value, name ram_payer )
    }
 }
 
-void airhodl::add_stake( name owner, asset value ) {
+void airhodl::refresh(name owner) {
+   auto sym_code_raw = HODL_SYMBOL.code().raw();
+
    accounts from_acnts( _self, owner.value );
+   const auto& from = from_acnts.get( HODL_SYMBOL.code().raw(), "no balance object found" ); 
 
-   const auto& from = from_acnts.get( value.symbol.code().raw(), "no balance object found" );   
    //Find token stats
-   auto sym_code_raw = value.symbol.code().raw();
-
    stats statstable( _self, sym_code_raw );
    auto existing = statstable.find( sym_code_raw );
    eosio::check( existing != statstable.end(), "symbol does not exist for staking" );
@@ -229,27 +262,27 @@ void airhodl::add_stake( name owner, asset value ) {
       auto time_elapsed = current_time_point() - st.vesting_start;
       auto vesting_duration = st.vesting_end - st.vesting_start;
       double vesting_ratio = double(time_elapsed.count()) / double(vesting_duration.count());
-
+      if(vesting_ratio > 1.0)
+         vesting_ratio = 1.0;
 
       //calculate the bonus amount
-      double   bonus_share = double(st.forfeiture.amount) * (double(from.allocation.amount) / double(st.supply.amount));
+      uint64_t balance_vested = static_cast<uint64_t>(vesting_ratio * double(from.allocation.amount));
+      double   bonus_share = double(st.forfeiture.amount) * (double(from.allocation.amount) / double(st.supply.amount - st.forfeiture.amount));
       uint64_t bonus_vested = static_cast<uint64_t>(vesting_ratio * bonus_share);
-      bonus.amount = bonus_vested;
+      bonus.amount = bonus_vested + balance_vested;
    }
 
    //Find difference of new bonus vs old bonus
-   diff.amount = (from.allocation.amount + bonus.amount) - (from.balance.amount + from.staked.amount);
-   eosio::check( from.balance.amount + diff.amount >= value.amount, "overdrawn balance" );
+   diff.amount = bonus.amount - (from.balance.amount + from.staked.amount);
 
    if(from.claimed) {
       from_acnts.modify( from, owner, [&]( auto& a ) {
-         a.balance += (diff - value);
-         a.staked += value;
+         a.balance += diff;
       });
    } else {
       //lets perform a grab if they haven't yet
-      asset balance = from.balance + (diff - value);
-      asset staked  = from.staked + value;
+      asset balance = from.balance + diff;
+      asset staked  = from.staked;
       asset allocation = from.allocation;
       from_acnts.erase(from);
 
@@ -260,6 +293,20 @@ void airhodl::add_stake( name owner, asset value ) {
          a.claimed = true;
       });
    }   
+}
+
+void airhodl::add_stake( name owner, asset value ) {
+   //update vested balance and "grab"
+   refresh(owner);
+
+   accounts from_acnts( _self, owner.value );
+   const auto& from = from_acnts.get( value.symbol.code().raw(), "no balance object found" );   
+   eosio::check( from.balance.amount >= value.amount, "overdrawn balance" );
+
+   from_acnts.modify( from, owner, [&]( auto& a ) {
+      a.balance -= value;
+      a.staked += value;
+   });   
 }
 
 void airhodl::sub_stake( name owner, asset value )
