@@ -1,0 +1,16 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "commands": {
+  },
+  "hooks": {
+  },
+  "dependencies":["oracle-dapp-service","readfn-dapp-service", "token"],
+  "install":{
+    "contracts":{
+      "airdrop": true
+    }
+  }
+}

@@ -62,7 +62,8 @@ const DSP_SERVICES_ENABLED = globalEnv.DSP_SERVICES_ENABLED || [
   'log',
   'vaccounts',
   'oracle',
-  'cron'
+  'cron',
+  "readfn"
 ].join(',');
 const services = DSP_SERVICES_ENABLED.split(',');
 

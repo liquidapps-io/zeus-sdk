@@ -9,6 +9,7 @@
     "ipfs-dapp-service",
     "cron-dapp-service",
     "vaccounts-dapp-service",
-    "oracle-dapp-service"
+    "oracle-dapp-service",
+    "readfn-dapp-service"
   ]
 }

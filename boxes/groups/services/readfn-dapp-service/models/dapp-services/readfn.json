@@ -1,0 +1,18 @@
+{
+    "name": "readfn",
+    "port": 13141,
+    "contract": "readfndspsvc",
+    "commands": {
+        "rfnuse":{
+            "blocking": false,
+            "request":{
+            },
+            "callback":{
+                "size":"uint64_t"
+            },
+            "signal":{
+                "size":"uint64_t"
+            }
+        }   
+    }
+}
