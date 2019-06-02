@@ -4,10 +4,12 @@ const { getCreateKeys } = require('../../extensions/tools/eos/utils');
 const { loadModels } = require("../../extensions/tools/models");
 
 
-
+// todo: periodically call "usage" for hold and serve
 nodeFactory('readfn', {
   api: {
     read: async({ body }, res) => {
+      // todo: verify api key or ref domain
+
       try {
         const { contract_code, method, payload } = body;
         var contract = await eosDSPGateway.contract(contract_code);
