@@ -4,7 +4,6 @@
 account = "<DSP ACCOUNT>"
 private_key = "<DSP PRIVATE KEY>"
 port = 3115
-services_enabled = "ipfs,log,vaccounts,oracle,cron"
 
 [nodeos]
 host = "localhost"
@@ -13,6 +12,9 @@ secured = false
 chainid = "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906"
 zmq_port = 5557
 websocket_port = 8887
+
+host_dsp = "localhost"
+host_dsp_port = 3115
 
 [demux]
 backend = "state_history_plugin"

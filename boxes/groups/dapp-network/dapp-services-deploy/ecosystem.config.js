@@ -53,6 +53,9 @@ const NODEOS_CHAINID = globalEnv.NODEOS_CHAINID || 'aca376f206b8fc25a6ed44dbdc66
 const NODEOS_ZMQ_PORT = globalEnv.NODEOS_ZMQ_PORT || 5557;
 const NODEOS_WEBSOCKET_PORT = globalEnv.NODEOS_WEBSOCKET_PORT || 8887;
 
+const NODEOS_HOST_DSP = globalEnv.NODEOS_HOST_DSP;
+const NODEOS_HOST_DSP_PORT = globalEnv.NODEOS_HOST_DSP_PORT;
+
 // Assert .env
 if (['zmq_plugin', 'state_history_plugin'].indexOf(DEMUX_BACKEND) === -1) throw new Error("DEMUX_BACKEND must be either 'zmq_plugin' or 'state_history_plugin'");
 if (['http', 'https'].indexOf(IPFS_PROTOCOL) === -1) throw new Error("IPFS_PROTOCOL must be either 'http' or 'https'");
@@ -72,6 +75,8 @@ const commonEnv = {
   NODEOS_HOST,
   NODEOS_PORT,
   NODEOS_SECURED,
+  NODEOS_HOST_DSP,
+  NODEOS_HOST_DSP_PORT,
   IPFS_HOST,
   IPFS_PORT,
   IPFS_PROTOCOL,
@@ -100,12 +105,7 @@ module.exports = {
       env: {
         PORT: DSP_PORT,
         WEBHOOK_DAPP_PORT,
-        NODEOS_CHAINID,
-        NODEOS_HOST,
-        NODEOS_PORT,
-        NODEOS_SECURED,
-        DSP_ACCOUNT,
-        DSP_PRIVATE_KEY,
+        ...commonEnv
       }
     },
     {
@@ -115,10 +115,7 @@ module.exports = {
       cwd: __dirname,
       log_date_format: "YYYY-MM-DDTHH:mm:ss",
       env: {
-        NODEOS_CHAINID,
-        NODEOS_HOST,
-        NODEOS_PORT,
-        NODEOS_SECURED,
+        ...commonEnv,
         NODEOS_ZMQ_PORT,
         NODEOS_WEBSOCKET_PORT,
         SOCKET_MODE,

@@ -19,16 +19,16 @@ typedef eosio::multi_index<"accounts"_n, token_account> token_accounts;
 CONTRACT_START()
 
   //scope to token contract
-  struct airdrop_t {    
+  struct [[eosio::table("airdrops")]] airdrop_t {    
     symbol token;
     name issuer;
     string url_prefix;
     string memo;
-
   };
 
   //scope to token contract
-  struct grabbed {
+
+  struct [[eosio::table("grabs")]] grabbed {
     name owner;
     uint64_t primary_key() const { return owner.value; }
   };

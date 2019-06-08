@@ -284,28 +284,33 @@ public:
       // r.package_period = newpackage.package_period;
     });
   }
-  //[[eosio::action]] void disablepkg(name service, name provider, name package_id) {
-  //   packages_t packages(_self, _self.value);
-  //   auto idxKey = package::_by_package_service_provider(package_id, service,
-  //                                                         provider);
-  //   auto cidx = packages.get_index<"bypkg"_n>();
-  //   auto existing = cidx.find(idxKey);
-  //   eosio::check(existing != cidx.end(), "package must exist");
-  //   eosio::check(existing->enabled, "already disabled");
-  //   cidx.modify(existing, eosio::same_payer,
-  //               [&](package &r) { r.enabled = false; });
-  // }
-  //[[eosio::action]] void enablepkg(name service, name provider, name package_id) {
-  //   packages_t packages(_self, _self.value);
-  //   auto idxKey = package::_by_package_service_provider(package_id, service,
-  //                                                         provider);
-  //   auto cidx = packages.get_index<"bypkg"_n>();
-  //   auto existing = cidx.find(idxKey);
-  //   eosio::check(existing != cidx.end(), "package must exist");
-  //   eosio::check(!existing->enabled, "already enabled");
-  //   cidx.modify(existing, eosio::same_payer,
-  //               [&](package &r) { r.enabled = true; });
-  // }
+
+  [[eosio::action]] void disablepkg(name provider, name package_id,name service) {
+    require_auth(provider);
+    packages_t packages(_self, _self.value);
+    auto idxKey = package::_by_package_service_provider(
+        package_id, service, provider);
+    auto cidx = packages.get_index<"bypkg"_n>();
+    auto existing = cidx.find(idxKey);
+    eosio::check(existing != cidx.end(), "missing package");
+    eosio::check(existing->enabled, "already enabled");
+    cidx.modify(existing, eosio::same_payer,
+                [&](package &r) { r.enabled = false; });
+  }
+
+  [[eosio::action]] void enablepkg(name provider, name package_id,name service) {
+    require_auth(provider);
+
+    packages_t packages(_self, _self.value);
+    auto idxKey = package::_by_package_service_provider(
+        package_id, service, provider);
+    auto cidx = packages.get_index<"bypkg"_n>();
+    auto existing = cidx.find(idxKey);
+    eosio::check(existing != cidx.end(), "missing package");
+    eosio::check(!existing->enabled, "already enabled");
+    cidx.modify(existing, eosio::same_payer,
+                [&](package &r) { r.enabled = true; });
+  }
 
  [[eosio::action]] void issue(name to, asset quantity, string memo) {
     auto sym = quantity.symbol;
@@ -491,9 +496,6 @@ public:
   }
 
   [[eosio::action]] void staketo(name from, name to, name provider, name service, asset quantity) {
-#ifdef MIGRATION_MODE    
-    eosio::check(false,"Staking is temporarily frozen while we migrate tables"); //TODO: Remove after migration
-#endif    
 
     if(from != to) {
       eosio::check(from == HODL_ACCOUNT,"third party staking only allowed for AirHODL");
@@ -513,7 +515,6 @@ public:
   }
 
   [[eosio::action]] void unstaketo(name from, name to, name provider, name service, asset quantity) {
-    // eosio::check(false,"Staking is temporarily frozen while we migrate tables"); //TODO: Remove after migration
     require_auth(from);
     require_recipient(provider);
     require_recipient(service);
@@ -576,9 +577,6 @@ public:
   }
 
   [[eosio::action]] void refundto(name from, name to, name provider, name service, symbol_code symcode) {
-#ifdef MIGRATION_MODE    
-    eosio::check(false,"Staking is temporarily frozen while we migrate tables"); //TODO: Remove after migration
-#endif
     //no auth required
     auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     refunds_table refunds_tbl(_self, from.value);
@@ -1083,7 +1081,7 @@ void apply(uint64_t receiver, uint64_t code, uint64_t action) {
                         (staketo)(unstaketo)(refundto)(refreceipt)
                         (claimrewards)(create)(issue)(transfer)
                         (open)(close)(retire)
-                        (selectpkg)(regpkg)(closeprv)(modifypkg))
+                        (selectpkg)(regpkg)(closeprv)(modifypkg)(disablepkg)(enablepkg))
     }
   } else {
     switch (action) { EOSIO_DISPATCH_HELPER(dappservices, (xsignal)) }
