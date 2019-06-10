@@ -85,8 +85,7 @@ const converToUri = (hash) => {
 const readPointer = async(hashWithPrefix, contract) => {
   var hash = hashWithPrefix.toString('hex').slice(8);
   var matchHash = hash;
-  // matchHash = matchHash.match(/.{32}/g).reverse().join('');
-  // matchHash = matchHash.match(/.{2}/g).reverse().join('');
+  matchHash = matchHash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('').match(/.{32}/g).reverse().join('').match(/.{2}/g).reverse().join('');
 
   console.log("matchHash", hash, matchHash);
 
