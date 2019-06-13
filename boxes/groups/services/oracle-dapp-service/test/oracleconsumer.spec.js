@@ -46,7 +46,7 @@ describe(`Oracle Service Test Contract`, () => {
   });
 
   var account = code;
-  it('Oracle HTTPS Get', done => {
+  it.skip('Oracle HTTPS Get', done => {
     (async() => {
       try {
         var res = await testcontract.testget({
@@ -66,7 +66,7 @@ describe(`Oracle Service Test Contract`, () => {
   });
 
 
-  it('Oracle HTTPS+JSON Get', done => {
+  it.skip('Oracle HTTPS+JSON Get', done => {
     (async() => {
       try {
         var res = await testcontract.testget({
