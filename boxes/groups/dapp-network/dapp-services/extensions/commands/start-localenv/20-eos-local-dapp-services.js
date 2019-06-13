@@ -3,15 +3,15 @@ const providerRunHandler = require('../run/dapp-services-node');
 const artifacts = require('../../tools/eos/artifacts');
 const deployer = require('../../tools/eos/deployer');
 const { getCreateAccount } = require('../../tools/eos/utils');
+const { loadModels } = require('../../tools/models');
 
-const { dappServicesContract } = require('../../tools/eos/dapp-services');
+const { dappServicesContract, testProvidersList } = require('../../tools/eos/dapp-services');
 const servicescontract = dappServicesContract;
 var servicesC = artifacts.require(`./dappservices/`);
+var serviceRunner = require('../../helpers/service-runner');
 
-async function deployLocalExtensions () {
+async function deployLocalExtensions() {
   var deployedContract = await deployer.deploy(servicesC, servicescontract);
-  var provider = 'pprovider1';
-  var key = await getCreateAccount(provider);
   var blocksPerSecond = 2;
   var blocksPerMinute = 60 * blocksPerSecond;
   var blocksPerHour = 60 * blocksPerMinute;
@@ -41,7 +41,23 @@ async function deployLocalExtensions () {
   return deployedContract;
 }
 
-module.exports = async (args) => {
+module.exports = async(args) => {
   await deployLocalExtensions();
-  return providerRunHandler.handler(args);
+  var servicesPorts = {};
+  var loadedExtensions = await loadModels('dapp-services');
+  var testProviders = testProvidersList;
+  for (var pi = 0; pi < testProviders.length; pi++) {
+    for (var i = 0; i < loadedExtensions.length; i++) {
+      var loadedExtension = loadedExtensions[i];
+      servicesPorts[`DAPPSERVICE_PORT_${loadedExtension.name.toUpperCase()}`] = loadedExtension.port * (pi + 1);
+    }
+    var testProvider = testProviders[pi];
+    await getCreateAccount(testProvider);
+    await serviceRunner(`/dummy/dapp-services-node.js`, 13015 * (pi + 1)).handler(args, {
+      DSP_ACCOUNT: testProvider,
+      NODEOS_HOST_DSP: 13015 * (pi + 1),
+      WEBHOOK_DAPP_PORT: 8112 * (pi + 1),
+      ...servicesPorts
+    });
+  }
 };

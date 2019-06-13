@@ -100,13 +100,16 @@ typedef eosio::multi_index<"ipfsentry"_n, ipfsentry, \
                  const_mem_fun<ipfsentry, checksum256, \
                                &ipfsentry::hash_key> \
                 >> ipfsentries_t; \
-static std::vector<char> getRawData(std::string uri, bool pin = false){  \
+static std::vector<char> getRawData(std::string uri, bool pin = false, bool skip_commit = false){  \
     auto _self = name(current_receiver()); \
     ipfsentries_t entries(_self, _self.value);  \
     auto cidx = entries.get_index<"byhash"_n>(); \
     auto existing = cidx.find(uri_to_key256(uri)); \
     if(existing == cidx.end())  \
         svc_ipfs_warmup(uri); \
+    else if(skip_commit){ \
+        cidx.erase(existing); \
+    }\
     else if(!pin)\
         svc_ipfs_commit(existing->data); \
     return existing->data;  \

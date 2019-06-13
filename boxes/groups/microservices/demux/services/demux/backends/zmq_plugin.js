@@ -13,12 +13,12 @@ if (ztype == 'sub') { sock.subscribe('action_trace'); }
 var first = true;
 console.log('ZMQ connected');
 var i = 0;
-sock.on('message', async (data) => {
+sock.on('message', async(data) => {
   if (first) {
     console.log('Got first message');
     first = false;
   }
-  if (typeof (data) !== 'string') {
+  if (typeof(data) !== 'string') {
     data = data.toString();
     if (data.indexOf('action_trace-') != 0) { return; }
     data = data.substr('action_trace-'.length);
@@ -27,7 +27,8 @@ sock.on('message', async (data) => {
   var res;
   try {
     res = JSON.parse(data);
-  } catch (e) {
+  }
+  catch (e) {
     console.log(data, e);
     return;
   }
@@ -48,11 +49,13 @@ sock.on('message', async (data) => {
 });
 
 let capturedEvents;
-const loadEvents = async () => {
+const loadEvents = async() => {
   if (!capturedEvents) {
     capturedEvents = {};
     const capturedEventsModels = await loadModels('captured-events');
     capturedEventsModels.forEach(a => {
+      if (process.env.TEST_ENV !== 'true' && a.testOnly)
+        return;
       if (!a.eventType) {
         a.eventType = '*';
       }
@@ -77,17 +80,19 @@ const loadEvents = async () => {
   return capturedEvents;
 };
 
-const handleWebHooks = async (payload) => {
+const handleWebHooks = async(payload) => {
   let { account, method, code, actData, event, meta } = payload;
   // console.log(account, method, code, actData, meta);
   let curr = await loadEvents();
   if (!curr[event['etype']]) return;
   curr = curr[event['etype']];
   // console.log(event);
-  if (!curr[code]) { curr = curr['*']; } else { curr = curr[code]; }
+  if (!curr[code]) { curr = curr['*']; }
+  else { curr = curr[code]; }
   if (!curr) return;
 
-  if (!curr[method]) { curr = curr['*']; } else { curr = curr[method]; }
+  if (!curr[method]) { curr = curr['*']; }
+  else { curr = curr[method]; }
   if (curr) {
     Promise.all(curr.map(async url => {
       if (process.env.WEBHOOKS_HOST) {
@@ -110,7 +115,8 @@ const handleWebHooks = async (payload) => {
         });
 
         return r.text();
-      } catch (e) {
+      }
+      catch (e) {
         console.log('failed calling webhook', e);
       }
     }));
@@ -118,7 +124,7 @@ const handleWebHooks = async (payload) => {
   }
 };
 const handlers = {
-  '*': async (payload) => {
+  '*': async(payload) => {
     const { events } = payload;
     const fireEvents = [{ etype: 'action' }, ...events];
     for (var i = 0; i < fireEvents.length; i++) {
@@ -128,7 +134,7 @@ const handlers = {
   }
 };
 
-async function recursiveHandle (payload, depth = 0, currentHandlers = handlers) {
+async function recursiveHandle(payload, depth = 0, currentHandlers = handlers) {
   if (depth === 3) { return; }
   let { account, method, code, events } = payload;
   let key = account;
@@ -156,26 +162,30 @@ async function recursiveHandle (payload, depth = 0, currentHandlers = handlers) 
   if (subHandler) {
     if (typeof subHandler === 'function') {
       return await subHandler(payload);
-    } else if (typeof subHandler === 'object') {
+    }
+    else if (typeof subHandler === 'object') {
       return recursiveHandle(payload, depth + 1, subHandler);
-    } else {
+    }
+    else {
       console.log(`got action: ${code}.${method} ${account === code ? '' : `(${account})`} - ${JSON.stringify(events)}`);
     }
-  } else {
+  }
+  else {
     console.log(`no handler for action: ${code}.${method} ${account === code ? '' : `(${account})`} - ${JSON.stringify(events)}`, currentHandlers, key);
   }
 }
 
-async function parseEvents (text) {
+async function parseEvents(text) {
   return text.split('\n').map(a => {
     if (a === '') { return null; }
     try {
       return JSON.parse(a);
-    } catch (e) {}
+    }
+    catch (e) {}
   }).filter(a => a);
 }
 
-async function actionHandler (action) {
+async function actionHandler(action) {
   const events = await parseEvents(action['console']);
   // console.log("action", action);
   await recursiveHandle({

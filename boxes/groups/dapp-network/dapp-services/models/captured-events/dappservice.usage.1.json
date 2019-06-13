@@ -1,0 +1,5 @@
+{
+    "eventType": "usage_report", 
+    "webhook":"http://localhost:17624",
+    "testOnly": true
+}

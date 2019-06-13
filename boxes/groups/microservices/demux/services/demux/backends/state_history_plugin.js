@@ -9,7 +9,7 @@ const ws = new WebSocket(`ws://${process.env.NODEOS_HOST || 'localhost'}:${proce
 
 });
 var expectingABI = true;
-ws.on('open', function open () {
+ws.on('open', function open() {
   expectingABI = true;
   console.log('ws connected');
 });
@@ -18,183 +18,183 @@ const { Serialize } = require('../eosjs2');
 const abiabi = {
   'version': 'eosio::abi/1.1',
   'structs': [{
-    'name': 'extensions_entry',
-    'base': '',
-    'fields': [{
-      'name': 'tag',
-      'type': 'uint16'
+      'name': 'extensions_entry',
+      'base': '',
+      'fields': [{
+          'name': 'tag',
+          'type': 'uint16'
+        },
+        {
+          'name': 'value',
+          'type': 'bytes'
+        }
+      ]
     },
     {
-      'name': 'value',
-      'type': 'bytes'
+      'name': 'type_def',
+      'base': '',
+      'fields': [{
+          'name': 'new_type_name',
+          'type': 'string'
+        },
+        {
+          'name': 'type',
+          'type': 'string'
+        }
+      ]
+    },
+    {
+      'name': 'field_def',
+      'base': '',
+      'fields': [{
+          'name': 'name',
+          'type': 'string'
+        },
+        {
+          'name': 'type',
+          'type': 'string'
+        }
+      ]
+    },
+    {
+      'name': 'struct_def',
+      'base': '',
+      'fields': [{
+          'name': 'name',
+          'type': 'string'
+        },
+        {
+          'name': 'base',
+          'type': 'string'
+        },
+        {
+          'name': 'fields',
+          'type': 'field_def[]'
+        }
+      ]
+    },
+    {
+      'name': 'action_def',
+      'base': '',
+      'fields': [{
+          'name': 'name',
+          'type': 'name'
+        },
+        {
+          'name': 'type',
+          'type': 'string'
+        },
+        {
+          'name': 'ricardian_contract',
+          'type': 'string'
+        }
+      ]
+    },
+    {
+      'name': 'table_def',
+      'base': '',
+      'fields': [{
+          'name': 'name',
+          'type': 'name'
+        },
+        {
+          'name': 'index_type',
+          'type': 'string'
+        },
+        {
+          'name': 'key_names',
+          'type': 'string[]'
+        },
+        {
+          'name': 'key_types',
+          'type': 'string[]'
+        },
+        {
+          'name': 'type',
+          'type': 'string'
+        }
+      ]
+    },
+    {
+      'name': 'clause_pair',
+      'base': '',
+      'fields': [{
+          'name': 'id',
+          'type': 'string'
+        },
+        {
+          'name': 'body',
+          'type': 'string'
+        }
+      ]
+    },
+    {
+      'name': 'error_message',
+      'base': '',
+      'fields': [{
+          'name': 'error_code',
+          'type': 'uint64'
+        },
+        {
+          'name': 'error_msg',
+          'type': 'string'
+        }
+      ]
+    },
+    {
+      'name': 'variant_def',
+      'base': '',
+      'fields': [{
+          'name': 'name',
+          'type': 'string'
+        },
+        {
+          'name': 'types',
+          'type': 'string[]'
+        }
+      ]
+    },
+    {
+      'name': 'abi_def',
+      'base': '',
+      'fields': [{
+          'name': 'version',
+          'type': 'string'
+        },
+        {
+          'name': 'types',
+          'type': 'type_def[]'
+        },
+        {
+          'name': 'structs',
+          'type': 'struct_def[]'
+        },
+        {
+          'name': 'actions',
+          'type': 'action_def[]'
+        },
+        {
+          'name': 'tables',
+          'type': 'table_def[]'
+        },
+        {
+          'name': 'ricardian_clauses',
+          'type': 'clause_pair[]'
+        },
+        {
+          'name': 'error_messages',
+          'type': 'error_message[]'
+        },
+        {
+          'name': 'abi_extensions',
+          'type': 'extensions_entry[]'
+        },
+        {
+          'name': 'variants',
+          'type': 'variant_def[]$'
+        }
+      ]
     }
-    ]
-  },
-  {
-    'name': 'type_def',
-    'base': '',
-    'fields': [{
-      'name': 'new_type_name',
-      'type': 'string'
-    },
-    {
-      'name': 'type',
-      'type': 'string'
-    }
-    ]
-  },
-  {
-    'name': 'field_def',
-    'base': '',
-    'fields': [{
-      'name': 'name',
-      'type': 'string'
-    },
-    {
-      'name': 'type',
-      'type': 'string'
-    }
-    ]
-  },
-  {
-    'name': 'struct_def',
-    'base': '',
-    'fields': [{
-      'name': 'name',
-      'type': 'string'
-    },
-    {
-      'name': 'base',
-      'type': 'string'
-    },
-    {
-      'name': 'fields',
-      'type': 'field_def[]'
-    }
-    ]
-  },
-  {
-    'name': 'action_def',
-    'base': '',
-    'fields': [{
-      'name': 'name',
-      'type': 'name'
-    },
-    {
-      'name': 'type',
-      'type': 'string'
-    },
-    {
-      'name': 'ricardian_contract',
-      'type': 'string'
-    }
-    ]
-  },
-  {
-    'name': 'table_def',
-    'base': '',
-    'fields': [{
-      'name': 'name',
-      'type': 'name'
-    },
-    {
-      'name': 'index_type',
-      'type': 'string'
-    },
-    {
-      'name': 'key_names',
-      'type': 'string[]'
-    },
-    {
-      'name': 'key_types',
-      'type': 'string[]'
-    },
-    {
-      'name': 'type',
-      'type': 'string'
-    }
-    ]
-  },
-  {
-    'name': 'clause_pair',
-    'base': '',
-    'fields': [{
-      'name': 'id',
-      'type': 'string'
-    },
-    {
-      'name': 'body',
-      'type': 'string'
-    }
-    ]
-  },
-  {
-    'name': 'error_message',
-    'base': '',
-    'fields': [{
-      'name': 'error_code',
-      'type': 'uint64'
-    },
-    {
-      'name': 'error_msg',
-      'type': 'string'
-    }
-    ]
-  },
-  {
-    'name': 'variant_def',
-    'base': '',
-    'fields': [{
-      'name': 'name',
-      'type': 'string'
-    },
-    {
-      'name': 'types',
-      'type': 'string[]'
-    }
-    ]
-  },
-  {
-    'name': 'abi_def',
-    'base': '',
-    'fields': [{
-      'name': 'version',
-      'type': 'string'
-    },
-    {
-      'name': 'types',
-      'type': 'type_def[]'
-    },
-    {
-      'name': 'structs',
-      'type': 'struct_def[]'
-    },
-    {
-      'name': 'actions',
-      'type': 'action_def[]'
-    },
-    {
-      'name': 'tables',
-      'type': 'table_def[]'
-    },
-    {
-      'name': 'ricardian_clauses',
-      'type': 'clause_pair[]'
-    },
-    {
-      'name': 'error_messages',
-      'type': 'error_message[]'
-    },
-    {
-      'name': 'abi_extensions',
-      'type': 'extensions_entry[]'
-    },
-    {
-      'name': 'variants',
-      'type': 'variant_def[]$'
-    }
-    ]
-  }
   ]
 };
 const abis = {
@@ -779,12 +779,14 @@ const { loadModels } = require('../../../extensions/tools/models');
 const fetch = require('node-fetch');
 
 let capturedEvents;
-const loadEvents = async () => {
+const loadEvents = async() => {
   if (!capturedEvents) {
     capturedEvents = {};
     var capturedEventsModels = await loadModels('captured-events');
 
     capturedEventsModels.forEach(a => {
+      if (process.env.TEST_ENV !== 'true' && a.testOnly)
+        return;
       if (!a.eventType) {
         a.eventType = '*';
       }
@@ -813,9 +815,11 @@ const handlers = {
     // all methods
     if (method == 'onblock') {
       // console.log('.');
-    } else if (method == 'newaccount') {
+    }
+    else if (method == 'newaccount') {
       // console.log(`new account: ${actData.name}`);
-    } else if (method == 'setabi') {
+    }
+    else if (method == 'setabi') {
       var localTypes = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), abiabi);
       var buf = Buffer.from(actData.abi, 'hex');
       var buffer = new Serialize.SerialBuffer({
@@ -833,16 +837,18 @@ const handlers = {
   },
   '*': {
     '*': {
-      '*': async (account, method, code, actData, event) => {
+      '*': async(account, method, code, actData, event) => {
         // load from model.
         var events = await loadEvents();
         var curr = events;
         if (!curr[event.etype]) return;
         curr = curr[event.etype];
-        if (!curr[code]) { curr = curr['*']; } else { curr = curr[code]; }
+        if (!curr[code]) { curr = curr['*']; }
+        else { curr = curr[code]; }
         if (!curr) return;
 
-        if (!curr[method]) { curr = curr['*']; } else { curr = curr[method]; }
+        if (!curr[method]) { curr = curr['*']; }
+        else { curr = curr[method]; }
         if (curr) {
           Promise.all(curr.map(async url => {
             if (process.env.WEBHOOKS_HOST) {
@@ -872,7 +878,7 @@ const handlers = {
     }
   }
 };
-async function recursiveHandle ({ account, method, code, actData, events }, depth = 0, currentHandlers = handlers) {
+async function recursiveHandle({ account, method, code, actData, events }, depth = 0, currentHandlers = handlers) {
   if (depth == 3) { return; }
 
   var key = account;
@@ -902,17 +908,20 @@ async function recursiveHandle ({ account, method, code, actData, events }, dept
   if (subHandler) {
     if (typeof subHandler === 'function') {
       return await subHandler(account, method, code, actData, events);
-    } else if (typeof subHandler === 'object') {
+    }
+    else if (typeof subHandler === 'object') {
       return recursiveHandle({ account, method, code, actData, events }, depth + 1, subHandler);
-    } else {
+    }
+    else {
       console.log(`got action: ${code}.${method} ${account == code ? '' : `(${account})`} - ${JSON.stringify(events)}`);
     }
-  } else {
+  }
+  else {
     console.log(`no handler for action: ${code}.${method} ${account == code ? '' : `(${account})`} - ${JSON.stringify(events)}`, currentHandlers, key);
   }
 }
 
-function parsedAction (account, method, code, actData, events) {
+function parsedAction(account, method, code, actData, events) {
   var abi = abis[code];
   if (abi) {
     var localTypes = types = Serialize.getTypesFromAbi(types, abi);
@@ -931,16 +940,17 @@ function parsedAction (account, method, code, actData, events) {
   return recursiveHandle({ account, method, code, actData, events });
 }
 
-async function parseEvents (text) {
+async function parseEvents(text) {
   return text.split('\n').map(a => {
     if (a === '') { return null; }
     try {
       return JSON.parse(a);
-    } catch (e) {}
+    }
+    catch (e) {}
   }).filter(a => a);
 }
 
-async function actionHandler (action) {
+async function actionHandler(action) {
   if (Array.isArray(action)) { action = action[1]; }
   await parsedAction(action.receipt[1].receiver, action.act.name, action.act.account, action.act.data, await parseEvents(action.console));
   for (var i = 0; i < action.inline_traces.length; i++) {
@@ -948,7 +958,7 @@ async function actionHandler (action) {
   }
 }
 
-async function transactionHandler (tx) {
+async function transactionHandler(tx) {
   var actionTraces = tx.action_traces;
   for (var i = 0; i < actionTraces.length; i++) {
     var actionTrace = actionTraces[i];
@@ -960,7 +970,7 @@ var c2 = 0;
 var types;
 var head_block = 0;
 var current_block = 0;
-ws.on('message', async function incoming (data) {
+ws.on('message', async function incoming(data) {
   if (!expectingABI) {
     var buffer = new Serialize.SerialBuffer({
       textEncoder: new TextEncoder(),
@@ -996,7 +1006,8 @@ ws.on('message', async function incoming (data) {
         const transactionTrace = types.get('transaction_trace').deserialize(buffer2);
         await transactionHandler(transactionTrace[1]);
       }
-    } catch (e) {
+    }
+    catch (e) {
       console.error(e.message);
       return;
     }
@@ -1011,8 +1022,8 @@ ws.on('message', async function incoming (data) {
     textEncoder: new TextEncoder(),
     textDecoder: new TextDecoder()
   });
-    // console.log('types',types.get('request'));
-    //   abiObjSer = eos.fc.abiCache.abi('request', abi);
+  // console.log('types',types.get('request'));
+  //   abiObjSer = eos.fc.abiCache.abi('request', abi);
   types.get('request').serialize(buffer, ['get_blocks_request_v0', {
     'start_block_num': 35000000,
     'end_block_num': 4294967295,

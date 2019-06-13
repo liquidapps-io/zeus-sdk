@@ -115,4 +115,11 @@ static void updateOracleResult(std::vector<char> uri, name provider, std::vector
 }  \
 SVC_RESP_ORACLE(geturi)(uint32_t size,std::vector<char> uri,std::vector<char> data, name current_provider){ \
     updateOracleResult(uri, current_provider, data); \
+} \
+SVC_RESP_ORACLE(orcclean)(uint32_t size, std::vector<char> uri, name current_provider){ \
+    auto _self = name(current_receiver()); \
+    oracleentries_t entries(_self, _self.value);  \
+    auto cidx = entries.get_index<"byhash"_n>(); \
+    auto existing = cidx.find(hashData(uri)); \
+    if(existing != cidx.end()) cidx.erase(existing); \
 } 

@@ -3,6 +3,8 @@
 #include "../dappservices/oracle.hpp"
 #include "../dappservices/cron.hpp"
 #include "../dappservices/vaccounts.hpp"
+#include "../dappservices/readfn.hpp"
+#include "../dappservices/multi_index.hpp"
 
 #define DAPPSERVICES_ACTIONS() \
   XSIGNAL_DAPPSERVICE_ACTION \
@@ -10,9 +12,10 @@
   VACCOUNTS_DAPPSERVICE_ACTIONS \
   LOG_DAPPSERVICE_ACTIONS \
   CRON_DAPPSERVICE_ACTIONS \
-  ORACLE_DAPPSERVICE_ACTIONS
+  ORACLE_DAPPSERVICE_ACTIONS \
+  READFN_DAPPSERVICE_ACTIONS 
 #define DAPPSERVICE_ACTIONS_COMMANDS() \
-  IPFS_SVC_COMMANDS()ORACLE_SVC_COMMANDS()CRON_SVC_COMMANDS()VACCOUNTS_SVC_COMMANDS()LOG_SVC_COMMANDS()
+  IPFS_SVC_COMMANDS()ORACLE_SVC_COMMANDS()CRON_SVC_COMMANDS()VACCOUNTS_SVC_COMMANDS()LOG_SVC_COMMANDS()READFN_SVC_COMMANDS()
 #define CONTRACT_NAME() <%- contractname %>
 using std::string;
 CONTRACT_START()
@@ -45,55 +48,35 @@ CONTRACT_START()
         schedule_timer(_self, payload, 2);
       }
 
-      TABLE vkey {
-          eosio::public_key pubkey;
-      };
-      typedef eosio::singleton<"vkey"_n, vkey> vkeys_t;
     
-      [[eosio::action]] void hello(name vaccount, uint64_t b, uint64_t c) {
-        require_vaccount(vaccount);
+      struct dummy_action_hello {
+          name vaccount;
+          uint64_t b;
+          uint64_t c;
+      
+          EOSLIB_SERIALIZE( dummy_action_hello, (vaccount)(b)(c) )
+      };
+      
+      [[eosio::action]] void hello(dummy_action_hello payload) {
+        require_vaccount(payload.vaccount);
         
         print("hello from ");
-        print(vaccount);
+        print(payload.vaccount);
         print(" ");
-        print(b + c);
+        print(payload.b + payload.c);
         print("\n");
       }
-      [[eosio::action]] void regaccount(name vaccount) {
-        setKey(vaccount, get_current_public_key());
-      }
       
-      void execute_vaccounts_action(action act){
-        switch(act.name.value){
-          case name("hello").value:
-            hello("1"_n, 1, 2);
-            break;
-          case name("regaccount").value:
-            regaccount("1"_n);
-            break;
-        }
+      [[eosio::action]] void hello2(dummy_action_hello payload) {
+        print("hello2(default action) from ");
+        print(payload.vaccount);
+        print(" ");
+        print(payload.b + payload.c);
+        print("\n");
       }
-    
+  
       
-      void require_vaccount(name vaccount){
-        auto pkey = getKey(vaccount);
-        required_key(pkey);
-      }
-      
-      void setKey(name vaccount, eosio::public_key pubkey){
-        vkeys_t vkeys_table(_self, vaccount.value);
-        eosio::check(!vkeys_table.exists(),"vaccount already exists");
-        vkey new_key;
-        new_key.pubkey = pubkey;
-        vkeys_table.set(new_key, _self);
-      }
-      
-      eosio::public_key getKey(name vaccount){
-        vkeys_t vkeys_table(_self, vaccount.value);
-        eosio::check(vkeys_table.exists(),"vaccount not found");
-        return vkeys_table.get().pubkey;
-      }
-      
+  
       TABLE account {
          extended_asset balance;
          uint64_t primary_key()const { return balance.contract.value; }
@@ -160,5 +143,8 @@ CONTRACT_START()
               });
            }
       }
+
+    VACCOUNTS_APPLY(((dummy_action_hello)(hello))((dummy_action_hello)(hello2)))
+
 }; 
-EOSIO_DISPATCH_SVC_TRX(CONTRACT_NAME(), (withdraw)(hello)(regaccount)(testschedule))
+EOSIO_DISPATCH_SVC_TRX(CONTRACT_NAME(), (withdraw)(hello)(hello2)(regaccount)(testschedule))

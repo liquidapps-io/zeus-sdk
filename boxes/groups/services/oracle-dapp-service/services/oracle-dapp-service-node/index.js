@@ -541,7 +541,14 @@ var handlers = {
 };
 nodeFactory('oracle', {
   geturi: async({ event, rollback }, { uri }) => {
-    if (rollback) return;
+    if (rollback) {
+      event.action = 'orcclean';
+      console.log('orcclean after failed transaction', uri);
+      return {
+        size: 0,
+        uri
+      };
+    }
     const payloadStr = Buffer.from(uri, 'hex').toString('utf8');
 
     const payloadParts = payloadStr.split('://', 4);

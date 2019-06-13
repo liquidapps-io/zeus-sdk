@@ -62,6 +62,8 @@ describe(`vAccounts Service Test Contract`, () => {
                 var deployedContract2 = await deployer.deploy(ctrt, "test2v");
                 await genAllocateDAPPTokens(deployedContract, "vaccounts");
                 await genAllocateDAPPTokens(deployedContract2, "vaccounts");
+                await genAllocateDAPPTokens(deployedContract, "ipfs");
+                await genAllocateDAPPTokens(deployedContract2, "ipfs");
 
                 // create token
                 var keys = await getCreateKeys(account);
@@ -137,19 +139,16 @@ describe(`vAccounts Service Test Contract`, () => {
         const response = await api.serializeActions([{
             account: contract_code,
             name: payload.name,
-            authorization: [{
-                actor: contract_code,
-                permission: 'active'
-            }],
+            authorization: [],
             data: payload.data
         }]);
         const toName = (name) => {
             var res = new BigNumber(Eos.modules.format.encodeName(name, true));
             res = (toBound(res.toString(16), 8));
             return res;
-
         }
-        var payloadSerialized = toName(payload.name) + toName(payload.name) + response[0].data;
+        var datasize = toBound(new BigNumber(response[0].data.length / 2).toString(16), 1).match(/.{2}/g).reverse().join('');
+        var payloadSerialized = "0000000000000000" + toName(payload.name) + "01" + "00000000000000000000000000000000" + datasize + response[0].data;
         return await postVirtualTx({
             contract_code: "test1v",
             wif,
@@ -166,7 +165,10 @@ describe(`vAccounts Service Test Contract`, () => {
                     payload: {
                         name: "regaccount",
                         data: {
-                            vaccount: "vaccount1"
+                            payload: {
+
+                                vaccount: "vaccount1"
+                            }
                         }
                     }
                 });
@@ -176,14 +178,19 @@ describe(`vAccounts Service Test Contract`, () => {
                     payload: {
                         name: "hello",
                         data: {
-                            vaccount: "vaccount1",
-                            b: 1,
-                            c: 2
+                            payload: {
+                                vaccount: "vaccount1",
+                                b: 1,
+                                c: 2
+                            }
                         }
                     }
                 });
-
-                assert.equal(res.result.processed.action_traces[0].console, "hello from vaccount1 3\n", "wrong content");
+                if (res.error)
+                    console.error("reserror", res.error.details[0]);
+                // console.log(res.result.processed.action_traces);
+                var outputLines = res.result.processed.action_traces[0].console.split('\n');
+                assert.equal(outputLines[outputLines.length - 2], "hello from vaccount1 3", "wrong content");
 
                 done();
             }
@@ -199,6 +206,7 @@ describe(`vAccounts Service Test Contract`, () => {
                 var res = await postVirtualTx({
                     contract_code: "test1v",
                     wif: privateWif,
+                    // 00409E9 A226498BA 00409E9 A226498BA 000008796 A8A90D9
                     payload: "8468635b7f379feeb95500000000010000000000ea305500409e9a2264b89a010000000000ea305500000000a8ed3232660000000000ea305500a6823403ea30550100000001000240cc0bf90a5656c8bb81f0eb86f49f89613c5cd988c018715d4646c6bd0ad3d8010000000100000001000240cc0bf90a5656c8bb81f0eb86f49f89613c5cd988c018715d4646c6bd0ad3d80100000000"
                 }, "SIG_K1_K8Up3NhbzVY7dcwMY6cRS84KzvNJC8aKkdCiX16Z9d7WE8DPRsCrgBL4YZg3sfQYGZ66D7kKT8ee9vFVmrq6SxAfYx3LRB");
                 assert.equal(JSON.parse(res.error.details[0].message).error.details[0].method, "assert_recover_key", "should have failed with assert_recover_key");
@@ -219,7 +227,9 @@ describe(`vAccounts Service Test Contract`, () => {
                     payload: {
                         name: "regaccount",
                         data: {
-                            vaccount: "vaccount1"
+                            payload: {
+                                vaccount: "vaccount1"
+                            }
                         }
                     }
                 });
@@ -230,9 +240,11 @@ describe(`vAccounts Service Test Contract`, () => {
                     payload: {
                         name: "hello",
                         data: {
-                            vaccount: "vaccount1",
-                            b: 1,
-                            c: 2
+                            payload: {
+                                vaccount: "vaccount1",
+                                b: 1,
+                                c: 2
+                            }
                         }
                     }
                 });
@@ -244,7 +256,7 @@ describe(`vAccounts Service Test Contract`, () => {
             }
         })();
     });
-    it('Action Fallback', done => {
+    it.skip('Action Fallback', done => {
         (async() => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();

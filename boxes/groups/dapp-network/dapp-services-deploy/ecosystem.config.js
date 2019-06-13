@@ -82,6 +82,7 @@ const commonEnv = {
   IPFS_PROTOCOL,
   DSP_ACCOUNT,
   DSP_PRIVATE_KEY,
+  DSP_PORT
 };
 
 const createDSPServiceApp = (name) => ({
