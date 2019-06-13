@@ -3,6 +3,7 @@
 var Generator = require('yeoman-generator');
 const _ = require('lodash');
 const fs = require('fs');
+const path = require('path');
 
 module.exports = class extends Generator {
     // The name `constructor` is important here
@@ -19,6 +20,14 @@ module.exports = class extends Generator {
             this.destinationPath(`contracts/eos/${name}/`),
             this.options
         );
+
+        this.fs.copyTpl(
+            path.resolve('./test-templates/contract.spec.js'),
+            this.destinationPath(`tests/${name}.contract.spec.js`),
+            this.options
+        );
+
+
 
         // append to cmakelists
         const originalContent = fs.readFileSync(this.destinationPath('', 'contracts/eos/CMakeLists.txt'), 'utf8');

@@ -3,13 +3,25 @@ const { loadModels } = require('../models');
 const fetch = require('node-fetch');
 
 const dappServicesContract = process.env.DAPPSERVICES_CONTRACT || 'dappservices';
+const testProvidersList = ['pprovider1', 'pprovider2'];
 
 function getContractAccountFor(model) {
   var envName = process.env[`DAPPSERVICES_CONTRACT_${model.name.toUpperCase()}`];
   return envName || model.contract;
 }
+async function genAllocateDAPPTokens(deployedContract, serviceName, provider = '', selectedPackage = 'default') {
+  var providers = testProvidersList;
+  if (provider !== '') {
+    providers = [provider];
+  }
+  for (var i = 0; i < providers.length; i++) {
+    var currentProvider = providers[i];
+    await genAllocateDAPPTokensInner(deployedContract, serviceName, provider = currentProvider, selectedPackage);
+  }
 
-async function genAllocateDAPPTokens(deployedContract, serviceName, provider = 'pprovider1', selectedPackage = 'default') {
+}
+
+async function genAllocateDAPPTokensInner(deployedContract, serviceName, provider = 'pprovider1', selectedPackage = 'default') {
   var key = await getCreateKeys(dappServicesContract);
   var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
   var service = getContractAccountFor(model);
@@ -20,7 +32,7 @@ async function genAllocateDAPPTokens(deployedContract, serviceName, provider = '
   await servicesTokenContract.issue({
     to: contract,
     quantity: '1000.0000 DAPP',
-    memo: ''
+    memo: `${provider}`
   }, {
     authorization: `${dappServicesContract}@active`,
     broadcast: true,
@@ -110,4 +122,4 @@ const readVRAMData = async({
   return result;
 };
 
-module.exports = { genAllocateDAPPTokens, dappServicesContract, getContractAccountFor, readVRAMData, getEndpointForContract };
+module.exports = { genAllocateDAPPTokens, dappServicesContract, getContractAccountFor, readVRAMData, getEndpointForContract, testProvidersList };

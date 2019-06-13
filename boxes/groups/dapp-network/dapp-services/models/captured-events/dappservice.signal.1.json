@@ -1,0 +1,5 @@
+{
+    "eventType": "service_signal", 
+    "webhook":"http://localhost:17624",
+    "testOnly": true
+}

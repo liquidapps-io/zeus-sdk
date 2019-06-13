@@ -8,7 +8,7 @@ const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
-const { dappServicesContract } = require('../extensions/tools/eos/dapp-services');
+const { dappServicesContract, testProvidersList } = require('../extensions/tools/eos/dapp-services');
 const { loadModels } = require('../extensions/tools/models');
 
 var contractCode = 'ipfsconsumer';
@@ -29,12 +29,11 @@ var generateModel = (commandNames, cost_per_action = 1) => {
   return model;
 };
 
-async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccount = null, package_id = 'default', quota = '1.0000', min_stake_quantity = '1.0000', min_unstake_period = 10, package_period = 20, cost_per_action = 1 }) {
+async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccount = null, package_id = 'default', quota = '1.0000', min_stake_quantity = '1.0000', min_unstake_period = 10, package_period = 20, cost_per_action = 1, provider = 'pprovider1' }) {
   var models = await loadModels('dapp-services');
   var serviceModel = models.find(a => a.name == serviceName);
   var deployedServices = await deployer.deploy(servicesC, servicescontract);
 
-  var provider = 'pprovider1';
   var key = await getCreateAccount(provider);
   var serviceContract = serviceContractAccount || serviceModel.contract;
 
@@ -274,15 +273,13 @@ async function deployConsumerContract(code) {
 
 describe(`DAPP Services Provider & Packages Tests`, () => {
   const invokeService = async(code, testcontract) => {
-    var res = await testcontract.testget({
-      uri: 'ipfs://zb2rhnaYrUde9d7h13vHTXeWcBJcBpEFdMgAcbXbFfM5aQxgK',
-      expectedfield: 123
+    var res = await testcontract.testempty({
+      uri: 'ipfs://zb2rhmy65F3REf8SZp7De11gxtECBGgUKaLdiDj7MCGCHxbDW',
     }, {
       authorization: `${code}@active`,
       broadcast: true,
       sign: true
     });
-
     // var eventResp = JSON.parse(res.processed.action_traces[0].console);
     // assert.equal(eventResp.etype, "service_request", "wrong etype");
     // assert.equal(eventResp.provider,"", "wrong provider");
@@ -366,6 +363,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         await refund({ deployedContract, selectedPackage });
         await delaySec(package_period + 1);
         var failed = false;
+        await delaySec(package_period + 1);
         try {
           await invokeService(testContractAccount, testcontract);
         }

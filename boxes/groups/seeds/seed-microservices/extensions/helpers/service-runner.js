@@ -1,4 +1,4 @@
-const { execPromise } = require('./_exec');
+const { execPromise, emojMap } = require('./_exec');
 const path = require('path');
 const kill = require('kill-port');
 
@@ -13,14 +13,21 @@ module.exports = (filePath, port) => {
       }).example(`$0 run ${cmd}`);
     },
     command: `${cmd}`,
-    handler: async (args) => {
-      try { await kill(port); } catch (e) {}
+    handler: async(args, moreEnv = {}) => {
+      try { await kill(port); }
+      catch (e) {}
+      var newEnv = {
+        ...process.env,
+        ...moreEnv,
+        ZEUS_ARGS: JSON.stringify(args)
+      }
+      if (!args.skip_daemon)
+        newEnv.DAEMONIZE_PROCESS = true;
+      console.log(emojMap.cloud + 'Running service:', cmd.blue, "port:", port.toString().yellow);
       var stdout = await execPromise(`PORT=${port} node services/${cmd}/index.js`, {
-        env: {
-          ...process.env,
-          ZEUS_ARGS: JSON.stringify(args),
-          DAEMONIZE_PROCESS: true
-        }
+        env: newEnv,
+        printErrCB: console.error,
+        printOutCB: console.log
       });
     }
   };

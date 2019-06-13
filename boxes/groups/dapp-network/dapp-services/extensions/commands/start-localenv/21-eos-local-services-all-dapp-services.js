@@ -2,7 +2,7 @@ const artifacts = require('../../tools/eos/artifacts');
 const deployer = require('../../tools/eos/deployer');
 const { getCreateAccount } = require('../../tools/eos/utils');
 const { loadModels } = require('../../tools/models');
-const { dappServicesContract, getContractAccountFor } = require('../../tools/eos/dapp-services');
+const { dappServicesContract, getContractAccountFor, testProvidersList } = require('../../tools/eos/dapp-services');
 
 const servicescontract = dappServicesContract;
 var servicesC = artifacts.require(`./dappservices/`);
@@ -16,10 +16,8 @@ var generateModel = (commandNames) => {
   return model;
 };
 
-async function deployLocalService (serviceModel) {
+async function deployLocalService(serviceModel, provider = 'pprovider1') {
   var deployedServices = await deployer.deploy(servicesC, servicescontract);
-
-  var provider = 'pprovider1';
   var key = await getCreateAccount(provider);
 
   var serviceName = serviceModel.name;
@@ -79,11 +77,19 @@ async function deployLocalService (serviceModel) {
 
 var serviceRunner = require('../../helpers/service-runner');
 
-module.exports = async (args) => {
+module.exports = async(args) => {
   var models = await loadModels('dapp-services');
   for (var i = 0; i < models.length; i++) {
     var serviceModel = models[i];
-    await serviceRunner(`/dummy/${serviceModel.name}-dapp-service-node.js`, serviceModel.port).handler(args);
-    await deployLocalService(serviceModel);
+    var testProviders = testProvidersList;
+    for (var pi = 0; pi < testProviders.length; pi++) {
+      var testProvider = testProviders[pi];
+      await serviceRunner(`/dummy/${serviceModel.name}-dapp-service-node.js`, serviceModel.port * (pi + 1)).handler(args, {
+        DSP_ACCOUNT: testProvider,
+        SVC_PORT: serviceModel.port * (pi + 1),
+        NODEOS_HOST_DSP_PORT: 13015 * (pi + 1),
+      });
+      await deployLocalService(serviceModel, testProvider);
+    }
   }
 };

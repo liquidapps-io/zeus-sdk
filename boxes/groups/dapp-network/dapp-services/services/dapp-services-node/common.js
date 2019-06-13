@@ -75,7 +75,7 @@ proxy.on('error', function(err, req, res) {
 //     return Eos.modules.format.decodeName(tmp.toString(), true);
 // }
 var eosPrivate = new Eos(eosconfig);
-eosdspconfig.httpEndpoint = `http://${process.env.NODEOS_HOST_DSP || 'localhost'}:${process.env.NODEOS_HOST_DSP_PORT || 13015}`;
+eosdspconfig.httpEndpoint = `http://${process.env.NODEOS_HOST_DSP || 'localhost'}:${process.env.NODEOS_HOST_DSP_PORT || process.env.DSP_PORT || 13015}`;
 var eosDSPGateway = new Eos(eosdspconfig);
 const forwardEvent = async(act, endpoint, redirect) => {
   if (redirect) { return endpoint; }
@@ -91,10 +91,12 @@ const resolveBackendServiceData = async(service, provider) => {
   var loadedExtension = loadedExtensions.find(a => getContractAccountFor(a) == service);
   if (!loadedExtension) { return; }
   var host = process.env[`DAPPSERVICE_HOST_${loadedExtension.name.toUpperCase()}`];
+  var port = process.env[`DAPPSERVICE_PORT_${loadedExtension.name.toUpperCase()}`];
   if (!host) { host = 'localhost'; }
+  if (!port) { port = loadedExtension.port; }
   return {
     internal: true,
-    endpoint: `http://${host}:${loadedExtension.port}`
+    endpoint: `http://${host}:${port}`
   };
 };
 const resolveExternalProviderData = async(service, provider, packageid) => {

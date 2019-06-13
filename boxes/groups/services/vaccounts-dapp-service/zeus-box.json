@@ -8,7 +8,9 @@
     "dapp-services",
     "seed-utils",
     "mocha",
-    "hooks-cpp-contracts"],
+    "hooks-cpp-contracts",
+    "ipfs-dapp-service"
+    ],
   "install":{
     "contracts":{
       "vaccountsservice": true,

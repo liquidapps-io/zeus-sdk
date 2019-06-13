@@ -9,7 +9,7 @@ const { getCreateKeys } = require('../../extensions/tools/eos/utils');
 const { getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
 
 const { deserialize, generateABI, genNode, eosPrivate, paccount, forwardEvent, resolveProviderData, resolveProvider, resolveProviderPackage } = require('./common');
-const handleRequest = async (handler, act, packageid, serviceName, abi) => {
+const handleRequest = async(handler, act, packageid, serviceName, abi) => {
   let { service, payer, provider, action, data } = act.event;
   data = deserialize(abi, data, action);
   if (!data) { return; }
@@ -22,7 +22,7 @@ const handleRequest = async (handler, act, packageid, serviceName, abi) => {
   if (!Array.isArray(responses)) // needs conversion from a normal object
   { responses = respond(act.event, packageid, responses); }
 
-  await Promise.all(responses.map(async (response) => {
+  await Promise.all(responses.map(async(response) => {
     var contract = await eosPrivate.contract(payer);
 
     let key;
@@ -34,9 +34,10 @@ const handleRequest = async (handler, act, packageid, serviceName, abi) => {
         sign: true,
         keyProvider: [process.env.DSP_PRIVATE_KEY || key.privateKey]
       });
-    } catch (e) {
+    }
+    catch (e) {
       if (e.toString().indexOf('duplicate') == -1) {
-        console.log('response error, could not call contract callback', e);
+        console.log(`response error, could not call contract callback for ${response.action}`, e);
         throw e;
       }
     }
@@ -45,7 +46,7 @@ const handleRequest = async (handler, act, packageid, serviceName, abi) => {
 };
 
 const actionHandlers = {
-  'service_request': async (act, simulated, serviceName, handlers) => {
+  'service_request': async(act, simulated, serviceName, handlers) => {
     let isReplay = act.replay;
     let { service, payer, provider, action, data } = act.event;
     var handler = handlers[action];
@@ -75,7 +76,7 @@ const actionHandlers = {
 
     return await forwardEvent(act, providerData.endpoint, act.exception);
   },
-  'service_signal': async (act, simulated, serviceName, handlers) => {
+  'service_signal': async(act, simulated, serviceName, handlers) => {
     if (simulated) { return; }
     let { action, data } = act.event;
     var typeName = `sig_${action}`;
@@ -89,19 +90,20 @@ const actionHandlers = {
     }
     await handler(sigData);
   },
-  'usage_report': async (act, simulated, serviceName, handlers) => {
+  'usage_report': async(act, simulated, serviceName, handlers) => {
     if (simulated) { return; }
     var handler = handlers[`_usage`];
     // todo: handle quota and verify sig and usage for each xaction
     if (handler) {
       await handler(act.event);
-    } else {
+    }
+    else {
       // console.log('unhandled usage_report', act.event);
     }
   }
 };
 
-const nodeFactory = async (serviceName, handlers) => {
+const nodeFactory = async(serviceName, handlers) => {
   var models = await loadModels('dapp-services');
   var model = models.find(m => m.name == serviceName);
   return genNode(actionHandlers, process.env.SVC_PORT || model.port, serviceName, handlers, await generateABI(model));
