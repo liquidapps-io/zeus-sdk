@@ -10,6 +10,10 @@
     "cron-dapp-service",
     "vaccounts-dapp-service",
     "oracle-dapp-service",
+    "storage-dapp-service",
+    "auth-dapp-service",
+    "history-dapp-service",
+    "sign-dapp-service",
     "readfn-dapp-service"
   ]
 }

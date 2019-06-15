@@ -415,11 +415,11 @@ const fullabi = (abi) => {
   };
 };
 
-const deserialize = (abi, data, atype) => {
+const deserialize = (abi, data, atype, encoding = 'base64') => {
   if (!abi) { return; }
 
   var localTypes = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), fullabi(abi));
-  var buf1 = Buffer.from(data, 'base64');
+  var buf1 = Buffer.from(data, encoding);
   var buffer = new Serialize.SerialBuffer({
     textEncoder: new TextEncoder(),
     textDecoder: new TextDecoder()
@@ -450,6 +450,7 @@ var typesDict = {
   'std::vector<char>': 'bytes',
   'vector<char>': 'bytes',
   'symbol_code': 'symbol_code',
+  'checksum256': 'checksum256',
   'eosio::symbol_code': 'symbol_code'
 };
 const convertToAbiType = (aType) => {

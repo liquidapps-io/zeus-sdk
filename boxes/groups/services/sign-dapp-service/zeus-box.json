@@ -1,0 +1,18 @@
+{
+  "ignore": [
+    "README.md",
+    "LICENSE",    
+    "zeus-box.json"
+  ],
+  "dependencies":[
+    "dapp-services",
+    "seed-utils",
+    "mocha",
+    "hooks-cpp-contracts"],
+  "install":{
+    "contracts":{
+      "signservice": true,
+      "signer": true
+    }
+  }
+}
