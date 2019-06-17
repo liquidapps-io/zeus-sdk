@@ -86,6 +86,29 @@ const generateBoxDoc = async(subdir, name, zeusBoxJson, args) => {
   if (zeusBoxJson.commands) {
     examples = zeusBoxJson.commands;
   }
+
+  // model types
+  var modelTypes = [];
+  var modelGroups = {};
+  var modelsDir = path.join(subdir, "models");
+  if (fs.existsSync(modelsDir)) {
+    var modelDirs = getDirectories(path.resolve(modelsDir));
+    for (var i = 0; i < modelDirs.length; i++) {
+      var modelDir = modelDirs[i];
+      var models = fs.readdirSync(modelDir).map(name => path.join(modelDir, name)).filter(a => !isDirectory(a) && a.endsWith('.json'));
+      if (models.length) {
+        // non empty
+        modelGroups[modelDir] = models;
+      }
+      else {
+
+        modelTypes.push(modelDir);
+      }
+    }
+
+  }
+
+
   // generate docs
   var docContent = `
 ${name} 
@@ -134,11 +157,33 @@ ${newSubCommands.map(commandPath=>{
   return `* \`\`\`zeus ${commandName} ${subCommandName} --help\`\`\`
 `}).join('\n')}
 
+${(modelGroups.length || modelTypes.length) ? `## Models` : ''}
+${(modelTypes.length) ? `### New Model Types` : ''}
+${modelTypes.map(modelType=>{
+  var group = path.basename(modelType);
+
+  return `* ${group}`}).join('\n')}
+${Object.keys(modelGroups).length ? `### Model Instances` : ''}
+${Object.keys(modelGroups).map(groupDir=>{
+  var group = path.basename(groupDir);
+  return `#### ${group}
+${modelGroups[groupDir].map(modelInstance => {
+    var pathParts = modelInstance.split('/');
+    var instanceName = pathParts[pathParts.length-1];
+    var modelPath = path.join(subdir, "models",group,instanceName);
+    var content = JSON.parse(fs.readFileSync(modelPath));
+    return `##### ${instanceName.split('.').slice(0, -1).join('.')}
+\`\`\`json
+${JSON.stringify(content,null,2)}
+\`\`\`
+`
+  })}
+`}).join('\n')}
 ## [Source](https://github.com/liquidapps-io/zeus-sdk/tree/master/boxes/groups/${group}/${name})
 `
 
   fs.writeFileSync(boxOutputPath, docContent);
-  console.log(docContent);
+  // console.log(docContent);
 }
 
 const generateDoc = async(subdir, args) => {
