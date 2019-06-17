@@ -59,8 +59,8 @@ const generateServiceDoc = async(subdir, boxName, zeusBoxJson, model, args) => {
     ("## Tests \n" + tests.map(test => `* [${test}](${gitRoot}/test/${test})`).join('\n') +
       ((consumer) ? `\n* [Consumer Contract Example](${consumer})` : "")) :
     "";
-  var stage = (zeusBoxJson.stage) ? `## Stage
-${zeusBoxJson.stage}` : '';
+  var stage = (model.stage) ? `## Stage
+${model.stage}` : '';
 
   var docContent = `${prettyServiceName} Service
 =================
