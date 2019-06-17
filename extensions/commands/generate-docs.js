@@ -150,6 +150,7 @@ const generateBoxDoc = async(subdir, name, zeusBoxJson, args) => {
     }
 
   }
+  var gitRoot = `https://github.com/liquidapps-io/zeus-sdk/tree/master/boxes/groups/${group}/${name}`;
 
   var tests = [];
   var testsDir = path.join(subdir, "test");
@@ -174,7 +175,6 @@ const generateBoxDoc = async(subdir, name, zeusBoxJson, args) => {
     await generateServiceDoc(subdir, name, zeusBoxJson, model, args);
   }
 
-  var gitRoot = `https://github.com/liquidapps-io/zeus-sdk/tree/master/boxes/groups/${group}/${name}`;
   // generate docs
   var contractsPart = (contracts.length ? `## Contracts\n` : '') + contracts.map(contractName => {
     var source = gitRoot + "/contracts/eos/" + contractName;
