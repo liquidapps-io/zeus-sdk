@@ -110,54 +110,48 @@ const generateBoxDoc = async(subdir, name, zeusBoxJson, args) => {
 
   var gitRoot = `https://github.com/liquidapps-io/zeus-sdk/tree/master/boxes/groups/${group}/${name}`;
   // generate docs
-  var docContent = `
-${name} 
-====================
-${(tags.length > 0 || zeusBoxJson.description) ? `## Overview` : ''}
-${(zeusBoxJson.description) ? zeusBoxJson.description : ''}
-${tags.length ? `### Tags` : ''}
-${tags.map(tag=>{
-return `\`${tag}\``
-}).join(' ')}
-${(dependencies.length + npmPackages.length) ? `## Dependencies` : ''}
-${dependencies.length ? `### Boxes` : ''}
-${dependencies.map(boxName=>{
-return `* [\`${boxName}\`](${boxName}.md)`
-}).join('\n')}
-${npmPackages.length ? `### npm packages` : ''}
-${npmPackages.map(packageName=>{
-return `* [\`${packageName}\`](http://npmjs.com/package/${packageName})`
-}).join('\n')}
-${contracts.length ? `## Contracts` : ''}
-${contracts.map(contractName=>{
-  return `* [\`${contractName}\`](${gitRoot}/contracts/eos/${contractName})`
-}).join('\n')}
-## Install
+  var contractsPart = (contracts.length ? `## Contracts\n` : '') + contracts.map(contractName => {
+    var source = gitRoot + "/contracts/eos/" + contractName;
+    if (contractName.endsWith('service')) {
+      source = gitRoot + "/contracts/eos/dappservices";
+    }
+    return `* [\`${contractName}\`](${source})`;
+  }).join('\n');
+  var installPart = `## Install
 \`\`\`bash
 zeus unbox ${name}
-\`\`\`
-${Object.keys(examples).length ? `## Examples` : ''}
+\`\`\``;
+  var npmPart = `${npmPackages.length ? `### npm packages` : ''}
+${npmPackages.map(packageName=>{
+return `* [\`${packageName}\`](http://npmjs.com/package/${packageName})`
+}).join('\n')}`;
+  var examplesPart = `${Object.keys(examples).length ? `## Examples` : ''}
 ${Object.keys(examples).map(exampleKey=>{
 return `### ${exampleKey} 
 \`\`\`bash
 ${examples[exampleKey]}
 \`\`\``}).join('\n')}
-${(newCommands.length + newSubCommands.length) ? `## Zeus Command Extensions` : ''}
+`;
+  var commandsPart = `${(newCommands.length + newSubCommands.length) ? `## Zeus Command Extensions` : ''}
 ${newCommands.map(commandPath=>{
   var commandParts = commandPath.split('/');
   var commandName = commandParts[commandParts.length-1].split('.').slice(0, -1).join('.');
-
-return `* \`\`\`zeus ${commandName}  --help\`\`\`
-`}).join('\n')}
+return `* \`\`\`zeus ${commandName}  --help\`\`\``;}).join('\n')}
 ${(newSubCommands.length) ? `### Subcommands` : ''}
 ${newSubCommands.map(commandPath=>{
   var commandParts = commandPath.split('/');
   var commandName = commandParts[commandParts.length-2];
   var subCommandName = commandParts[commandParts.length-1].split('.').slice(0, -1).join('.');
   return `* \`\`\`zeus ${commandName} ${subCommandName} --help\`\`\`
-`}).join('\n')}
-
-${(modelGroups.length || modelTypes.length) ? `## Models` : ''}
+`}).join('\n')}`;
+  var boxesPart = `${dependencies.length ? `### Boxes` : ''}
+${dependencies.map(boxName=>{
+return `* [\`${boxName}\`](${boxName}.md)`;}).join('\n')}`;
+  var tagsParts = `${tags.length ? `### Tags` : ''}
+${tags.map(tag=>{
+return `\`${tag}\``
+}).join(' ')}`;
+  var modelsPart = `${(modelGroups.length || modelTypes.length) ? `## Models` : ''}
 ${(modelTypes.length) ? `### New Model Types` : ''}
 ${modelTypes.map(modelType=>{
   var group = path.basename(modelType);
@@ -174,9 +168,28 @@ ${Object.keys(modelGroups).map(groupDir=>{
     return `#### [${group}/${instanceName}](${gitRoot}/models/${group}/${instanceName})
 \`\`\`json
 ${JSON.stringify(content,null,2)}
-\`\`\``})}).join('\n')}
-## [Source](${gitRoot})
-`
+\`\`\``})}).join('\n')}`;
+  var sourcePart = `## [Source](${gitRoot})`;
+  var depsPart = `${(dependencies.length + npmPackages.length) ? `## Dependencies` : ''}
+${boxesPart}
+${npmPart}
+`;
+  var overviewPart = `${(tags.length > 0 || zeusBoxJson.description) ? `## Overview` : ''}
+${descPart}
+${tagsParts}
+`;
+  var header = name + "\n====================\n"
+  var descPart = (zeusBoxJson.description) ? zeusBoxJson.description : '';
+  var docContent = `
+${header}
+${overviewPart}
+${depsPart}
+${contractsPart}
+${installPart}
+${examplesPart}
+${commandsPart}
+${modelsPart}
+${sourcePart}`
 
   fs.writeFileSync(boxOutputPath, docContent);
   // console.log(docContent);
