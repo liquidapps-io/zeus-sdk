@@ -119,7 +119,7 @@ ${examples[exampleKey]}
 ${(newCommands.length + newSubCommands.length) ? `## Zeus Command Extensions` : ''}
 ${newCommands.map(commandPath=>{
   var commandParts = commandPath.split('/');
-  var commandName = commandParts[commandParts.length-1];
+  var commandName = commandParts[commandParts.length-1].split('.').slice(0, -1).join('.');
 
 return `* \`\`\`zeus ${commandName}  --help\`\`\`
 `}).join('\n')}
