@@ -48,7 +48,7 @@ ${prettyServiceName} Service
 }
 
 const generateBoxDoc = async(subdir, name, zeusBoxJson, args) => {
-  var parts = subdir.split('.');
+  var parts = subdir.split('/');
   var group = parts[parts.length - 2]
 
   var outputDir = args['box-output-dir'];
