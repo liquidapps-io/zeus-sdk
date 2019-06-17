@@ -153,7 +153,7 @@ const generateBoxDoc = async(subdir, name, zeusBoxJson, args) => {
   var serviceLink = '';
   if (isDappServiceBox) {
     serviceLink = `## Service Documentation
-    [${serviceCode}](../../services/${serviceCode}/${serviceCode}-service.md)`
+[${serviceCode}](../../services/${serviceCode}/${serviceCode}-service.md)`
     if (!modelGroups['dapp-services']) {
       throw new Error(`${serviceCode} service missing dapp-services model`);
     }
