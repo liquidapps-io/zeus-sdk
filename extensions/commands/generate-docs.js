@@ -50,13 +50,13 @@ const generateServiceDoc = async(subdir, boxName, zeusBoxJson, model, args) => {
     });
   }
   var tests = [];
-  var testsDir = path.join(subdir, "tests");
+  var testsDir = path.join(subdir, "test");
   if (fs.existsSync(testsDir)) {
-    tests = fs.readdirSync(testsDir).map(name => path.join(testsDir, name)).filter(a => !isDirectory(a) && a.endsWith('spec.js')).map(path.basename);
+    tests = fs.readdirSync(testsDir).map(name => path.join(testsDir, name)).filter(a => !isDirectory(a) && a.endsWith('spec.js')).map(a => path.basename(a));
   }
 
   var testsParts = (tests.length || consumer) ?
-    ("## Tests \n" + tests.map(test => `* [${test}](${gitRoot}/tests/${test}`).join('\n') +
+    ("## Tests \n" + tests.map(test => `* [${test}](${gitRoot}/test/${test}`).join('\n') +
       ((consumer) ? `\n* [Consumer Contract Example](${consumer})` : "")) :
     "";
 
@@ -150,6 +150,18 @@ const generateBoxDoc = async(subdir, name, zeusBoxJson, args) => {
     }
 
   }
+
+  var tests = [];
+  var testsDir = path.join(subdir, "test");
+  if (fs.existsSync(testsDir)) {
+    tests = fs.readdirSync(testsDir).map(name => path.join(testsDir, name)).filter(a => !isDirectory(a) && a.endsWith('spec.js')).map(a => path.basename(a));
+  }
+
+  var testsParts = (tests.length) ?
+    "## Tests \n" + tests.map(test => `* [${test}](${gitRoot}/test/${test}`).join('\n') :
+    "";
+
+
   var serviceLink = '';
   if (isDappServiceBox) {
     serviceLink = `## Service Documentation
@@ -249,6 +261,7 @@ ${installPart}
 ${examplesPart}
 ${commandsPart}
 ${modelsPart}
+${testsParts}
 ${sourcePart}`
 
   fs.writeFileSync(boxOutputPath, docContent);
