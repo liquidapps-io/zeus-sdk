@@ -28,7 +28,7 @@ const generateServiceDoc = async(subdir, boxName, zeusBoxJson, model, args) => {
   var group = parts[parts.length - 2]
   // var serviceName;
   // var serviceName = zeusBoxJson.service;
-  var docOutputDir = path.join(outputDir, model.name, model.name) + "-service.md";
+  var docOutputDir = path.join(outputDir, model.name) + "-service.md";
   // generate dir
   // load models/dapp-services/service
   // generate doc
@@ -84,10 +84,6 @@ ${Object.keys(model.commands).map(command=>{
 ${testsParts}
 ${implementation ? `## [Implementation](${implementation})` : ""}
 `
-
-
-  if (!fs.existsSync(path.join(outputDir, model.name)))
-    fs.mkdirSync(path.join(outputDir, model.name));
 
   fs.writeFileSync(docOutputDir, docContent);
 
@@ -173,7 +169,7 @@ const generateBoxDoc = async(subdir, name, zeusBoxJson, args) => {
     var model = JSON.parse(fs.readFileSync(modelPath));
     var prettyServiceName = model.prettyName ? model.prettyName : model.name;
     serviceLink = `## Service Documentation
-[${prettyServiceName}](../../services/${serviceCode}/${serviceCode}-service.md)`
+[${prettyServiceName}](../../services/${serviceCode}-service.md)`
     if (!modelGroups['dapp-services']) {
       throw new Error(`${serviceCode} service missing dapp-services model`);
     }
