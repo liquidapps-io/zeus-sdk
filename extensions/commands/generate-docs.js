@@ -108,7 +108,7 @@ const generateBoxDoc = async(subdir, name, zeusBoxJson, args) => {
 
   }
 
-
+  var gitRoot = `https://github.com/liquidapps-io/zeus-sdk/tree/master/boxes/groups/${group}/${name}`;
   // generate docs
   var docContent = `
 ${name} 
@@ -125,12 +125,12 @@ ${dependencies.map(boxName=>{
 return `* [\`${boxName}\`](${boxName}.md)`
 }).join('\n')}
 ${npmPackages.length ? `### npm packages` : ''}
-${npmPackages.map(contractName=>{
-return `* \`${contractName}\``
+${npmPackages.map(packageName=>{
+return `* [\`${packageName}\`](http://npmjs.com/package/${packageName})`
 }).join('\n')}
 ${contracts.length ? `## Contracts` : ''}
 ${contracts.map(contractName=>{
-  return `* \`${contractName}\``
+  return `* [\`${contractName}\`](${gitRoot}/contracts/eos/${contractName})`
 }).join('\n')}
 ## Install
 \`\`\`bash
@@ -171,11 +171,11 @@ ${Object.keys(modelGroups).map(groupDir=>{
     var instanceName = pathParts[pathParts.length-1];
     var modelPath = path.join(subdir, "models",group,instanceName);
     var content = JSON.parse(fs.readFileSync(modelPath));
-    return `#### ${group}/${instanceName}
+    return `#### [${group}/${instanceName}](${gitRoot}/models/${group}/${instanceName})
 \`\`\`json
 ${JSON.stringify(content,null,2)}
 \`\`\``})}).join('\n')}
-## [Source](https://github.com/liquidapps-io/zeus-sdk/tree/master/boxes/groups/${group}/${name})
+## [Source](${gitRoot})
 `
 
   fs.writeFileSync(boxOutputPath, docContent);
