@@ -21,36 +21,79 @@ const getAllBoxes = async(source) => {
   return boxes;
 };
 
-const generateServiceDoc = async(subdir, boxName, zeusBoxJson, args) => {
-  if (!zeusBoxJson.service) return;
+const generateServiceDoc = async(subdir, boxName, zeusBoxJson, model, args) => {
+  // if (!zeusBoxJson.service) return;
   var outputDir = args['service-output-dir'];
+  var parts = subdir.split('/');
+  var group = parts[parts.length - 2]
   // var serviceName;
-  var serviceName = zeusBoxJson.service;
-  var boxOutputDir = path.join(outputDir, serviceName, serviceName) + "-service.md";
+  // var serviceName = zeusBoxJson.service;
+  var docOutputDir = path.join(outputDir, model.name, model.name) + "-service.md";
   // generate dir
   // load models/dapp-services/service
   // generate doc
-  var model;
-  var contractName = "";
-  var prettyServiceName = "";
-  var docContent = `
-${prettyServiceName} Service
+  var contractName = model.contract;
+  var prettyServiceName = model.name;
+  var gitRoot = `https://github.com/liquidapps-io/zeus-sdk/tree/master/boxes/groups/${group}/${boxName}`;
+  var consumer = "";
+  var implementation = "";
+  var install = zeusBoxJson.install;
+  if (install && install.contracts) {
+    var contracts = Object.keys(install.contracts);
+    contracts.map(contractName => {
+      if (contractName.endsWith('service')) {
+        implementation = gitRoot + "/contracts/eos/dappservices/_" + model.name + "_impl.hpp";
+      }
+      else if (contractName.endsWith('consumer')) {
+        consumer = gitRoot + "/contracts/eos/" + model.name + "consumer/" + model.name + "consumer.cpp";
+      }
+    });
+  }
+  var tests = [];
+  var testsDir = path.join(subdir, "tests");
+  if (fs.existsSync(testsDir)) {
+    tests = fs.readdirSync(testsDir).map(name => path.join(testsDir, name)).filter(a => !isDirectory(a) && a.endsWith('spec.js')).map(path.basename);
+  }
+
+  var testsParts = (tests.length || consumer) ?
+    ("## Tests \n" + tests.map(test => `* [${test}](${gitRoot}/tests/${test}`).join('\n') +
+      ((consumer) ? `\n* [Consumer Contract Example](${consumer})` : "")) :
+    "";
+
+  var docContent = `${prettyServiceName} Service
 =================
 
 ## Overview
+${model.description ? model.description : ""}
+
 ## Contract
 
 \`\`\`${contractName}\`\`\`
 
-## Service Commands
+## Box
+[${boxName}](../../developers/boxes/${boxName})
 
+## Service Commands
+${Object.keys(model.commands).map(command=>{
+  return `### ${command}`
+}).join('\n')}
+${testsParts}
+${implementation ? `## [Implementation](${implementation})` : ""}
 `
+
+
+  if (!fs.existsSync(path.join(outputDir, model.name)))
+    fs.mkdirSync(path.join(outputDir, model.name));
+
+  fs.writeFileSync(docOutputDir, docContent);
+
 }
 
 const generateBoxDoc = async(subdir, name, zeusBoxJson, args) => {
   var parts = subdir.split('/');
   var group = parts[parts.length - 2]
-
+  var isDappServiceBox = name.endsWith('-dapp-service');
+  var serviceCode = name.split('-')[0];
   var outputDir = args['box-output-dir'];
   var boxOutputPath = path.join(outputDir, name) + ".md";
   var dependencies = [];
@@ -98,7 +141,7 @@ const generateBoxDoc = async(subdir, name, zeusBoxJson, args) => {
       var models = fs.readdirSync(modelDir).map(name => path.join(modelDir, name)).filter(a => !isDirectory(a) && a.endsWith('.json'));
       if (models.length) {
         // non empty
-        modelGroups[modelDir] = models;
+        modelGroups[path.basename(modelDir)] = models;
       }
       else {
 
@@ -107,14 +150,30 @@ const generateBoxDoc = async(subdir, name, zeusBoxJson, args) => {
     }
 
   }
+  var serviceLink = '';
+  if (isDappServiceBox) {
+    serviceLink = `## Service Documentation
+    [${serviceCode}](../../services/${serviceCode}/${serviceCode}-service.md)`
+    if (!modelGroups['dapp-services']) {
+      throw new Error(`${serviceCode} service missing dapp-services model`);
+    }
+    var modelPath = modelGroups['dapp-services'][0];
+    var model = JSON.parse(fs.readFileSync(modelPath));
+    await generateServiceDoc(subdir, name, zeusBoxJson, model, args);
+  }
 
   var gitRoot = `https://github.com/liquidapps-io/zeus-sdk/tree/master/boxes/groups/${group}/${name}`;
   // generate docs
   var contractsPart = (contracts.length ? `## Contracts\n` : '') + contracts.map(contractName => {
     var source = gitRoot + "/contracts/eos/" + contractName;
-    if (contractName.endsWith('service') && name.endsWith('-dapp-service')) {
-      var serviceCode = name.split('-')[0];
-      source = gitRoot + "/contracts/eos/dappservices/_" + serviceCode + "_impl.hpp";
+    if (isDappServiceBox) {
+      if (contractName.endsWith('service')) {
+        source = gitRoot + "/contracts/eos/dappservices/_" + serviceCode + "_impl.hpp";
+      }
+      else if (contractName.endsWith('consumer')) {
+        // skip consumer
+        return "";
+      }
     }
     return `* [\`${contractName}\`](${source})`;
   }).join('\n');
@@ -160,13 +219,12 @@ ${modelTypes.map(modelType=>{
   return `* ${group}`}).join('\n')}
 ${Object.keys(modelGroups).length ? `### Model Instances` : ''}
 ${Object.keys(modelGroups).map(groupDir=>{
-  var group = path.basename(groupDir);
   return modelGroups[groupDir].map(modelInstance => {
     var pathParts = modelInstance.split('/');
     var instanceName = pathParts[pathParts.length-1];
-    var modelPath = path.join(subdir, "models",group,instanceName);
+    var modelPath = path.join(subdir, "models",groupDir,instanceName);
     var content = JSON.parse(fs.readFileSync(modelPath));
-    return `#### [${group}/${instanceName}](${gitRoot}/models/${group}/${instanceName})
+    return `#### [${group}/${instanceName}](${gitRoot}/models/${groupDir}/${instanceName})
 \`\`\`json
 ${JSON.stringify(content,null,2)}
 \`\`\``})}).join('\n')}`;
@@ -184,6 +242,7 @@ ${tagsParts}
   var docContent = `
 ${header}
 ${overviewPart}
+${serviceLink}
 ${depsPart}
 ${contractsPart}
 ${installPart}
@@ -204,7 +263,6 @@ const generateDoc = async(subdir, args) => {
       throw new Error('zeus-box.json not found');
     }
     var zeusBoxJson = JSON.parse(fs.readFileSync(zeusBoxJsonPath));
-    await generateServiceDoc(subdir, name, zeusBoxJson, args);
     await generateBoxDoc(subdir, name, zeusBoxJson, args);
 
     console.log(emojMap.ok + `${name}`);
