@@ -112,8 +112,9 @@ const generateBoxDoc = async(subdir, name, zeusBoxJson, args) => {
   // generate docs
   var contractsPart = (contracts.length ? `## Contracts\n` : '') + contracts.map(contractName => {
     var source = gitRoot + "/contracts/eos/" + contractName;
-    if (contractName.endsWith('service')) {
-      source = gitRoot + "/contracts/eos/dappservices";
+    if (contractName.endsWith('service') && name.endsWith('-dapp-service')) {
+      var serviceCode = name.split('-')[0];
+      source = gitRoot + "/contracts/eos/dappservices/_" + serviceCode + "_impl.hpp";
     }
     return `* [\`${contractName}\`](${source})`;
   }).join('\n');
