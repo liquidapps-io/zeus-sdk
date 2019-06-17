@@ -129,7 +129,10 @@ ${newSubCommands.map(commandPath=>{
   var commandName = commandParts[commandParts.length-2];
   var subCommandName = commandParts[commandParts.length-1].split('.').slice(0, -1).join('.');
   return `* \`\`\`zeus ${commandName} ${subCommandName} --help\`\`\`
-`}).join('\n')}`
+`}).join('\n')}
+
+## (Source)[https://github.com/liquidapps-io/zeus-sdk/tree/master/boxes/groups/${subdir}]
+`
 
   fs.writeFileSync(boxOutputPath, docContent);
   console.log(docContent);
