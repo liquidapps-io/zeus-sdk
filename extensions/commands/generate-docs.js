@@ -175,12 +175,12 @@ ${JSON.stringify(content,null,2)}
 ${boxesPart}
 ${npmPart}
 `;
+  var descPart = (zeusBoxJson.description) ? zeusBoxJson.description : '';
   var overviewPart = `${(tags.length > 0 || zeusBoxJson.description) ? `## Overview` : ''}
 ${descPart}
 ${tagsParts}
 `;
   var header = name + "\n====================\n"
-  var descPart = (zeusBoxJson.description) ? zeusBoxJson.description : '';
   var docContent = `
 ${header}
 ${overviewPart}
