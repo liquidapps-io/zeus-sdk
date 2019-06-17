@@ -48,6 +48,9 @@ ${prettyServiceName} Service
 }
 
 const generateBoxDoc = async(subdir, name, zeusBoxJson, args) => {
+  var parts = subdir.split('.');
+  var group = parts[parts.length - 2]
+
   var outputDir = args['box-output-dir'];
   var boxOutputPath = path.join(outputDir, name) + ".md";
   var dependencies = [];
@@ -131,7 +134,7 @@ ${newSubCommands.map(commandPath=>{
   return `* \`\`\`zeus ${commandName} ${subCommandName} --help\`\`\`
 `}).join('\n')}
 
-## (Source)[https://github.com/liquidapps-io/zeus-sdk/tree/master/boxes/groups/${subdir}]
+## [Source](https://github.com/liquidapps-io/zeus-sdk/tree/master/boxes/groups/${group}/${name})
 `
 
   fs.writeFileSync(boxOutputPath, docContent);
