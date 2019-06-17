@@ -2,6 +2,9 @@
     "name": "sign",
     "port": 13128,
     "contract": "signfndspsvc",
+    "prettyName": "LiquidLink",
+    "stage": "WIP",
+    "description": "IBC MultiSig Service",
     "commands": {
         "signtrx":{
             "blocking": true,

@@ -2,6 +2,9 @@
     "name": "history",
     "port": 13143,
     "contract": "historyservc",
+    "prettyName": "LiquidArchive",
+    "stage": "WIP",
+    "description": "History API Provisioning",
     "commands": {
         "hststore":{
             "blocking": false,

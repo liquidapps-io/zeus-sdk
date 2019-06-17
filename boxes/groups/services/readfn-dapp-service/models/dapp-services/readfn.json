@@ -2,6 +2,9 @@
     "name": "readfn",
     "port": 13141,
     "contract": "readfndspsvc",
+    "prettyName": "LiquidLens",
+    "stage": "Alpha",
+    "description": "Read Functions Service",
     "commands": {
         "rfnuse":{
             "blocking": false,

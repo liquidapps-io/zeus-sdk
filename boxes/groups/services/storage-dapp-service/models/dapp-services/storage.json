@@ -2,6 +2,9 @@
     "name": "storage",
     "port": 13142,
     "contract": "liquidstorag",
+    "prettyName": "LiquidStorage",
+    "stage":"WIP",
+    "description": "Distributed storage and hosting",
     "commands": {
         "strstore":{
             "blocking": false,

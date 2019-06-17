@@ -2,6 +2,9 @@
     "name": "cron",
     "port": 13131,
     "contract": "cronservices",
+    "prettyName": "LiquidScheduler",
+    "stage": "Alpha",
+    "description": "Scheduled Transactions",
     "commands": {
         "schedule": {
             "blocking": false,

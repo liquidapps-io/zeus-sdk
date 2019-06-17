@@ -33,7 +33,7 @@ const generateServiceDoc = async(subdir, boxName, zeusBoxJson, model, args) => {
   // load models/dapp-services/service
   // generate doc
   var contractName = model.contract;
-  var prettyServiceName = model.name;
+  var prettyServiceName = model.prettyName ? model.prettyName : model.name;
   var gitRoot = `https://github.com/liquidapps-io/zeus-sdk/tree/master/boxes/groups/${group}/${boxName}`;
   var consumer = "";
   var implementation = "";
@@ -59,12 +59,16 @@ const generateServiceDoc = async(subdir, boxName, zeusBoxJson, model, args) => {
     ("## Tests \n" + tests.map(test => `* [${test}](${gitRoot}/test/${test})`).join('\n') +
       ((consumer) ? `\n* [Consumer Contract Example](${consumer})` : "")) :
     "";
+  var stage = (zeusBoxJson.stage) ? `## Stage
+${zeusBoxJson.stage}` : '';
 
   var docContent = `${prettyServiceName} Service
 =================
 
 ## Overview
 ${model.description ? model.description : ""}
+
+${stage}
 
 ## Contract
 
@@ -165,13 +169,14 @@ const generateBoxDoc = async(subdir, name, zeusBoxJson, args) => {
 
   var serviceLink = '';
   if (isDappServiceBox) {
+    var modelPath = modelGroups['dapp-services'][0];
+    var model = JSON.parse(fs.readFileSync(modelPath));
+    var prettyServiceName = model.prettyName ? model.prettyName : model.name;
     serviceLink = `## Service Documentation
-[${serviceCode}](../../services/${serviceCode}/${serviceCode}-service.md)`
+[${prettyServiceName}](../../services/${serviceCode}/${serviceCode}-service.md)`
     if (!modelGroups['dapp-services']) {
       throw new Error(`${serviceCode} service missing dapp-services model`);
     }
-    var modelPath = modelGroups['dapp-services'][0];
-    var model = JSON.parse(fs.readFileSync(modelPath));
     await generateServiceDoc(subdir, name, zeusBoxJson, model, args);
   }
 

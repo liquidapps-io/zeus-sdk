@@ -2,6 +2,9 @@
     "name": "log",
     "port": 13110,
     "contract":"logservices1",
+    "prettyName": "LiquidLog",
+    "stage": "Beta",
+    "description": "Log Service",
     "commands":{
         "logevent":{
             "blocking": false,

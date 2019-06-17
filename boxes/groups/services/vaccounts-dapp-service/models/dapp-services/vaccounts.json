@@ -1,6 +1,9 @@
 {
     "name": "vaccounts",
     "port": 13129,
+    "prettyName": "LiquidAccounts",
+    "stage":"Alpha",
+    "description": "Allows interaction with contract without a native EOS Account",
     "contract": "accountless1",
     "commands": {
         "vexec": {
