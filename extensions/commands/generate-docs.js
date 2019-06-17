@@ -166,19 +166,15 @@ ${modelTypes.map(modelType=>{
 ${Object.keys(modelGroups).length ? `### Model Instances` : ''}
 ${Object.keys(modelGroups).map(groupDir=>{
   var group = path.basename(groupDir);
-  return `#### ${group}
-${modelGroups[groupDir].map(modelInstance => {
+  return modelGroups[groupDir].map(modelInstance => {
     var pathParts = modelInstance.split('/');
     var instanceName = pathParts[pathParts.length-1];
     var modelPath = path.join(subdir, "models",group,instanceName);
     var content = JSON.parse(fs.readFileSync(modelPath));
-    return `##### ${instanceName.split('.').slice(0, -1).join('.')}
+    return `#### ${group}/${instanceName}
 \`\`\`json
 ${JSON.stringify(content,null,2)}
-\`\`\`
-`
-  })}
-`}).join('\n')}
+\`\`\``})}).join('\n')}
 ## [Source](https://github.com/liquidapps-io/zeus-sdk/tree/master/boxes/groups/${group}/${name})
 `
 
