@@ -56,7 +56,7 @@ const generateServiceDoc = async(subdir, boxName, zeusBoxJson, model, args) => {
   }
 
   var testsParts = (tests.length || consumer) ?
-    ("## Tests \n" + tests.map(test => `* [${test}](${gitRoot}/test/${test}`).join('\n') +
+    ("## Tests \n" + tests.map(test => `* [${test}](${gitRoot}/test/${test})`).join('\n') +
       ((consumer) ? `\n* [Consumer Contract Example](${consumer})` : "")) :
     "";
 
@@ -158,7 +158,7 @@ const generateBoxDoc = async(subdir, name, zeusBoxJson, args) => {
   }
 
   var testsParts = (tests.length) ?
-    "## Tests \n" + tests.map(test => `* [${test}](${gitRoot}/test/${test}`).join('\n') :
+    "## Tests \n" + tests.map(test => `* [${test}](${gitRoot}/test/${test})`).join('\n') :
     "";
 
 
