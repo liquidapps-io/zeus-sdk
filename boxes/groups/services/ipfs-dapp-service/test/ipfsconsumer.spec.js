@@ -15,6 +15,7 @@ var ctrt = artifacts.require(`./${contractCode}/`);
 describe(`IPFS Service Test Contract`, () => {
   var testcontract;
   const code = 'test1';
+  var eosvram;
   before(done => {
     (async () => {
       try {
@@ -31,7 +32,7 @@ describe(`IPFS Service Test Contract`, () => {
           var keys = await getCreateKeys(account);
           config.keyProvider = keys.privateKey;
         }
-        var eosvram = deployedContract.eos;
+        eosvram = deployedContract.eos;
         config.httpEndpoint = 'http://localhost:13015';
         eosvram = new Eos(config);
 
@@ -69,6 +70,100 @@ describe(`IPFS Service Test Contract`, () => {
       }
     })();
   });
+
+  it('IPFS Get Available Key', done => {
+    (async () => {
+      try {
+        await testcontract.increment({}, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        await testcontract.increment({}, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        await testcontract.increment({}, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        let table = await eosvram.getTableRows({
+          code: code,
+          scope: 'test',
+          table: '.vconfig',
+          json: true,
+        });
+        let next_key = table.rows[0].next_available_key;
+        let shards = table.rows[0].shards;
+        let buckets = table.rows[0].buckets_per_shard;
+
+        assert.equal(next_key, 3, 'wrong key');
+        assert.equal(shards, 1024, 'wrong shards');
+        assert.equal(buckets, 64, 'wrong buckets');
+
+        await testcontract.testindex({
+          id: 555
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        await testcontract.testindex({
+          id: 20
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        table = await eosvram.getTableRows({
+          code: code,
+          scope: 'test',
+          table: '.vconfig',
+          json: true,
+        });
+        next_key = table.rows[0].next_available_key;
+
+        assert.equal(next_key, 556, 'wrong key');
+
+        
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it('IPFS Resize Should Fail', done => {
+    (async () => {
+      try {
+
+        let failed = false;
+
+        try {
+          await testcontract.testresize({}, {
+            authorization: `${code}@active`,
+            broadcast: true,
+            sign: true
+          });
+        } catch(e) {
+          failed = true
+        }
+
+        assert(failed, 'should have failed');        
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
+
 
   it('IPFS Read', done => {
     (async () => {
