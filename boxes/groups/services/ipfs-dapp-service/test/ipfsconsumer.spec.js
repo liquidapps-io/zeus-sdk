@@ -8,7 +8,7 @@ const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
+const { genAllocateDAPPTokens, readVRAMData } = require('../extensions/tools/eos/dapp-services');
 
 var contractCode = 'ipfsconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
@@ -180,6 +180,33 @@ describe(`IPFS Service Test Contract`, () => {
         // assert.equal(eventResp.etype, "service_request", "wrong etype");
         // assert.equal(eventResp.provider,"", "wrong provider");
         // assert.equal(eventResp.action, "cleanup", "wrong action");
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it.skip('IPFS uint64_t Primary Key', done => {
+    (async () => {
+      try {
+
+        await testcontract.testindex({
+          id: 12345
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+        
+        var tableRes = await readVRAMData({
+          contract: code,
+          key: 12345,
+          table: "test",
+          scope: code
+        });
+        assert(tableRes.row.id == 12345, "wrong uint64_t");
+
         done();
       } catch (e) {
         done(e);

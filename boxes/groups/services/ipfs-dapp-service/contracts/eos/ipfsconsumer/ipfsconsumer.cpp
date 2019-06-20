@@ -22,11 +22,17 @@ CONTRACT_START()
   TABLE vconfig {
     uint64_t next_available_key;
     uint32_t shards;
-    uint32_t buckets_per_shard; 
+    uint32_t buckets_per_shard;
   };
-  
+  TABLE testindex_shardbucket {
+      std::vector<char> shard_uri;
+      uint64_t shard;
+      uint64_t primary_key() const { return shard; }
+  };
       
   typedef dapp::multi_index<"test"_n, testindex> testindex_t;
+  typedef eosio::multi_index<".test"_n, testindex> testindex_t_v_abi;
+  typedef eosio::multi_index<"test"_n, testindex_shardbucket> testindex_t_abi;
   typedef eosio::multi_index<".vconfig"_n, vconfig> vconfig_t_abi;
 
   
