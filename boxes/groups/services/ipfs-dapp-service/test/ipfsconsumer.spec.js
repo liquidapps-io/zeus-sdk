@@ -17,7 +17,7 @@ describe(`IPFS Service Test Contract`, () => {
   const code = 'test1';
   var eosvram;
   before(done => {
-    (async () => {
+    (async() => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
         await genAllocateDAPPTokens(deployedContract, 'ipfs');
@@ -38,7 +38,8 @@ describe(`IPFS Service Test Contract`, () => {
 
         testcontract = await eosvram.contract(code);
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();
@@ -46,7 +47,7 @@ describe(`IPFS Service Test Contract`, () => {
 
   var account = code;
   it('IPFS Write', done => {
-    (async () => {
+    (async() => {
       try {
         var res = await testcontract.testset({
           data: {
@@ -65,14 +66,15 @@ describe(`IPFS Service Test Contract`, () => {
         // assert.equal(eventResp.action, "commit", "wrong action");
 
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();
   });
 
   it('IPFS Get Available Key', done => {
-    (async () => {
+    (async() => {
       try {
         await testcontract.increment({}, {
           authorization: `${code}@active`,
@@ -132,16 +134,17 @@ describe(`IPFS Service Test Contract`, () => {
 
         assert.equal(next_key, 556, 'wrong key');
 
-        
+
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();
   });
 
   it('IPFS Resize Should Fail', done => {
-    (async () => {
+    (async() => {
       try {
 
         let failed = false;
@@ -152,13 +155,15 @@ describe(`IPFS Service Test Contract`, () => {
             broadcast: true,
             sign: true
           });
-        } catch(e) {
+        }
+        catch (e) {
           failed = true
         }
 
-        assert(failed, 'should have failed');        
+        assert(failed, 'should have failed');
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();
@@ -166,7 +171,7 @@ describe(`IPFS Service Test Contract`, () => {
 
 
   it('IPFS Read', done => {
-    (async () => {
+    (async() => {
       try {
         var res = await testcontract.testget({
           uri: 'ipfs://zb2rhnaYrUde9d7h13vHTXeWcBJcBpEFdMgAcbXbFfM5aQxgK',
@@ -181,14 +186,15 @@ describe(`IPFS Service Test Contract`, () => {
         // assert.equal(eventResp.provider,"", "wrong provider");
         // assert.equal(eventResp.action, "cleanup", "wrong action");
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();
   });
 
-  it.skip('IPFS uint64_t Primary Key', done => {
-    (async () => {
+  it('IPFS uint64_t Primary Key', done => {
+    (async() => {
       try {
 
         await testcontract.testindex({
@@ -198,7 +204,7 @@ describe(`IPFS Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        
+
         var tableRes = await readVRAMData({
           contract: code,
           key: 12345,
@@ -208,7 +214,8 @@ describe(`IPFS Service Test Contract`, () => {
         assert(tableRes.row.id == 12345, "wrong uint64_t");
 
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();
