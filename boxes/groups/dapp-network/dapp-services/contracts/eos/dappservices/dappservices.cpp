@@ -504,7 +504,7 @@ public:
     require_recipient(provider);
     require_recipient(service);
     require_recipient(to);
-    dist_rewards(to, provider, service);
+    refillPackage(to, provider, service);
     add_provider_balance(from, to, service, provider, quantity);
     sub_balance(from, quantity);
     add_total_staked(quantity);
@@ -519,7 +519,7 @@ public:
     require_recipient(provider);
     require_recipient(service);
     require_recipient(to);
-    dist_rewards(to, provider, service);
+    refillPackage(to, provider, service);
     auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     uint64_t unstake_time = current_time_ms + getUnstakeRemaining(to,provider,service);
     
@@ -585,7 +585,7 @@ public:
     auto cidx = refunds_tbl.get_index<"byprov"_n>();
     auto req = cidx.find(idxKey);
     eosio::check(req != cidx.end(), "refund request not found");
-    dist_rewards(to, provider, service);
+    refillPackage(to, provider, service);
     uint64_t secondsLeft = 
         (req->unstake_time - current_time_ms) / 1000; // calc how much left
     if(req->unstake_time < current_time_ms)
@@ -646,6 +646,7 @@ public:
 
  [[eosio::action]] void claimrewards(name provider) {
     require_auth(provider);
+    dist_rewards(provider); 
     auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     rewards_t rewards(_self, provider.value);
     auto reward = rewards.find(DAPPSERVICES_SYMBOL.code().raw());
@@ -929,8 +930,19 @@ private:
 
     return res;
   }
-  void refillPackage(name payer, name provider, name service,
-                     accountext & acct) {
+  void refillPackage(name payer, name provider, name service) {
+    dist_rewards(provider); 
+    
+    auto sym = DAPPSERVICES_SYMBOL;
+    accountexts_t accountexts(_self, sym.code().raw());
+    auto idxKey =
+        accountext::_by_account_service_provider(payer, service, provider);
+    auto cidx = accountexts.get_index<"byprov"_n>();
+    auto acctx = cidx.find(idxKey);
+    if (acctx == cidx.end())
+      return;
+
+    accountext &acct = (accountext &)*acctx;  
     auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     if (acct.package_end > current_time_ms) // not expired yet
       return;
@@ -941,45 +953,45 @@ private:
     acct.package = ""_n;
     acct.package_end = acct.package_started;
 
-    if (acct.pending_package == ""_n)
-      return; // no pending - reset quota
+    //update package if pending
+    if (acct.pending_package != ""_n) {  
+      // get package details
+      packages_t packages(_self, _self.value);
+      auto idxKey = package::_by_package_service_provider(acct.pending_package,
+                                                            service, provider);
+      auto cidx = packages.get_index<"bypkg"_n>();
+      auto existing = cidx.find(idxKey);
+      //if pending package actually exists...
+      if (existing != cidx.end()) {
+        auto newpackage = *existing;
+        // if sufficient stake for pending package...
+        if (newpackage.min_stake_quantity <= acct.balance) {
+          acct.quota.amount = newpackage.quota.amount;
+          acct.package = acct.pending_package;
+          acct.package_end =
+              acct.package_started + (newpackage.package_period * 1000);
+        }       
+      }
+    }
 
-    // get package details
-    packages_t packages(_self, _self.value);
-    auto idxKey = package::_by_package_service_provider(acct.pending_package,
-                                                          service, provider);
-    auto cidx = packages.get_index<"bypkg"_n>();
-    auto existing = cidx.find(idxKey);
-    if (existing == cidx.end())
-      return;
-    auto newpackage = *existing;
-
-    if (newpackage.min_stake_quantity > acct.balance) // doesn't meet min stake
-      return;
-
-    acct.quota.amount = newpackage.quota.amount;
-    acct.package = acct.pending_package;
-    acct.package_end =
-        acct.package_started + (newpackage.package_period * 1000);
+    cidx.modify(acctx, eosio::same_payer, [&](auto &a) {
+      a.quota = acct.quota;
+      a.package_started = acct.package_started;
+      a.package = acct.package;
+      a.package_end = acct.package_end;
+      a.last_reward = current_time_ms;
+      a.last_usage = current_time_ms;
+    });       
   }
-  void dist_rewards(name payer, name provider, name service) {
+
+  void dist_rewards(name provider) {
     applyInflation();
     auto current_time_ms = (current_time_point().time_since_epoch().count() / 1000);
     // set last_block
     rewards_t rewards(_self, provider.value);
     auto reward = rewards.find(DAPPSERVICES_SYMBOL.code().raw());
     auto sym = DAPPSERVICES_SYMBOL;
-    accountexts_t accountexts(_self, sym.code().raw());
-    auto idxKey =
-        accountext::_by_account_service_provider(payer, service, provider);
-    auto cidx = accountexts.get_index<"byprov"_n>();
-    auto acct = cidx.find(idxKey);
-    if (acct == cidx.end())
-      return;
     
-    accountext &acctr = (accountext &)*acct;
-    auto current_stake = acctr.balance.amount;
-    refillPackage(payer, provider, service, acctr);
     if(reward != rewards.end()){
       // calculate reward
       double amount = 0.0;
@@ -1007,23 +1019,12 @@ private:
       quantity.symbol = DAPPSERVICES_SYMBOL;
       quantity.amount = amount;
       if(quantity.amount > 0){
-        acctr.last_reward = current_time_ms;
-        giveRewards(provider, service, quantity);
+        giveRewards(provider, quantity);
       }
-        
-       
     }
-    cidx.modify(acct, eosio::same_payer, [&](auto &a) {
-      a.quota = acctr.quota;
-      a.package_started = acctr.package_started;
-      a.package = acctr.package;
-      a.package_end = acctr.package_end;
-      a.last_reward = acctr.last_reward;
-      a.last_usage = current_time_ms;
-    });
   }
 
-  void giveRewards(name provider, name service, asset quantity) {
+  void giveRewards(name provider, asset quantity) {
     auto sym = DAPPSERVICES_SYMBOL;
     auto current_time_ms = (current_time_point().time_since_epoch().count() / 1000);
     
@@ -1058,7 +1059,7 @@ private:
   }
 
   bool usequota(name payer, name provider, name service, asset quantity) {
-    dist_rewards(payer, provider, service);
+    refillPackage(payer, provider, service);
     return sub_quota(payer, service, provider, quantity);
   }
 

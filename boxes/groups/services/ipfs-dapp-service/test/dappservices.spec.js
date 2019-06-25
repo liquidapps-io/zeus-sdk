@@ -92,13 +92,13 @@ async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccou
   return deployedService;
 }
 
-async function allocateDAPPTokens(deployedContract) {
+async function allocateDAPPTokens(deployedContract, quantity = '1000.0000 DAPP') {
   var key = await getCreateKeys(dappServicesContract);
   let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
   var contract = deployedContract.address;
   await servicesTokenContract.issue({
     to: contract,
-    quantity: '1000.0000 DAPP',
+    quantity: quantity,
     memo: ''
   }, {
     authorization: `${dappServicesContract}@active`,
@@ -456,6 +456,116 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
           failed = true;
         }
         assert(failed, 'should have failed for not enough stake');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  it('test rewards', done => {
+    (async() => {
+      try {
+        var selectedPackage = 'test2222';
+        var testContractAccount = 'con25';
+        var package_period = 20;
+        var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
+        await deployServicePackage({ package_id: selectedPackage, package_period });
+        await selectPackage({ deployedContract, selectedPackage });
+        await allocateDAPPTokens(deployedContract,'1000000.0000 DAPP');
+
+        await stake({ deployedContract, selectedPackage, amount: '200000.0000' });
+
+        let table = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: 'pprovider1',
+          table: 'reward',
+          json: true,
+        });
+        //console.log(table);
+
+        let balance0 = table.rows[0].balance.replace(' DAPP','');
+        let startStaked = table.rows[0].total_staked.replace(' DAPP','');
+        let startTS = table.rows[0].last_inflation_ts;
+
+        await delaySec(package_period + 1);
+        await stake({ deployedContract, selectedPackage, amount: '200000.0000' });
+
+        table = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: 'pprovider1',
+          table: 'reward',
+          json: true,
+        });
+        //console.log(table);
+
+        let balance1 = table.rows[0].balance.replace(' DAPP','');
+        assert(balance1 > balance0, 'balance should have increased');
+
+        await delaySec(package_period + 1);
+        await unstake({ deployedContract, selectedPackage, amount: '100000.0000' });
+
+        table = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: 'pprovider1',
+          table: 'reward',
+          json: true,
+        });
+        //console.log(table);
+
+        let balance2 = table.rows[0].balance.replace(' DAPP','');
+        assert(balance2 > balance1, 'balance should have increased');
+
+        await delaySec(package_period + 1);
+        await invokeService(testContractAccount, testcontract);
+
+        table = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: 'pprovider1',
+          table: 'reward',
+          json: true,
+        });
+        //console.log(table);
+
+        let balance3 = table.rows[0].balance.replace(' DAPP','');
+        assert(balance3 > balance2, 'balance should have increased');
+
+        await delaySec(package_period + 1);
+
+        var key = await getCreateKeys('pprovider1');
+        let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
+        await servicesTokenContract.claimrewards({
+          provider:'pprovider1'
+        }, {
+          authorization: `pprovider1@active`,
+          broadcast: true,
+          sign: true,
+          keyProvider: [key.privateKey]
+        });
+
+        let accounts = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: 'pprovider1',
+          table: 'accounts',
+          json: true,
+        });
+        //console.log(accounts);
+
+        table = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: 'pprovider1',
+          table: 'reward',
+          json: true,
+        });
+        //console.log(table);
+
+
+        let balance4 = accounts.rows[0].balance.replace(' DAPP','');
+        let reward = table.rows[0].balance.replace(' DAPP','');
+
+        assert(balance4 > balance3, 'balance should have increased');
+        assert(reward == 0, 'reward should be 0')
+        
         done();
       }
       catch (e) {
