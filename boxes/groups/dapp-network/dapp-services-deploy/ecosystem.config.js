@@ -35,6 +35,8 @@ if (!globalEnv.DSP_ACCOUNT) throw new Error("DSP_ACCOUNT is required");
 if (!globalEnv.DSP_PRIVATE_KEY) throw new Error("DSP_PRIVATE_KEY is required");
 const DSP_ACCOUNT = globalEnv.DSP_ACCOUNT;
 const DSP_PRIVATE_KEY = globalEnv.DSP_PRIVATE_KEY;
+const DSP_ACCOUNT_PERMISSIONS = globalEnv.DSP_ACCOUNT_PERMISSIONS || 'active';
+
 // Configure .env
 const DSP_PORT = globalEnv.DSP_PORT || 3115;
 const IPFS_HOST = globalEnv.IPFS_HOST || 'localhost';
@@ -85,6 +87,7 @@ const commonEnv = {
   IPFS_PORT,
   IPFS_PROTOCOL,
   DSP_ACCOUNT,
+  DSP_ACCOUNT_PERMISSIONS,
   DSP_PRIVATE_KEY,
   DSP_PORT
 };

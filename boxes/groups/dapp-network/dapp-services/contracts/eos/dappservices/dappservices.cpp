@@ -293,7 +293,7 @@ public:
     auto cidx = packages.get_index<"bypkg"_n>();
     auto existing = cidx.find(idxKey);
     eosio::check(existing != cidx.end(), "missing package");
-    eosio::check(existing->enabled, "already enabled");
+    eosio::check(existing->enabled, "already disabled");
     cidx.modify(existing, eosio::same_payer,
                 [&](package &r) { r.enabled = false; });
   }

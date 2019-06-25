@@ -17,12 +17,8 @@ var AuthClient = require('../extensions/tools/auth-client');
 const code = 'authenticato';
 var apiID = 'ssAuthAPI';
 
-var authClient = new AuthClient(apiID,
-  code,
-  "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906",
-  'http://localhost:13015' // use DSP service to authenticate
-);
-describe.skip(`Auth DAPP Service Test Contract`, () => {
+var authClient = new AuthClient(apiID, code, "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906");
+describe.skip(`Auth Test Contract`, () => {
   var eosvram;
   before(done => {
     (async() => {
@@ -80,7 +76,7 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
   it('Authed call - active permission', done => {
     (async() => {
       try {
-        var testUser = "testuser1"
+        var testUser = "testuse11"
         var keys = await getCreateAccount(testUser);
         var permission = "active";
         var testnum = 123;
@@ -96,7 +92,7 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
   it('Authed call - api permission', done => {
     (async() => {
       try {
-        var testUser = "testuser2"
+        var testUser = "testuse12"
         var keys = await getCreateAccount(testUser);
         var apikeys = await getCreateKeys("randomkey1");
         var permission = "api";
@@ -130,7 +126,6 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
         var testnum = 123;
         var res = await authClient.invokeAuthedCall({ payload: { testnum }, account: testUser, permission, keys: apikeys });
         assert.equal(res.permission, permission);
-
         done();
       }
       catch (e) {
@@ -141,7 +136,7 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
   it('Authed call - api permission - wrong key', done => {
     (async() => {
       try {
-        var testUser = "testuser3"
+        var testUser = "testuse13"
         var keys = await getCreateAccount(testUser);
         var apikeys = await getCreateKeys("randomkey2");
         var permission = "api";
@@ -193,7 +188,7 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
         var testUser = "............"
         var permission = "api";
         var testnum = 123;
-        var keys = await getCreateAccount("randomkey5");
+        var keys = await getCreateAccount("randomke15");
 
         var res = await authClient.invokeClientAuthedCall({ payload: { testnum }, permission, keys });
         assert.equal(res.permission, permission);
@@ -209,7 +204,7 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
       try {
         var permission = "api";
         var testnum = 123;
-        var keys = await getCreateAccount("randomke22");
+        var keys = await getCreateAccount("randomke12");
         try {
           await authClient.invokeClientAuthedCall({ payload: { testnum }, permission, keys });
         }
@@ -225,7 +220,4 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
       }
     })();
   });
-
-
-
 });

@@ -68,73 +68,73 @@ const generateServiceAbiFile = (serviceModel) => {
     '____comment': 'This file was generated with dapp-services-eos. DO NOT EDIT ' + new Date().toUTCString(),
     'version': 'eosio::abi/1.0',
     'structs': [{
-      'name': 'model_t',
-      'base': '',
-      'fields': []
-    },
-    {
-      'name': 'providermdl',
-      'base': '',
-      'fields': [{
-        'name': 'model',
-        'type': 'model_t'
+        'name': 'model_t',
+        'base': '',
+        'fields': []
       },
       {
-        'name': 'package_id',
-        'type': 'name'
+        'name': 'providermdl',
+        'base': '',
+        'fields': [{
+            'name': 'model',
+            'type': 'model_t'
+          },
+          {
+            'name': 'package_id',
+            'type': 'name'
+          }
+        ]
+      },
+      {
+        'name': 'xsignal',
+        'base': '',
+        'fields': [{
+            'name': 'service',
+            'type': 'name'
+          },
+          {
+            'name': 'action',
+            'type': 'name'
+          },
+          {
+            'name': 'provider',
+            'type': 'name'
+          },
+          {
+            'name': 'package',
+            'type': 'name'
+          },
+          {
+            'name': 'signalRawData',
+            'type': 'bytes'
+          }
+        ]
+      },
+      {
+        'name': 'regprovider',
+        'base': '',
+        'fields': [{
+            'name': 'provider',
+            'type': 'name'
+          },
+          {
+            'name': 'model',
+            'type': 'providermdl'
+          }
+        ]
       }
-      ]
-    },
-    {
-      'name': 'xsignal',
-      'base': '',
-      'fields': [{
-        'name': 'service',
-        'type': 'name'
-      },
-      {
-        'name': 'action',
-        'type': 'name'
-      },
-      {
-        'name': 'provider',
-        'type': 'name'
-      },
-      {
-        'name': 'package',
-        'type': 'name'
-      },
-      {
-        'name': 'signalRawData',
-        'type': 'bytes'
-      }
-      ]
-    },
-    {
-      'name': 'regprovider',
-      'base': '',
-      'fields': [{
-        'name': 'provider',
-        'type': 'name'
-      },
-      {
-        'name': 'model',
-        'type': 'providermdl'
-      }
-      ]
-    }
     ],
     'types': [],
     'actions': [{
-      'name': 'xsignal',
-      'type': 'xsignal',
-      'ricardian_contract': ''
-    },
-    {
-      'name': 'regprovider',
-      'type': 'regprovider',
-      'ricardian_contract': ''
-    }
+        'name': 'xsignal',
+        'type': 'xsignal',
+        'ricardian_contract': ''
+      },
+      {
+        'name': 'regprovider',
+        'type': 'regprovider',
+        'ricardian_contract': ''
+      }
     ],
     'tables': [{
       'name': 'providermdl',
@@ -149,7 +149,7 @@ const generateServiceAbiFile = (serviceModel) => {
   const structs = abi.structs;
   const model_fields = structs.find(a => a.name == 'model_t').fields;
 
-  function addCmd (cmdName) {
+  function addCmd(cmdName) {
     structs.push({
       'name': `${cmdName}_model_t`,
       'base': '',
@@ -192,6 +192,47 @@ const generateCommandHelperCodeText = (serviceName, commandName, commandModel) =
     SEND_SVC_REQUEST(${commandName}, ${fnArgs}) \
 };`;
 };
+
+
+const generateServiceFileStub = (serviceModel) => {
+  var name = serviceModel.name;
+  return `
+var { nodeAutoFactory } = require('../dapp-services-node/generic-dapp-service-node');
+nodeAutoFactory('${name}');`
+}
+const generateImplStubHppFile = (serviceModel) => {
+  var name = serviceModel.name;
+  var upperName = name.toUpperCase();
+  var commandNames = Object.keys(serviceModel.commands);
+  var macro = `SVC_RESP_${upperName}`;
+  var skipHelper = false;
+  var commandsImpl = commandNames.map(commandName => {
+    var commandModel = serviceModel.commands[commandName];
+    var rargs = commandModel.request;
+    var argsKeys = Object.keys(rargs);
+
+    var fnArgs = argsKeys.join(', ');
+
+    rargs = { ...rargs, 'current_provider': 'name' };
+    var fnArgsWithType = argsKeys.map(name => rargs[name] + " " + name).join(', ');
+    // check if exists _${name}_${commandName}_dspcmd.hpp
+    return `${macro}(${commandName})(${fnArgsWithType}, name current_provider){
+#if __has_include("${name}/cmds/${commandName}.hpp") 
+#include "${name}/cmds/${commandName}.hpp"
+#endif
+}`
+  });
+  return `#pragma once
+#include <eosio/eosio.hpp>
+
+#if __has_include("${name}/headers.hpp") 
+#include "${name}/headers.hpp"
+#endif
+
+${commandsImpl}`
+
+}
+
 const generateServiceHppFile = (serviceModel) => {
   var name = serviceModel.name;
   var upperName = name.toUpperCase();
@@ -241,7 +282,7 @@ struct ${name}_svc_helper{
 #endif`;
 };
 
-const compileDappService = async (serviceModel) => {
+const compileDappService = async(serviceModel) => {
   var name = serviceModel.name;
   var targetFolder = path.resolve(`./contracts/eos/${name}service`);
   if (!fs.existsSync(targetFolder)) { fs.mkdirSync(targetFolder); }
@@ -253,19 +294,28 @@ const compileDappService = async (serviceModel) => {
       await generateServiceAbiFile(serviceModel));
     fs.writeFileSync(path.resolve(`./contracts/eos/${name}service/CMakeLists.txt`),
       CMAKELISTS_FILE);
+    if (serviceModel.generateStubs) {
+      fs.writeFileSync(path.resolve(`./contracts/eos/dappservices/_${name}_impl.hpp`),
+        await generateImplStubHppFile(serviceModel));
+      if (!fs.existsSync(path.resolve(`./services/${name}-dapp-service-node`))) { fs.mkdirSync(path.resolve(`./services/${name}-dapp-service-node`)) }
 
+      fs.writeFileSync(path.resolve(`./services/${name}-dapp-service-node/index.js`),
+        await generateServiceFileStub(serviceModel));
+
+    }
     fs.writeFileSync(path.resolve(`./contracts/eos/dappservices/${name}.hpp`),
       await generateServiceHppFile(serviceModel));
     console.log(emojMap.alembic + `CodeGen Service ${name.green}`);
-  } catch (e) {
+  }
+  catch (e) {
     throw new Error(emojMap.white_frowning_face + `CodeGen Service: ${name.green} Service: ${e}`);
   }
 };
-const generateConfig = async () => {
+const generateConfig = async() => {
   fs.writeFileSync(path.resolve(`./contracts/eos/dappservices/dappservices.config.hpp`),
     `#define DAPPSERVICES_CONTRACT "${dappServicesContract}"_n\n`);
 };
-module.exports = async (args) => {
+module.exports = async(args) => {
   await Promise.all((await loadModels('dapp-services')).map(compileDappService));
   await generateConfig();
 };

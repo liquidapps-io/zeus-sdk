@@ -1,4 +1,5 @@
 const paccount = process.env.DSP_ACCOUNT || process.env.PROOF_PROVIDER_ACCOUNT || 'pprovider1';
+const paccountPermission = process.env.DSP_ACCOUNT_PERMISSIONS || 'active';
 const fetch = require('node-fetch');
 const { dappServicesContract, getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
 const { loadModels } = require('../../extensions/tools/models');
@@ -474,4 +475,4 @@ const generateABI =
   (serviceModel) =>
   Object.keys(serviceModel.commands).map(c => generateCommandABI(c, serviceModel.commands[c]));
 
-module.exports = { deserialize, generateABI, genNode, genApp, forwardEvent, resolveProviderData, resolveProvider, processFn, handleAction, paccount, proxy, eosPrivate, eosconfig, nodeosEndpoint, resolveProviderPackage, eosDSPGateway };
+module.exports = { deserialize, generateABI, genNode, genApp, forwardEvent, resolveProviderData, resolveProvider, processFn, handleAction, paccount, proxy, eosPrivate, eosconfig, nodeosEndpoint, resolveProviderPackage, eosDSPGateway, paccountPermission };

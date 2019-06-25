@@ -1,0 +1,9 @@
+{
+    "name": "dsp-service",
+    "args":[
+        "servicename"
+    ],
+    "optionals":[
+        "servicename"
+    ]
+}

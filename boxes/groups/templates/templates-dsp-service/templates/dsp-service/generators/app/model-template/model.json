@@ -1,0 +1,25 @@
+{
+    "name":"<%- servicename %>",
+    "port": 0,
+    "prettyName":"<%- servicename %>",
+    "description":"<%- servicename %> service",
+    "stage":"WIP",
+    "contract": "somecontract",
+    "generateStubs": true,
+    "commands": {
+        "sample": {
+            "blocking": true,
+            "request": {
+                "payload": "std::vector<char>"
+            },
+            "callback": {
+                "payload": "std::vector<char>"
+            },
+            "signal": {
+                "payload": "std::vector<char>"
+            }
+        }
+    }
+
+
+}

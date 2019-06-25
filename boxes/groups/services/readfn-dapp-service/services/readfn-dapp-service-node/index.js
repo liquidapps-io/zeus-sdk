@@ -1,5 +1,5 @@
 var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
-const { eosDSPGateway, paccount, resolveProviderPackage } = require('../dapp-services-node/common');
+const { eosDSPGateway, paccount, resolveProviderPackage, paccountPermission } = require('../dapp-services-node/common');
 const { getCreateKeys } = require('../../extensions/tools/eos/utils');
 const { loadModels } = require("../../extensions/tools/models");
 
@@ -26,7 +26,7 @@ nodeFactory('readfn', {
           throw new Error("readfn can only invoke actions named 'read*'");
         try {
           await contract[method](payload, {
-            authorization: `${paccount}@active`,
+            authorization: `${paccount}@${paccountPermission}`,
             broadcast: true,
             sign: true,
             keyProvider: [process.env.DSP_PRIVATE_KEY || key.privateKey]

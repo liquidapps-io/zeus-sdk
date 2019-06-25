@@ -20,9 +20,6 @@ const fetch = require('node-fetch');
 
 var url = getUrl(getDefaultArgs());
 const rpc = new JsonRpc(url, { fetch });
-const cacheMB = 256;
-const cacheHours = 12;
-const cacheMinutes = 60 * cacheHours;
 const ipfsTimeoutSeconds = process.env.IPFS_TIMEOUT_SECONDS || 15;
 const ipfsTimeout = ipfsTimeoutSeconds * 1000;
 const hashData256 = (data) => {
@@ -149,3 +146,4 @@ nodeFactory('storage', {
 // todo: periodically call "usage" for hold and serve
 // todo: periodically call proof of replication
 // todo: use auth service
+// todo: private storage using decrypt/sign/key service and merging client

@@ -9,9 +9,9 @@ const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
 const { genAllocateDAPPTokens, readVRAMData } = require('../extensions/tools/eos/dapp-services');
-const { loadModels } = require('../extensions/tools/models');
 
-var contractCode = '<%- contractname %>';
+var contractCode = '<%- consumercontractname %>';
+var serviceName = '<%- servicename %>'
 var ctrt = artifacts.require(`./${contractCode}/`);
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
@@ -38,11 +38,7 @@ describe(`${contractCode} Contract`, () => {
         (async() => {
             try {
                 var deployedContract = await deployer.deploy(ctrt, code);
-                const services = await loadModels('dapp-services');
-                for (var i = 0; i < services.length; i++) {
-                    var service = services[i];
-                    await genAllocateDAPPTokens(deployedContract, service.name);
-                }
+                await genAllocateDAPPTokens(deployedContract, serviceName);
                 // create token
                 var selectedNetwork = getNetwork(getDefaultArgs());
                 var config = {
