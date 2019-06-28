@@ -12,19 +12,16 @@ module.exports = {
         describe: 'compile all contracts',
         default: true
       }).option('wallet', {
-        // describe: '',
+        describe: 'keosd wallet to use',
         default: 'zeus'
       }).option('creator-key', {
-        // describe: '',
+        describe: 'private key to set contract to',
         default: '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3'
       }).option('creator', {
-        // describe: '',
+        describe: 'eos account to set contract to',
         default: 'eosio'
-      }).option('f', {
-        // describe: '',
-        default: -1
       }).option('reset', {
-        // describe: '',
+        describe: 'reset local environment',
         default: true
       }).option('chain', {
         describe: 'chain to work on',

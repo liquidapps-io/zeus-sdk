@@ -35,6 +35,8 @@ if (!globalEnv.DSP_ACCOUNT) throw new Error("DSP_ACCOUNT is required");
 if (!globalEnv.DSP_PRIVATE_KEY) throw new Error("DSP_PRIVATE_KEY is required");
 const DSP_ACCOUNT = globalEnv.DSP_ACCOUNT;
 const DSP_PRIVATE_KEY = globalEnv.DSP_PRIVATE_KEY;
+const DSP_ACCOUNT_PERMISSIONS = globalEnv.DSP_ACCOUNT_PERMISSIONS || 'active';
+
 // Configure .env
 const DSP_PORT = globalEnv.DSP_PORT || 3115;
 const IPFS_HOST = globalEnv.IPFS_HOST || 'localhost';
@@ -60,14 +62,18 @@ const NODEOS_HOST_DSP_PORT = globalEnv.NODEOS_HOST_DSP_PORT;
 if (['zmq_plugin', 'state_history_plugin'].indexOf(DEMUX_BACKEND) === -1) throw new Error("DEMUX_BACKEND must be either 'zmq_plugin' or 'state_history_plugin'");
 if (['http', 'https'].indexOf(IPFS_PROTOCOL) === -1) throw new Error("IPFS_PROTOCOL must be either 'http' or 'https'");
 if (['true', 'false'].indexOf(NODEOS_SECURED) === -1) throw new Error("NODEOS_SECURED must be either 'true' or 'false'");
-const DSP_SERVICES_ENABLED = globalEnv.DSP_SERVICES_ENABLED || [
-  'ipfs',
-  'log',
-  'vaccounts',
-  'oracle',
-  'cron',
-  "readfn"
-].join(',');
+
+const { lstatSync, readdirSync } = fs;
+const { join } = require('path');
+const isFile = source => !lstatSync(source).isDirectory();
+
+const getFiles = (source, ext) =>
+  readdirSync(source).map(name => join(source, name)).filter(isFile).filter(a => a.endsWith(ext)).sort();
+
+const serviceNames = getFiles(path.resolve(`./models/dapp-services`), '.json').map(file =>
+  JSON.parse(fs.readFileSync(file).toString()).name);
+
+const DSP_SERVICES_ENABLED = globalEnv.DSP_SERVICES_ENABLED || serviceNames.join(',');
 const services = DSP_SERVICES_ENABLED.split(',');
 
 const commonEnv = {
@@ -81,6 +87,7 @@ const commonEnv = {
   IPFS_PORT,
   IPFS_PROTOCOL,
   DSP_ACCOUNT,
+  DSP_ACCOUNT_PERMISSIONS,
   DSP_PRIVATE_KEY,
   DSP_PORT
 };

@@ -19,7 +19,7 @@
 #include <eosio/serialize.hpp>
 #include <eosio/datastream.hpp>
 #include <eosio/crypto.hpp>
-
+#include <eosio/singleton.hpp>
 
 namespace dapp {
     
@@ -656,6 +656,15 @@ TABLE shardbucket {
     uint64_t shard;
     uint64_t primary_key() const { return shard; }
 };
+//add a vconfig table
+//scope is the table name, index is the table scope
+//default everything to zero for uninitialized
+TABLE vconfig {
+    uint64_t next_available_key = 0;
+    uint32_t shards = 0;
+    uint32_t buckets_per_shard = 0; 
+};
+
 template<name::raw TableName>
 class sharded_hashtree_t{
     uint32_t _shards;
@@ -669,8 +678,10 @@ class sharded_hashtree_t{
 
     // struct bucket_data_t {
     //     std::vector<kv_t> values;
-    // };    
-    
+    // };   
+
+    uint32_t get_shards()const  { return _shards; }
+    uint32_t get_buckets()const { return _buckets_per_shard; }
 
     
     typedef eosio::multi_index<TableName, shardbucket> shardbucket_t;
@@ -815,10 +826,9 @@ class multi_index{
 
 
     name     _code;
-    uint64_t _scope;    
-    
-    
-    
+    uint64_t _scope;  
+
+    typedef eosio::singleton<".vconfig"_n, vconfig> vconfig_sgt;   
     sharded_hashtree_t<TableName> primary_hashtree;
 
   struct item : public T
@@ -1022,8 +1032,8 @@ typedef h_const_iterator const_iterator;
 
  public:
       multi_index( name code, uint64_t scope, uint32_t shards = 1024,uint32_t buckets_per_shard = 64, bool pin_shards = false, bool pin_buckets = false)
-      :_code(code),_scope(scope),primary_hashtree(_scope, shards, buckets_per_shard = 64, pin_shards, pin_buckets)
-      {
+      :_code(code),_scope(scope),primary_hashtree(_scope, shards, buckets_per_shard, pin_shards, pin_buckets)
+      {                    
       }
 
       name get_code()const      { return _code; }
@@ -1033,18 +1043,42 @@ typedef h_const_iterator const_iterator;
       const_reverse_iterator crbegin()const { return std::make_reverse_iterator(cend()); }
       const_reverse_iterator rbegin()const  { return crbegin(); }
       const_iterator end()const    { return cend(); }
+
+      uint64_t available_primary_key()const {
+          vconfig_sgt vconfigsgt(_code,name(TableName).value);
+          auto config = vconfigsgt.get_or_default();       
+          return config.next_available_key;
+      }
+
       template<typename Lambda>
       const_iterator emplace( name payer, Lambda&& constructor ) {
          using namespace _multi_index_detail;
 
          eosio::check( _code == current_receiver(), "cannot create objects in table of another contract" ); // Quick fix for mutating db using multi_index that shouldn't allow mutation. Real fix can come in RC2.
-
+            
             T obj = T();
             constructor( obj );
 
             auto buffer = eosio::pack(obj);
 
             auto pk = obj.primary_key();
+
+            //populate/update the config singleton
+            vconfig_sgt vconfigsgt(_code,name(TableName).value);
+            auto config = vconfigsgt.get_or_default();
+            if(config.next_available_key < pk + 1) //dont decrease next_available_key
+                config.next_available_key = pk + 1; //increment the key
+            if(config.shards == 0 && config.buckets_per_shard == 0) {
+                //config is not yet set
+                config.shards = primary_hashtree.get_shards();
+                config.buckets_per_shard = primary_hashtree.get_buckets();
+            } else {
+                //confirm correctly intitialized
+                eosio::check(config.shards == primary_hashtree.get_shards(), "cannot initialize multi-index with different number of shards");
+                eosio::check(config.buckets_per_shard == primary_hashtree.get_buckets(), "cannot initialize multi-index with different number of buckets per shard");
+            }            
+            vconfigsgt.set(config,_code);
+            
             
 
             auto uri = ipfs_svc_helper::setRawData(buffer);

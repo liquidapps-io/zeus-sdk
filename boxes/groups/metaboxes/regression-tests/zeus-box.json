@@ -4,5 +4,5 @@
     "zeus-box.json",
     "zeus-config.js"
   ],
-  "dependencies":["helloworld", "all-dapp-services", "microauctions", "cardgame", "airhodl" ,"coldtoken","vgrab","deepfreeze","airdrop"]
+  "dependencies":["helloworld", "all-dapp-services", "cardgame", "airhodl" ,"coldtoken","vgrab","deepfreeze","airdrop"]
 }

@@ -3,6 +3,7 @@ const fs = require('fs');
 const { lstatSync, readdirSync } = fs;
 const { join } = require('path');
 var emoji = require('node-emoji');
+const isWsl = require('is-wsl');
 require('colors');
 
 function onData(printCB, printStream, outObj, key) {
@@ -141,5 +142,5 @@ var emojMap = {
   'black_medium_square': 'black_medium_square',
   'white_medium_square': 'white_medium_square'
 };
-Object.keys(emojMap).forEach(k => emojMap[k] = emoji.emojify(`:${emojMap[k]}:`).toLowerCase().replace(/[\-\ ]/g, '_'));
+Object.keys(emojMap).forEach(k => emojMap[k] = isWsl ? '' : emoji.emojify(`:${emojMap[k].replace(/[\-\ ]/g, '_')}: `).toLowerCase());
 module.exports = { execPromise, execScripts, emojMap, colorizeMatch, colorizePos, colorizeArr, manipulateTextAtPosition, colorMap, colorizeSubstr };

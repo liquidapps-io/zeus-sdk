@@ -22,8 +22,8 @@ module.exports = class extends Generator {
         );
 
         this.fs.copyTpl(
-            path.resolve('./test-templates/contract.spec.js'),
-            this.destinationPath(`tests/${name}.contract.spec.js`),
+            path.resolve('./templates/emptycontract-eos-cpp/generators/app/test-templates/contract.spec.js'),
+            this.destinationPath(`test/${name}.contract.spec.js`),
             this.options
         );
 

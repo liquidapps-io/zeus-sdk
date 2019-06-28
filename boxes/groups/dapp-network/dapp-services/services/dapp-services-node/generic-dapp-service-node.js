@@ -3,12 +3,13 @@
 require('babel-core/register');
 require('babel-polyfill');
 if (process.env.DAEMONIZE_PROCESS) { require('daemonize-process')(); }
+const path = require('path');
+const fs = require('fs');
 
 const { loadModels } = require('../../extensions/tools/models');
 const { getCreateKeys } = require('../../extensions/tools/eos/utils');
 const { getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
-
-const { deserialize, generateABI, genNode, eosPrivate, paccount, forwardEvent, resolveProviderData, resolveProvider, resolveProviderPackage } = require('./common');
+const { deserialize, generateABI, genNode, eosPrivate, paccount, forwardEvent, resolveProviderData, resolveProvider, resolveProviderPackage, paccountPermission } = require('./common');
 const handleRequest = async(handler, act, packageid, serviceName, abi) => {
   let { service, payer, provider, action, data } = act.event;
   data = deserialize(abi, data, action);
@@ -29,7 +30,7 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
     if (!process.env.DSP_PRIVATE_KEY) { key = await getCreateKeys(paccount); }
     try {
       await contract[response.action](response.payload, {
-        authorization: `${paccount}@active`,
+        authorization: `${paccount}@${paccountPermission}`,
         broadcast: true,
         sign: true,
         keyProvider: [process.env.DSP_PRIVATE_KEY || key.privateKey]
@@ -118,5 +119,57 @@ const respond = (request, packageid, payload) => {
     request
   }];
 };
+const loadIfExists = async(serviceName, suffix) => {
+  var reqPath = path.resolve(__dirname, `../${serviceName}-dapp-service-node/${suffix}`);
+  if (fs.existsSync(reqPath + ".js"))
+    return require(reqPath)
+}
+const nodeAutoFactory = async(serviceName) => {
+  var state = {};
 
-module.exports = { nodeFactory, respond };
+
+  var apiCommands = {};
+  var models = await loadModels('dapp-services');
+  var model = models.find(m => m.name == serviceName);
+  var stateHandler = await loadIfExists(serviceName, 'state-init'); // load from file
+  if (stateHandler)
+    await stateHandler(state);
+
+
+  if (model.api) {
+    var apiActions = Object.keys(model.api);
+    for (var i = 0; i < apiActions.length; i++) {
+      var apiName = apiActions[i];
+      var apiHandler = await loadIfExists(serviceName, `api/${apiName}`); // load from file
+      apiCommands[apiName] = async(opts, res) => {
+        try {
+          if (apiHandler)
+            throw new Error('not implemented yet');
+          const result = await apiHandler(opts, res, state);
+          res.send(JSON.stringify(result));
+        }
+        catch (e) {
+          res.status(400);
+          console.error("error:", e);
+          res.send(JSON.stringify({ error: e.toString() }));
+        }
+      }
+    }
+  }
+
+  var handlers = {
+    api: apiCommands
+  }
+  var dspCommands = Object.keys(model.commands);
+  for (var i = 0; i < dspCommands.length; i++) {
+    var requestName = dspCommands[i];
+    var dspRequestHandler = await loadIfExists(serviceName, `chain/${requestName}`); // load from file
+    handlers[requestName] = async(opts, req) => {
+      if (dspRequestHandler)
+        throw new Error('not implemented yet');
+      return await dspRequestHandler(opts, req, state);
+    };
+  }
+  return nodeFactory(serviceName, handlers);
+}
+module.exports = { nodeAutoFactory, nodeFactory, respond };

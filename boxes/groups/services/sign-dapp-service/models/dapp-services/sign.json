@@ -1,0 +1,58 @@
+{
+    "name": "sign",
+    "port": 13128,
+    "contract": "signfndspsvc",
+    "prettyName": "LiquidLink",
+    "stage": "WIP",
+    "description": "IBC MultiSig Service",
+    "commands": {
+        "signtrx":{
+            "blocking": true,
+            "request":{
+                "account":"name",
+                "permission":"name",
+                "client_code":"std::string",
+                "payload_hash":"checksum256",
+                "signature":"std::vector<char>"
+            },
+            "callback":{
+                "account":"name",
+                "permission":"name",
+                "client_code":"std::string",
+                "payload_hash":"checksum256",
+                "signature":"std::vector<char>"
+            },
+            "signal":{
+                "account":"name",
+                "permission":"name",
+                "client_code":"std::string",
+                "payload_hash":"checksum256",
+                "signature":"std::vector<char>"
+            }
+        },
+        "sgcleanup":{
+            "blocking": false,
+            "request":{
+                "account":"name",
+                "permission":"name",
+                "client_code":"std::string",
+                "payload_hash":"checksum256",
+                "signature":"std::vector<char>"
+            },
+            "callback":{
+                "account":"name",
+                "permission":"name",
+                "client_code":"std::string",
+                "payload_hash":"checksum256",
+                "signature":"std::vector<char>"
+            },
+            "signal":{
+                "account":"name",
+                "permission":"name",
+                "client_code":"std::string",
+                "payload_hash":"checksum256",
+                "signature":"std::vector<char>"
+            }
+        } 
+    }
+}

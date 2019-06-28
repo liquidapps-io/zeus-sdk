@@ -2,6 +2,9 @@
     "name": "oracle",
     "port": 13112,
     "contract": "oracleservic",
+    "prettyName": "LiquidOracle",
+    "stage": "Beta",
+    "description": "Web/IBC/XIBC Oracle Service",
     "commands": {
         "geturi": {
             "blocking": true,

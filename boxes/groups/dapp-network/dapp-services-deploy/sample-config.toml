@@ -6,8 +6,9 @@ account = "<DSP ACCOUNT>"
 # enter account private key
 private_key = "<DSP PRIVATE KEY>"
 port = 3115
-# configure available services: 
-services_enabled = "ipfs,log,vaccounts,oracle,cron,readfn"
+# configure available services: (comment for all services)
+# services_enabled = "ipfs,log,vaccounts,oracle,cron,readfn,auth,storage,history,sign"
+# account_permissions = "active"
 
 [nodeos]
 host = "localhost"

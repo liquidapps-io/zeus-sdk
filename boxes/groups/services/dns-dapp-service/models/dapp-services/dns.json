@@ -1,0 +1,25 @@
+{
+    "name":"dns",
+    "port": 13284,
+    "prettyName":"LiquidDNS",
+    "description":"DSP Hosted DNS Service",
+    "stage":"WIP",
+    "contract": "dnsservices1",
+    "generateStubs": true,
+    "commands": {
+        "dnsq": {
+            "blocking": true,
+            "request": {
+                "payload": "std::vector<char>"
+            },
+            "callback": {
+                "payload": "std::vector<char>"
+            },
+            "signal": {
+                "payload": "std::vector<char>"
+            }
+        }
+    }
+
+
+}

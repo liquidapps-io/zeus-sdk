@@ -6,6 +6,7 @@
   ],
   "dependencies":[
     "dapp-services",
+    "log-dapp-service",
     "seed-utils",
     "mocha",
     "hooks-cpp-contracts"],

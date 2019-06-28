@@ -9,7 +9,8 @@
     "seed-utils",
     "mocha",
     "hooks-cpp-contracts",
-    "ipfs-dapp-service"
+    "ipfs-dapp-service",
+    "log-dapp-service"
     ],
   "install":{
     "contracts":{

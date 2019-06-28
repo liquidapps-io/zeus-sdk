@@ -2,6 +2,9 @@
     "name": "ipfs",
     "port": 13115,
     "contract": "ipfsservice1",
+    "prettyName": "LiquidVRAM",
+    "stage": "Stable",
+    "description": "Virtual Memory Service",
     "commands": {
         "commit": {
             "blocking": false,

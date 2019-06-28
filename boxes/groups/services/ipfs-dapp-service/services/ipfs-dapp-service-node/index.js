@@ -48,7 +48,7 @@ const saveToIPFS = async(data) => {
     return uri;
   }
 
-  const filesAdded = await ipfs.files.add(bufData, { 'raw-leaves': true, 'cid-version': 1 });
+  const filesAdded = await ipfs.files.add(bufData, { 'raw-leaves': true, 'cid-version': 1, "cid-base": 'base58btc' });
   var theHash = filesAdded[0].hash;
   console.log('commited to: ipfs://' + theHash);
   const resUri = `ipfs://${theHash}`;
@@ -180,7 +180,12 @@ const stringToNameInner = (str) => {
 };
 
 const stringToName = (str) => {
-  if (typeof str === 'number') { return Buffer.from(new BigNumber(str), 'hex'); }
+  if (typeof str === 'number') {
+    const hexNum = new BigNumber(str).toString(16);
+    const paddedNum = '0'.repeat(16 - hexNum.length) + hexNum;
+    const fixedPaddedNum = paddedNum.match(/.{2}/g).reverse().join('');
+    return Buffer.from(fixedPaddedNum, 'hex');
+  }
   if (isUpperCase(str)) { return stringToSymbol(str); }
   return Buffer.from(new BigNumber(Eos.modules.format.encodeName(str).toString()).toString(16), 'hex');
 };
