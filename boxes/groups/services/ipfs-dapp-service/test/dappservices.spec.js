@@ -29,7 +29,7 @@ var generateModel = (commandNames, cost_per_action = 1) => {
   return model;
 };
 
-async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccount = null, package_id = 'default', quota = '1.0000', min_stake_quantity = '1.0000', min_unstake_period = 10, package_period = 20, cost_per_action = 1, provider = 'pprovider1' }) {
+async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccount = null, package_id = 'default', quota = '1.0000', min_stake_quantity = '1.0000', min_unstake_period = 2, package_period = 5, cost_per_action = 1, provider = 'pprovider1' }) {
   var models = await loadModels('dapp-services');
   var serviceModel = models.find(a => a.name == serviceName);
   var deployedServices = await deployer.deploy(servicesC, servicescontract);
@@ -291,7 +291,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
       try {
         var selectedPackage = 'test124';
         var testContractAccount = 'consumer2';
-        var package_period = 20;
+        var package_period = 5;
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
         await deployServicePackage({ package_id: selectedPackage, package_period });
         await selectPackage({ deployedContract, selectedPackage });
@@ -326,7 +326,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
       try {
         var selectedPackage = 'test1231';
         var testContractAccount = 'consumer5';
-        var package_period = 20;
+        var package_period = 5;
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
         await deployServicePackage({ package_id: selectedPackage, package_period });
         await selectPackage({ deployedContract, selectedPackage });
@@ -351,7 +351,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
       try {
         var selectedPackage = 'test121';
         var testContractAccount = 'consumer3';
-        var package_period = 20;
+        var package_period = 5;
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
         await deployServicePackage({ package_id: selectedPackage, package_period });
         await selectPackage({ deployedContract, selectedPackage });
@@ -383,7 +383,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
       try {
         var selectedPackage = 'test111';
         var testContractAccount = 'consumer4';
-        var package_period = 20;
+        var package_period = 5;
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
         await deployServicePackage({ package_id: selectedPackage, package_period });
         await selectPackage({ deployedContract, selectedPackage });
@@ -412,7 +412,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         var selectedPackage = 'third123';
         var testContractPayer = 'dappairhodl1';
         var testContractAccount = 'recip2';
-        var package_period = 20;
+        var package_period = 5;
         var deployedPayer = await deployPayer(testContractPayer);
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
         await deployServicePackage({ package_id: selectedPackage, package_period });
@@ -443,7 +443,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
       try {
         var selectedPackage = 'test1111';
         var testContractAccount = 'con14';
-        var package_period = 20;
+        var package_period = 5;
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
         await deployServicePackage({ package_id: selectedPackage, package_period });
         await selectPackage({ deployedContract, selectedPackage });
@@ -468,11 +468,11 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
       try {
         var selectedPackage = 'test2222';
         var testContractAccount = 'con25';
-        var package_period = 20;
+        var package_period = 5;
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
         await deployServicePackage({ package_id: selectedPackage, package_period });
         await selectPackage({ deployedContract, selectedPackage });
-        await allocateDAPPTokens(deployedContract,'1000000.0000 DAPP');
+        await allocateDAPPTokens(deployedContract, '1000000.0000 DAPP');
 
         await stake({ deployedContract, selectedPackage, amount: '200000.0000' });
 
@@ -484,8 +484,8 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         });
         //console.log(table);
 
-        let balance0 = table.rows[0].balance.replace(' DAPP','');
-        let startStaked = table.rows[0].total_staked.replace(' DAPP','');
+        let balance0 = table.rows[0].balance.replace(' DAPP', '');
+        let startStaked = table.rows[0].total_staked.replace(' DAPP', '');
         let startTS = table.rows[0].last_inflation_ts;
 
         await delaySec(package_period + 1);
@@ -499,7 +499,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         });
         //console.log(table);
 
-        let balance1 = table.rows[0].balance.replace(' DAPP','');
+        let balance1 = table.rows[0].balance.replace(' DAPP', '');
         assert(balance1 > balance0, 'balance should have increased');
 
         await delaySec(package_period + 1);
@@ -513,7 +513,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         });
         //console.log(table);
 
-        let balance2 = table.rows[0].balance.replace(' DAPP','');
+        let balance2 = table.rows[0].balance.replace(' DAPP', '');
         assert(balance2 > balance1, 'balance should have increased');
 
         await delaySec(package_period + 1);
@@ -527,7 +527,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         });
         //console.log(table);
 
-        let balance3 = table.rows[0].balance.replace(' DAPP','');
+        let balance3 = table.rows[0].balance.replace(' DAPP', '');
         assert(balance3 > balance2, 'balance should have increased');
 
         await delaySec(package_period + 1);
@@ -535,7 +535,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         var key = await getCreateKeys('pprovider1');
         let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
         await servicesTokenContract.claimrewards({
-          provider:'pprovider1'
+          provider: 'pprovider1'
         }, {
           authorization: `pprovider1@active`,
           broadcast: true,
@@ -560,12 +560,12 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         //console.log(table);
 
 
-        let balance4 = accounts.rows[0].balance.replace(' DAPP','');
-        let reward = table.rows[0].balance.replace(' DAPP','');
+        let balance4 = accounts.rows[0].balance.replace(' DAPP', '');
+        let reward = table.rows[0].balance.replace(' DAPP', '');
 
         assert(balance4 > balance3, 'balance should have increased');
         assert(reward == 0, 'reward should be 0')
-        
+
         done();
       }
       catch (e) {

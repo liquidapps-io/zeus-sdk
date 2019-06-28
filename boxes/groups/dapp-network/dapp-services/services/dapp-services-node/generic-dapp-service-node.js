@@ -131,7 +131,7 @@ const nodeAutoFactory = async(serviceName) => {
   var apiCommands = {};
   var models = await loadModels('dapp-services');
   var model = models.find(m => m.name == serviceName);
-  var stateHandler = await loadIfExists('state-init'); // load from file
+  var stateHandler = await loadIfExists(serviceName, 'state-init'); // load from file
   if (stateHandler)
     await stateHandler(state);
 
@@ -140,7 +140,7 @@ const nodeAutoFactory = async(serviceName) => {
     var apiActions = Object.keys(model.api);
     for (var i = 0; i < apiActions.length; i++) {
       var apiName = apiActions[i];
-      var apiHandler = await loadIfExists(`api/${apiName}`); // load from file
+      var apiHandler = await loadIfExists(serviceName, `api/${apiName}`); // load from file
       apiCommands[apiName] = async(opts, res) => {
         try {
           if (apiHandler)
@@ -163,7 +163,7 @@ const nodeAutoFactory = async(serviceName) => {
   var dspCommands = Object.keys(model.commands);
   for (var i = 0; i < dspCommands.length; i++) {
     var requestName = dspCommands[i];
-    var dspRequestHandler = await loadIfExists(`chain/${requestName}`); // load from file
+    var dspRequestHandler = await loadIfExists(serviceName, `chain/${requestName}`); // load from file
     handlers[requestName] = async(opts, req) => {
       if (dspRequestHandler)
         throw new Error('not implemented yet');
