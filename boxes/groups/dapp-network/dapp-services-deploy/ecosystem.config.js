@@ -70,7 +70,7 @@ const isFile = source => !lstatSync(source).isDirectory();
 const getFiles = (source, ext) =>
   readdirSync(source).map(name => join(source, name)).filter(isFile).filter(a => a.endsWith(ext)).sort();
 
-const serviceNames = getFiles(path.resolve(`./models/dapp-services`), '.json').map(file =>
+const serviceNames = getFiles(path.resolve(__dirname, `./models/dapp-services`), '.json').map(file =>
   JSON.parse(fs.readFileSync(file).toString()).name);
 
 const DSP_SERVICES_ENABLED = globalEnv.DSP_SERVICES_ENABLED || serviceNames.join(',');
