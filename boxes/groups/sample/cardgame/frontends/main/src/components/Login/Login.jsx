@@ -5,6 +5,7 @@ import { Button } from 'components';
 // Services and redux action
 import { UserAction } from 'actions';
 import { ApiService } from 'services';
+let { PrivateKey, PublicKey, Signature, Aes, key_utils, config, seedPrivate } = require('eosjs-ecc')
 
 class Login extends Component {
 
@@ -15,6 +16,7 @@ class Login extends Component {
     this.state = {
       form: {
         username: '',
+        pass: '',
         key: '',
         error: '',
       },
@@ -29,7 +31,9 @@ class Login extends Component {
   handleChange(event) {
     const { name, value } = event.target;
     const { form } = this.state;
-
+    if (name == 'pass') {
+      form['key'] = seedPrivate(value + form.username + "elementalbattlesdemo134")
+    }
     this.setState({
       form: {
         ...form,
@@ -60,7 +64,7 @@ class Login extends Component {
     // Send a login transaction to the blockchain by calling the ApiService,
     // If it successes, save the username to redux store
     // Otherwise, save the error state for displaying the message
-    return ApiService.login(form)
+    return ApiService.register(form).then(() => ApiService.login(form))
       .then(() => {
         setUser({ name: form.username });
       })
@@ -81,7 +85,7 @@ class Login extends Component {
     return (
       <div className="Login">
         <div className="title">Elemental Battles - powered by EOSIO</div>
-        <div className="description">Please use the Account Name and Private Key generated in the previous page to log into the game.</div>
+        <div className="description"></div>
         <form name="form" onSubmit={ this.handleSubmit }>
           <div className="field">
             <label>Account name</label>
@@ -96,13 +100,12 @@ class Login extends Component {
             />
           </div>
           <div className="field">
-            <label>Private key</label>
+            <label>Password</label>
             <input
               type="password"
-              name="key"
-              value={ form.key }
+              name="pass"
+              value={ form.pass }
               onChange={ this.handleChange }
-              pattern="^.{51,}$"
               required
             />
           </div>
@@ -111,8 +114,9 @@ class Login extends Component {
           </div>
           <div className="bottom">
             <Button type="submit" className="green" loading={ isSigningIn }>
-              { "CONFIRM" }
+              { "Register/Login" }
             </Button>
+
           </div>
         </form>
       </div>

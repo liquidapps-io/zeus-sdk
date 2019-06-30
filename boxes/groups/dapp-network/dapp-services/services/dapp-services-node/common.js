@@ -322,11 +322,12 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi) => {
 
       var trys = 0;
       var garbage = [];
+      var rText;
       while (true) {
         var r = await fetch(nodeosEndpoint + uri, { method: 'POST', body: JSON.stringify(body) });
         var resText = await r.text();
         try {
-          var rText = JSON.parse(resText);
+          rText = JSON.parse(resText);
           if (r.status == 500) {
             var details = rText.error.details;
             var detailMsg = details.find(d => d.message.indexOf(': required service') != -1);
@@ -374,10 +375,12 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi) => {
             await rollBack(garbage, actionHandlers, serviceName, handlers);
           }
           else {
-            for (var i = 0; i < rText.processed.action_traces.length; i++) {
-              var action = rText.processed.action_traces[i];
-              // skip actions that were already done previously (in exception)
-              await handleAction(actionHandlers, action, true, serviceName, handlers);
+            if (rText.processed) {
+              for (var i = 0; i < rText.processed.action_traces.length; i++) {
+                var action = rText.processed.action_traces[i];
+                // skip actions that were already done previously (in exception)
+                await handleAction(actionHandlers, action, true, serviceName, handlers);
+              }
             }
           }
           res.status(r.status);
@@ -390,7 +393,7 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi) => {
           res.send(JSON.stringify({
             code: 500,
             error: {
-              details: [{ message: e.toString() }]
+              details: [{ message: e.toString(), response: rText }]
             }
           }));
         }

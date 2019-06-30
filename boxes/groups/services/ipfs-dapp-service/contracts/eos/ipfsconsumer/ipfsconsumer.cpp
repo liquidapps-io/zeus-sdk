@@ -12,6 +12,7 @@
 CONTRACT_START()
   TABLE testindex {
     uint64_t id;
+    uint64_t sometestnumber;
     uint64_t primary_key()const {return id;}
   };
   TABLE testentry {  
@@ -36,13 +37,27 @@ CONTRACT_START()
   typedef eosio::multi_index<".vconfig"_n, vconfig> vconfig_t_abi;
 
   
-  [[eosio::action]] void testindex(uint64_t id) {
+  [[eosio::action]] void testindexa(uint64_t id) {
     testindex_t testset(_self,_self.value);
     testset.emplace(_self, [&]( auto& a ){
       a.id = id;
     });
   }
-  [[eosio::action]] void increment() {
+  [[eosio::action]] void testdelay(uint64_t id, uint64_t value, uint32_t delay_sec) {
+    testindex_t testset(_self,_self.value, 1024, 64, false, false, delay_sec);
+    auto existing = testset.find(id);
+    if(existing == testset.end())
+      testset.emplace(_self, [&]( auto& a ){
+        a.id = id;
+        a.sometestnumber = value;
+      });
+    else
+      testset.modify(existing,_self, [&]( auto& a ){
+        a.sometestnumber = value;
+      });
+  }
+
+  [[eosio::action]] void increment(uint32_t somenumber) {
     testindex_t testset(_self,_self.value);
     testset.emplace(_self, [&]( auto& a ){
       a.id = testset.available_primary_key();
@@ -63,4 +78,4 @@ CONTRACT_START()
  [[eosio::action]] void testempty(std::string uri) {
     eosio::check(getRawData(uri, false, true).size() == 0, "wrong size");
   }  
-CONTRACT_END((testset)(testget)(testempty)(increment)(testindex)(testresize))
+CONTRACT_END((testset)(testget)(testempty)(increment)(testindexa)(testresize)(testdelay)(xdcommit))
