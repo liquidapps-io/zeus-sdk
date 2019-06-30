@@ -33,7 +33,7 @@
     font-size: 125%;
     font-weight: 500;
     z-index: 1;
-    animation: zoomResolution .5s normal forwards ease-in-out;
+    animation: zoomResolution .2s normal forwards ease-in-out;
     transition: all .5s; }
 
 @keyframes zoomResolution {
@@ -62,7 +62,7 @@
       font-size: 300%;
       letter-spacing: 2px;
       opacity: 0;
-      animation: fadeIn .5s normal forwards ease-in-out 3s; }
+      animation: fadeIn .2s normal forwards ease-in-out 1s; }
       .Resolution.card-selected > div .result.win {
         background-image: url("./images/title_victory.png"); }
       .Resolution.card-selected > div .result.lost {
@@ -87,7 +87,7 @@
     .Resolution.card-selected > div .ai {
       margin-left: 10px; }
       .Resolution.card-selected > div .ai .Card {
-        animation: flipAi 1s normal forwards 2s; }
+        animation: flipAi 0.5s normal forwards 1s; }
       .Resolution.card-selected > div .ai .Card,
       .Resolution.card-selected > div .ai .Card:after {
         transform: rotateY(-180deg); }
@@ -96,7 +96,7 @@
     .Resolution.card-selected > div .player {
       margin-right: 10px; }
       .Resolution.card-selected > div .player .Card {
-        animation: flipPlayer 1s normal forwards 1s; }
+        animation: flipPlayer 0.5s normal forwards 0.5s; }
       .Resolution.card-selected > div .player .Card,
       .Resolution.card-selected > div .player .Card:after {
         transform: rotateY(180deg); }
@@ -123,7 +123,7 @@
       margin: 0 20px; }
     .Resolution.card-selected > div .round-result {
       opacity: 0;
-      animation: fadeIn .5s normal forwards ease-in-out 3s; }
+      animation: fadeIn .2s normal forwards ease-in-out 1s; }
     .Resolution.card-selected > div .name {
       margin-bottom: 30px;
       width: 150px;
@@ -138,7 +138,7 @@
       position: absolute;
       bottom: 45px;
       opacity: 0;
-      animation: HideThenFadeIn 3.5s normal forwards ease-in-out; }
+      animation: HideThenFadeIn 1.5s normal forwards ease-in-out; }
 
 @keyframes fadeIn {
   from {
