@@ -1,9 +1,10 @@
 #include "cardgame.hpp"
 #include "gameplay.cpp"
 
-void cardgame::login(name username) {
+void cardgame::login(player_struct payload) {
+  auto username = payload.username;
   // Ensure this action is authorized by the player
-  require_auth(username);
+  require_vaccount(username);
   
   // Create a record in the table if the player doesn't exist in our app yet
   auto user_iterator = _users.find(username.value);
@@ -14,9 +15,10 @@ void cardgame::login(name username) {
   } 
 }
 
-void cardgame::startgame(name username) {
+void cardgame::startgame(player_struct payload) {
+  auto username = payload.username;
   // Ensure this action is authorized by the player
-  require_auth(username);
+  require_vaccount(username);
 
   auto& user = _users.get(username.value, "User doesn't exist");
   
@@ -35,9 +37,10 @@ void cardgame::startgame(name username) {
   });
 }
 
-void cardgame::endgame(name username) {
+void cardgame::endgame(player_struct payload) {
   // Ensure this action is authorized by the player
-  require_auth(username);
+  auto username = payload.username;
+  require_vaccount(username);
 
   // Get the user and reset the game
   auto& user = _users.get(username.value, "User doesn't exist");
@@ -46,9 +49,11 @@ void cardgame::endgame(name username) {
   });
 }
 
-void cardgame::playcard(name username, uint8_t player_card_idx) {
+void cardgame::playcard(play_struct payload) {
+  name username = payload.username;
+  uint8_t player_card_idx = payload.player_card_idx;
   // Ensure this action is authorized by the player
-  require_auth(username);
+  require_vaccount(username);
 
   // Checks that selected card is valid
   eosio::check(player_card_idx < 4, "playcard: Invalid hand index");
@@ -79,9 +84,10 @@ void cardgame::playcard(name username, uint8_t player_card_idx) {
   });
 }
 
-void cardgame::nextround(name username) {
+void cardgame::nextround(player_struct payload) {
+  auto username = payload.username;
   // Ensure this action is authorized by the player
-  require_auth(username);
+  require_vaccount(username);
 
   auto& user = _users.get(username.value, "User doesn't exist");
 

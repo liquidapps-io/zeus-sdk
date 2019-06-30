@@ -11,6 +11,15 @@
 #include <boost/preprocessor/seq/for_each_i.hpp>
 #include <boost/preprocessor/seq/push_back.hpp>
 
+#ifndef VACCOUNTS_DELAYED_CLEANUP
+#define VACCOUNTS_DELAYED_CLEANUP 0
+#endif
+
+#ifndef VACCOUNTS_SHARD_PINNING
+#define VACCOUNTS_SHARD_PINNING false
+#endif
+
+
 #define VACCOUNTS_DAPPSERVICE_SKIP_HELPER true
 #define VACCOUNTS_DAPPSERVICE_SERVICE_MORE \
   void execute_vaccounts_action(action act){\
@@ -72,7 +81,7 @@ void require_vaccount(name vaccount){ \
     required_key(pkey); \
 } \
 void setKey(name vaccount, eosio::public_key pubkey){ \
-    vkeys_t vkeys_table(_self, _self.value); \
+    vkeys_t vkeys_table(_self, _self.value, 1024, 64, VACCOUNTS_SHARD_PINNING, false, VACCOUNTS_DELAYED_CLEANUP); \
     auto existing = vkeys_table.find(vaccount.value); \
     eosio::check(existing == vkeys_table.end(),"vaccount already exists"); \
     vkeys_table.emplace(_self,[&]( auto& new_key ){ \
@@ -81,7 +90,7 @@ void setKey(name vaccount, eosio::public_key pubkey){ \
     }); \
 } \
 eosio::public_key getKey(name vaccount){ \
-    vkeys_t vkeys_table(_self, _self.value); \
+    vkeys_t vkeys_table(_self, _self.value, 1024, 64, VACCOUNTS_SHARD_PINNING, false, VACCOUNTS_DELAYED_CLEANUP); \
     auto existing = vkeys_table.find(vaccount.value); \
     eosio::check(existing != vkeys_table.end(),"vaccount not found"); \
     return existing->pubkey; \

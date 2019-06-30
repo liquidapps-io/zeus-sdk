@@ -9,6 +9,8 @@ const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
 const { genAllocateDAPPTokens, readVRAMData } = require('../extensions/tools/eos/dapp-services');
+const delay = ms => new Promise(res => setTimeout(res, ms));
+const delaySec = sec => delay(sec * 1000);
 
 var contractCode = 'ipfsconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
@@ -73,22 +75,45 @@ describe(`IPFS Service Test Contract`, () => {
     })();
   });
 
-  it('IPFS Get Available Key', done => {
+  it('IPFS Read', done => {
     (async() => {
       try {
-        await testcontract.increment({}, {
+        var res = await testcontract.testget({
+          uri: 'ipfs://zb2rhnaYrUde9d7h13vHTXeWcBJcBpEFdMgAcbXbFfM5aQxgK',
+          expectedfield: 123
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+        // var eventResp = JSON.parse(res.processed.action_traces[0].console);
+        // assert.equal(eventResp.etype, "service_request", "wrong etype");
+        // assert.equal(eventResp.provider,"", "wrong provider");
+        // assert.equal(eventResp.action, "cleanup", "wrong action");
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it('dapp::multi_index Get Available Key', done => {
+    (async() => {
+      try {
+        await testcontract.increment({ somenumber: 1 }, {
           authorization: `${code}@active`,
           broadcast: true,
           sign: true
         });
 
-        await testcontract.increment({}, {
+        await testcontract.increment({ somenumber: 5 }, {
           authorization: `${code}@active`,
           broadcast: true,
           sign: true
         });
 
-        await testcontract.increment({}, {
+        await testcontract.increment({ somenumber: 6 }, {
           authorization: `${code}@active`,
           broadcast: true,
           sign: true
@@ -108,7 +133,7 @@ describe(`IPFS Service Test Contract`, () => {
         assert.equal(shards, 1024, 'wrong shards');
         assert.equal(buckets, 64, 'wrong buckets');
 
-        await testcontract.testindex({
+        await testcontract.testindexa({
           id: 555
         }, {
           authorization: `${code}@active`,
@@ -116,7 +141,7 @@ describe(`IPFS Service Test Contract`, () => {
           sign: true
         });
 
-        await testcontract.testindex({
+        await testcontract.testindexa({
           id: 20
         }, {
           authorization: `${code}@active`,
@@ -143,7 +168,7 @@ describe(`IPFS Service Test Contract`, () => {
     })();
   });
 
-  it('IPFS Resize Should Fail', done => {
+  it('dapp::multi_index Resize Should Fail', done => {
     (async() => {
       try {
 
@@ -170,34 +195,11 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
 
-  it('IPFS Read', done => {
-    (async() => {
-      try {
-        var res = await testcontract.testget({
-          uri: 'ipfs://zb2rhnaYrUde9d7h13vHTXeWcBJcBpEFdMgAcbXbFfM5aQxgK',
-          expectedfield: 123
-        }, {
-          authorization: `${code}@active`,
-          broadcast: true,
-          sign: true
-        });
-        // var eventResp = JSON.parse(res.processed.action_traces[0].console);
-        // assert.equal(eventResp.etype, "service_request", "wrong etype");
-        // assert.equal(eventResp.provider,"", "wrong provider");
-        // assert.equal(eventResp.action, "cleanup", "wrong action");
-        done();
-      }
-      catch (e) {
-        done(e);
-      }
-    })();
-  });
-
-  it('IPFS uint64_t Primary Key', done => {
+  it('dapp::multi_index uint64_t Primary Key', done => {
     (async() => {
       try {
 
-        await testcontract.testindex({
+        await testcontract.testindexa({
           id: 12345
         }, {
           authorization: `${code}@active`,
@@ -213,6 +215,86 @@ describe(`IPFS Service Test Contract`, () => {
         });
         assert(tableRes.row.id == 12345, "wrong uint64_t");
 
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  it('dapp::multi_index delayed cleanup', done => {
+    (async() => {
+      try {
+
+        await testcontract.testdelay({
+          id: 52343,
+          value: 123,
+          delay_sec: 15
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+        await testcontract.testdelay({
+          id: 52343,
+          value: 124,
+          delay_sec: 15
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+        await testcontract.testdelay({
+          id: 52343,
+          value: 125,
+          delay_sec: 5
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        var tableRes = await readVRAMData({
+          contract: code,
+          key: 52343,
+          table: "test",
+          scope: code
+        });
+        assert(tableRes.row.sometestnumber == 125, "wrong uint64_t");
+        await delaySec(10);
+        tableRes = await readVRAMData({
+          contract: code,
+          key: 52343,
+          table: "test",
+          scope: code
+        });
+        assert(tableRes.row.sometestnumber == 125, "wrong uint64_t");
+        await testcontract.testdelay({
+          id: 52343,
+          value: 126,
+          delay_sec: 2
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+        await testcontract.testdelay({
+          id: 52343,
+          value: 127,
+          delay_sec: 1
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        tableRes = await readVRAMData({
+          contract: code,
+          key: 52343,
+          table: "test",
+          scope: code
+        });
+        assert(tableRes.row.sometestnumber == 127, "wrong uint64_t");
         done();
       }
       catch (e) {

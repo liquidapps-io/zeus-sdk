@@ -1,13 +1,16 @@
 #pragma once
+#define VACCOUNTS_DELAYED_CLEANUP 120
 
 #include <eosio/eosio.hpp>
 #include <eosio/system.hpp>
-#include "../dappservices/multi_index.hpp"
+#include "../dappservices/vaccounts.hpp"
+
 #define DAPPSERVICES_ACTIONS() \
   XSIGNAL_DAPPSERVICE_ACTION \
-  IPFS_DAPPSERVICE_ACTIONS
+  IPFS_DAPPSERVICE_ACTIONS \
+  VACCOUNTS_DAPPSERVICE_ACTIONS
 #define DAPPSERVICE_ACTIONS_COMMANDS() \
-  IPFS_SVC_COMMANDS() 
+  IPFS_SVC_COMMANDS()VACCOUNTS_SVC_COMMANDS() 
 #define CONTRACT_NAME() cardgame
 using std::string;
 
@@ -129,22 +132,34 @@ CONTRACT_START()
   public:
 
     cardgame( name receiver, name code, datastream<const char*> ds ):contract(receiver, code, ds),
-                       _users(receiver, receiver.value),
+                       _users(receiver, receiver.value, 1024, 64, false, false, VACCOUNTS_DELAYED_CLEANUP),
                        _seed(receiver, receiver.value) {}
+    struct player_struct {
+      name username;
+      EOSLIB_SERIALIZE( player_struct, (username) )
+    };
+    [[eosio::action]]
+    void login(player_struct payload);
 
     [[eosio::action]]
-    void login(name username);
+    void startgame(player_struct payload);
 
     [[eosio::action]]
-    void startgame(name username);
+    void endgame(player_struct payload);
+
+    struct play_struct {
+      name username;
+      uint8_t player_card_idx;
+      EOSLIB_SERIALIZE( play_struct, (username)(player_card_idx) )
+    };
+
 
     [[eosio::action]]
-    void endgame(name username);
+    void playcard(play_struct payload);
 
     [[eosio::action]]
-    void playcard(name username, uint8_t player_card_idx);
+    void nextround(player_struct payload);
 
-    [[eosio::action]]
-    void nextround(name username);
+    VACCOUNTS_APPLY(((player_struct)(login))((player_struct)(startgame))((player_struct)(endgame))((player_struct)(nextround))((play_struct)(playcard)))
+CONTRACT_END((login)(startgame)(playcard)(nextround)(endgame)(xdcommit)(regaccount))
 
-CONTRACT_END((login)(startgame)(playcard)(nextround)(endgame))

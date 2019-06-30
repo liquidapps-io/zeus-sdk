@@ -56,7 +56,7 @@ module.exports = async(args) => {
     await serviceRunner(`/dummy/dapp-services-node.js`, 13015 * (pi + 1)).handler(args, {
       DSP_ACCOUNT: testProvider,
       NODEOS_HOST_DSP: 13015 * (pi + 1),
-      WEBHOOK_DAPP_PORT: 8112 * (pi + 1),
+      WEBHOOK_DAPP_PORT: 8812 * (pi + 1),
       ...servicesPorts
     });
   }

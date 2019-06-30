@@ -1,3 +1,5 @@
+#define VACCOUNTS_DELAYED_CLEANUP 120
+
 #include "../dappservices/vaccounts.hpp"
 #include "../dappservices/ipfs.hpp"
 #include "../dappservices/multi_index.hpp"
@@ -46,4 +48,4 @@ CONTRACT_START()
   
   VACCOUNTS_APPLY(((dummy_action_hello)(hello))((dummy_action_hello)(hello2)))
   
-CONTRACT_END((init)(hello)(hello2)(regaccount))
+CONTRACT_END((init)(hello)(hello2)(regaccount)(xdcommit))

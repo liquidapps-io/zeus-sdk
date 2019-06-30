@@ -670,6 +670,7 @@ class sharded_hashtree_t{
     uint32_t _shards;
     uint32_t _buckets_per_shard; 
     uint64_t _scope; 
+    uint32_t _cleanup_delay;
     bool _pin_shards;
     bool _pin_buckets;
 
@@ -689,12 +690,13 @@ class sharded_hashtree_t{
     
     
     
-    sharded_hashtree_t(uint64_t scope, uint32_t shards = 1024,uint32_t buckets_per_shard = 64, bool pin_shards = false, bool pin_buckets = false){
+    sharded_hashtree_t(uint64_t scope, uint32_t shards = 1024,uint32_t buckets_per_shard = 64, bool pin_shards = false, bool pin_buckets = false, uint32_t cleanup_delay = 0){
         _shards = shards;
         _buckets_per_shard = buckets_per_shard;
         _scope = scope;
         _pin_buckets = pin_buckets;
         _pin_shards = pin_shards;
+        _cleanup_delay = cleanup_delay;
     }
     
     ipfsmultihash_t* get(uint64_t primary) const{
@@ -767,7 +769,7 @@ class sharded_hashtree_t{
             for (int i = 0; i < _buckets_per_shard; i++) {
                 newBucketData.values.insert(newBucketData.values.end(),emptyDataHash);
             }
-            auto new_shard_pointer = uri_to_ipfsmultihash(ipfs_svc_helper::setData(newBucketData, true));
+            auto new_shard_pointer = uri_to_ipfsmultihash(ipfs_svc_helper::setData(newBucketData, true, _cleanup_delay));
             _shardbucket_table.emplace(_self, [&]( auto& a ) {
                 // new dataset
                 a.shard_uri = new_shard_pointer;
@@ -779,9 +781,9 @@ class sharded_hashtree_t{
         {
             auto shard_uri = shardData->shard_uri;
             // get data 
-            auto bucket_data = ipfs_svc_helper::getData<shardbucket_data>(ipfsmultihash_to_uri(shard_uri), _pin_shards && pin);
+            auto bucket_data = ipfs_svc_helper::getData<shardbucket_data>(ipfsmultihash_to_uri(shard_uri), _pin_shards && pin, false, _cleanup_delay);
             auto bucket_uri = bucket_data.values[sb.bucket];
-            auto bucket_raw_data = ipfs_svc_helper::getRawData(ipfsmultihash_to_uri(bucket_uri), _pin_buckets && pin);
+            auto bucket_raw_data = ipfs_svc_helper::getRawData(ipfsmultihash_to_uri(bucket_uri), _pin_buckets && pin, false, _cleanup_delay);
             // read and return data
             return bucket_raw_data;
             
@@ -793,16 +795,16 @@ class sharded_hashtree_t{
         auto shardData = _shardbucket_table.find(sb.shard);
         eosio::check(shardData != _shardbucket_table.end(), "shard not found");
         auto shard_uri = shardData->shard_uri;
-        auto bucket_data = ipfs_svc_helper::getData<shardbucket_data>(ipfsmultihash_to_uri(shard_uri), false);
+        auto bucket_data = ipfs_svc_helper::getData<shardbucket_data>(ipfsmultihash_to_uri(shard_uri), false, false, _cleanup_delay);
         
         // // commit bucket data
-        auto new_pointer = uri_to_ipfsmultihash(ipfs_svc_helper::setRawData(data, _pin_buckets));
+        auto new_pointer = uri_to_ipfsmultihash(ipfs_svc_helper::setRawData(data, _pin_buckets, _cleanup_delay));
 
         
         // // replace 
         bucket_data.values[sb.bucket] = new_pointer;
         // // commit bucketdata
-        auto new_shard_pointer = uri_to_ipfsmultihash(ipfs_svc_helper::setData(bucket_data, _pin_shards));
+        auto new_shard_pointer = uri_to_ipfsmultihash(ipfs_svc_helper::setData(bucket_data, _pin_shards, _cleanup_delay));
         // // set shard in RAM
         _shardbucket_table.modify(shardData, same_payer, [&]( auto& a ) {
             a.shard_uri = new_shard_pointer;
@@ -827,7 +829,7 @@ class multi_index{
 
     name     _code;
     uint64_t _scope;  
-
+    uint32_t _cleanup_delay;
     typedef eosio::singleton<".vconfig"_n, vconfig> vconfig_sgt;   
     sharded_hashtree_t<TableName> primary_hashtree;
 
@@ -873,13 +875,13 @@ struct b_const_iterator : public std::iterator<std::bidirectional_iterator_tag, 
          const T& operator*()const { 
              auto iter = (*_inner);
              auto ipfsHash = iter.get();
-             T& obj = ipfs_svc_helper::getData<T>(ipfsmultihash_to_uri(ipfsHash));
+             T& obj = ipfs_svc_helper::getData<T>(ipfsmultihash_to_uri(ipfsHash), false, false, _cleanup_delay);
              return obj;
          }
          const T* operator->()const { 
              auto iter =  (*_inner);
              auto ipfsHash = iter.get();
-             return new T(ipfs_svc_helper::getData<T>(ipfsmultihash_to_uri(ipfsHash)));
+             return new T(ipfs_svc_helper::getData<T>(ipfsmultihash_to_uri(ipfsHash), false, false, _cleanup_delay));
          }
 
          b_const_iterator operator++(int) {
@@ -1000,7 +1002,7 @@ typedef h_const_iterator const_iterator;
             // auto itm = std::make_unique<item>( this, [&]( auto& i ) {
                 T val;
                 // get from ipfs (c)
-                auto rawData = ipfs_svc_helper::getRawData(ipfsmultihash_to_uri(*c));
+                auto rawData = ipfs_svc_helper::getRawData(ipfsmultihash_to_uri(*c), false, false, _cleanup_delay);
                 char * buffer = rawData.data();
                 auto size = rawData.size();
                 datastream<const char*> ds( (char*)buffer, uint32_t(size) );
@@ -1031,8 +1033,8 @@ typedef h_const_iterator const_iterator;
       
 
  public:
-      multi_index( name code, uint64_t scope, uint32_t shards = 1024,uint32_t buckets_per_shard = 64, bool pin_shards = false, bool pin_buckets = false)
-      :_code(code),_scope(scope),primary_hashtree(_scope, shards, buckets_per_shard, pin_shards, pin_buckets)
+      multi_index( name code, uint64_t scope, uint32_t shards = 1024,uint32_t buckets_per_shard = 64, bool pin_shards = false, bool pin_buckets = false, uint32_t cleanup_delay = 0)
+      :_code(code),_scope(scope),primary_hashtree(_scope, shards, buckets_per_shard, pin_shards, pin_buckets,cleanup_delay),_cleanup_delay(cleanup_delay)
       {                    
       }
 
@@ -1081,7 +1083,7 @@ typedef h_const_iterator const_iterator;
             
             
 
-            auto uri = ipfs_svc_helper::setRawData(buffer);
+            auto uri = ipfs_svc_helper::setRawData(buffer, false, _cleanup_delay);
             auto multihash = uri_to_ipfsmultihash(uri);
             
             primary_hashtree.add(pk, multihash, payer);
@@ -1109,7 +1111,7 @@ typedef h_const_iterator const_iterator;
          eosio::check( pk == obj.primary_key(), "updater cannot change primary key when modifying an object" );
          
          auto buffer = eosio::pack(obj);
-         auto uri = ipfs_svc_helper::setRawData(buffer);
+         auto uri = ipfs_svc_helper::setRawData(buffer, false, _cleanup_delay);
          auto multihash = uri_to_ipfsmultihash(uri);
         
          primary_hashtree.set(pk, multihash, payer);
