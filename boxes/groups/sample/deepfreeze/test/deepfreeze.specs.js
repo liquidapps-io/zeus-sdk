@@ -2,7 +2,8 @@ import 'mocha';
 require('babel-core/register');
 require('babel-polyfill');
 const { assert } = require('chai'); // Using Assert style
-const { getCreateAccount, getNetwork, getCreateKeys } = require('../extensions/tools/eos/utils');
+const { getCreateKeys } = require('../extensions/helpers/key-utils');
+const { getCreateAccount, getNetwork } = require('../extensions/tools/eos/utils');
 var Eos = require('eosjs');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 
@@ -63,7 +64,7 @@ describe(`${contractCode} Contract`, () => {
         };
         if (account) {
           var keys = await getCreateKeys(account);
-          config.keyProvider = keys.privateKey;
+          config.keyProvider = keys.active.privateKey;
         }
         var eosvram = deployedContract.eos;
         config.httpEndpoint = 'http://localhost:13015';
@@ -93,7 +94,7 @@ describe(`${contractCode} Contract`, () => {
         }, {
           authorization: `${testuser}@active`,
           broadcast: true,
-          keyProvider: [key.privateKey],
+          keyProvider: [key.active.privateKey],
           sign: true
         });
 
@@ -103,7 +104,7 @@ describe(`${contractCode} Contract`, () => {
         }, {
           authorization: `${testuser}@active`,
           broadcast: true,
-          keyProvider: [key.privateKey],
+          keyProvider: [key.active.privateKey],
           sign: true
         });
 
@@ -115,7 +116,7 @@ describe(`${contractCode} Contract`, () => {
           }, {
             authorization: `${testuser}@active`,
             broadcast: true,
-            keyProvider: [key.privateKey],
+            keyProvider: [key.active.privateKey],
             sign: true
           });
         }
@@ -131,7 +132,7 @@ describe(`${contractCode} Contract`, () => {
         }, {
           authorization: `${testuser}@active`,
           broadcast: true,
-          keyProvider: [key.privateKey],
+          keyProvider: [key.active.privateKey],
           sign: true
         });
 
@@ -141,7 +142,7 @@ describe(`${contractCode} Contract`, () => {
         }, {
           authorization: `${testuser}@active`,
           broadcast: true,
-          keyProvider: [key.privateKey],
+          keyProvider: [key.active.privateKey],
           sign: true
         });
 
@@ -153,7 +154,7 @@ describe(`${contractCode} Contract`, () => {
         }, {
           authorization: `${testuser}@active`,
           broadcast: true,
-          keyProvider: [key.privateKey],
+          keyProvider: [key.active.privateKey],
           sign: true
         });
         failed = false;
@@ -164,7 +165,7 @@ describe(`${contractCode} Contract`, () => {
           }, {
             authorization: `${testuser}@active`,
             broadcast: true,
-            keyProvider: [key.privateKey],
+            keyProvider: [key.active.privateKey],
             sign: true
           });
         }
@@ -179,7 +180,7 @@ describe(`${contractCode} Contract`, () => {
         }, {
           authorization: `${testuser2}@active`,
           broadcast: true,
-          keyProvider: [key2.privateKey],
+          keyProvider: [key2.active.privateKey],
           sign: true
         });
 
@@ -227,7 +228,7 @@ describe(`${contractCode} Contract`, () => {
                 }, {
                   authorization: `${testuser}@active`,
                   broadcast: true,
-                  keyProvider: [key.privateKey],
+                  keyProvider: [key.active.privateKey],
                   sign: true
                 });
                 console.log('done', user);

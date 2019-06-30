@@ -7,7 +7,7 @@ async function setContractPermissions (args, account, keys) {
   var config = {
     expireInSeconds: 120,
     sign: true,
-    keyProvider: keys.privateKey,
+    keyProvider: keys.active.privateKey,
     chainId: selectedNetwork.chainId
   };
   var endpoint = getUrl(args);
@@ -23,7 +23,7 @@ async function setContractPermissions (args, account, keys) {
     permission: 'active',
     parent: 'owner',
     auth: { threshold: 1,
-      keys: [ { key: keys.publicKey, weight: 1 } ],
+      keys: [ { key: keys.active.publicKey, weight: 1 } ],
       accounts:
                         [ { permission: { actor: account, permission: 'eosio.code' },
                           weight: 1 }]
@@ -45,7 +45,7 @@ async function deploy (contract, account, args = getDefaultArgs()) {
   var config = {
     expireInSeconds: 120,
     sign: true,
-    keyProvider: keys.privateKey,
+    keyProvider: keys.active.privateKey,
     chainId: selectedNetwork.chainId
   };
   var endpoint = getUrl(args);

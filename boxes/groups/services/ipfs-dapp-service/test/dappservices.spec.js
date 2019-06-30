@@ -2,7 +2,8 @@ import 'mocha';
 require('babel-core/register');
 require('babel-polyfill');
 const { assert } = require('chai'); // Using Assert style
-const { getNetwork, getCreateKeys, getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
+const { getCreateKeys } = require('../extensions/helpers/key-utils');
+const { getNetwork, getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
 var Eos = require('eosjs');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 
@@ -56,7 +57,7 @@ async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccou
     authorization: `${provider}@active`,
     broadcast: true,
     sign: true,
-    keyProvider: [key.privateKey]
+    keyProvider: [key.active.privateKey]
   });
 
   await deployedServices.contractInstance.modifypkg({
@@ -69,7 +70,7 @@ async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccou
     authorization: `${provider}@active`,
     broadcast: true,
     sign: true,
-    keyProvider: [key.privateKey]
+    keyProvider: [key.active.privateKey]
   });
 
   // reg provider and model model
@@ -86,7 +87,7 @@ async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccou
     authorization: `${provider}@active`,
     broadcast: true,
     sign: true,
-    keyProvider: [key.privateKey]
+    keyProvider: [key.active.privateKey]
   });
 
   return deployedService;
@@ -104,7 +105,7 @@ async function allocateDAPPTokens(deployedContract, quantity = '1000.0000 DAPP')
     authorization: `${dappServicesContract}@active`,
     broadcast: true,
     sign: true,
-    keyProvider: [key.privateKey]
+    keyProvider: [key.active.privateKey]
   });
 }
 async function selectPackage({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1', selectedPackage = 'default' }) {
@@ -262,7 +263,7 @@ async function deployConsumerContract(code) {
     chainId: selectedNetwork.chainId
   };
   var keys = await getCreateKeys(code);
-  config.keyProvider = keys.privateKey;
+  config.keyProvider = keys.active.privateKey;
   var eosvram = deployedContract.eos;
   config.httpEndpoint = 'http://localhost:13015';
   eosvram = new Eos(config);
@@ -540,7 +541,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
           authorization: `pprovider1@active`,
           broadcast: true,
           sign: true,
-          keyProvider: [key.privateKey]
+          keyProvider: [key.active.privateKey]
         });
 
         let accounts = await deployedContract.eos.getTableRows({

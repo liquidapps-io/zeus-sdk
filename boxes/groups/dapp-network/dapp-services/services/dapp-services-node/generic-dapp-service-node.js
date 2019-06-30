@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 
 const { loadModels } = require('../../extensions/tools/models');
-const { getCreateKeys } = require('../../extensions/tools/eos/utils');
+const { getCreateKeys } = require('../../extensions/helpers/key-utils');
 const { getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
 const { deserialize, generateABI, genNode, eosPrivate, paccount, forwardEvent, resolveProviderData, resolveProvider, resolveProviderPackage, paccountPermission } = require('./common');
 const handleRequest = async(handler, act, packageid, serviceName, abi) => {
@@ -33,7 +33,7 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
         authorization: `${paccount}@${paccountPermission}`,
         broadcast: true,
         sign: true,
-        keyProvider: [process.env.DSP_PRIVATE_KEY || key.privateKey]
+        keyProvider: [process.env.DSP_PRIVATE_KEY || key.active.privateKey]
       });
     }
     catch (e) {

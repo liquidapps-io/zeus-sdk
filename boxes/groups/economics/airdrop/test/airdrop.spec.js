@@ -7,7 +7,8 @@ const { eosDSPGateway } = require('../services/dapp-services-node/common');
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
-const { getCreateAccount, getCreateKeys } = require('../extensions/tools/eos/utils');
+const { getCreateKeys } = require('../extensions/helpers/key-utils');
+const { getCreateAccount } = require('../extensions/tools/eos/utils');
 const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
 
 var args = getDefaultArgs();
@@ -85,7 +86,7 @@ describe(`${contractCode} Contract`, () => {
       authorization: `${token_contract}@active`,
       broadcast: true,
       sign: true,
-      keyProvider: [tokenkey.privateKey]
+      keyProvider: [tokenkey.active.privateKey]
     });
     // create dataset?
 
@@ -100,7 +101,7 @@ describe(`${contractCode} Contract`, () => {
       authorization: `${airdropContractName}@active`,
       broadcast: true,
       sign: true,
-      keyProvider: [airdropkey.privateKey]
+      keyProvider: [airdropkey.active.privateKey]
     });
 
     // issue to airdrop
@@ -112,7 +113,7 @@ describe(`${contractCode} Contract`, () => {
       authorization: `${issuer}@active`,
       broadcast: true,
       sign: true,
-      keyProvider: [issuerkey.privateKey]
+      keyProvider: [issuerkey.active.privateKey]
     });
     return { deployedAirdropContract, deployedToken };
   }
@@ -127,7 +128,7 @@ describe(`${contractCode} Contract`, () => {
       authorization: `${owner}@active`,
       broadcast: true,
       sign: true,
-      keyProvider: [key.privateKey]
+      keyProvider: [key.active.privateKey]
     });
   }
   const open = async({ token_contract, owner }) => {
@@ -141,7 +142,7 @@ describe(`${contractCode} Contract`, () => {
       authorization: `${owner}@active`,
       broadcast: true,
       sign: true,
-      keyProvider: [key.privateKey]
+      keyProvider: [key.active.privateKey]
     });
     return res;
   }
@@ -157,7 +158,7 @@ describe(`${contractCode} Contract`, () => {
       authorization: `${issuer}@active`,
       broadcast: true,
       sign: true,
-      keyProvider: [key.privateKey]
+      keyProvider: [key.active.privateKey]
     });
   }
   const cleanup = async({ airdropContractName, owner, token_contract }) => {
@@ -170,7 +171,7 @@ describe(`${contractCode} Contract`, () => {
       authorization: `${airdropContractName}@active`,
       broadcast: true,
       sign: true,
-      keyProvider: [key.privateKey]
+      keyProvider: [key.active.privateKey]
     });
   }
   it('readamount', done => {
@@ -292,7 +293,7 @@ describe(`${contractCode} Contract`, () => {
           authorization: `${airdropContractName}@active`,
           broadcast: true,
           sign: true,
-          keyProvider: [airdropkey.privateKey]
+          keyProvider: [airdropkey.active.privateKey]
         });
 
         let table = await deployedToken.eos.getTableRows({

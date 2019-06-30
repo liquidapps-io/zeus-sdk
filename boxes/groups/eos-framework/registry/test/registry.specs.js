@@ -2,7 +2,8 @@ import 'mocha';
 require('babel-core/register');
 require('babel-polyfill');
 const { assert } = require('chai'); // Using Assert style
-const { getCreateAccount, getNetwork, getCreateKeys } = require('../extensions/tools/eos/utils');
+const { getCreateKeys } = require('../extensions/helpers/key-utils');
+const { getCreateAccount, getNetwork } = require('../extensions/tools/eos/utils');
 var Eos = require('eosjs');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 const fetch = require('node-fetch');
@@ -69,7 +70,7 @@ describe(`${contractCode} Contract`, () => {
         };
         if (account) {
           var keys = await getCreateKeys(account);
-          config.keyProvider = keys.privateKey;
+          config.keyProvider = keys.active.privateKey;
         }
         var eosvram = deployedContract.eos;
         config.httpEndpoint = 'http://localhost:13015';
@@ -100,7 +101,7 @@ describe(`${contractCode} Contract`, () => {
         }, {
           authorization: `${testuser}@active`,
           broadcast: true,
-          keyProvider: [key.privateKey],
+          keyProvider: [key.active.privateKey],
           sign: true
         });
         var res = await readData({ user: testuser, key: 'test.11' });

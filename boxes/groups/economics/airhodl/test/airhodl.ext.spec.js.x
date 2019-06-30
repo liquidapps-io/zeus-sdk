@@ -2,7 +2,8 @@ import 'mocha';
 require('babel-core/register');
 require('babel-polyfill');
 const { assert } = require('chai'); // Using Assert style
-const { getNetwork, getCreateKeys, getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
+const { getCreateKeys } = require('../extensions/helpers/key-utils');
+const { getNetwork, getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
 var Eos = require('eosjs');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 
@@ -62,7 +63,7 @@ async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccou
     authorization: `${provider}@active`,
     broadcast: true,
     sign: true,
-    keyProvider: [key.privateKey]
+    keyProvider: [key.active.privateKey]
   });
 
   await deployedServices.contractInstance.modifypkg({
@@ -75,7 +76,7 @@ async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccou
     authorization: `${provider}@active`,
     broadcast: true,
     sign: true,
-    keyProvider: [key.privateKey]
+    keyProvider: [key.active.privateKey]
   });
 
   return deployedServices;
@@ -93,7 +94,7 @@ async function allocateDAPPTokens(deployedContract,quantity='1000.0000 DAPP') {
     authorization: `${dappServicesContract}@active`,
     broadcast: true,
     sign: true,
-    keyProvider: [key.privateKey]
+    keyProvider: [key.active.privateKey]
   });
 }
 
@@ -109,7 +110,7 @@ async function allocateHODLTokens(deployedContract,quantity='1000.0000 DAPPHDL')
     authorization: `${hodlcontract}@active`,
     broadcast: true,
     sign: true,
-    keyProvider: [key.privateKey]
+    keyProvider: [key.active.privateKey]
   });
 }
 
@@ -211,7 +212,7 @@ await servicesTokenContract.activate({
   authorization: `${hodlcontract}@active`,
   broadcast: true,
   sign: true,
-  keyProvider: [key.privateKey]
+  keyProvider: [key.active.privateKey]
 });
 }
 
@@ -270,7 +271,7 @@ describe(`AirHODL Tests`, () => {
           authorization: `${hodlcontract}@active`,
           broadcast: true,
           sign: true,
-          keyProvider: [hodlkey.privateKey]
+          keyProvider: [hodlkey.active.privateKey]
         });
         done();
       }

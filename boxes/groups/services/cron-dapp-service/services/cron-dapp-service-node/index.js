@@ -1,6 +1,6 @@
 var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
 const { deserialize, generateABI, genNode, eosPrivate, eosDSPGateway, paccount, forwardEvent, resolveProviderData, resolveProvider, resolveProviderPackage } = require('../dapp-services-node/common');
-const { getCreateKeys } = require('../../extensions/tools/eos/utils');
+const { getCreateKeys } = require('../../extensions/helpers/key-utils');
 
 var timers = {
 
@@ -33,7 +33,7 @@ nodeFactory('cron', {
           authorization: `${paccount}@active`,
           broadcast: true,
           sign: true,
-          keyProvider: [process.env.DSP_PRIVATE_KEY || key.privateKey]
+          keyProvider: [process.env.DSP_PRIVATE_KEY || key.active.privateKey]
         });
       } catch (e) {
         if (e.toString().indexOf('duplicate') == -1) {

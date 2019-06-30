@@ -1,6 +1,5 @@
 var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
 const { eosDSPGateway, paccount, resolveProviderPackage } = require('../dapp-services-node/common');
-const { getCreateKeys } = require('../../extensions/tools/eos/utils');
 const { loadModels } = require("../../extensions/tools/models");
 
 

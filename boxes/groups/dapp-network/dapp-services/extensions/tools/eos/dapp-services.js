@@ -1,4 +1,4 @@
-const { getCreateKeys } = require('./utils');
+const { getCreateKeys } = require('../../helpers/key-utils');
 const { loadModels } = require('../models');
 const fetch = require('node-fetch');
 
@@ -37,7 +37,7 @@ async function genAllocateDAPPTokensInner(deployedContract, serviceName, provide
     authorization: `${dappServicesContract}@active`,
     broadcast: true,
     sign: true,
-    keyProvider: [key.privateKey]
+    keyProvider: [key.active.privateKey]
   });
 
   await servicesTokenContract.selectpkg({

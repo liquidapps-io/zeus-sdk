@@ -48,7 +48,7 @@ describe(`${contractCode} Contract`, () => {
                 };
                 if (account) {
                     var keys = await getCreateKeys(account);
-                    config.keyProvider = keys.privateKey;
+                    config.keyProvider = keys.active.privateKey;
                 }
                 var eosvram = deployedContract.eos;
                 config.httpEndpoint = 'http://localhost:13015';

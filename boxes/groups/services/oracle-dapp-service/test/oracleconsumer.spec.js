@@ -2,7 +2,8 @@ require("babel-core/register");
 require("babel-polyfill");
 import 'mocha';
 const { assert } = require('chai'); // Using Assert style
-const { getNetwork, getCreateKeys } = require('../extensions/tools/eos/utils');
+const { getCreateKeys } = require('../extensions/helpers/key-utils');
+const { getNetwork } = require('../extensions/tools/eos/utils');
 var Eos = require('eosjs');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 
@@ -30,7 +31,7 @@ describe(`Oracle Service Test Contract`, () => {
         };
         if (account) {
           var keys = await getCreateKeys(account);
-          config.keyProvider = keys.privateKey;
+          config.keyProvider = keys.active.privateKey;
         }
         var eosvram = deployedContract.eos;
         config.httpEndpoint = "http://localhost:13015";

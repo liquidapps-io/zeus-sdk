@@ -2,7 +2,8 @@ import 'mocha';
 require('babel-core/register');
 require('babel-polyfill');
 const { assert } = require('chai'); // Using Assert style
-const { getNetwork, getCreateKeys, getCreateAccount } = require('../extensions/tools/eos/utils');
+const { getCreateKeys } = require('../extensions/helpers/key-utils');
+const { getNetwork, getCreateAccount } = require('../extensions/tools/eos/utils');
 var Eos = require('eosjs');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 const fetch = require('node-fetch');
@@ -58,7 +59,7 @@ describe(`Sign DAPP Service Test Contract`, () => {
         };
         if (code) {
           var keys = await getCreateKeys(code);
-          config.keyProvider = keys.privateKey;
+          config.keyProvider = keys.active.privateKey;
         }
         eosvram = deployedContract.eos;
         config.httpEndpoint = 'http://localhost:13015';

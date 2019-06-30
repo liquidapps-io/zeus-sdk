@@ -51,7 +51,7 @@ describe(`${contractCode} Contract`, () => {
                 };
                 if (account) {
                     var keys = await getCreateKeys(account);
-                    config.keyProvider = keys.privateKey;
+                    config.keyProvider = keys.active.privateKey;
                 }
                 var eosvram = deployedContract.eos;
                 config.httpEndpoint = 'http://localhost:13015';
@@ -86,7 +86,7 @@ describe(`${contractCode} Contract`, () => {
                     authorization: `${owner}@active`,
                     broadcast: true,
                     sign: true,
-                    keyProvider: [testAccountKeys.privateKey],
+                    keyProvider: [testAccountKeys.active.privateKey],
                 });
                 var resdns = await resolve(`${subdomain}.${owner}.${code}.example.com`, 'A');
                 console.log('res', resdns);
