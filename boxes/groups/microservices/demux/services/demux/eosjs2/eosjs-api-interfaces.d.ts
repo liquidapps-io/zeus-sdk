@@ -1,4 +1,4 @@
-import { Abi } from "./eosjs-rpc-interfaces";
+import { Abi, PushTransactionArgs } from './eosjs-rpc-interfaces';
 /** Arguments to `getRequiredKeys` */
 export interface AuthorityProviderArgs {
     /** Transaction that needs to be signed */
@@ -46,5 +46,5 @@ export interface SignatureProvider {
     /** Public keys associated with the private keys that the `SignatureProvider` holds */
     getAvailableKeys: () => Promise<string[]>;
     /** Sign a transaction */
-    sign: (args: SignatureProviderArgs) => Promise<string[]>;
+    sign: (args: SignatureProviderArgs) => Promise<PushTransactionArgs>;
 }

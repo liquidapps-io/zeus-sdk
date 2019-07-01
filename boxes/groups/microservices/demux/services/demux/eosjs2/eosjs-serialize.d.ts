@@ -1,7 +1,7 @@
 /**
  * @module Serialize
  */
-import { Abi, BlockTaposInfo } from "./eosjs-rpc-interfaces";
+import { Abi, BlockTaposInfo } from './eosjs-rpc-interfaces';
 /** A field in an abi */
 export interface Field {
     /** Field name */
@@ -11,10 +11,16 @@ export interface Field {
     /** Type of the field */
     type: Type;
 }
+/** Options for serialize() and deserialize() */
+export interface SerializerOptions {
+    bytesAsUint8Array?: boolean;
+}
 /** State for serialize() and deserialize() */
 export declare class SerializerState {
+    options: SerializerOptions;
     /** Have any binary extensions been skipped? */
     skippedBinaryExtension: boolean;
+    constructor(options?: SerializerOptions);
 }
 /** A type in an abi */
 export interface Type {

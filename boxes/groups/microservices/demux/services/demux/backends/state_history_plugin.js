@@ -953,9 +953,10 @@ async function parseEvents(text) {
 async function actionHandler(action) {
   if (Array.isArray(action)) { action = action[1]; }
   await parsedAction(action.receipt[1].receiver, action.act.name, action.act.account, action.act.data, await parseEvents(action.console));
-  for (var i = 0; i < action.inline_traces.length; i++) {
-    await actionHandler(action.inline_traces[i]);
-  }
+  if (action.inline_traces)
+    for (var i = 0; i < action.inline_traces.length; i++) {
+      await actionHandler(action.inline_traces[i]);
+    }
 }
 
 async function transactionHandler(tx) {
@@ -977,7 +978,6 @@ ws.on('message', async function incoming(data) {
       textDecoder: new TextDecoder(),
       array: data
     });
-
     const realData = types.get('result').deserialize(buffer);
     if (++c % 10000 == 0 && current_block === 0) { console.log(`syncing ${c / 1000000}M (${head_block / 1000000}M}`); }
     head_block = realData[1].head.block_num;
@@ -989,11 +989,12 @@ ws.on('message', async function incoming(data) {
     try {
       var n = traces.readUInt8(4);
       var n2 = traces.readUInt8(5);
-      if (n != 120 || n2 != 156) {
-        return;
+      let res = traces;
+      if (n === 120 && n2 === 156) {
+        res = pako.inflate(traces.slice(4));
       }
-      const res = traces.slice(4);
-      var output = pako.inflate(res);
+      // var output = pako.inflate(res);
+      var output = res;
       var buffer2 = new Serialize.SerialBuffer({
         textEncoder: new TextEncoder(),
         textDecoder: new TextDecoder(),
@@ -1004,11 +1005,12 @@ ws.on('message', async function incoming(data) {
       console.log('count', count);
       for (var i = 0; i < count; i++) {
         const transactionTrace = types.get('transaction_trace').deserialize(buffer2);
+        // console.log("transactionTrace", JSON.stringify(transactionTrace));
         await transactionHandler(transactionTrace[1]);
       }
     }
     catch (e) {
-      console.error(e.message);
+      console.error(e);
       return;
     }
 

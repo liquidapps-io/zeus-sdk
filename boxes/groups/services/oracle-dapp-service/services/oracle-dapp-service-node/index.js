@@ -90,7 +90,7 @@ const endpoints = {
   'mainnet': 'http://api.eossweden.se',
   'bos': 'https://api.bos.eostribe.io',
   'telos': 'https://api.telos.eostribe.io',
-  'kylin': 'http://kylin-dsp-1.liquidapps.io',
+  'kylin': 'https://kylin.eoscanada.com',
   'worbli': 'https://api.worbli.eostribe.io',
   'jungle': 'https://junglehistory.cryptolions.io:4433',
   'meetone': 'https://fullnode.meet.one'

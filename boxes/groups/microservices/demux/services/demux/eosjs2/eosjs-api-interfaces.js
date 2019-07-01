@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 // copyright defined in eosjs/LICENSE.txt
-Object.defineProperty(exports, '__esModule', { value: true });
-// # sourceMappingURL=eosjs-api-interfaces.js.map
+Object.defineProperty(exports, "__esModule", { value: true });
+//# sourceMappingURL=eosjs-api-interfaces.js.map
