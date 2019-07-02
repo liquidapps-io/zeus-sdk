@@ -42,7 +42,7 @@ async function deployLocalService(serviceModel, provider = 'pprovider1') {
     authorization: `${provider}@active`,
     broadcast: true,
     sign: true,
-    keyProvider: [key.privateKey]
+    keyProvider: [key.active.privateKey]
   });
   // await deployedServices.contractInstance.enablepkg({
   //         package_id:"default",
@@ -52,7 +52,7 @@ async function deployLocalService(serviceModel, provider = 'pprovider1') {
   //     authorization: `${provider}@active`,
   //     broadcast: true,
   //     sign: true,
-  //     keyProvider:[key.privateKey]
+  //     keyProvider:[key.active.privateKey]
   // });
 
   // reg provider and model model
@@ -69,7 +69,7 @@ async function deployLocalService(serviceModel, provider = 'pprovider1') {
     authorization: `${provider}@active`,
     broadcast: true,
     sign: true,
-    keyProvider: [key.privateKey]
+    keyProvider: [key.active.privateKey]
   });
 
   return deployedService;

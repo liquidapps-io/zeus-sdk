@@ -35,7 +35,7 @@ describe.skip(`Auth Test Contract`, () => {
         };
         if (account) {
           var keys = await getCreateKeys(code);
-          config.keyProvider = keys.privateKey;
+          config.keyProvider = keys.active.privateKey;
         }
         eosvram = deployedContract.eos;
         config.httpEndpoint = 'http://localhost:13015';
@@ -107,7 +107,7 @@ describe.skip(`Auth Test Contract`, () => {
           }
         }, {
           authorization: `${testUser}@active`,
-          keyProvider: [keys.privateKey],
+          keyProvider: [keys.active.privateKey],
           broadcast: true,
           sign: true
         });
@@ -118,7 +118,7 @@ describe.skip(`Auth Test Contract`, () => {
           requirement: permission
         }, {
           authorization: `${testUser}@active`,
-          keyProvider: [keys.privateKey],
+          keyProvider: [keys.active.privateKey],
           broadcast: true,
           sign: true
         });
@@ -151,7 +151,7 @@ describe.skip(`Auth Test Contract`, () => {
           }
         }, {
           authorization: `${testUser}@active`,
-          keyProvider: [keys.privateKey],
+          keyProvider: [keys.active.privateKey],
           broadcast: true,
           sign: true
         });
@@ -162,7 +162,7 @@ describe.skip(`Auth Test Contract`, () => {
           requirement: permission
         }, {
           authorization: `${testUser}@active`,
-          keyProvider: [keys.privateKey],
+          keyProvider: [keys.active.privateKey],
           broadcast: true,
           sign: true
         });

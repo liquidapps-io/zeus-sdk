@@ -253,7 +253,7 @@ class AuthClient {
       authorization: `${account}@${permission}`,
       broadcast: false,
       sign: true,
-      keyProvider: [keys.privateKey]
+      keyProvider: [keys.active.privateKey]
     };
     var theContract = await eosDSPGateway.contract(contract);
 

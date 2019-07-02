@@ -38,7 +38,7 @@ export declare function binaryToBase58(bignum: Uint8Array, minDigits?: number): 
 /** Convert an unsigned base-64 number in `s` to a bignum */
 export declare function base64ToBinary(s: string): Uint8Array;
 /** Key types this library supports */
-export declare const enum KeyType {
+export declare enum KeyType {
     k1 = 0,
     r1 = 1
 }

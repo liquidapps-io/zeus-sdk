@@ -15,10 +15,10 @@
   },
   "scripts": {
     "postbuild": "replace '/static' '../../static' build/static/css/*",
-    "start": "source $PWD/.env;react-scripts start",
-    "build": "source $PWD/.env;react-scripts build && sed 's/\\\"\\/static/\\\"\\.\\/static/g' -i build/index.html",
-    "test": "source $PWD/.env;react-scripts test --env=jsdom",
-    "eject": "source $PWD/.env;react-scripts eject"
+    "start": ". $PWD/.env;react-scripts start",
+    "build": ". $PWD/.env;react-scripts build && sed 's/\\\"\\/static/\\\"\\.\\/static/g' -i build/index.html",
+    "test": ". $PWD/.env;react-scripts test --env=jsdom",
+    "eject": ". $PWD/.env;react-scripts eject"
   },
   "devDependencies": {
     "npm-run-all": "^4.1.3"

@@ -1,7 +1,6 @@
 #!/bin/bash
 
 ARCH=$( uname )
-NODEOS_VERSION=1.7.3
 EOSIO_CDT_VERSION=1.6.1
 if [ "$ARCH" == "Darwin" ] ; then
     OS_NAME=MacOSX
@@ -23,8 +22,7 @@ if [ "$ARCH" == "Linux" ]; then
         	printf "exiting now.\\n"
         	exit 1
     	elif [[ "${OS_NAME}" == "Amazon Linux AMI" && "${OS_VER}" = 2018 ]]; then
-        	printf "\\nAmazon Linux AMI 2018 support is deprecated, installing v1.6.4.\\n"
-            NODEOS_VERSION=1.6.4
+        	printf "\\nAmazon Linux AMI 2018 support is deprecated.  Please use Amazon Linux 2\\n"
         fi
         if ! [ -x "$(command -v eosio-cpp)" ] ; then
             wget https://github.com/EOSIO/eosio.cdt/releases/download/v${EOSIO_CDT_VERSION}/eosio.cdt-${EOSIO_CDT_VERSION}-1.centos-x86_64.rpm

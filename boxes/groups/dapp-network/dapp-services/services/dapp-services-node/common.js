@@ -224,10 +224,11 @@ const handleAction = async(actionHandlers, action, simulated, serviceName, handl
   var events = await parseEvents(action.console);
   await parsedAction(actionHandlers, action.receiver, action.act.name, action.act.account, action.act.data, events, simulated, serviceName, handlers);
   res = [...res, ...events];
-  for (var i = 0; i < action.inline_traces.length; i++) {
-    var subevents = await handleAction(actionHandlers, action.inline_traces[i], simulated, serviceName, handlers);
-    res = [...res, ...subevents];
-  }
+  if (action.inline_traces)
+    for (var i = 0; i < action.inline_traces.length; i++) {
+      var subevents = await handleAction(actionHandlers, action.inline_traces[i], simulated, serviceName, handlers);
+      res = [...res, ...subevents];
+    }
   return res;
 };
 

@@ -8,7 +8,7 @@
   align-items: center;
   justify-content: center;
   transform-origin: top left;
-  transition: all 500ms ease-in-out !important; }
+  transition: all 250ms ease-in-out !important; }
   .Game .container {
     position: relative;
     width: 100%;

@@ -1,0 +1,22 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json",
+    "tests"
+  ],
+  "commands": {
+    "Unbox sample": "zeus unbox sample-eos-cpp"
+  },
+  "install":{
+    "npm":{
+      "crypto": true,
+      "eosjs": true,
+      "eosjs-ecc": true,
+      "fs": true,
+      "path": true,
+      "readline-sync": true,
+      "os": true
+    }
+  },
+  "dependencies":["seed-empty", "hooks-npm", "mocha"]
+}

@@ -2,7 +2,8 @@ import 'mocha';
 require('babel-core/register');
 require('babel-polyfill');
 const { assert } = require('chai'); // Using Assert style
-const { getNetwork, getCreateKeys, getCreateAccount } = require('../extensions/tools/eos/utils');
+const { getCreateKeys } = require('../extensions/helpers/key-utils');
+const { getNetwork, getCreateAccount } = require('../extensions/tools/eos/utils');
 var Eos = require('eosjs');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 
@@ -39,7 +40,7 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
         };
         if (account) {
           var keys = await getCreateKeys(code);
-          config.keyProvider = keys.privateKey;
+          config.keyProvider = keys.active.privateKey;
         }
         eosvram = deployedContract.eos;
         config.httpEndpoint = 'http://localhost:13015';
@@ -111,7 +112,7 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
           }
         }, {
           authorization: `${testUser}@active`,
-          keyProvider: [keys.privateKey],
+          keyProvider: [keys.active.privateKey],
           broadcast: true,
           sign: true
         });
@@ -122,7 +123,7 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
           requirement: permission
         }, {
           authorization: `${testUser}@active`,
-          keyProvider: [keys.privateKey],
+          keyProvider: [keys.active.privateKey],
           broadcast: true,
           sign: true
         });
@@ -156,7 +157,7 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
           }
         }, {
           authorization: `${testUser}@active`,
-          keyProvider: [keys.privateKey],
+          keyProvider: [keys.active.privateKey],
           broadcast: true,
           sign: true
         });
@@ -167,7 +168,7 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
           requirement: permission
         }, {
           authorization: `${testUser}@active`,
-          keyProvider: [keys.privateKey],
+          keyProvider: [keys.active.privateKey],
           broadcast: true,
           sign: true
         });

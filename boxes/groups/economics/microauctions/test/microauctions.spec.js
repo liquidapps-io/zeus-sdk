@@ -6,7 +6,8 @@ require('babel-polyfill');
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
-const { getEos, getCreateAccount, getCreateKeys } = require('../extensions/tools/eos/utils');
+const { getCreateKeys } = require('../extensions/helpers/key-utils');
+const { getEos, getCreateAccount } = require('../extensions/tools/eos/utils');
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 var args = getDefaultArgs();
@@ -151,7 +152,7 @@ describe(`${contractCode} Contract`, () => {
       authorization: `${testuser}@active`,
       broadcast: true,
       sign: true,
-      keyProvider: [keys.privateKey]
+      keyProvider: [keys.active.privateKey]
     });
     if (res.processed.action_traces[0].inline_traces[0]) { return res.processed.action_traces[0].inline_traces[0].act.data.quantity; } else { return null; }
   };
@@ -167,7 +168,7 @@ describe(`${contractCode} Contract`, () => {
       authorization: `${testuser}@active`,
       broadcast: true,
       sign: true,
-      keyProvider: [keys.privateKey]
+      keyProvider: [keys.active.privateKey]
 
     };
     var transaction = await eos.transaction(

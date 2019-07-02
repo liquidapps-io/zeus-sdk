@@ -15,5 +15,5 @@
       "preinstall": ""
     }
   },
-  "dependencies":["eos-extensions", "zeus-eos", "eos-common", "eosio-system-contracts"]
+  "dependencies":["eos-extensions", "zeus-eos", "eos-common", "eosio-system-contracts", "eos-keystore"]
 }

@@ -7,14 +7,15 @@ if (fs.existsSync(path.resolve('extensions/tools/eos/dapp-services.js'))) { dapp
 const kill = require('kill-port');
 var which = require('which');
 
-const dockerrm = async (name) => {
+const dockerrm = async(name) => {
   try {
     await execPromise(`docker rm -f ${name}`);
-  } catch (e) {
+  }
+  catch (e) {
 
   }
 };
-module.exports = async (args) => {
+module.exports = async(args) => {
   if (args.creator !== 'eosio') { return; } // only local
 
   var moreargs = [
@@ -74,16 +75,30 @@ module.exports = async (args) => {
     }
   }
 
-  const killIfRunning = async (status) => {
+  const killIfRunning = async(status) => {
     try {
       await kill(8888);
-    } catch (e) {}
+    }
+    catch (e) {}
   };
   await dockerrm('zeus-eosio');
   await killIfRunning();
   if (!process.env.DOCKER_NODEOS && which.sync('nodeos', { nothrow: true })) {
+    try {
+      await execPromise(`nodeos --version`, {});
+    }
+    catch (e) {
+      if (e.stdout.trim() >= "v1.8.0") {
+        console.log('Adding 1.8.0 Parameters');
+        moreargs = [...moreargs,
+          '--trace-history-debug-mode',
+          "--delete-state-history"
+        ]
+      }
+    }
     await execPromise(`nohup nodeos ${moreargs.join(' ')} >> nodeos.log 2>&1 &`, { unref: true });
-  } else {
+  }
+  else {
     var nodeos = process.env.DOCKER_NODEOS || 'liquidapps/eosio-plugins:v1.6.1';
     await execPromise(`docker run --name zeus-eosio --rm -d ${ports.join(' ')} ${nodeos} /bin/bash -c "nodeos ${moreargs.join(' ')}"`);
   }

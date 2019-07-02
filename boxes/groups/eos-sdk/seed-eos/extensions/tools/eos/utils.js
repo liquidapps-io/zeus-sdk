@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const getDefaultArgs = require('../../helpers/getDefaultArgs');
 const Eos = require('eosjs');
-const { PrivateKey } = require('eosjs-ecc');
+const { createKeys, getCreateKeys } = require('../../helpers/key-utils');
 
 let networks = {
   'development': {
@@ -59,18 +59,10 @@ const execPromise = function (cmd, options) {
   });
 };
 
-async function createKeys (args = getDefaultArgs()) {
-  var key = await PrivateKey.randomKey();
-  return {
-    privateKey: key.toWif(),
-    publicKey: key.toPublic().toString()
-  };
-}
-
 async function createAccount (wallet, creator, account, args = getDefaultArgs()) {
   var newKeys = await getCreateKeys(account, args);
   var eos = await getEos(creator, args);
-  var pubkey = newKeys.publicKey;
+  var pubkey = newKeys.active.publicKey;
 
   await eos.newaccount({
     creator,
@@ -82,30 +74,6 @@ async function createAccount (wallet, creator, account, args = getDefaultArgs())
   return newKeys;
 }
 
-async function loadKeys (fullPath) {
-  // check if file exists
-  if (fs.existsSync(fullPath)) {
-    return JSON.parse(fs.readFileSync(fullPath).toString());
-  }
-}
-
-async function saveKeys (fullPath, keys) {
-  // generate
-  // console.log("fullPath",fullPath,keys);
-  fs.writeFileSync(fullPath, JSON.stringify(keys));
-  return keys;
-}
-async function getCreateKeys (account, args = getDefaultArgs(), dontCreateIfHaveKeys) {
-  const { wallet, storagePath, network } = args;
-  // check if private key exists.
-  var accountDir = path.resolve(storagePath, 'networks', network, 'accounts');
-  var accountPath = path.join(accountDir, `${account}.json`);
-  if (!fs.existsSync(accountDir)) { await execPromise(`mkdir -p ${accountDir}`); }
-  var existingKeys = await loadKeys(accountPath);
-  if (existingKeys && dontCreateIfHaveKeys) { return existingKeys; }
-  existingKeys = existingKeys || await saveKeys(accountPath, await createKeys(args));
-  return existingKeys;
-}
 async function getCreateAccount (account, args = getDefaultArgs(), dontCreateIfHaveKeys) {
   const { creator, stake } = args;
   var existingKeys = await getCreateKeys(account, args, dontCreateIfHaveKeys);
@@ -117,7 +85,7 @@ async function getCreateAccount (account, args = getDefaultArgs(), dontCreateIfH
   if (creator != account) {
     try {
       var eos = await getEos(creator, args);
-      var pubkey = existingKeys.publicKey;
+      var pubkey = existingKeys.active.publicKey;
       // console.log(account,existingKeys);
 
       await eos.transaction(tr => {
@@ -166,7 +134,7 @@ const getEos = async (account, args = getDefaultArgs()) => {
       config.keyProvider = args.creatorKey;
     } else {
       var keys = await getCreateKeys(account, args, true);
-      config.keyProvider = keys.privateKey;
+      config.keyProvider = keys.active.privateKey;
     }
   }
 

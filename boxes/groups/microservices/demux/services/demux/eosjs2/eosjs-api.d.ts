@@ -1,11 +1,11 @@
 /**
  * @module API
  */
-import { AbiProvider, AuthorityProvider, BinaryAbi, CachedAbi, SignatureProvider } from "./eosjs-api-interfaces";
-import JsonRpc from "./eosjs-jsonrpc";
-import { Abi, PushTransactionArgs } from "./eosjs-rpc-interfaces";
-import * as ser from "./eosjs-serialize";
-export default class Api {
+import { AbiProvider, AuthorityProvider, BinaryAbi, CachedAbi, SignatureProvider } from './eosjs-api-interfaces';
+import { JsonRpc } from './eosjs-jsonrpc';
+import { Abi, PushTransactionArgs } from './eosjs-rpc-interfaces';
+import * as ser from './eosjs-serialize';
+export declare class Api {
     /** Issues RPC calls */
     rpc: JsonRpc;
     /** Get subset of `availableKeys` needed to meet authorities in a `transaction` */
@@ -34,7 +34,7 @@ export default class Api {
      *    * `signatureProvider`: Signs transactions
      *    * `chainId`: Identifies chain
      *    * `textEncoder`: `TextEncoder` instance to use. Pass in `null` if running in a browser
-     *    * `textDecoder`: `TextDecider` instance to use. Pass in `null` if running in a browser
+     *    * `textDecoder`: `TextDecoder` instance to use. Pass in `null` if running in a browser
      */
     constructor(args: {
         rpc: JsonRpc;
@@ -74,13 +74,15 @@ export default class Api {
      *
      * Named Parameters:
      *    * `broadcast`: broadcast this transaction?
+     *    * `sign`: sign this transaction?
      *    * If both `blocksBehind` and `expireSeconds` are present,
      *      then fetch the block which is `blocksBehind` behind head block,
      *      use it as a reference for TAPoS, and expire the transaction `expireSeconds` after that block's time.
      * @returns node response if `broadcast`, `{signatures, serializedTransaction}` if `!broadcast`
      */
-    transact(transaction: any, { broadcast, blocksBehind, expireSeconds }?: {
+    transact(transaction: any, { broadcast, sign, blocksBehind, expireSeconds }?: {
         broadcast?: boolean;
+        sign?: boolean;
         blocksBehind?: number;
         expireSeconds?: number;
     }): Promise<any>;
