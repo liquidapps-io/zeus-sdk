@@ -3,6 +3,8 @@ const { JsonRpc, JsSignatureProvider, Api } = eosjs2;
 const ecc = require('eosjs-ecc')
 const { BigNumber } = require('bignumber.js');
 var Eos = require('eosjs');
+const delay = ms => new Promise(res => setTimeout(res, ms));
+const delaySec = sec => delay(sec * 1000);
 
 let { PrivateKey, PublicKey, Signature, Aes, key_utils, config } = require('eosjs-ecc')
 var endpoint = process.env.REACT_APP_EOS_HTTP_ENDPOINT;
@@ -84,11 +86,13 @@ const runTrx = async({
   });
 }
 // Main action call to blockchain
-async function takeAction(action, dataValue) {
+async function takeAction(action, dataValue, waitForChange = true) {
   const privateKey = localStorage.getItem('cardgame_key');
+  var account = localStorage.getItem('cardgame_account');
   // Main call to blockchain after setting action, account_name and data
   try {
-    return await runTrx({
+    const oldstate = await postData(`${endpoint}/v1/dsp/ipfsservice1/get_table_row`, { contract: process.env.REACT_APP_EOS_CONTRACT_NAME, scope: process.env.REACT_APP_EOS_CONTRACT_NAME, table: 'users', key: account });
+    var res = await runTrx({
       contract_code: process.env.REACT_APP_EOS_CONTRACT_NAME,
       payload: {
         name: action,
@@ -98,21 +102,14 @@ async function takeAction(action, dataValue) {
       },
       wif: privateKey
     });
-
-    // return await api.transact({
-    //   actions: [{
-    //     account: process.env.REACT_APP_EOS_CONTRACT_NAME,
-    //     name: action,
-    //     authorization: [{
-    //       actor: localStorage.getItem('cardgame_account'),
-    //       permission: 'active'
-    //     }],
-    //     data: dataValue
-    //   }]
-    // }, {
-    //   blocksBehind: 3,
-    //   expireSeconds: 30
-    // });
+    if (!waitForChange) return res;
+    for (var i = 0; i < 20; i++) {
+      const newstate = await postData(`${endpoint}/v1/dsp/ipfsservice1/get_table_row`, { contract: process.env.REACT_APP_EOS_CONTRACT_NAME, scope: process.env.REACT_APP_EOS_CONTRACT_NAME, table: 'users', key: account });
+      if (JSON.stringify(newstate) !== JSON.stringify(oldstate))
+        return res;
+      await delay(80 * (i + 1));
+    }
+    return res;
   }
   catch (err) {
     throw (err);
@@ -143,7 +140,7 @@ class ApiService {
       if (!localStorage.getItem('cardgame_account')) {
         return reject();
       }
-      takeAction('login', { username: localStorage.getItem('cardgame_account') })
+      takeAction('login', { username: localStorage.getItem('cardgame_account') }, false)
         .then(() => {
           resolve(localStorage.getItem('cardgame_account'));
         })
@@ -159,7 +156,7 @@ class ApiService {
     return new Promise((resolve, reject) => {
       localStorage.setItem('cardgame_account', username);
       localStorage.setItem('cardgame_key', key);
-      takeAction('login', { username })
+      takeAction('login', { username }, false)
         .then((res) => {
           if (res.code == 500)
             throw new Error("wrong password");
@@ -176,7 +173,7 @@ class ApiService {
     return new Promise((resolve, reject) => {
       localStorage.setItem('cardgame_account', username);
       localStorage.setItem('cardgame_key', key);
-      takeAction('regaccount', { vaccount: username })
+      takeAction('regaccount', { vaccount: username }, false)
         .then(() => {
           resolve();
         })
