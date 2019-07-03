@@ -20,6 +20,8 @@ var dnsd = require('dnsd');
 var zone = process.env.DNS_ZONE || 'example.com';
 var ns = process.env.DNS_ZONE_NS || 'ns1.example.com';
 var email = process.env.DNS_SOA_EMAIL || 'us@example.com';
+var dns = require('native-dns');
+
 const hashData256 = (data) => {
     var hash = sha256.create();
     hash.update(data);
@@ -58,15 +60,74 @@ async function handler(req, res) {
         var fullHostname = question.name;
         var parts = fullHostname.split('.');
         // report usage of contract
-        var subdomain = parts[0];
-        var scope = parts[1].replace(/\-/g, '.');
-        var contract = parts[2].replace(/\-/g, '.');
-        var entry = await getContractEntry(contract, scope, question.type, subdomain);
-        var answers = entry.map(d => { return { name: question.name, type: question.type, data: d } });
-
-        for (var answerIndex = 0; answerIndex < answers.length; answerIndex++) {
-            res.answer.push(answers[answerIndex]);
+        var i = 0;
+        var subdomain = parts[i++];
+        if (subdomain[0] == '_') {
+            subdomain = `${subdomain}.${parts[i++]}`;
         }
+        var scope = parts[i++].replace(/\-/g, '.');
+        var contract = parts[i++].replace(/\-/g, '.');
+        var cnameEntry = [];
+        if (question.type === 'AAAA' || question.type === 'CNAME' || question.type === 'A')
+            cnameEntry = await getContractEntry(contract, scope, 'CNAME', subdomain);
+        if (cnameEntry.length) {
+            console.log("cnameEntry", cnameEntry);
+            res.answer.push({
+                name: question.name,
+                type: 'CNAME',
+                data: cnameEntry[0],
+            });
+            var relay = dns.Request({
+                question: dns.Question({
+                    name: cnameEntry[0],
+                    type: 'A',
+                }),
+                server: {
+                    address: '8.8.8.8',
+                    port: 53,
+                    type: 'udp'
+                },
+            });
+
+            relay.on('message', function(err, answer) {
+                console.log("err", err);
+                answer.answer.forEach(function(a) {
+                    //console.dir(a);
+                    if (!a.address) {
+                        return;
+                    }
+                    console.log('-> ' + a.address);
+                    res.answer.push({
+                        name: a.name,
+                        type: 'A',
+                        data: a.address,
+                        ttl: a.ttl
+                    });
+                });
+            });
+
+            relay.on('timeout', function() {
+                res.end();
+            });
+
+            relay.on('end', function() {
+                res.end();
+            });
+
+            relay.send();
+        }
+        else {
+            var entry = await getContractEntry(contract, scope, question.type, subdomain);
+            var answers = entry.map(d => { return { name: question.name, type: question.type, data: d } });
+
+
+            for (var answerIndex = 0; answerIndex < answers.length; answerIndex++) {
+                res.answer.push(answers[answerIndex]);
+            }
+
+            return res.end();
+        }
+
     }
     res.end();
 }
@@ -76,5 +137,5 @@ module.exports = (state) => {
     server.zone(zone, ns, email, 'now', '2h', '30m', '2w', '10m')
     state.server = server;
     server.listen(process.env.DNS_PORT || 5343, '0.0.0.0');
-    console.log('dns Server running at 0.0.0.0:' + process.env.DNS_PORT);
+    console.log('dns Server running at 0.0.0.0:' + (process.env.DNS_PORT || 5343));
 };

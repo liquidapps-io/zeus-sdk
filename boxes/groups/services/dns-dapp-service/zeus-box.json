@@ -11,7 +11,8 @@
   ],
   "install":{
     "npm":{
-      "dnsd": true
+      "dnsd": true,
+      "native-dns": true
     },
     "contracts":{
       "dnsservice": true,
