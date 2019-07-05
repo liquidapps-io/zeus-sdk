@@ -85,7 +85,24 @@ class Login extends Component {
     return (
       <div className="Login">
         <div className="title">Elemental Battles - powered by EOSIO</div>
-        <div className="description"></div>
+        <div className="description">
+        <br/>
+        <br/>
+        Welcome,<br/>
+        Although you won’t notice it unless you examine the <a href="https://github.com/liquidapps-io/zeus-sdk/tree/master/boxes/groups/sample/cardgame">code</a>, this game is running on the EOS blockchain.<br/>
+<br/><br/>
+        It does so without wasting RAM.<br/>
+        <ul style={{ "list-style-type": "circle"}}>
+        <li>The <b>vRAM</b> Service (using a Session-based RAM caching)</li>
+        <li>Free user on-boarding using <b>LiquidAccounts</b></li>
+        <li><b>LiquidDNS</b></li>
+        <li>Frontend Hosted on <b>IPFS</b></li>
+        </ul>
+        We have created the first <b>LiquidApp</b>. Immortal dApps are at your fingertips.<br/>
+<br/>
+        No more excuses.<br/>
+        Enjoy.<br/><div style={{"text-align": 'center'}}><img height="40" src="https://liquidapps.io/static/media/liquidapps_logo_white.3b1d829c.svg"/></div>
+        </div>
         <form name="form" onSubmit={ this.handleSubmit }>
           <div className="field">
             <label>Account name</label>
