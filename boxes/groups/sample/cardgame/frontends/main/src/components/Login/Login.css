@@ -4,7 +4,7 @@
   width: 1366px;
   height: 768px;
   background: url("./images/popup_bg.png") center no-repeat;
-  background-size: 615px;
+  background-size: 615px 800px;
   color: #d4cfba;
   font-size: 14.5px;
   display: flex;
@@ -19,7 +19,7 @@
     width: 615px; }
   .Login .title {
     position: absolute;
-    top: 60px;
+    top: -55px;
     width: 392px;
     height: 163.5px;
     background: url("./images/Game_logo.png");
@@ -29,6 +29,19 @@
     margin-top: 50px;
     margin-bottom: 25px;
     line-height: 1.5em; }
+  .Login .description b {
+    font-weight: bolder;
+    color: #E4E064;
+    font-size: 15.5px;
+  }
+
+  .Login .description a {
+    font-weight: bolder;
+    text-decoration: underline;
+    color: #6464E4;
+    font-size: 15.5px;
+  }
+
   .Login .field {
     margin-bottom: 15px; }
     .Login .field label {
@@ -68,5 +81,5 @@
       overflow: hidden;
       display: inline-block; }
   .Login .bottom {
-    margin-top: 5px;
+    margin-top: -25px;
     text-align: center; }
