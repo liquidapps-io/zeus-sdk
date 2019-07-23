@@ -9,13 +9,11 @@
         "signtrx":{
             "blocking": true,
             "request":{
-                "id":"std::string", 
-                "trx":"std::string", 
-                "chain":"std::string", 
-                "chain_type":"std::string", 
-                "sigs":"std::vector<std::string>", 
-                "account":"std::string", 
-                "sigsRequired":"uint16_t"
+                "account":"name",
+                "permission":"name",
+                "client_code":"std::string",
+                "payload_hash":"checksum256",
+                "signature":"std::vector<char>"
             },
             "callback":{
                 "account":"name",
@@ -58,4 +56,3 @@
         } 
     }
 }
-
