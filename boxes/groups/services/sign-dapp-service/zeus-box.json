@@ -13,6 +13,12 @@
     "contracts":{
       "signservice": true,
       "signer": true
+    },
+    "npm": {
+      "web3@1.0.0-beta.36": true,
+      "ganache-cli": true,
+      "truffle-contract": true,
+      "ethereumjs-tx": true
     }
   }
 }

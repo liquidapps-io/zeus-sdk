@@ -13,7 +13,6 @@
     "storage-dapp-service",
     "auth-dapp-service",
     "history-dapp-service",
-    "sign-dapp-service",
     "readfn-dapp-service",
     "dns-dapp-service"
   ]
