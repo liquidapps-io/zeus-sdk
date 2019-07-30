@@ -85,6 +85,23 @@ describe(`Sign DAPP Service Test Contract`, () => {
     })();
   })
 
+  it('sends 1 wei from the multisig to a random address (internal encoding)', done => {
+    (async() => {
+      try {
+        const prevBalance = (await web3.eth.getBalance(randomEthAddress)).toString();
+        await sendEth(ethMultiSig.address, randomEthAddress.slice(2), 1);
+        // sleep
+        await sleep(2000)
+        const postBalance = (await web3.eth.getBalance(randomEthAddress)).toString();
+        assert.equal(postBalance - prevBalance, 1, 'eth address balance should be 1');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  })
+
   it.skip('sign call - single sig', done => {
     (async() => {
       try {
@@ -163,6 +180,18 @@ function postData(url = ``, data = {}) {
 }
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function sendEth(multiSigAddress, destination, amount) {
+  return testcontract.sendeth({
+    multisig_address: multiSigAddress,
+    destination,
+    amount
+  }, {
+    authorization: `${code}@active`,
+    broadcast: true,
+    sign: true
+  })
+}
 
 function sendSigRequest(id, destination, trx_data, chain, chain_type, sigs, account, sigs_required) {
   return testcontract.sendsigreq({

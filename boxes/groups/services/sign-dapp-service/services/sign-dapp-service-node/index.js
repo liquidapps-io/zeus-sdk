@@ -64,20 +64,20 @@ const getCreateKeypair = {
 }
 
 const postFn = {
-  "eosio": async (trx, chain, account, sigs) => {
+  "eosio": async (signedTx, chain, account, sigs) => {
     // const { privateKey, publicKey } = getCreateKeypair['eosio'](trx, chain, account, false);
     // const signedTx = await signFn['eosio'](trx, chain, account, { privateKey, publicKey });
     // const eos = getEos(privateKey, chain);
     // return eos.Api.transact
   },
-  "binance": (trx, chain, account, sigs) => {
+  "binance": (signedTx, chain, account, sigs) => {
 
   },
-  "ethereum": async (trx, chain, account, sigs) => {
+  "ethereum": async (signedTx, chain, account, sigs) => {
     // post-alpha we want to monitor the transaction for gas usage,
     // for the provisioning layer (quota usage and whatnot)
-    console.log('posting tx ', trx);
-    const tx = await web3.eth.sendSignedTransaction(trx);
+    console.log('posting tx ', signedTx);
+    const tx = await web3.eth.sendSignedTransaction(signedTx);
     console.log('tx', tx)
     return tx.transactionHash;
   }
@@ -93,6 +93,7 @@ const signFn = {
   "ethereum": async (destination, trx_data, chain, account, keypair) => {
     // TODO: we need to take into account the nonce of pending transactions
     // to not overwrite them - tricky business
+    trx_data = trx_data.startsWith('0x') ? trx_data : `0x${trx_data}`;
     const nonce = await web3.eth.getTransactionCount(keypair.publicKey);
     const key = keypair.privateKey.startsWith('0x') ? 
       keypair.privateKey.slice(2) : keypair.privateKey;
@@ -135,19 +136,12 @@ const signHandlers = {
       }
 
       // sign with internal keys and return sig_
-      const signature = await signFn['eosio'](trxData, chain, account, keypair);
-      sigs+=';'+signature;
-      const sigsCount = sigs.length;
+      const signedTx = await signFn['eosio'](trxData, chain, account, keypair);
 
-      // optionally post when enough sigs are ready
-      var haveEnoughSigs = sigs_required != -1 && sigs_required > sigsCount;
       // return trx id from other chain    
-      var trx_id;
-      if (haveEnoughSigs) {
-        trx_id = await postFn['eosio'](trxData, chain, account, sigs);
-      }
+      trx_id = await postFn['eosio'](signedTx, chain, account, sigs);
       return {
-        id, trx, chain, chain_type, sigs, account, sigs_required, trx_id
+        id, destination, trx_data, chain, chain_type, account, trx_id
       };
   },
   "binance": async (id, destination, trx_data, chain, chain_type, sigs, account, sigs_required) => {
@@ -157,14 +151,13 @@ const signHandlers = {
       // get key from storage
       var keypair = await getCreateKeypair['ethereum'](chain, chain_type, account);
 
-
       // sign with internal keys and return sig
       const signedTx = await signFn['ethereum'](destination, trx_data, chain, account, keypair);
 
       const trx_id = await postFn['ethereum'](signedTx, chain, account, sigs);
 
       return {
-        id, destination, trx_data, chain, chain_type, sigs, account, sigs_required, trx_id
+        id, destination, trx_data, chain, chain_type, account, trx_id
       };
   }
 }
