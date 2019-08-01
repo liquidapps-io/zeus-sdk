@@ -141,7 +141,7 @@ describe(`Oracle Service Test Contract`, () => {
       }
     })();
   });
-  it.skip('Oracle IBC Block Fetch - worbli', done => {
+  it('Oracle IBC Block Fetch - worbli', done => {
     (async() => {
       try {
         var res = await testcontract.testget({

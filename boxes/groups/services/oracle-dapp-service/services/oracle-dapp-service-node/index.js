@@ -104,7 +104,7 @@ const extractPath = (item, field) => {
   const fieldPath = field.split('.');
   const res = fieldPath.reduce((accumulator, currentPathPart) => accumulator[currentPathPart], item);
   if (res)
-    return Buffer.from(res.toString(), 'utf8');
+    return Buffer.from(res, 'utf8');
 };
 const sisterChainHistoryHandler = async({ proto, address }) => {
   //  sister_chain_history://chain/account/pos/offset/inner_offset/field
