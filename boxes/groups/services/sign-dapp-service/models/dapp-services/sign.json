@@ -3,56 +3,54 @@
     "port": 13128,
     "contract": "signfndspsvc",
     "prettyName": "LiquidLink",
-    "stage": "WIP",
+    "stage": "Alpha",
     "description": "IBC MultiSig Service",
     "commands": {
         "signtrx":{
-            "blocking": true,
+            "blocking": false,
             "request":{
-                "account":"name",
-                "permission":"name",
-                "client_code":"std::string",
-                "payload_hash":"checksum256",
-                "signature":"std::vector<char>"
+                "id":"std::string", 
+                "destination":"std::string",
+                "trx_data":"std::string", 
+                "chain":"std::string", 
+                "chain_type":"std::string", 
+                "sigs":"std::string", 
+                "account":"std::string", 
+                "sigs_required":"uint16_t"
             },
             "callback":{
-                "account":"name",
-                "permission":"name",
-                "client_code":"std::string",
-                "payload_hash":"checksum256",
-                "signature":"std::vector<char>"
+                "id":"std::string", 
+                "destination":"std::string",
+                "trx_data":"std::string", 
+                "chain":"std::string", 
+                "chain_type":"std::string", 
+                "sigs":"std::string", 
+                "account":"std::string", 
+                "sigs_required":"uint16_t",
+                "trx_id": "std::string"
             },
             "signal":{
-                "account":"name",
-                "permission":"name",
-                "client_code":"std::string",
-                "payload_hash":"checksum256",
-                "signature":"std::vector<char>"
+                "id":"std::string", 
+                "destination":"std::string",
+                "trx_data":"std::string", 
+                "chain":"std::string", 
+                "chain_type":"std::string", 
+                "account":"std::string", 
+                "sigs_required":"uint16_t"
             }
         },
         "sgcleanup":{
             "blocking": false,
             "request":{
-                "account":"name",
-                "permission":"name",
-                "client_code":"std::string",
-                "payload_hash":"checksum256",
-                "signature":"std::vector<char>"
+                "id":"uint64_t"
             },
             "callback":{
-                "account":"name",
-                "permission":"name",
-                "client_code":"std::string",
-                "payload_hash":"checksum256",
-                "signature":"std::vector<char>"
+                "id":"uint64_t"
             },
             "signal":{
-                "account":"name",
-                "permission":"name",
-                "client_code":"std::string",
-                "payload_hash":"checksum256",
-                "signature":"std::vector<char>"
+                "id":"uint64_t"
             }
         } 
     }
 }
+
