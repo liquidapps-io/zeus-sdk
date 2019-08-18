@@ -12,7 +12,8 @@
   "install":{
     "contracts":{
       "signservice": true,
-      "signer": true
+      "signer": true,
+      "nonceholder": true
     },
     "npm": {
       "web3@1.0.0-beta.36": true,

@@ -61,18 +61,12 @@ async function handler(req, res) {
         var parts = fullHostname.split('.');
         // report usage of contract
         var i = 0;
-        let subdomain;
-        if (parts.length == 3)
-            subdomain = "@"
-        else
-            subdomain = parts[i++];
-
-        if (subdomain[0] == '_' && parts.length > 4) {
+        var subdomain = parts[i++];
+        if (subdomain[0] == '_') {
             subdomain = `${subdomain}.${parts[i++]}`;
         }
-        subdomain = subdomain.toLowerCase();
-        var scope = parts[i++].replace(/\-/g, '.').toLowerCase();
-        var contract = parts[i++].replace(/\-/g, '.').toLowerCase();
+        var scope = parts[i++].replace(/\-/g, '.');
+        var contract = parts[i++].replace(/\-/g, '.');
         var cnameEntry = [];
         if (question.type === 'AAAA' || question.type === 'CNAME' || question.type === 'A')
             cnameEntry = await getContractEntry(contract, scope, 'CNAME', subdomain);
