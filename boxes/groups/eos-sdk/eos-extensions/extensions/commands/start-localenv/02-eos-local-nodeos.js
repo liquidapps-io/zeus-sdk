@@ -6,19 +6,15 @@ var fs = require('fs');
 if (fs.existsSync(path.resolve('extensions/tools/eos/dapp-services.js'))) { dappservices = require('../../tools/eos/dapp-services'); }
 const kill = require('kill-port');
 var which = require('which');
+const os = require('os');
 
-const dockerrm = async(name) => {
-  try {
-    await execPromise(`docker rm -f ${name}`);
-  }
-  catch (e) {
-
-  }
-};
 module.exports = async(args) => {
   if (args.creator !== 'eosio') { return; } // only local
 
-  var moreargs = [
+  // add logging.json if doesnt exist
+  addLoggingConfig();
+  
+  var nodeosArgs = [
     '-e',
     '-p eosio',
     '--plugin eosio::producer_plugin',
@@ -49,7 +45,7 @@ module.exports = async(args) => {
     var { dappServicesContract } = dappservices;
     switch (backend) {
       case 'state_history_plugin':
-        moreargs = [...moreargs,
+        nodeosArgs = [...nodeosArgs,
           '--trace-history',
           '--plugin eosio::state_history_plugin',
           '--state-history-endpoint 0.0.0.0:8889'
@@ -59,7 +55,7 @@ module.exports = async(args) => {
         ];
         break;
       case 'zmq_plugin':
-        moreargs = [...moreargs,
+        nodeosArgs = [...nodeosArgs,
           '--plugin=eosio::zmq_plugin',
           '--zmq-enable-actions',
           '--zmq-sender-bind=tcp://0.0.0.0:5556',
@@ -75,12 +71,6 @@ module.exports = async(args) => {
     }
   }
 
-  const killIfRunning = async(status) => {
-    try {
-      await kill(8888);
-    }
-    catch (e) {}
-  };
   await dockerrm('zeus-eosio');
   await killIfRunning();
   if (!process.env.DOCKER_NODEOS && which.sync('nodeos', { nothrow: true })) {
@@ -90,16 +80,96 @@ module.exports = async(args) => {
     catch (e) {
       if (e.stdout.trim() >= "v1.8.0") {
         console.log('Adding 1.8.0 Parameters');
-        moreargs = [...moreargs,
+        nodeosArgs = [...nodeosArgs,
           '--trace-history-debug-mode',
           "--delete-state-history"
         ]
       }
     }
-    await execPromise(`nohup nodeos ${moreargs.join(' ')} >> nodeos.log 2>&1 &`, { unref: true });
+    await execPromise(`nohup nodeos ${nodeosArgs.join(' ')} >> nodeos.log 2>&1 &`, { unref: true });
   }
   else {
     var nodeos = process.env.DOCKER_NODEOS || 'liquidapps/eosio-plugins:v1.6.1';
-    await execPromise(`docker run --name zeus-eosio --rm -d ${ports.join(' ')} ${nodeos} /bin/bash -c "nodeos ${moreargs.join(' ')}"`);
+    await execPromise(`docker run --name zeus-eosio --rm -d ${ports.join(' ')} ${nodeos} /bin/bash -c "nodeos ${nodeosArgs.join(' ')}"`);
   }
 };
+
+const dockerrm = async(name) => {
+  try {
+    await execPromise(`docker rm -f ${name}`);
+  }
+  catch (e) {
+
+  }
+};
+
+const killIfRunning = async(status) => {
+  try {
+    await kill(8888);
+  }
+  catch (e) {}
+};
+
+const addLoggingConfig = () => {
+  const loggingPath = `${os.homedir()}/.zeus/nodeos/config/logging.json`;
+  if (!fs.existsSync(loggingPath))
+    fs.writeFileSync(loggingPath, JSON.stringify(loggingJson));
+};
+
+const loggingJson = {
+  "includes": [],
+  "appenders": [
+    {
+      "name": "consoleout",
+      "type": "console",
+      "args": {
+        "stream": "std_out",
+        "level_colors": [
+          {
+            "level": "debug",
+            "color": "green"
+          },
+          {
+            "level": "warn",
+            "color": "brown"
+          },
+          {
+            "level": "error",
+            "color": "red"
+          }
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "name": "net",
+      "type": "gelf",
+      "args": {
+        "endpoint": "10.10.10.10",
+        "host": "test"
+      },
+      "enabled": true
+    }
+  ],
+  "loggers": [
+    {
+      "name": "default",
+      "level": "debug",
+      "enabled": true,
+      "additivity": false,
+      "appenders": [
+        "consoleout",
+        "net"
+      ]
+    },
+    {
+      "name": "net_plugin_impl",
+      "level": "debug",
+      "enabled": true,
+      "additivity": false,
+      "appenders": [
+        "net"
+      ]
+    }
+  ]
+}
