@@ -110,10 +110,12 @@ const killIfRunning = async(status) => {
   catch (e) {}
 };
 
-const addLoggingConfig = () => {
-  const loggingPath = `${os.homedir()}/.zeus/nodeos/config/logging.json`;
-  if (!fs.existsSync(loggingPath))
-    fs.writeFileSync(loggingPath, JSON.stringify(loggingJson));
+const addLoggingConfig = async () => {
+  const configPath = `${os.homedir()}/.zeus/nodeos/config/`;
+  if (!fs.existsSync(configPath)) {
+    await execPromise(`mkdir -p ${configPath}`);
+    fs.writeFileSync(`${configPath}/logging.json`, JSON.stringify(loggingJson));
+  }
 };
 
 const loggingJson = {
