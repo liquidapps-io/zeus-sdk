@@ -123,7 +123,7 @@ describe(`Oracle Service Test Contract`, () => {
       }
     })();
   });
-  it.skip('Oracle IBC Block Fetch - telos', done => {
+  it('Oracle IBC Block Fetch - telos', done => {
     (async() => {
       try {
         var res = await testcontract.testget({
@@ -141,7 +141,7 @@ describe(`Oracle Service Test Contract`, () => {
       }
     })();
   });
-  it.skip('Oracle IBC Block Fetch - worbli', done => {
+  it('Oracle IBC Block Fetch - worbli', done => {
     (async() => {
       try {
         var res = await testcontract.testget({
@@ -177,7 +177,7 @@ describe(`Oracle Service Test Contract`, () => {
       }
     })();
   });
-  it.skip('Oracle IBC Block Fetch - bos', done => {
+  it('Oracle IBC Block Fetch - bos', done => {
     (async() => {
       try {
         var res = await testcontract.testget({
@@ -231,7 +231,7 @@ describe(`Oracle Service Test Contract`, () => {
       }
     })();
   });
-  it.skip('Chain Oracle XIBC - tron', done => {
+  it('Chain Oracle XIBC - tron', done => {
     (async() => {
       try {
         var res = await testcontract.testget({
