@@ -3,7 +3,7 @@
 require('babel-core/register');
 require('babel-polyfill');
 if (process.env.DAEMONIZE_PROCESS) { require('daemonize-process')(); }
-
+const logger = require('../../extensions/helpers/logger');
 const { genNode, genApp, paccount, processFn, forwardEvent, resolveProviderData, resolveProvider, resolveProviderPackage } = require('./common');
 const actionHandlers = {
   'service_request': async(act, simulated) => {
@@ -48,9 +48,11 @@ appWebHookListener.post('/', async(req, res) => {
   // var account = req.body.account;
   // var method = req.body.method;
   // var receiver = req.body.receiver;
-  // var event = req.body.event;
+  var event = req.body.event;
+  var body = req.body;
   // var data = req.body.data;
   // console.log("req.body",req.body);
+  logger.debug("WEBHOOK: [%s:%s][%s:%s]\tTXID:%s\tDATA:%s", body.receiver, body.method, event.etype, event.action || '---', event.txid, event.data);
   req.body.replay = isReplay;
   await processFn(actionHandlers, req.body);
   res.send(JSON.stringify('ok'));

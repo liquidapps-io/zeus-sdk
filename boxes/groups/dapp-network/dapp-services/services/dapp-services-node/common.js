@@ -5,7 +5,6 @@ const { dappServicesContract, getContractAccountFor } = require('../../extension
 const { loadModels } = require('../../extensions/tools/models');
 const { getUrl } = require('../../extensions/tools/eos/utils');
 const getDefaultArgs = require('../../extensions/helpers/getDefaultArgs');
-
 const Eos = require('eosjs');
 const bodyParser = require('body-parser');
 const express = require('express');
@@ -14,6 +13,7 @@ const httpProxy = require('http-proxy');
 const { BigNumber } = require('bignumber.js');
 const eosjs2 = require('../demux/eosjs2');
 const { JsonRpc } = eosjs2;
+const logger = require('../../extensions/helpers/logger');
 
 var url = getUrl(getDefaultArgs());
 const rpc = new JsonRpc(url, { fetch });
@@ -80,7 +80,7 @@ eosdspconfig.httpEndpoint = `http://${process.env.NODEOS_HOST_DSP || 'localhost'
 var eosDSPGateway = new Eos(eosdspconfig);
 const forwardEvent = async(act, endpoint, redirect) => {
   if (redirect) { return endpoint; }
-
+  logger.debug("FORWARD: [%s:%s][%s:%s][%s]\tTXID:%s\tDATA:%s", act.receiver, act.method, act.event.etype, act.event.action || '---', endpoint, act.txid || 'NONE', act.event.data);
   const r = await fetch(endpoint + '/event', { method: 'POST', body: JSON.stringify(act) });
   await r.text();
 };
@@ -115,12 +115,12 @@ const resolveExternalProviderData = async(service, provider, packageid) => {
     'limit': 1
   };
   const packages = await rpc.get_table_rows(payload);
+  logger.info("PROVIDER PACKAGES: %j",packages);
   const result = packages.rows.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service);
   if (result.length === 0) { throw new Error(`resolveExternalProviderData failed ${provider} ${service} ${packageid}`); }
-
   return {
     internal: true,
-    endpoint: result.endpoint
+    endpoint: result[0].api_endpoint
   };
 };
 
@@ -255,6 +255,8 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi) => {
   const app = genApp();
   app.use(async(req, res, next) => {
     var uri = req.originalUrl;
+    logger.info("GATEWAY: %s\t[%s]", uri, req.ip);
+    
     var isServiceRequest = uri.indexOf('/event') == 0;
     var isServiceAPIRequest = uri.indexOf('/v1/dsp/') == 0;
     var uriParts = uri.split('/');
@@ -279,9 +281,11 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi) => {
     }, async function(err, string) {
       if (err) return next(err);
       var body = JSON.parse(string.toString());
+      
 
       if (isServiceRequest) {
         try {
+          logger.info("GATEWAY: [%s:%s][%s:%s]\tTXID:%s\tDATA:%s", body.receiver, body.method, body.event.etype, body.event.action || '---', body.event.txid || 'NONE', body.event.data);
           await processFn(actionHandlers, body, false, serviceName, handlers);
           res.send(JSON.stringify('ok'));
         }

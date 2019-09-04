@@ -414,7 +414,10 @@ void dispatchUsage(usage_t usage_report) {
 #define DAPPSERVICE_PROVIDER_ACTIONS                                               \
   template <typename T>                                                        \
   void _xsignal_provider(name actionName, name provider,name package, T signalData) {       \
-    auto payer = get_first_receiver();                                                        \
+    auto payer = get_first_receiver();  \
+    eosio::print(provider); \
+    eosio::print(":"); \
+    eosio::print(package);                                                       \
     std::vector<name> providers;                                               \
     if (provider != ""_n)                                                      \
       providers.push_back(provider);                                           \

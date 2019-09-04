@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const { TextDecoder, TextEncoder } = require('text-encoding');
+const logger = require('../../../extensions/helpers/logger');
 const WebSocket = require('ws');
 var pako = require('pako');
 
@@ -811,7 +812,7 @@ const loadEvents = async() => {
   return capturedEvents;
 };
 const handlers = {
-  'eosio': (account, method, code, actData, events) => {
+  'eosio': (txid, account, method, code, actData, events) => {
     // all methods
     if (method == 'onblock') {
       // console.log('.');
@@ -837,8 +838,9 @@ const handlers = {
   },
   '*': {
     '*': {
-      '*': async(account, method, code, actData, event) => {
+      '*': async(txid, account, method, code, actData, event) => {
         // load from model.
+
         var events = await loadEvents();
         var curr = events;
         if (!curr[event.etype]) return;
@@ -854,6 +856,7 @@ const handlers = {
             if (process.env.WEBHOOKS_HOST) {
               url = url.replace('http://localhost:', process.env.WEBHOOKS_HOST);
             }
+            event.txid = txid;
             var r = await fetch(url, {
               headers: {
                 'Content-Type': 'application/json'
@@ -878,7 +881,7 @@ const handlers = {
     }
   }
 };
-async function recursiveHandle({ account, method, code, actData, events }, depth = 0, currentHandlers = handlers) {
+async function recursiveHandle({ txid, account, method, code, actData, events }, depth = 0, currentHandlers = handlers) {
   if (depth == 3) { return; }
 
   var key = account;
@@ -889,7 +892,7 @@ async function recursiveHandle({ account, method, code, actData, events }, depth
         var currentEvent = key[i];
         var eventType = currentEvent.etype;
         if (!eventType) { continue; }
-        await recursiveHandle({ account, method, code, actData, events: currentEvent }, depth, currentHandlers);
+        await recursiveHandle({ txid, account, method, code, actData, events: currentEvent }, depth, currentHandlers);
       }
       return;
     }
@@ -907,10 +910,10 @@ async function recursiveHandle({ account, method, code, actData, events }, depth
 
   if (subHandler) {
     if (typeof subHandler === 'function') {
-      return await subHandler(account, method, code, actData, events);
+      return await subHandler(txid, account, method, code, actData, events);
     }
     else if (typeof subHandler === 'object') {
-      return recursiveHandle({ account, method, code, actData, events }, depth + 1, subHandler);
+      return recursiveHandle({ txid, account, method, code, actData, events }, depth + 1, subHandler);
     }
     else {
       console.log(`got action: ${code}.${method} ${account == code ? '' : `(${account})`} - ${JSON.stringify(events)}`);
@@ -921,7 +924,7 @@ async function recursiveHandle({ account, method, code, actData, events }, depth
   }
 }
 
-function parsedAction(account, method, code, actData, events) {
+function parsedAction(txid, account, method, code, actData, events) {
   var abi = abis[code];
   if (abi) {
     var localTypes = types = Serialize.getTypesFromAbi(types, abi);
@@ -937,7 +940,7 @@ function parsedAction(account, method, code, actData, events) {
       actData = theType.deserialize(buffer);
     }
   }
-  return recursiveHandle({ account, method, code, actData, events });
+  return recursiveHandle({ txid, account, method, code, actData, events });
 }
 
 async function parseEvents(text) {
@@ -950,20 +953,20 @@ async function parseEvents(text) {
   }).filter(a => a);
 }
 
-async function actionHandler(action) {
+async function actionHandler(txid,action) {
   if (Array.isArray(action)) { action = action[1]; }
-  await parsedAction(action.receipt[1].receiver, action.act.name, action.act.account, action.act.data, await parseEvents(action.console));
+  await parsedAction(txid,action.receipt[1].receiver, action.act.name, action.act.account, action.act.data, await parseEvents(action.console));
   if (action.inline_traces)
     for (var i = 0; i < action.inline_traces.length; i++) {
-      await actionHandler(action.inline_traces[i]);
+      await actionHandler(txid,action.inline_traces[i]);
     }
 }
 
 async function transactionHandler(tx) {
   var actionTraces = tx.action_traces;
   for (var i = 0; i < actionTraces.length; i++) {
-    var actionTrace = actionTraces[i];
-    await actionHandler(actionTrace);
+    var actionTrace = actionTraces[i];    
+    await actionHandler(tx.id,actionTrace);
   }
 }
 var c = 35000000;
@@ -1003,8 +1006,12 @@ ws.on('message', async function incoming(data) {
 
       var count = buffer2.getVaruint32();
       console.log('count', count);
+      
       for (var i = 0; i < count; i++) {
         const transactionTrace = types.get('transaction_trace').deserialize(buffer2);
+        //TODO: add DEMUX logging
+        //if(!JSON.stringify(transactionTrace[1]).includes("eosio")) logger.info("TRANSACTION: %j",transactionTrace[1]);
+        
         // console.log("transactionTrace", JSON.stringify(transactionTrace));
         await transactionHandler(transactionTrace[1]);
       }
