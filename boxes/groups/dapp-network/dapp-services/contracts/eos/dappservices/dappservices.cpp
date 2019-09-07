@@ -922,7 +922,7 @@ private:
       return res;
 
     // min notice
-    if (existingPkg->min_unstake_period > res)
+    if (existingPkg->min_unstake_period * 1000 > res)
       res = existingPkg->min_unstake_period * 1000;
 
     // todo: min commitment (mark package first start)

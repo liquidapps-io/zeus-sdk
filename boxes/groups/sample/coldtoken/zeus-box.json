@@ -10,7 +10,7 @@
   "dependencies":[
     "hooks-npm",
     "mocha","seed-eos", "seed-migrations", "hooks-cpp-contracts","eos-common",
-    "ipfs-dapp-service",
+    "all-dapp-services",
     "seed-models"],
   "install":{
     "contracts":{

@@ -8,11 +8,5 @@
   },
   "dependencies":[ "seed-extensions" ],
   "hooks": {
-  },
-  "install":{
-    "npm": {
-      "winston": "^3.2.1",
-      "winston-daily-rotate-file": "^3.10.0"
-    }
   }
 }

@@ -5,14 +5,13 @@ require('babel-polyfill');
 if (process.env.DAEMONIZE_PROCESS) { require('daemonize-process')(); }
 const path = require('path');
 const fs = require('fs');
-const logger = require('../../extensions/helpers/logger');
+
 const { loadModels } = require('../../extensions/tools/models');
 const { getCreateKeys } = require('../../extensions/helpers/key-utils');
 const { getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
 const { deserialize, generateABI, genNode, eosPrivate, paccount, forwardEvent, resolveProviderData, resolveProvider, resolveProviderPackage, paccountPermission } = require('./common');
 const handleRequest = async(handler, act, packageid, serviceName, abi) => {
   let { service, payer, provider, action, data } = act.event;
-  
   data = deserialize(abi, data, action);
   if (!data) { return; }
 
@@ -30,16 +29,14 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
     let key;
     if (!process.env.DSP_PRIVATE_KEY) { key = await getCreateKeys(paccount); }
     try {
-      let tx = await contract[response.action](response.payload, {
+      await contract[response.action](response.payload, {
         authorization: `${paccount}@${paccountPermission}`,
         broadcast: true,
         sign: true,
         keyProvider: [process.env.DSP_PRIVATE_KEY || key.active.privateKey]
       });
-      logger.debug("REQUEST\n%j\nRESPONSE: [%s]\n%j",act,tx.transaction_id,response);
     }
     catch (e) {
-      logger.warn("REQUEST\n%j\nRESPONSE: [FAILED]\n%j",act,e);
       if (e.toString().indexOf('duplicate') == -1) {
         console.log(`response error, could not call contract callback for ${response.action}`, e);
         throw e;
@@ -53,7 +50,6 @@ const actionHandlers = {
   'service_request': async(act, simulated, serviceName, handlers) => {
     let isReplay = act.replay;
     let { service, payer, provider, action, data } = act.event;
-
     var handler = handlers[action];
     var models = await loadModels('dapp-services');
     var model = models.find(m => m.name == serviceName);
@@ -65,13 +61,6 @@ const actionHandlers = {
     }
     provider = await resolveProvider(payer, service, provider);
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider);
-
-    if(provider != paccount) {
-      var providerData = await resolveProviderData(service, provider, packageid);
-      if (!providerData) { return; }
-      return await forwardEvent(act, providerData.endpoint, act.exception);      
-    }    
-
     if (!simulated) {
       if (!(getContractAccountFor(model) == service && handler)) { return; }
       await handleRequest(handler, act, packageid, serviceName, handlers.abi);
@@ -83,6 +72,10 @@ const actionHandlers = {
       await handleRequest(handler, act, packageid, serviceName, handlers.abi);
       return 'retry';
     }
+    var providerData = await resolveProviderData(service, provider, packageid);
+    if (!providerData) { return; }
+
+    return await forwardEvent(act, providerData.endpoint, act.exception);
   },
   'service_signal': async(act, simulated, serviceName, handlers) => {
     if (simulated) { return; }

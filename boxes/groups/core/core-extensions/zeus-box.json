@@ -17,8 +17,7 @@
       "unbox-extensions",
       "create-extensions",
       "hooks-extensions",
-      "update-extensions",
-      "log-extensions"
+      "update-extensions"
     ],
   "hooks": {
   }
