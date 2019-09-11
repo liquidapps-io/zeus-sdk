@@ -19,7 +19,7 @@ nodeFactory('vaccounts', {
             var service = loadedExtensions.find(a => a.name == "vaccounts").contract;
 
             var resolvedPackages = await resolveProviderPackage(contract_code, service, paccount);
-            // try {
+
             try {
 
                 var result = await contract.xvexec({
@@ -48,21 +48,7 @@ nodeFactory('vaccounts', {
                 }));
             }
 
-            // }
-            // catch (expectedError) {
-            //     if (typeof expectedError === "string") {
-            //         expectedError = JSON.parse(expectedError);
-            //     }
-            //     var resMsg = expectedError.error.details[0].message;
 
-            //     if (typeof(resMsg) === 'object') {
-            //         resMsg = resMsg.response.error.details
-            //     }
-            //     res.status(400);
-            //     console.error("error:", resMsg);
-            //     res.send(JSON.stringify({ error: resMsg.toString() }));
-
-            // }
         }
 
 

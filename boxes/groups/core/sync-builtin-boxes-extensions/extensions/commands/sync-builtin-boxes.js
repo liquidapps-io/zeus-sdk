@@ -72,8 +72,7 @@ function copyFileSync(source) {
     return;
   if (source.indexOf('/CMakeLists.txt') !== -1)
     return;
-  if (source.indexOf('/CMakeLists.txt') !== -1)
-    return;
+
   if (source.indexOf('/CMakeCache.txt') !== -1)
     return;
 

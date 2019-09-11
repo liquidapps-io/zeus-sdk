@@ -5,7 +5,7 @@ const { TextEncoder, TextDecoder } = require('util'); // node only; native TextE
 
 function getEosWrapper(config) {
     const defaults = {
-        expireSeconds: 30,
+        expireSeconds: 60,
         sign: true,
         broadcast: true,
         blocksBehind: 10
@@ -15,12 +15,9 @@ function getEosWrapper(config) {
         config.keyProvider = [config.keyProvider];
     const signatureProvider = config.keyProvider ? new JsSignatureProvider(config.keyProvider) : new JsSignatureProvider([]);
     const api = new Api({ rpc, signatureProvider, textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
-    api.getTableRows = (payload => {
-        return rpc.get_table_rows(payload);
-    });
-    api.get_info = (payload => {
-        return rpc.get_info(payload);
-    });
+
+    api.getTableRows = (payload) => rpc.get_table_rows(payload);
+    api.get_info = (payload) => rpc.get_info(payload);
 
     api.contract = (async(config, account) => {
         const contractObj = await api.getContract(account);
