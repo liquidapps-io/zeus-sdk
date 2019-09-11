@@ -9,12 +9,11 @@ const getDefaultArgs = require('../../extensions/helpers/getDefaultArgs');
 BigNumber.config({ ROUNDING_MODE: BigNumber.ROUND_FLOOR }); // equivalent
 
 const multihash = require('multihashes');
-const Eos = require('eosjs');
 
 const eos = eosPrivate;
 var ipfs = new IPFS({ host: process.env.IPFS_HOST || 'localhost', port: process.env.IPFS_PORT || 5001, protocol: process.env.IPFS_PROTOCOL || 'http' });
 
-const eosjs2 = require('../demux/eosjs2');
+const eosjs2 = require('eosjs');
 const { JsonRpc } = eosjs2;
 const fetch = require('node-fetch');
 

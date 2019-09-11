@@ -4,7 +4,6 @@ require('babel-polyfill');
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork } = require('../extensions/tools/eos/utils');
-var Eos = require('eosjs');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 const fetch = require('node-fetch');
 
@@ -31,33 +30,19 @@ function postData(url = ``, data = {}) {
 }
 var contractCode = 'readfnconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
-describe(`READFN Service Test Contract`, () => {
+describe(`History Service Test Contract`, () => {
   var testcontract;
   const code = 'test1';
-  var endpoint;
+  var endpoint = "http://localhost:13015";
 
   before(done => {
     (async() => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
         await genAllocateDAPPTokens(deployedContract, 'readfn');
-        // create token
-        var selectedNetwork = getNetwork(getDefaultArgs());
-        var config = {
-          expireInSeconds: 120,
-          sign: true,
-          chainId: selectedNetwork.chainId
-        };
-        if (account) {
-          var keys = await getCreateKeys(account);
-          config.keyProvider = keys.active.privateKey;
-        }
-        var eosvram = deployedContract.eos;
-        config.httpEndpoint = 'http://localhost:13015';
-        eosvram = new Eos(config);
-        endpoint = config.httpEndpoint;
 
-        testcontract = await eosvram.contract(code);
+        const { getTestContract } = require('../extensions/tools/eos/utils');
+        testcontract = await getTestContract(code);
         done();
       }
       catch (e) {

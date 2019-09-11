@@ -1,4 +1,6 @@
 const { getCreateKeys } = require('../../helpers/key-utils');
+const { getEos } = require('./utils');
+
 const { loadModels } = require('../models');
 const fetch = require('node-fetch');
 
@@ -27,16 +29,14 @@ async function genAllocateDAPPTokensInner(deployedContract, serviceName, provide
   var service = getContractAccountFor(model);
 
   var contract = deployedContract.address;
-  let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
-
+  var eos = await getEos(contract);
+  let servicesTokenContract = await eos.contract(dappServicesContract);
   await servicesTokenContract.issue({
     to: contract,
     quantity: '1000.0000 DAPP',
     memo: `${provider}`
   }, {
     authorization: `${dappServicesContract}@active`,
-    broadcast: true,
-    sign: true,
     keyProvider: [key.active.privateKey]
   });
 
@@ -47,8 +47,6 @@ async function genAllocateDAPPTokensInner(deployedContract, serviceName, provide
     'package': selectedPackage
   }, {
     authorization: `${contract}@active`,
-    broadcast: true,
-    sign: true
   });
   await servicesTokenContract.stake({
     from: contract,
@@ -57,11 +55,9 @@ async function genAllocateDAPPTokensInner(deployedContract, serviceName, provide
     quantity: '500.0000 DAPP'
   }, {
     authorization: `${contract}@active`,
-    broadcast: true,
-    sign: true
   });
 
-  await deployedContract.eos.updateauth({
+  await (await deployedContract.eos.contract('eosio')).updateauth({
     account: contract,
     permission: 'dsp',
     parent: 'active',
@@ -70,8 +66,9 @@ async function genAllocateDAPPTokensInner(deployedContract, serviceName, provide
       keys: [],
       accounts: [{
         permission: { actor: provider, permission: 'active' },
-        weight: 1
-      }]
+        weight: 1,
+      }],
+      waits: []
     }
   }, { authorization: `${contract}@active` });
 }

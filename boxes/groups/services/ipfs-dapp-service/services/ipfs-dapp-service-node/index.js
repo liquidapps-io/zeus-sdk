@@ -1,5 +1,5 @@
 var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
-const { deserialize, eosPrivate } = require('../dapp-services-node/common');
+const { deserialize, eosPrivate, encodeName, decodeName } = require('../dapp-services-node/common');
 var IPFS = require('ipfs-api');
 const { BigNumber } = require('bignumber.js');
 var sha256 = require('js-sha256').sha256;
@@ -9,12 +9,11 @@ const getDefaultArgs = require('../../extensions/helpers/getDefaultArgs');
 BigNumber.config({ ROUNDING_MODE: BigNumber.ROUND_FLOOR }); // equivalent
 
 const multihash = require('multihashes');
-const Eos = require('eosjs');
 
 const eos = eosPrivate;
 var ipfs = new IPFS({ host: process.env.IPFS_HOST || 'localhost', port: process.env.IPFS_PORT || 5001, protocol: process.env.IPFS_PROTOCOL || 'http' });
 
-const eosjs2 = require('../demux/eosjs2');
+const eosjs2 = require('eosjs');
 const { JsonRpc } = eosjs2;
 const fetch = require('node-fetch');
 
@@ -187,11 +186,11 @@ const stringToName = (str) => {
     return Buffer.from(fixedPaddedNum, 'hex');
   }
   if (isUpperCase(str)) { return stringToSymbol(str); }
-  return Buffer.from(new BigNumber(Eos.modules.format.encodeName(str).toString()).toString(16), 'hex');
+  return Buffer.from(new BigNumber(encodeName(str).toString()).toString(16), 'hex');
 };
 const nameToString = (name) => {
   const tmp = new BigNumber(name.toString('hex'), 16);
-  return Eos.modules.format.decodeName(tmp.toString(), true);
+  return decodeName(tmp.toString(), true);
 };
 const parseBucket = async(bucketRawData) => {
   const bucket = {};
@@ -242,13 +241,13 @@ const deserializeRow = async(contract, table, rowRaw) => {
   // get abi
   const abi = await eos.getAbi(contract);
 
-  const abiTable = abi.abi.tables.find(a => a.name == '.' + table);
+  const abiTable = abi.tables.find(a => a.name == '.' + table);
   if (!abiTable) {
     console.error('abi not found', table);
     return;
   }
   const structName = abiTable.type;
-  return deserialize(abi.abi.structs, rowRaw, structName);
+  return deserialize(abi.structs, rowRaw, structName);
 };
 
 async function verifyIPFSConnection() {

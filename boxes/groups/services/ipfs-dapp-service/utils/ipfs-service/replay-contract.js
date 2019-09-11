@@ -8,10 +8,9 @@ const blockCount = process.env.BLOCK_COUNT_PER_QUERY || 1000000;
 let rpc = new JsonRpc(`https://${dfuse_endpoint}`, { fetch, token });
 
 const contractAccount = process.env.CONTRACT;
-const Eos = require('eosjs');
 const endpoint = `http${process.env.NODEOS_SECURED == 'true' ? 's' : ''}://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_PORT || '13115'}`;
 const url = `${endpoint}/event`;
-const { Serialize } = require('../../services/demux/eosjs2');
+const { Serialize } = require('eosjs');
 const { TextDecoder, TextEncoder } = require('text-encoding');
 const { hexToUint8Array, arrayToHex } = Serialize;
 
@@ -22,7 +21,7 @@ var eosconfig = {
   chainId: process.env.NODEOS_CHAINID
 };
 
-const toHHMMSS = function (sec_num) {
+const toHHMMSS = function(sec_num) {
   var hours = Math.floor(sec_num / 3600);
   var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
   var seconds = sec_num - (hours * 3600) - (minutes * 60);
@@ -32,25 +31,26 @@ const toHHMMSS = function (sec_num) {
   if (seconds < 10) { seconds = '0' + seconds; }
   return hours + ':' + minutes + ':' + seconds;
 };
-const handleTrace = async (action_trace) => {
+const handleTrace = async(action_trace) => {
   res.push(action_trace);
 };
 const searchQuery = `receiver:${contractAccount}`;
 
-const handleTraces = async (action_trace) => {
+const handleTraces = async(action_trace) => {
   await handleTrace(action_trace);
   if (!action_trace.inline_traces) { return; }
   for (var i = 0; i < action_trace.inline_traces.length; i++) { await handleTraces(action_trace.inline_traces[i]); }
 };
 
-const handleSingleTrx = async (trx) => {
+const handleSingleTrx = async(trx) => {
   for (var i = 0; i < trx.execution_trace.action_traces.length; i++) { await handleTraces(trx.execution_trace.action_traces[i]); }
 };
-const getTransactions = async (handle, startat, cursor) => {
+const getTransactions = async(handle, startat, cursor) => {
   var response;
   try {
     response = await rpc.search_transactions(searchQuery, { start_block: startat, sort: 'asc', block_count: blockCount, cursor, limit: 100 });
-  } catch (e) {
+  }
+  catch (e) {
     console.log(e);
     e.response.body.pipe(process.stdout);
     return;
@@ -65,12 +65,11 @@ const getTransactions = async (handle, startat, cursor) => {
 };
 var cnt = 0;
 var totalSize = 0;
-// var eosPrivate = new Eos(eosconfig);
 var start = new Date();
 var remainingTime;
 var passedTime;
 var speed;
-async function replay (hexData) {
+async function replay(hexData) {
   if (hexData.length == 0) { return; }
   var buffer = new Serialize.SerialBuffer({
     textEncoder: new TextEncoder(),
@@ -137,7 +136,7 @@ async function replay (hexData) {
 }
 var c = 0;
 
-function chunk (arr, len) {
+function chunk(arr, len) {
   var chunks = [];
   var i = 0;
   var n = arr.length;
@@ -152,7 +151,7 @@ var res = [];
 var tempToken = null;
 
 let lastBlock = 45419901;
-async function run (lower_bound) {
+async function run(lower_bound) {
   const response = await rpc.auth_issue(token);
   tempToken = response.token;
   rpc = new JsonRpc(`https://${dfuse_endpoint}`, { fetch, token: tempToken });
@@ -177,11 +176,12 @@ async function run (lower_bound) {
             try {
               const event = JSON.parse(line);
               events.push(event);
-            } catch (e) {}
+            }
+            catch (e) {}
           });
         });
         var commits = events.filter(a => a.etype === 'service_request' && a.service === 'ipfsservice1' &&
-                    (a.action === 'commit' || a.action === 'cleanup')).map(a => a.data);
+          (a.action === 'commit' || a.action === 'cleanup')).map(a => a.data);
         commits = [...new Set(commits)];
 
         var chunks = chunk(commits, 5);

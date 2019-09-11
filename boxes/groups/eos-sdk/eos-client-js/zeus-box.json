@@ -10,9 +10,8 @@
     "npm-in-dirs":{
       "frontends/main":{
         "npm": {
-          "eosjs@16.0.9": true,
-          "eosjs-ecc": true,
-          "eosjs2": true
+          "eosjs@20.0.0": true,
+          "eosjs-ecc": true
         }
       }
     }

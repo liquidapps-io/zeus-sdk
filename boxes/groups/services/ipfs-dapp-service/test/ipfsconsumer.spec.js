@@ -4,7 +4,7 @@ require('babel-polyfill');
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork } = require('../extensions/tools/eos/utils');
-var Eos = require('eosjs');
+const { getEosWrapper } = require('../extensions/tools/eos/eos-wrapper');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 
 const artifacts = require('../extensions/tools/eos/artifacts');
@@ -37,7 +37,7 @@ describe(`IPFS Service Test Contract`, () => {
         }
         eosvram = deployedContract.eos;
         config.httpEndpoint = 'http://localhost:13015';
-        eosvram = new Eos(config);
+        eosvram = getEosWrapper(config);
 
         testcontract = await eosvram.contract(code);
         done();
@@ -55,13 +55,11 @@ describe(`IPFS Service Test Contract`, () => {
         var res = await testcontract.testset({
           data: {
             field1: 123,
-            field2: 'hello-world',
+            field2: new Buffer('hello-world').toString('hex'),
             field3: 312
           }
         }, {
           authorization: `${code}@active`,
-          broadcast: true,
-          sign: true
         });
         // var eventResp = JSON.parse(res.processed.action_traces[0].console);
         // assert.equal(eventResp.etype, "service_request", "wrong etype");
@@ -80,12 +78,10 @@ describe(`IPFS Service Test Contract`, () => {
     (async() => {
       try {
         var res = await testcontract.testget({
-          uri: 'ipfs://zb2rhnaYrUde9d7h13vHTXeWcBJcBpEFdMgAcbXbFfM5aQxgK',
+          uri: 'ipfs://zb2rhnyodRMHNeY4iaSVXzVhtFmYdWxsvddrhzhWZFUMiZdrd',
           expectedfield: 123
         }, {
           authorization: `${code}@active`,
-          broadcast: true,
-          sign: true
         });
         // var eventResp = JSON.parse(res.processed.action_traces[0].console);
         // assert.equal(eventResp.etype, "service_request", "wrong etype");
@@ -104,20 +100,14 @@ describe(`IPFS Service Test Contract`, () => {
       try {
         await testcontract.increment({ somenumber: 1 }, {
           authorization: `${code}@active`,
-          broadcast: true,
-          sign: true
         });
 
         await testcontract.increment({ somenumber: 5 }, {
           authorization: `${code}@active`,
-          broadcast: true,
-          sign: true
         });
 
         await testcontract.increment({ somenumber: 6 }, {
           authorization: `${code}@active`,
-          broadcast: true,
-          sign: true
         });
 
         let table = await eosvram.getTableRows({
@@ -138,16 +128,12 @@ describe(`IPFS Service Test Contract`, () => {
           id: 555
         }, {
           authorization: `${code}@active`,
-          broadcast: true,
-          sign: true
         });
 
         await testcontract.testindexa({
           id: 20
         }, {
           authorization: `${code}@active`,
-          broadcast: true,
-          sign: true
         });
 
         table = await eosvram.getTableRows({
@@ -178,8 +164,6 @@ describe(`IPFS Service Test Contract`, () => {
         try {
           await testcontract.testresize({}, {
             authorization: `${code}@active`,
-            broadcast: true,
-            sign: true
           });
         }
         catch (e) {
@@ -204,8 +188,6 @@ describe(`IPFS Service Test Contract`, () => {
           id: 12345
         }, {
           authorization: `${code}@active`,
-          broadcast: true,
-          sign: true
         });
 
         var tableRes = await readVRAMData({
@@ -233,8 +215,6 @@ describe(`IPFS Service Test Contract`, () => {
           delay_sec: 15
         }, {
           authorization: `${code}@active`,
-          broadcast: true,
-          sign: true
         });
         await testcontract.testdelay({
           id: 52343,
@@ -242,8 +222,6 @@ describe(`IPFS Service Test Contract`, () => {
           delay_sec: 15
         }, {
           authorization: `${code}@active`,
-          broadcast: true,
-          sign: true
         });
         await testcontract.testdelay({
           id: 52343,
@@ -251,8 +229,6 @@ describe(`IPFS Service Test Contract`, () => {
           delay_sec: 5
         }, {
           authorization: `${code}@active`,
-          broadcast: true,
-          sign: true
         });
 
         var tableRes = await readVRAMData({
@@ -276,8 +252,6 @@ describe(`IPFS Service Test Contract`, () => {
           delay_sec: 2
         }, {
           authorization: `${code}@active`,
-          broadcast: true,
-          sign: true
         });
         await testcontract.testdelay({
           id: 52343,
@@ -285,8 +259,6 @@ describe(`IPFS Service Test Contract`, () => {
           delay_sec: 1
         }, {
           authorization: `${code}@active`,
-          broadcast: true,
-          sign: true
         });
 
         tableRes = await readVRAMData({

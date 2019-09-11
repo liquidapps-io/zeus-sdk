@@ -4,16 +4,19 @@ const fetch = require('node-fetch');
 const { dappServicesContract, getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
 const { loadModels } = require('../../extensions/tools/models');
 const { getUrl } = require('../../extensions/tools/eos/utils');
+const { getEosWrapper } = require('../../extensions/tools/eos/eos-wrapper');
 const getDefaultArgs = require('../../extensions/helpers/getDefaultArgs');
-
-const Eos = require('eosjs');
 const bodyParser = require('body-parser');
 const express = require('express');
 const cors = require('cors');
 const httpProxy = require('http-proxy');
 const { BigNumber } = require('bignumber.js');
-const eosjs2 = require('../demux/eosjs2');
-const { JsonRpc } = eosjs2;
+const logger = require('../../extensions/helpers/logger');
+const eosjs2 = require('eosjs');
+const { Serialize, JsonRpc } = eosjs2;
+const { TextDecoder, TextEncoder } = require('text-encoding');
+const { Long } = require('bytebuffer')
+
 
 var url = getUrl(getDefaultArgs());
 const rpc = new JsonRpc(url, { fetch });
@@ -70,17 +73,114 @@ proxy.on('error', function(err, req, res) {
 
   res.end('DSP Proxy error.');
 });
+const charmap = '.12345abcdefghijklmnopqrstuvwxyz'
+const charidx = ch => {
+  const idx = charmap.indexOf(ch)
+  if (idx === -1)
+    throw new TypeError(`Invalid character: '${ch}'`)
+
+  return idx
+}
+
+function encodeName(name, littleEndian = true) {
+  if (typeof name !== 'string')
+    throw new TypeError('name parameter is a required string')
+
+  if (name.length > 12)
+    throw new TypeError('A name can be up to 12 characters long')
+
+  let bitstr = ''
+  for (let i = 0; i <= 12; i++) { // process all 64 bits (even if name is short)
+    const c = i < name.length ? charidx(name[i]) : 0
+    const bitlen = i < 12 ? 5 : 4
+    let bits = Number(c).toString(2)
+    if (bits.length > bitlen) {
+      throw new TypeError('Invalid name ' + name)
+    }
+    bits = '0'.repeat(bitlen - bits.length) + bits
+    bitstr += bits
+  }
+
+  const value = Long.fromString(bitstr, true, 2)
+
+  // convert to LITTLE_ENDIAN
+  let leHex = ''
+  const bytes = littleEndian ? value.toBytesLE() : value.toBytesBE()
+  for (const b of bytes) {
+    const n = Number(b).toString(16)
+    leHex += (n.length === 1 ? '0' : '') + n
+  }
+
+  const ulName = Long.fromString(leHex, true, 16).toString()
+
+  // console.log('encodeName', name, value.toString(), ulName.toString(), JSON.stringify(bitstr.split(/(.....)/).slice(1)))
+
+  return ulName.toString()
+}
+
+function ULong(value, unsigned = true, radix = 10) {
+  if (typeof value === 'number') {
+    // Some JSON libs use numbers for values under 53 bits or strings for larger.
+    // Accomidate but double-check it..
+    if (value > Number.MAX_SAFE_INTEGER)
+      throw new TypeError('value parameter overflow')
+
+    value = Long.fromString(String(value), unsigned, radix)
+  }
+  else if (typeof value === 'string') {
+    value = Long.fromString(value, unsigned, radix)
+  }
+  else if (!Long.isLong(value)) {
+    throw new TypeError('value parameter is a requied Long, Number or String')
+  }
+  return value
+}
+
+function decodeName(value, littleEndian = true) {
+  value = ULong(value)
+
+  // convert from LITTLE_ENDIAN
+  let beHex = ''
+  const bytes = littleEndian ? value.toBytesLE() : value.toBytesBE()
+  for (const b of bytes) {
+    const n = Number(b).toString(16)
+    beHex += (n.length === 1 ? '0' : '') + n
+  }
+  beHex += '0'.repeat(16 - beHex.length)
+
+  const fiveBits = Long.fromNumber(0x1f, true)
+  const fourBits = Long.fromNumber(0x0f, true)
+  const beValue = Long.fromString(beHex, true, 16)
+
+  let str = ''
+  let tmp = beValue
+
+  for (let i = 0; i <= 12; i++) {
+    const c = charmap[tmp.and(i === 0 ? fourBits : fiveBits)]
+    str = c + str
+    tmp = tmp.shiftRight(i === 0 ? 4 : 5)
+  }
+  str = str.replace(/\.+$/, '') // remove trailing dots (all of them)
+
+  // console.log('decodeName', str, beValue.toString(), value.toString(), JSON.stringify(beValue.toString(2).split(/(.....)/).slice(1)))
+
+  return str
+}
+
 
 // const nameToString = (name) => {
 //     const tmp = new BigNumber(name.toString('hex'), 16);
-//     return Eos.modules.format.decodeName(tmp.toString(), true);
+//     return decodeName(tmp.toString(), true);
 // }
-var eosPrivate = new Eos(eosconfig);
+var eosPrivate = getEosWrapper(eosconfig);
 eosdspconfig.httpEndpoint = `http://${process.env.NODEOS_HOST_DSP || 'localhost'}:${process.env.NODEOS_HOST_DSP_PORT || process.env.DSP_PORT || 13015}`;
-var eosDSPGateway = new Eos(eosdspconfig);
+var eosDSPGateway = getEosWrapper(eosdspconfig);
+
+
+
 const forwardEvent = async(act, endpoint, redirect) => {
   if (redirect) { return endpoint; }
-
+  logger.debug("FORWARD: [%s:%s][%s:%s][%s]\tTXID:%s\tDATA:%s", act.receiver, act.method, act.event.etype, act.event.action || '---', endpoint, act.txid || 'NONE', act.event.data);
   const r = await fetch(endpoint + '/event', { method: 'POST', body: JSON.stringify(act) });
   await r.text();
 };
@@ -115,12 +215,12 @@ const resolveExternalProviderData = async(service, provider, packageid) => {
     'limit': 1
   };
   const packages = await rpc.get_table_rows(payload);
+  logger.info("PROVIDER PACKAGES: %j",packages);
   const result = packages.rows.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service);
   if (result.length === 0) { throw new Error(`resolveExternalProviderData failed ${provider} ${service} ${packageid}`); }
-
   return {
     internal: true,
-    endpoint: result.endpoint
+    endpoint: result[0].api_endpoint
   };
 };
 
@@ -129,10 +229,10 @@ const resolveProviderData = async(service, provider, packageid) =>
 
 const getSvcProviderPkgKey = (service, provider, packageid) => {
   // package_id service.value, provider.value
-  var encodedProvider = new BigNumber(Eos.modules.format.encodeName(provider, true));
-  var encodedService = new BigNumber(Eos.modules.format.encodeName(service, true));
+  var encodedProvider = new BigNumber(encodeName(provider, true));
+  var encodedService = new BigNumber(encodeName(service, true));
   var encodedNone = new BigNumber(0);
-  var encodedPackage = new BigNumber(Eos.modules.format.encodeName(packageid, true));
+  var encodedPackage = new BigNumber(encodeName(packageid, true));
   encodedService = (toBound(encodedService.toString(16), 8));
   encodedProvider = (toBound(encodedProvider.toString(16), 8));
   encodedPackage = (toBound(encodedPackage.toString(16), 8));
@@ -140,8 +240,8 @@ const getSvcProviderPkgKey = (service, provider, packageid) => {
   return encodedPackage + encodedNone + encodedProvider + encodedService;
 };
 const getSvcPayerKey = (payer, service) => {
-  var encodedPayer = new BigNumber(Eos.modules.format.encodeName(payer, true));
-  var encodedService = new BigNumber(Eos.modules.format.encodeName(service, true));
+  var encodedPayer = new BigNumber(encodeName(payer, true));
+  var encodedService = new BigNumber(encodeName(service, true));
   encodedService = (toBound(encodedService.toString(16), 8));
   encodedPayer = (toBound(encodedPayer.toString(16), 8));
   return '0x' + encodedService + encodedPayer;
@@ -255,6 +355,8 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi) => {
   const app = genApp();
   app.use(async(req, res, next) => {
     var uri = req.originalUrl;
+    logger.info("GATEWAY: %s\t[%s]", uri, req.ip);
+    
     var isServiceRequest = uri.indexOf('/event') == 0;
     var isServiceAPIRequest = uri.indexOf('/v1/dsp/') == 0;
     var uriParts = uri.split('/');
@@ -279,9 +381,11 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi) => {
     }, async function(err, string) {
       if (err) return next(err);
       var body = JSON.parse(string.toString());
+      
 
       if (isServiceRequest) {
         try {
+          logger.info("GATEWAY: [%s:%s][%s:%s]\tTXID:%s\tDATA:%s", body.receiver, body.method, body.event.etype, body.event.action || '---', body.event.txid || 'NONE', body.event.data);
           await processFn(actionHandlers, body, false, serviceName, handlers);
           res.send(JSON.stringify('ok'));
         }
@@ -411,8 +515,6 @@ const genApp = () => {
   app.use(bodyParser.json());
   return app;
 };
-const { Serialize } = require('../demux/eosjs2');
-const { TextDecoder, TextEncoder } = require('text-encoding');
 const fullabi = (abi) => {
   return {
     'version': 'eosio::abi/1.0',
@@ -479,4 +581,4 @@ const generateABI =
   (serviceModel) =>
   Object.keys(serviceModel.commands).map(c => generateCommandABI(c, serviceModel.commands[c]));
 
-module.exports = { deserialize, generateABI, genNode, genApp, forwardEvent, resolveProviderData, resolveProvider, processFn, handleAction, paccount, proxy, eosPrivate, eosconfig, nodeosEndpoint, resolveProviderPackage, eosDSPGateway, paccountPermission };
+module.exports = { deserialize, generateABI, genNode, genApp, forwardEvent, resolveProviderData, resolveProvider, processFn, handleAction, paccount, proxy, eosPrivate, eosconfig, nodeosEndpoint, resolveProviderPackage, eosDSPGateway, paccountPermission, encodeName, decodeName };

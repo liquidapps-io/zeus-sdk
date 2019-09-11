@@ -42,22 +42,9 @@ describe(`${contractCode} Contract`, () => {
             try {
                 var deployedContract = await deployer.deploy(ctrt, code);
                 await genAllocateDAPPTokens(deployedContract, serviceName);
-                // create token
-                var selectedNetwork = getNetwork(getDefaultArgs());
-                var config = {
-                    expireInSeconds: 120,
-                    sign: true,
-                    chainId: selectedNetwork.chainId
-                };
-                if (account) {
-                    var keys = await getCreateKeys(account);
-                    config.keyProvider = keys.active.privateKey;
-                }
-                var eosvram = deployedContract.eos;
-                config.httpEndpoint = 'http://localhost:13015';
-                eosvram = new Eos(config);
+                const { getTestContract } = require('../extensions/tools/eos/utils');
+                testcontract = await getTestContract(code);
 
-                testcontract = await eosvram.contract(code);
                 const { Resolver } = require('dns');
                 const resolver = new Resolver();
                 resolver.setServers(['127.0.0.1:5343']);

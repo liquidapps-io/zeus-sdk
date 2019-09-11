@@ -48,7 +48,7 @@ module.exports = {
     }).demandOption(['key', 'api-endpoint', 'package-json-uri']);
   },
   command: `${cmd} <service> <provider> <package-id>`,
-  handler: async (args) => {
+  handler: async(args) => {
     var key = args.key;
     var models = await loadModels('dapp-services');
     var serviceModel = models.find(a => a.name == args['service']);
@@ -64,7 +64,7 @@ module.exports = {
           provider: args['provider'],
           api_endpoint: args['api-endpoint'],
           package_json_uri: args['package-json-uri'],
-          enabled: 0,
+          enabled: false,
           service: serviceContract,
           package_id: args['package-id'],
           quota: `${args['quota']} QUOTA`,
@@ -92,7 +92,8 @@ module.exports = {
         sign: true,
         keyProvider: [key]
       });
-    } catch (e) {
+    }
+    catch (e) {
       console.log(emojMap.white_frowning_face + 'failed', e);
       return;
     }

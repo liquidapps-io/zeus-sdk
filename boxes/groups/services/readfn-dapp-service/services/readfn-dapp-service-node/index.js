@@ -37,11 +37,15 @@ nodeFactory('readfn', {
             expectedError = JSON.parse(expectedError);
           }
           var resMsg = expectedError.error.details[0].message;
+
+          if (typeof(resMsg) === 'object') {
+            resMsg = resMsg.response.error.details
+          }
+
           var parsedMsg = resMsg.split("assertion failure with message: rfn:", 2);
           if (parsedMsg.length != 2)
             throw new Error(resMsg);
           var result = parsedMsg[1];
-          console.log("result", result);
           res.send(JSON.stringify({ result }));
           return;
         }

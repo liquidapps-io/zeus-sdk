@@ -139,7 +139,7 @@ const randomHandler = async({ proto, address }) => {
   const parts = address.split('/');
   const range = parseInt(parts[0]);
 
-  return Math.floor(Math.random() * range).toString();
+  return new Buffer(Math.floor(Math.random() * range).toString());
 };
 const sisterChainBlocksHandler = async({ proto, address }) => {
   // sister_chain_block://chain/id/field

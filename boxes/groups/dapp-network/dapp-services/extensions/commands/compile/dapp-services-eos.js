@@ -50,7 +50,7 @@ public:
   typedef eosio::multi_index<"providermdl"_n, providermdl> providermodels_t;  
 
  [[eosio::action]] void xsignal(name service, name action,
-                 name provider, name package, std::vector<char> signalRawData) {
+                 name provider, name package, std::vector<char> signalRawData, eosio::binary_extension <std::string> request_id) {
     if (current_receiver() != service || _self != service) 
       return;
     require_auth(get_first_receiver());
@@ -175,7 +175,7 @@ const generateCommandCodeText = (serviceName, commandName, commandModel, service
          ${fnArgs(commandModel.signal)}, \
          ${fnArgs(commandModel.callback)},"${serviceContract}"_n) { \
     _${serviceName}_${commandName}(${fnPassArgs({ ...commandModel.callback, 'current_provider': 'name' })}); \
-    SEND_SVC_SIGNAL(${commandName}, current_provider, package, ${fnPassArgs(commandModel.signal)})                         \
+    SEND_SVC_SIGNAL(${commandName}, current_provider, package, request_id, ${fnPassArgs(commandModel.signal)})                         \
 };`;
 };
 

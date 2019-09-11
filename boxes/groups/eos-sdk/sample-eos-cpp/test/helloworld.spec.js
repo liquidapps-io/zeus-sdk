@@ -15,9 +15,9 @@ describe(`${code} Contract`, () => {
   };
 
   it(`${code} - hi`, done => {
-    (async () => {
+    (async() => {
       var helloworldContractInstance = await deployer.deploy(contract, code);
-      return helloworldContractInstance.contractInstance.hi(123, _selfopts);
+      return helloworldContractInstance.contractInstance.hi({ number: 123 }, _selfopts);
     })().then(() => done(), (err) => done(err));
   });
 });

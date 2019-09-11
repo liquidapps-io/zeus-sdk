@@ -4,13 +4,13 @@ require('babel-polyfill');
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork, getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
-var Eos = require('eosjs');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
 const { dappServicesContract, testProvidersList } = require('../extensions/tools/eos/dapp-services');
 const { loadModels } = require('../extensions/tools/models');
+const { getEosWrapper } = require('../extensions/tools/eos/eos-wrapper');
 
 var contractCode = 'ipfsconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
@@ -33,19 +33,19 @@ var generateModel = (commandNames, cost_per_action = 1) => {
 async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccount = null, package_id = 'default', quota = '1.0000', min_stake_quantity = '1.0000', min_unstake_period = 2, package_period = 5, cost_per_action = 1, provider = 'pprovider1' }) {
   var models = await loadModels('dapp-services');
   var serviceModel = models.find(a => a.name == serviceName);
-  var deployedServices = await deployer.deploy(servicesC, servicescontract);
-
-  var key = await getCreateAccount(provider);
+  await deployer.deploy(servicesC, servicescontract);
+  var eos = await getEos(provider)
+  var contractInstance = await eos.contract(servicescontract);
   var serviceContract = serviceContractAccount || serviceModel.contract;
 
   // reg provider packages
-  await deployedServices.contractInstance.regpkg({
+  await contractInstance.regpkg({
     newpackage: {
       id: 0,
       provider,
       api_endpoint: `oopshttp://localhost:${serviceModel.port}`,
       package_json_uri: 'http://someuri/dsp-package1.json',
-      enabled: 0,
+      enabled: false,
       service: serviceContract,
       package_id,
       quota: `${quota} QUOTA`,
@@ -55,12 +55,8 @@ async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccou
     }
   }, {
     authorization: `${provider}@active`,
-    broadcast: true,
-    sign: true,
-    keyProvider: [key.active.privateKey]
   });
-
-  await deployedServices.contractInstance.modifypkg({
+  await contractInstance.modifypkg({
     provider,
     api_endpoint: `http://localhost:${serviceModel.port}`,
     package_json_uri: '',
@@ -68,16 +64,13 @@ async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccou
     package_id
   }, {
     authorization: `${provider}@active`,
-    broadcast: true,
-    sign: true,
-    keyProvider: [key.active.privateKey]
   });
 
   // reg provider and model model
   var serviceC = artifacts.require(`./${serviceName}service/`);
   var deployedService = await deployer.deploy(serviceC, serviceContract);
-
-  await deployedService.contractInstance.regprovider({
+  contractInstance = await eos.contract(serviceContract);
+  await contractInstance.regprovider({
     provider,
     model: {
       package_id,
@@ -85,17 +78,14 @@ async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccou
     }
   }, {
     authorization: `${provider}@active`,
-    broadcast: true,
-    sign: true,
-    keyProvider: [key.active.privateKey]
   });
 
   return deployedService;
 }
 
 async function allocateDAPPTokens(deployedContract, quantity = '1000.0000 DAPP') {
-  var key = await getCreateKeys(dappServicesContract);
-  let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
+  var eos = await getEos(dappServicesContract);
+  let servicesTokenContract = await eos.contract(dappServicesContract);
   var contract = deployedContract.address;
   await servicesTokenContract.issue({
     to: contract,
@@ -103,16 +93,14 @@ async function allocateDAPPTokens(deployedContract, quantity = '1000.0000 DAPP')
     memo: ''
   }, {
     authorization: `${dappServicesContract}@active`,
-    broadcast: true,
-    sign: true,
-    keyProvider: [key.active.privateKey]
   });
 }
 async function selectPackage({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1', selectedPackage = 'default' }) {
   var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
   var service = model.contract;
-  let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
   var contract = deployedContract.address;
+  var eos = await getEos(contract);
+  let servicesTokenContract = await eos.contract(dappServicesContract);
   await servicesTokenContract.selectpkg({
     owner: contract,
     provider,
@@ -120,8 +108,6 @@ async function selectPackage({ deployedContract, serviceName = 'ipfs', provider 
     'package': selectedPackage
   }, {
     authorization: `${contract}@active`,
-    broadcast: true,
-    sign: true
   });
 }
 
@@ -129,7 +115,8 @@ async function stake({ deployedContract, serviceName = 'ipfs', provider = 'pprov
   var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
   var service = model.contract;
   var contract = deployedContract.address;
-  let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
+  var eos = await getEos(contract);
+  let servicesTokenContract = await eos.contract(dappServicesContract);
   await servicesTokenContract.stake({
     from: contract,
     service,
@@ -137,8 +124,6 @@ async function stake({ deployedContract, serviceName = 'ipfs', provider = 'pprov
     quantity: `${amount} DAPP`
   }, {
     authorization: `${contract}@active`,
-    broadcast: true,
-    sign: true
   });
 }
 
@@ -147,7 +132,8 @@ async function staketo({ deployedPayer, deployedContract, serviceName = 'ipfs', 
   var service = model.contract;
   var contract = deployedContract.address;
   var payer = deployedPayer.address;
-  let servicesTokenContract = await deployedPayer.eos.contract(dappServicesContract);
+  var eos = await getEos(payer);
+  let servicesTokenContract = await eos.contract(dappServicesContract);
   await servicesTokenContract.staketo({
     from: payer,
     to: contract,
@@ -156,8 +142,6 @@ async function staketo({ deployedPayer, deployedContract, serviceName = 'ipfs', 
     quantity: `${amount} DAPP`
   }, {
     authorization: `${payer}@active`,
-    broadcast: true,
-    sign: true
   });
 }
 
@@ -165,7 +149,9 @@ async function unstake({ deployedContract, serviceName = 'ipfs', provider = 'ppr
   var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
   var service = model.contract;
   var contract = deployedContract.address;
-  let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
+  var eos = await getEos(contract);
+  let servicesTokenContract = await eos.contract(dappServicesContract);
+
   await servicesTokenContract.unstake({
     to: contract,
     service,
@@ -173,8 +159,6 @@ async function unstake({ deployedContract, serviceName = 'ipfs', provider = 'ppr
     quantity: `${amount} DAPP`
   }, {
     authorization: `${contract}@active`,
-    broadcast: true,
-    sign: true
   });
 }
 
@@ -183,7 +167,9 @@ async function unstaketo({ deployedPayer, deployedContract, serviceName = 'ipfs'
   var service = model.contract;
   var contract = deployedContract.address;
   var payer = deployedPayer.address;
-  let servicesTokenContract = await deployedPayer.eos.contract(dappServicesContract);
+  var eos = await getEos(payer);
+  let servicesTokenContract = await eos.contract(dappServicesContract);
+
   await servicesTokenContract.unstaketo({
     from: payer,
     to: contract,
@@ -192,8 +178,6 @@ async function unstaketo({ deployedPayer, deployedContract, serviceName = 'ipfs'
     quantity: `${amount} DAPP`
   }, {
     authorization: `${payer}@active`,
-    broadcast: true,
-    sign: true
   });
 }
 
@@ -201,7 +185,8 @@ async function refund({ deployedContract, serviceName = 'ipfs', provider = 'ppro
   var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
   var service = model.contract;
   var contract = deployedContract.address;
-  let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
+  var eos = await getEos(contract);
+  let servicesTokenContract = await eos.contract(dappServicesContract);
   try {
     await servicesTokenContract.refund({
       to: contract,
@@ -210,8 +195,6 @@ async function refund({ deployedContract, serviceName = 'ipfs', provider = 'ppro
       symcode: `DAPP`
     }, {
       authorization: `${contract}@active`,
-      broadcast: true,
-      sign: true
     });
   }
   catch (e) {
@@ -224,7 +207,8 @@ async function refundto({ deployedPayer, deployedContract, serviceName = 'ipfs',
   var service = model.contract;
   var contract = deployedContract.address;
   var payer = deployedPayer.address;
-  let servicesTokenContract = await deployedPayer.eos.contract(dappServicesContract);
+  var eos = await getEos(payer);
+  let servicesTokenContract = await eos.contract(dappServicesContract);
   try {
     await servicesTokenContract.refundto({
       from: payer,
@@ -234,8 +218,6 @@ async function refundto({ deployedPayer, deployedContract, serviceName = 'ipfs',
       symcode: `DAPP`
     }, {
       authorization: `${payer}@active`,
-      broadcast: true,
-      sign: true
     });
   }
   catch (e) {
@@ -266,7 +248,7 @@ async function deployConsumerContract(code) {
   config.keyProvider = keys.active.privateKey;
   var eosvram = deployedContract.eos;
   config.httpEndpoint = 'http://localhost:13015';
-  eosvram = new Eos(config);
+  eosvram = getEosWrapper(config);
   var testcontract = await eosvram.contract(code);
   return { testcontract, deployedContract };
 }
@@ -274,12 +256,12 @@ async function deployConsumerContract(code) {
 
 describe(`DAPP Services Provider & Packages Tests`, () => {
   const invokeService = async(code, testcontract) => {
+    var keys = await getCreateKeys(code);
     var res = await testcontract.testempty({
       uri: 'ipfs://zb2rhmy65F3REf8SZp7De11gxtECBGgUKaLdiDj7MCGCHxbDW',
     }, {
       authorization: `${code}@active`,
-      broadcast: true,
-      sign: true
+      keyProvider: keys.active.privateKey
     });
     // var eventResp = JSON.parse(res.processed.action_traces[0].console);
     // assert.equal(eventResp.etype, "service_request", "wrong etype");
@@ -300,13 +282,11 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         var res = await testcontract.testset({
           data: {
             field1: 123,
-            field2: 'hello-world',
+            field2: new Buffer('hello-world').toString('hex'),
             field3: 312
           }
         }, {
           authorization: `${testContractAccount}@active`,
-          broadcast: true,
-          sign: true
         });
         await invokeService(testContractAccount, testcontract);
         await delaySec(package_period);

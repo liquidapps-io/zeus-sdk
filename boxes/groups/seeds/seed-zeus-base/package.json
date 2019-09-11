@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "test-ci": "mocha --require babel-core/register --require=dotenv/config --require babel-polyfill --exit --timeout 1000000 --reporter mocha-junit-and-console-reporter --reporter-options mochaFile=./test-reports/junit.xml --color",
+    "test": "mocha --require babel-core/register --require=dotenv/config --require babel-polyfill --exit --timeout 1000000 --color",
+    "preinstall": ""
+  },
   "author": "",
   "license": "ISC",
   "engines": {
@@ -32,7 +36,8 @@
     "stream-buffers": "^3.0.1",
     "temp": "^0.8.3",
     "whatwg-fetch": "^2.0.4",
-    "yargs": "^12.0.2"
+    "yargs": "^12.0.2",
+    "fcbuffer": "^2.2.2"
   },
   "devDependencies": {
     "babel-preset-es2015": "^6.24.1",

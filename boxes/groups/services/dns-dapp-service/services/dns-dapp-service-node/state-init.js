@@ -8,7 +8,7 @@ const getDefaultArgs = require('../../extensions/helpers/getDefaultArgs');
 BigNumber.config({ ROUNDING_MODE: BigNumber.ROUND_FLOOR }); // equivalent
 
 
-const eosjs2 = require('../demux/eosjs2');
+const eosjs2 = require('eosjs');
 const { JsonRpc } = eosjs2;
 const fetch = require('node-fetch');
 

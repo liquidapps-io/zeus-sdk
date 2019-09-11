@@ -3,9 +3,7 @@ require('babel-core/register');
 require('babel-polyfill');
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getNetwork, getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
-var Eos = require('eosjs');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
+const { getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
 const { genAllocateDAPPTokens, dappServicesContract } = require('../extensions/tools/eos/dapp-services');
@@ -21,20 +19,20 @@ async function issueInitialSupply({ deployedContract }) {
   var key = await getCreateKeys(dappServicesContract);
   let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
   await servicesTokenContract.issue({
-      to: contractCode,
-      quantity: "100000.0000 DAPP",
-      memo: 'issue DAPP to airhodl contract'
+    to: contractCode,
+    quantity: "100000.0000 DAPP",
+    memo: 'issue DAPP to airhodl contract'
   }, {
-      authorization: `${dappServicesContract}@active`,
-      broadcast: true,
-      sign: true,
-      keyProvider: [key.active.privateKey]
+    authorization: `${dappServicesContract}@active`,
+    broadcast: true,
+    sign: true,
+    keyProvider: [key.active.privateKey]
   });
 
   return servicesTokenContract;
 }
 
-async function allocateDAPPTokens( deployedContract, quantity = '1000.0000 DAPP' ) {
+async function allocateDAPPTokens(deployedContract, quantity = '1000.0000 DAPP') {
   var key = await getCreateKeys(dappServicesContract);
   let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
   var contract = deployedContract.address;
@@ -50,7 +48,7 @@ async function allocateDAPPTokens( deployedContract, quantity = '1000.0000 DAPP'
   });
 }
 
-async function allocateHODLTokens( deployedContract, quantity = '1000.0000 DAPPHDL' ) {
+async function allocateHODLTokens(deployedContract, quantity = '1000.0000 DAPPHDL') {
   var key = await getCreateKeys(contractCode);
   let servicesTokenContract = await deployedContract.eos.contract(contractCode);
   var contract = deployedContract.address;
@@ -155,7 +153,7 @@ async function unstakeDapp({ deployedContract, serviceName = 'ipfs', provider = 
     broadcast: true,
     sign: true
   });
-}	
+}
 
 async function issue({ deployedContract, to, quantity, memo }) {
   var contract = deployedContract.address;
@@ -199,15 +197,15 @@ async function withdraw({ deployedContract }) {
   });
 }
 
-function checkDateParse( date ) {
+function checkDateParse(date) {
   const result = Date.parse(date);
   if (Number.isNaN(result)) {
-      throw new Error('Invalid time format');
+    throw new Error('Invalid time format');
   }
   return result;
 }
 
-function dateToTimePoint( date ) {
+function dateToTimePoint(date) {
   return Math.round(checkDateParse(date + 'Z') * 1000);
 }
 
@@ -215,8 +213,8 @@ async function activate({ deployedContract, start, end }) {
   var key = await getCreateKeys(contractCode);
   let servicesTokenContract = await deployedContract.eos.contract(contractCode);
   await servicesTokenContract.activate({
-    start:dateToTimePoint(start),
-    end:dateToTimePoint(end)
+    start: start,
+    end: end
   }, {
     authorization: `${contractCode}@active`,
     broadcast: true,
@@ -270,7 +268,7 @@ async function refund({ deployedContract, provider = 'pprovider1', serviceName =
   });
 }
 
-async function deployDAPPAccount( code ) {
+async function deployDAPPAccount(code) {
   var deployedContract = await getCreateAccount(code);
   var eos = await getEos(code);
   deployedContract.address = code;
@@ -279,7 +277,7 @@ async function deployDAPPAccount( code ) {
   return deployedContract;
 }
 
-async function deployHODLAccount( code ) {
+async function deployHODLAccount(code) {
   var deployedContract = await getCreateAccount(code);
   var eos = await getEos(code);
   deployedContract.address = code;
@@ -288,49 +286,45 @@ async function deployHODLAccount( code ) {
   return deployedContract;
 }
 
-async function returnTimeData( table_time ) {
+async function returnTimeData(table_time) {
   let startDate = new Date(table_time.head_block_time);
   let endDate = new Date(table_time.head_block_time);
-  startDate.setMinutes(startDate.getMinutes()-10000);
-  endDate.setMinutes(endDate.getMinutes()+200);
+  startDate.setMinutes(startDate.getMinutes() - 10000);
+  endDate.setMinutes(endDate.getMinutes() + 200);
   let start = startDate.toISOString();
-  start = start.substr(0,start.length-1);
+  start = start.substr(0, start.length - 1);
   let end = endDate.toISOString();
-  end = end.substr(0,end.length-1);
+  end = end.substr(0, end.length - 1);
   return { start, end };
 }
 
-async function deployConsumerContract( code, provider = "pprovider1" ) {
+async function deployConsumerContract(code, provider = "pprovider1") {
   var deployedContract = await deployer.deploy(ctrt2, code);
   await allocateDAPPTokens(deployedContract);
-  var selectedNetwork = getNetwork(getDefaultArgs());
-  var config = {
-    expireInSeconds: 120,
-    sign: true,
-    chainId: selectedNetwork.chainId
-  };
+
   var keys = await getCreateKeys(code);
-  config.keyProvider = keys.active.privateKey;
-  var eosvram = deployedContract.eos;
-  config.httpEndpoint = 'http://localhost:13115';
-  eosvram = new Eos(config);
-  var testcontract = await eosvram.contract(code);
-  await eosvram.updateauth({
+  const { getTestContract } = require('../extensions/tools/eos/utils');
+  var testcontract = await getTestContract(code);
+  const { getLocalDSPEos } = require('../extensions/tools/eos/utils');
+  var dspeos = await getLocalDSPEos(code);
+
+  await (await dspeos.contract('eosio')).updateauth({
     account: deployedContract.address,
     permission: 'active',
     parent: 'owner',
     auth: {
       threshold: 1,
       keys: [{
-        weight: 1, 
+        weight: 1,
         key: keys.active.publicKey
       }],
       accounts: [{
         permission: { actor: deployedContract.address, permission: 'eosio.code' },
         weight: 1
-      }]
+      }],
+      waits: []
     }
-  }, { 
+  }, {
     authorization: `${deployedContract.address}@active`,
     broadcast: true,
     sign: true,
@@ -339,12 +333,12 @@ async function deployConsumerContract( code, provider = "pprovider1" ) {
   return { testcontract, deployedContract };
 }
 
-async function returnVramTestFunc( testContractAccount, index, testcontract ) {
+async function returnVramTestFunc(testContractAccount, index, testcontract) {
   await testcontract.testset({
     data: {
       field1: index,
       field2: `hello-world${index}`,
-      field3: index+2
+      field3: index + 2
     }
   }, {
     authorization: `${testContractAccount}@active`,
@@ -353,7 +347,7 @@ async function returnVramTestFunc( testContractAccount, index, testcontract ) {
   });
 }
 
-async function vramTest( deployedContract, testContractAccount, testcontract ) {
+async function vramTest(deployedContract, testContractAccount, testcontract) {
   let initialRamWithMerkleRoot = await deployedContract.eos.getAccount({
     account_name: testContractAccount
   });
@@ -368,7 +362,7 @@ async function vramTest( deployedContract, testContractAccount, testcontract ) {
     account_name: testContractAccount
   });
   let e = false;
-  if (final_ram.ram_usage <= initialRamWithMerkleRoot.ram_usage){
+  if (final_ram.ram_usage <= initialRamWithMerkleRoot.ram_usage) {
     e = true;
   }
   return e;
@@ -379,11 +373,11 @@ var deployedHODL;
 describe(`AirHODL Tests`, () => {
   it('Create AirHODL and activate with start/end time', done => {
     (async() => {
-      try {     
+      try {
         deployedHODL = await deployer.deploy(ctrt, contractCode);
         var hodlkey = await getCreateKeys(contractCode);
         await deployedHODL.contractInstance.create({
-          issuer:contractCode,
+          issuer: contractCode,
           maximum_supply: '100000000.0000 DAPPHDL'
         }, {
           authorization: `${contractCode}@active`,
@@ -391,10 +385,10 @@ describe(`AirHODL Tests`, () => {
           sign: true,
           keyProvider: [hodlkey.active.privateKey]
         });
-        let table_time = await deployedHODL.eos.getInfo({
+        let table_time = await deployedHODL.eos.get_info({
           json: true,
         });
-        let { start, end } = await returnTimeData( table_time );
+        let { start, end } = await returnTimeData(table_time);
         await activate({ deployedContract: deployedHODL, start, end });
         await update({ deployedContract: deployedHODL, issuer: contractCode });
         await issueInitialSupply({ deployedContract: deployedHODL });
@@ -408,11 +402,11 @@ describe(`AirHODL Tests`, () => {
 
   it('Unstake more than staked', done => {
     (async() => {
-      try {    
+      try {
         var testContractAccount = 'consumer123';
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
-        await genAllocateDAPPTokens( deployedContract, 'ipfs', 'pprovider1' );
-        await allocateHODLTokens( deployedContract );
+        await genAllocateDAPPTokens(deployedContract, 'ipfs', 'pprovider1');
+        await allocateHODLTokens(deployedContract);
         await selectPackage({ deployedContract });
         await grab({ deployedContract, owner: testContractAccount, ram_payer: testContractAccount });
         await stake({ deployedContract, amount: '1.0000' });
@@ -447,10 +441,10 @@ describe(`AirHODL Tests`, () => {
 
   it('Unstake without staking', done => {
     (async() => {
-      try {    
+      try {
         var testContractAccount = 'consumer11';
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
-        await allocateHODLTokens( deployedContract );
+        await allocateHODLTokens(deployedContract);
         await selectPackage({ deployedContract });
         await grab({ deployedContract, owner: testContractAccount, ram_payer: testContractAccount });
         var failed = false;
@@ -461,12 +455,12 @@ describe(`AirHODL Tests`, () => {
           failed = true;
         }
         assert(failed, 'unstake should fail, stake skipped');
-        await stake({ deployedContract, amount: '1.0000' });  
+        await stake({ deployedContract, amount: '1.0000' });
         // let e = await vramTest(deployedContract, testContractAccount, testcontract);
         // assert(e, 'final ram should not be greater than initial RAM');
         await unstake({ deployedContract, amount: '1.0000' });
-        await delaySec(11); 
-        failed = false;      
+        await delaySec(11);
+        failed = false;
         try {
           await refund({ deployedContract, provider: "pprovider1" });
         }
@@ -485,13 +479,13 @@ describe(`AirHODL Tests`, () => {
 
   it('Refund before unstake', done => {
     (async() => {
-      try {    
+      try {
         var testContractAccount = 'consumer2';
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
-        await allocateHODLTokens( deployedContract );
+        await allocateHODLTokens(deployedContract);
         await selectPackage({ deployedContract });
         await grab({ deployedContract, owner: testContractAccount, ram_payer: testContractAccount });
-        await stake({ deployedContract, amount: '1.0000' });  
+        await stake({ deployedContract, amount: '1.0000' });
         // let e = await vramTest(deployedContract, testContractAccount, testcontract);
         // assert(e, 'final ram should not be greater than initial RAM');
         var failed = false;
@@ -503,8 +497,8 @@ describe(`AirHODL Tests`, () => {
         }
         assert(failed, 'refund should fail, unstake skipped');
         await unstake({ deployedContract, amount: '1.0000' });
-        await delaySec(11); 
-        failed = false;      
+        await delaySec(11);
+        failed = false;
         try {
           await refund({ deployedContract, provider: "pprovider1" });
         }
@@ -523,10 +517,10 @@ describe(`AirHODL Tests`, () => {
 
   it('Refund before staking and unstaking', done => {
     (async() => {
-      try {    
+      try {
         var testContractAccount = 'consumer3';
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
-        await allocateHODLTokens( deployedContract );
+        await allocateHODLTokens(deployedContract);
         await selectPackage({ deployedContract });
         await grab({ deployedContract, owner: testContractAccount, ram_payer: testContractAccount });
         var failed = false;
@@ -537,12 +531,12 @@ describe(`AirHODL Tests`, () => {
           failed = true;
         }
         assert(failed, 'refund should fail, staking and unstaking skipped');
-        await stake({ deployedContract, amount: '1.0000' });  
+        await stake({ deployedContract, amount: '1.0000' });
         // let e = await vramTest(deployedContract, testContractAccount, testcontract);
         // assert(e, 'final ram should not be greater than initial RAM');
         await unstake({ deployedContract, amount: '1.0000' });
-        await delaySec(11); 
-        failed = false;      
+        await delaySec(11);
+        failed = false;
         try {
           await refund({ deployedContract, provider: "pprovider1" });
         }
@@ -561,7 +555,7 @@ describe(`AirHODL Tests`, () => {
 
   it('Grab without being eligible', done => {
     (async() => {
-      try {    
+      try {
         var testContractAccount = 'consumer4';
         var { deployedContract } = await deployConsumerContract(testContractAccount);
         await selectPackage({ deployedContract });
@@ -583,7 +577,7 @@ describe(`AirHODL Tests`, () => {
 
   it('Staking without being eleigible', done => {
     (async() => {
-      try {    
+      try {
         var testContractAccount = 'consumer5';
         var { deployedContract } = await deployConsumerContract(testContractAccount);
         await selectPackage({ deployedContract });
@@ -597,7 +591,7 @@ describe(`AirHODL Tests`, () => {
         assert(failed, 'grab should have failed, account was not issued to');
         failed = false;
         try {
-          await stake({ deployedContract, amount: '1.0000' }); 
+          await stake({ deployedContract, amount: '1.0000' });
         }
         catch (e) {
           failed = true;
@@ -613,16 +607,16 @@ describe(`AirHODL Tests`, () => {
 
   it('Stake without grab', done => {
     (async() => {
-      try {    
+      try {
         var testContractAccount = 'consumer13';
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
-        await allocateHODLTokens( deployedContract );
+        await allocateHODLTokens(deployedContract);
         await selectPackage({ deployedContract });
-        await stake({ deployedContract, amount: '1.0000' });  
+        await stake({ deployedContract, amount: '1.0000' });
         // let e = await vramTest(deployedContract, testContractAccount, testcontract);
         // assert(e, 'final ram should not be greater than initial RAM');
         await unstake({ deployedContract, amount: '1.0000' });
-        await delaySec(11); 
+        await delaySec(11);
         var failed = false;
         try {
           await refund({ deployedContract, provider: "pprovider1" });
@@ -642,26 +636,26 @@ describe(`AirHODL Tests`, () => {
 
   it('Stake more than balance', done => {
     (async() => {
-      try {    
+      try {
         var testContractAccount = 'consumer14';
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
-        await allocateHODLTokens( deployedContract );
+        await allocateHODLTokens(deployedContract);
         await selectPackage({ deployedContract });
         await grab({ deployedContract, owner: testContractAccount, ram_payer: testContractAccount });
         var failed = false;
         try {
-          await stake({ deployedContract, amount: '10000.0000' });  
+          await stake({ deployedContract, amount: '10000.0000' });
         }
         catch (e) {
           failed = true;
         }
         assert(failed, 'stake should fail, balance is less than amount being staked');
-        await stake({ deployedContract, amount: '1.0000' }); 
+        await stake({ deployedContract, amount: '1.0000' });
         // let e = await vramTest(deployedContract, testContractAccount, testcontract);
         // assert(e, 'final ram should not be greater than initial RAM');
         await unstake({ deployedContract, amount: '1.0000' });
-        await delaySec(11); 
-        failed = false;      
+        await delaySec(11);
+        failed = false;
         try {
           await refund({ deployedContract, provider: "pprovider1" });
         }
@@ -680,19 +674,19 @@ describe(`AirHODL Tests`, () => {
 
   it('Stake 50% DAPP 50% DAPPHDL', done => {
     (async() => {
-      try {    
+      try {
         var testContractAccount = 'consumer23';
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
-        await allocateHODLTokens( deployedContract );
+        await allocateHODLTokens(deployedContract);
         await selectPackage({ deployedContract });
         await grab({ deployedContract, owner: testContractAccount, ram_payer: testContractAccount });
-        await stake({ deployedContract, amount: '0.5000' });  
-        await stakeDapp({ deployedContract, amount: '0.5000' }); 
+        await stake({ deployedContract, amount: '0.5000' });
+        await stakeDapp({ deployedContract, amount: '0.5000' });
         // let e = await vramTest(deployedContract, testContractAccount, testcontract);
         // assert(e, 'final ram should not be greater than initial RAM');
         await unstake({ deployedContract, amount: '0.5000' });
-        await unstakeDapp({ deployedContract, amount: '0.5000' }); 
-        await delaySec(11); 
+        await unstakeDapp({ deployedContract, amount: '0.5000' });
+        await delaySec(11);
         var failed = false;
         try {
           await refund({ deployedContract, provider: "pprovider1" });
@@ -712,13 +706,13 @@ describe(`AirHODL Tests`, () => {
 
   it('Withdraw before unstake', done => {
     (async() => {
-      try {    
+      try {
         var testContractAccount = 'consumer21';
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
-        await allocateHODLTokens( deployedContract );
+        await allocateHODLTokens(deployedContract);
         await selectPackage({ deployedContract });
         await grab({ deployedContract, owner: testContractAccount, ram_payer: testContractAccount });
-        await stake({ deployedContract, amount: '1.0000' });  
+        await stake({ deployedContract, amount: '1.0000' });
         // let e = await vramTest(deployedContract, testContractAccount, testcontract);
         // assert(e, 'final ram should not be greater than initial RAM');
         var failed = false;
@@ -730,7 +724,7 @@ describe(`AirHODL Tests`, () => {
         }
         assert(failed, 'withdraw should fail, unstake skipped');
         await unstake({ deployedContract, amount: '1.0000' });
-        await delaySec(11); 
+        await delaySec(11);
         failed = false;
         try {
           await refund({ deployedContract, provider: "pprovider1" });
@@ -750,13 +744,13 @@ describe(`AirHODL Tests`, () => {
 
   it('Withdraw before unstaked', done => {
     (async() => {
-      try {    
+      try {
         var testContractAccount = 'consumer22';
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
-        await allocateHODLTokens( deployedContract );
+        await allocateHODLTokens(deployedContract);
         await selectPackage({ deployedContract });
         await grab({ deployedContract, owner: testContractAccount, ram_payer: testContractAccount });
-        await stake({ deployedContract, amount: '1.0000' });  
+        await stake({ deployedContract, amount: '1.0000' });
         // let e = await vramTest(deployedContract, testContractAccount, testcontract);
         // assert(e, 'final ram should not be greater than initial RAM');
         await unstake({ deployedContract, amount: '1.0000' });
@@ -768,7 +762,7 @@ describe(`AirHODL Tests`, () => {
           failed = true;
         }
         assert(failed, 'withdraw should fail, unstake not finished');
-        await delaySec(11); 
+        await delaySec(11);
         failed = false;
         try {
           await refund({ deployedContract, provider: "pprovider1" });
@@ -788,16 +782,17 @@ describe(`AirHODL Tests`, () => {
 
   it('Withdraw before grab', done => {
     (async() => {
-      try {    
+      try {
         var testContractAccount = 'consumer12';
         var { deployedContract } = await deployConsumerContract(testContractAccount);
-        await allocateHODLTokens( deployedContract );
+        await allocateHODLTokens(deployedContract);
         await withdraw({ deployedContract });
         await selectPackage({ deployedContract });
         let failed = false;
         try {
-          await grab({ deployedContract, owner: testContractAccount, ram_payer: testContractAccount }); 
-        } catch(e) {
+          await grab({ deployedContract, owner: testContractAccount, ram_payer: testContractAccount });
+        }
+        catch (e) {
           failed = true;
         }
         assert(failed, 'should have failed, no balance to grab');

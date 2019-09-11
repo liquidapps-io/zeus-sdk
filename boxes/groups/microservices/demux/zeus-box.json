@@ -3,7 +3,7 @@
     "README.md",
     "zeus-box.json"
   ],
-  "dependencies":["events","seed-microservices", "seed-models"],
+  "dependencies":["events","seed-microservices", "seed-models", "log-extensions"],
   "install": {
     "npm":{
       "zeromq": true, 

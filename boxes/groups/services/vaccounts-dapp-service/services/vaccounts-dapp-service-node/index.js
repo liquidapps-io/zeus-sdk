@@ -7,6 +7,7 @@ const { dappServicesContract, getContractAccountFor } = require("../../extension
 nodeFactory('vaccounts', {
     api: {
         push_action: async({ body }, res) => {
+
             const { contract_code, public_key, payload, signature } = body;
             console.log("invoking", contract_code, public_key, payload, signature);
             var contract = await eosDSPGateway.contract(contract_code);
@@ -18,20 +19,54 @@ nodeFactory('vaccounts', {
             var service = loadedExtensions.find(a => a.name == "vaccounts").contract;
 
             var resolvedPackages = await resolveProviderPackage(contract_code, service, paccount);
-            var result = await contract.xvexec({
-                current_provider: paccount,
-                pubkey: public_key,
-                "package": resolvedPackages,
-                payload,
-                sig: signature
-            }, {
-                authorization: `${paccount}@${paccountPermission}`,
-                broadcast: true,
-                sign: true,
-                keyProvider: [process.env.DSP_PRIVATE_KEY || key.active.privateKey]
-            });
+            // try {
+            try {
 
-            res.send(JSON.stringify({ result }));
+                var result = await contract.xvexec({
+                    current_provider: paccount,
+                    pubkey: public_key,
+                    "package": resolvedPackages,
+                    payload: payload,
+                    sig: signature
+                }, {
+                    authorization: `${paccount}@${paccountPermission}`,
+                    keyProvider: [process.env.DSP_PRIVATE_KEY || key.active.privateKey]
+                });
+                res.send(JSON.stringify({ result }));
+            }
+            catch (e) {
+                console.error("error:", e);
+                var x = e;
+                if (e.json)
+                    x = e.json;
+                res.status(500);
+                res.send(JSON.stringify({
+                    code: 500,
+                    error: {
+                        details: [{ message: JSON.stringify(x) }]
+                    }
+                }));
+            }
+
+            // }
+            // catch (expectedError) {
+            //     if (typeof expectedError === "string") {
+            //         expectedError = JSON.parse(expectedError);
+            //     }
+            //     var resMsg = expectedError.error.details[0].message;
+
+            //     if (typeof(resMsg) === 'object') {
+            //         resMsg = resMsg.response.error.details
+            //     }
+            //     res.status(400);
+            //     console.error("error:", resMsg);
+            //     res.send(JSON.stringify({ error: resMsg.toString() }));
+
+            // }
         }
+
+
+
+
     }
 });

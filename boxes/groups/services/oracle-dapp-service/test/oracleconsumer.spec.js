@@ -2,10 +2,7 @@ require("babel-core/register");
 require("babel-polyfill");
 import 'mocha';
 const { assert } = require('chai'); // Using Assert style
-const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getNetwork } = require('../extensions/tools/eos/utils');
-var Eos = require('eosjs');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
+const { getTestContract } = require('../extensions/tools/eos/utils');
 
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
@@ -22,22 +19,7 @@ describe(`Oracle Service Test Contract`, () => {
 
         var deployedContract = await deployer.deploy(ctrt, code);
         await genAllocateDAPPTokens(deployedContract, "oracle");
-        // create token
-        var selectedNetwork = getNetwork(getDefaultArgs());
-        var config = {
-          expireInSeconds: 120,
-          sign: true,
-          chainId: selectedNetwork.chainId,
-        };
-        if (account) {
-          var keys = await getCreateKeys(account);
-          config.keyProvider = keys.active.privateKey;
-        }
-        var eosvram = deployedContract.eos;
-        config.httpEndpoint = "http://localhost:13015";
-        eosvram = new Eos(config);
-
-        testcontract = await eosvram.contract(code);
+        testcontract = await getTestContract(code);
         done();
       }
       catch (e) {

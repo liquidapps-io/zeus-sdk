@@ -19,7 +19,7 @@ var apiID = 'ssAuthAPI';
 
 var authClient = new AuthClient(apiID, code, "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906");
 describe.skip(`Auth Test Contract`, () => {
-  var eosvram;
+  var dspeos;
   before(done => {
     (async() => {
       try {
@@ -27,19 +27,8 @@ describe.skip(`Auth Test Contract`, () => {
 
         await genAllocateDAPPTokens(deployedContract, 'auth');
         // create token
-        var selectedNetwork = getNetwork(getDefaultArgs());
-        var config = {
-          expireInSeconds: 120,
-          sign: true,
-          chainId: selectedNetwork.chainId
-        };
-        if (account) {
-          var keys = await getCreateKeys(code);
-          config.keyProvider = keys.active.privateKey;
-        }
-        eosvram = deployedContract.eos;
-        config.httpEndpoint = 'http://localhost:13015';
-        eosvram = new Eos(config);
+        const { getLocalDSPEos } = require('../extensions/tools/eos/utils');
+        dspeos = await getLocalDSPEos(code);
 
         done();
       }
@@ -96,14 +85,15 @@ describe.skip(`Auth Test Contract`, () => {
         var keys = await getCreateAccount(testUser);
         var apikeys = await getCreateKeys("randomkey1");
         var permission = "api";
-        await eosvram.updateauth({
+        await dspeos.updateauth({
           account: testUser,
           permission,
           parent: 'active',
           auth: {
             threshold: 1,
             keys: [{ key: apikeys.publicKey, weight: 1 }],
-            accounts: []
+            accounts: [],
+            waits: []
           }
         }, {
           authorization: `${testUser}@active`,
@@ -111,7 +101,7 @@ describe.skip(`Auth Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await eosvram.linkauth({
+        await dspeos.linkauth({
           account: testUser,
           code: code,
           type: authClient.method,
@@ -140,14 +130,15 @@ describe.skip(`Auth Test Contract`, () => {
         var keys = await getCreateAccount(testUser);
         var apikeys = await getCreateKeys("randomkey2");
         var permission = "api";
-        await eosvram.updateauth({
+        await dspeos.updateauth({
           account: testUser,
           permission,
           parent: 'active',
           auth: {
             threshold: 1,
             keys: [{ key: apikeys.publicKey, weight: 1 }],
-            accounts: []
+            accounts: [],
+            waits: []
           }
         }, {
           authorization: `${testUser}@active`,
@@ -155,7 +146,7 @@ describe.skip(`Auth Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await eosvram.linkauth({
+        await dspeos.linkauth({
           account: testUser,
           code: code,
           type: authClient.method,

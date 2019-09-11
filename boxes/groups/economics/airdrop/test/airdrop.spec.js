@@ -84,8 +84,6 @@ describe(`${contractCode} Contract`, () => {
       maximum_supply: `${amount} ${symbol}`
     }, {
       authorization: `${token_contract}@active`,
-      broadcast: true,
-      sign: true,
       keyProvider: [tokenkey.active.privateKey]
     });
     // create dataset?
@@ -99,8 +97,6 @@ describe(`${contractCode} Contract`, () => {
       memo: "test airdrop"
     }, {
       authorization: `${airdropContractName}@active`,
-      broadcast: true,
-      sign: true,
       keyProvider: [airdropkey.active.privateKey]
     });
 
@@ -111,8 +107,6 @@ describe(`${contractCode} Contract`, () => {
       memo: "airdrop supply"
     }, {
       authorization: `${issuer}@active`,
-      broadcast: true,
-      sign: true,
       keyProvider: [issuerkey.active.privateKey]
     });
     return { deployedAirdropContract, deployedToken };
@@ -136,7 +130,7 @@ describe(`${contractCode} Contract`, () => {
     var contract = await eosDSPGateway.contract(token_contract);
     var res = await contract.open({
       owner,
-      symbol: "4,TST",
+      symbol: "TST",
       ram_payer: owner
     }, {
       authorization: `${owner}@active`,
@@ -246,7 +240,7 @@ describe(`${contractCode} Contract`, () => {
           await grab({ airdropContractName, token_contract, owner: testuser3 });
         }
         catch (e) {
-          assert.equal(e.indexOf("already claimed") !== -1, true, 'should fail for "already claimed"');
+          assert.equal(e.error.details[0].message.indexOf("already claimed") !== -1, true, 'should fail for "already claimed"');
           failed = true;
         }
         assert.equal(failed, true, 'should fail');
@@ -314,7 +308,7 @@ describe(`${contractCode} Contract`, () => {
           await grab({ airdropContractName, token_contract, owner: testuser4 });
         }
         catch (e) {
-          assert.equal(e.indexOf("already claimed") !== -1, true, 'should fail for "already claimed"');
+          assert.equal(e.error.details[0].message.indexOf("already claimed") !== -1, true, 'should fail for "already claimed"');
           failed = true;
         }
         assert.equal(failed, true, 'should fail');

@@ -17,30 +17,19 @@ var ctrt = artifacts.require(`./${contractCode}/`);
 describe(`Cron Service Test Contract`, () => {
   var testcontract;
   const code = 'test1';
-  var eosvram;
+  var dspeos;
   before(done => {
-    (async () => {
+    (async() => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
         await genAllocateDAPPTokens(deployedContract, 'cron');
-        // create token
-        var selectedNetwork = getNetwork(getDefaultArgs());
-        var config = {
-          expireInSeconds: 120,
-          sign: true,
-          chainId: selectedNetwork.chainId
-        };
-        if (account) {
-          var keys = await getCreateKeys(account);
-          config.keyProvider = keys.active.privateKey;
-        }
-        eosvram = deployedContract.eos;
-        config.httpEndpoint = 'http://localhost:13015';
-        eosvram = new Eos(config);
+        const { getTestContract, getLocalDSPEos } = require('../extensions/tools/eos/utils');
+        testcontract = await getTestContract(code);
+        dspeos = await getLocalDSPEos(code);
 
-        testcontract = await eosvram.contract(code);
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();
@@ -48,7 +37,7 @@ describe(`Cron Service Test Contract`, () => {
 
   var account = code;
   it('Cron test - every 2 seconds', done => {
-    (async () => {
+    (async() => {
       try {
         var res = await testcontract.testschedule({}, {
           authorization: `${code}@active`,
@@ -56,7 +45,7 @@ describe(`Cron Service Test Contract`, () => {
           sign: true
         });
         await delay(15000);
-        res = await eosvram.getTableRows({
+        res = await dspeos.getTableRows({
           'json': true,
           'scope': code,
           'code': code,
@@ -66,7 +55,8 @@ describe(`Cron Service Test Contract`, () => {
         assert.equal(res.rows[0].counter, '4', 'counter did not increase');
 
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();

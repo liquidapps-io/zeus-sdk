@@ -3,9 +3,6 @@ require('babel-core/register');
 require('babel-polyfill');
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getNetwork } = require('../extensions/tools/eos/utils');
-var Eos = require('eosjs');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
@@ -23,29 +20,18 @@ describe(`${contractCode} Contract`, () => {
   var account = code;
 
   before(done => {
-    (async () => {
+    (async() => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
         var deployedContract2 = await deployer.deploy(ctrt, code2);
         await genAllocateDAPPTokens(deployedContract, 'ipfs');
         // create token
-        var selectedNetwork = getNetwork(getDefaultArgs());
-        var config = {
-          expireInSeconds: 120,
-          sign: true,
-          chainId: selectedNetwork.chainId
-        };
-        if (account) {
-          var keys = await getCreateKeys(account);
-          config.keyProvider = keys.active.privateKey;
-        }
-        var eosvram = deployedContract.eos;
-        config.httpEndpoint = 'http://localhost:13015';
-        eosvram = new Eos(config);
-
-        testcontract = await eosvram.contract(code);
+        const { getTestContract } = require('../extensions/tools/eos/utils');
+        testcontract = await getTestContract(code);
+        
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();
@@ -56,7 +42,7 @@ describe(`${contractCode} Contract`, () => {
   });
 
   it('coldissue', done => {
-    (async () => {
+    (async() => {
       try {
         var symbol = 'AIR';
         var failed = false;
@@ -95,7 +81,8 @@ describe(`${contractCode} Contract`, () => {
             keyProvider: [key.active.privateKey],
             sign: true
           });
-        } catch (e) {
+        }
+        catch (e) {
           failed = true;
         }
         assert(failed, 'should have failed before withdraw');
@@ -136,13 +123,15 @@ describe(`${contractCode} Contract`, () => {
             keyProvider: [key.active.privateKey],
             sign: true
           });
-        } catch (e) {
+        }
+        catch (e) {
           failed = true;
         }
         assert(failed, 'should have failed big transfer');
 
         done();
-      } catch (e) {
+      }
+      catch (e) {
         done(e);
       }
     })();

@@ -1,6 +1,6 @@
 const artifacts = require('../../tools/eos/artifacts');
 const deployer = require('../../tools/eos/deployer');
-const { getCreateAccount } = require('../../tools/eos/utils');
+const { getCreateAccount, getEos } = require('../../tools/eos/utils');
 const { loadModels } = require('../../tools/models');
 const { dappServicesContract, getContractAccountFor, testProvidersList } = require('../../tools/eos/dapp-services');
 
@@ -17,18 +17,17 @@ var generateModel = (commandNames) => {
 };
 
 async function deployLocalService(serviceModel, provider = 'pprovider1') {
-  var deployedServices = await deployer.deploy(servicesC, servicescontract);
-  var key = await getCreateAccount(provider);
-
+  var eos = await getEos(provider);
+  var contractInstance = await eos.contract(servicescontract)
   var serviceName = serviceModel.name;
   var serviceContract = getContractAccountFor(serviceModel);
 
   // reg provider packages
-  await deployedServices.contractInstance.regpkg({
+  await contractInstance.regpkg({
     newpackage: {
       id: 0,
       provider,
-      enabled: 0,
+      enabled: false,
       api_endpoint: `http://localhost:${serviceModel.port}`,
       package_json_uri: '',
       service: serviceContract,
@@ -40,26 +39,21 @@ async function deployLocalService(serviceModel, provider = 'pprovider1') {
     }
   }, {
     authorization: `${provider}@active`,
-    broadcast: true,
-    sign: true,
-    keyProvider: [key.active.privateKey]
   });
-  // await deployedServices.contractInstance.enablepkg({
+  // await contractInstance.enablepkg({
   //         package_id:"default",
   //         service: serviceContract,
   //         provider,
   // }, {
   //     authorization: `${provider}@active`,
-  //     broadcast: true,
-  //     sign: true,
-  //     keyProvider:[key.active.privateKey]
   // });
 
   // reg provider and model model
   var serviceC = artifacts.require(`./${serviceName}service/`);
   var deployedService = await deployer.deploy(serviceC, serviceContract);
 
-  await deployedService.contractInstance.regprovider({
+  var contractServiceInstance = await eos.contract(serviceContract)
+  await contractServiceInstance.regprovider({
     provider,
     model: {
       package_id: 'default',
@@ -67,9 +61,6 @@ async function deployLocalService(serviceModel, provider = 'pprovider1') {
     }
   }, {
     authorization: `${provider}@active`,
-    broadcast: true,
-    sign: true,
-    keyProvider: [key.active.privateKey]
   });
 
   return deployedService;
@@ -79,11 +70,13 @@ var serviceRunner = require('../../helpers/service-runner');
 
 module.exports = async(args) => {
   var models = await loadModels('dapp-services');
+  var deployedServices = await deployer.deploy(servicesC, servicescontract);
   for (var i = 0; i < models.length; i++) {
     var serviceModel = models[i];
     var testProviders = testProvidersList;
     for (var pi = 0; pi < testProviders.length; pi++) {
       var testProvider = testProviders[pi];
+      var key = await getCreateAccount(testProvider);
       await serviceRunner(`/dummy/${serviceModel.name}-dapp-service-node.js`, serviceModel.port * (pi + 1)).handler(args, {
         DSP_ACCOUNT: testProvider,
         SVC_PORT: serviceModel.port * (pi + 1),

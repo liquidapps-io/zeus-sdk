@@ -2,7 +2,7 @@ require('babel-core/register');
 require('babel-polyfill');
 
 const contractAccount = process.env.CONTRACT;
-const Eos = require('eosjs');
+const { getEosWrapper } = require('./extensions/tools/eos/eos-wrapper');
 const fetch = require('node-fetch');
 const endpoint = `http${process.env.NODEOS_SECURED == 'true' ? 's' : ''}://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_PORT || '13115'}`;
 const url = `${endpoint}/event`;
@@ -17,7 +17,7 @@ var eosconfig = {
   chainId: process.env.NODEOS_CHAINID
 };
 
-const toHHMMSS = function (sec_num) {
+const toHHMMSS = function(sec_num) {
   var hours = Math.floor(sec_num / 3600);
   var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
   var seconds = sec_num - (hours * 3600) - (minutes * 60);
@@ -30,13 +30,13 @@ const toHHMMSS = function (sec_num) {
 
 var cnt = 0;
 var totalSize = 0;
-var eosPrivate = new Eos(eosconfig);
+var eosPrivate = getEosWrapper(eosconfig);
 var start = new Date();
 var remaining = 1.0 * 1024 * 1024;
 var remainingTime;
 var passedTime;
 var speed;
-async function clean (hexData) {
+async function clean(hexData) {
   if (hexData.length == 0) { return; }
   var buffer = new Serialize.SerialBuffer({
     textEncoder: new TextEncoder(),
@@ -90,8 +90,8 @@ async function clean (hexData) {
     },
     'replay': false
   };
-    // console.log(base64data);
-    // console.log(origBuffer, bytes.length);
+  // console.log(base64data);
+  // console.log(origBuffer, bytes.length);
   var r = await fetch(url, { method: 'POST', body: JSON.stringify(body) });
   console.log(await r.text());
   totalSize += (hexData.length / 2) + 320;
@@ -108,7 +108,7 @@ async function clean (hexData) {
 }
 var thelowest = 0;
 
-function chunk (arr, len) {
+function chunk(arr, len) {
   var chunks = [];
   var i = 0;
   var n = arr.length;
@@ -120,7 +120,7 @@ function chunk (arr, len) {
   return chunks;
 }
 
-async function run (lower_bound) {
+async function run(lower_bound) {
   lower_bound = lower_bound || 0;
   var res = await eosPrivate.getTableRows({
     'json': true,

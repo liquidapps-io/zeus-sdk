@@ -55,22 +55,12 @@ describe(`${contractCode} Contract`, () => {
           sign: true
         });
         await genAllocateDAPPTokens(deployedContract, 'ipfs');
-        // create token
-        var selectedNetwork = getNetwork(getDefaultArgs());
-        var config = {
-          expireInSeconds: 120,
-          sign: true,
-          chainId: selectedNetwork.chainId
-        };
-        if (account) {
-          var keys = await getCreateKeys(account);
-          config.keyProvider = keys.active.privateKey;
-        }
-        var eosvram = deployedContract.eos;
-        config.httpEndpoint = 'http://localhost:13015';
-        eosvram = new Eos(config);
-        testcontract = await eosvram.contract(code2);
-        freezecontract = await eosvram.contract(code);
+        const { getTestContract, getLocalDSPEos } = require('../extensions/tools/eos/utils');
+        testcontract = await getTestContract(code);
+        var dspeos = await getLocalDSPEos(code);
+
+        testcontract = await dspeos.contract(code2);
+        freezecontract = await dspeos.contract(code);
         done();
       }
       catch (e) {

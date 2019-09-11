@@ -14,6 +14,7 @@
 #include <boost/preprocessor/seq/for_each_i.hpp>
 #include <boost/preprocessor/seq/push_back.hpp>
 #include <eosio/singleton.hpp>
+#include <eosio/binary_extension.hpp>
 using namespace eosio;
 
 using eosio::name;
@@ -92,7 +93,7 @@ extern "C" {
       POPULATE_FIELDS(fields)                                                  \
       return curr;                                                             \
     }                                                                          \
-    void send(name provider,name package)       {                      \
+    void send(name provider,name package,eosio::binary_extension<std::string> request_id)       {                      \
       signal_svc(service_contract, provider, package, *this);                           \
     }                                                                          \
   };
@@ -117,8 +118,8 @@ extern "C" {
 #define SEND_SVC_REQUEST(name, ...)                                            \
   REQUEST_NAME(name)::build(__VA_ARGS__).send(""_n);
 
-#define SEND_SVC_SIGNAL(name, provider, package, ...)                                   \
-  SIGNAL_NAME(name)::build(__VA_ARGS__).send(provider, package);
+#define SEND_SVC_SIGNAL(name, provider, package, request_id, ...)                                   \
+  SIGNAL_NAME(name)::build(__VA_ARGS__).send(provider, package, request_id);
 
 
 #define SVC_RESP_NAME(svc,name) \
@@ -130,7 +131,7 @@ extern "C" {
 #define ACTION_NAME(name) x##name
 
 #define SVC_ACTION_METHOD(aname, args)                                         \
- [[eosio::action]] void ACTION_NAME(aname)(name current_provider, name package, BUILD_ARGS(args))
+ [[eosio::action]] void ACTION_NAME(aname)(name current_provider, name package, BUILD_ARGS(args), eosio::binary_extension<std::string> request_id)
 
 #define SVC_ACTION_METHOD_NOC(aname, args)                                         \
  [[eosio::action]] void ACTION_NAME(aname)(BUILD_ARGS(args))           
@@ -414,7 +415,10 @@ void dispatchUsage(usage_t usage_report) {
 #define DAPPSERVICE_PROVIDER_ACTIONS                                               \
   template <typename T>                                                        \
   void _xsignal_provider(name actionName, name provider,name package, T signalData) {       \
-    auto payer = get_first_receiver();                                                        \
+    auto payer = get_first_receiver();  \
+    eosio::print(provider); \
+    eosio::print(":"); \
+    eosio::print(package);                                                       \
     std::vector<name> providers;                                               \
     if (provider != ""_n)                                                      \
       providers.push_back(provider);                                           \

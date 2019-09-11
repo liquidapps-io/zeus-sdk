@@ -1,7 +1,7 @@
 const { createAccount, uploadSystemContract, getEos } = require('../../tools/eos/utils');
 var sleep = require('sleep-promise');
 
-module.exports = async (args) => {
+module.exports = async(args) => {
   if (args.creator !== 'eosio') { return; } // only local
 
   var wallet = args.wallet;
@@ -12,7 +12,8 @@ module.exports = async (args) => {
   while (tries--) {
     try {
       await uploadSystemContract(args, 'eosio', 'eosio.bios');
-    } catch (e) {
+    }
+    catch (e) {
       await sleep(500);
     }
   }

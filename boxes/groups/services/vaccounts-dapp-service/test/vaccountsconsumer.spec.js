@@ -3,14 +3,15 @@ require("babel-polyfill");
 import 'mocha';
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getNetwork } = require('../extensions/tools/eos/utils');
-var Eos = require('eosjs');
+const { getLocalDSPEos, getTestContract } = require('../extensions/tools/eos/utils');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 const fetch = require('node-fetch');
 const ecc = require('eosjs-ecc')
 let { PrivateKey, PublicKey, Signature, Aes, key_utils, config } = require('eosjs-ecc')
-const eosjs2 = require('../services/demux/eosjs2');
-const { JsonRpc, JsSignatureProvider, Api } = eosjs2;
+const eosjs2 = require('eosjs');
+const { JsonRpc, Api } = eosjs2;
+const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig'); // development only
+
 const { getUrl } = require('../extensions/tools/eos/utils');
 import { TextDecoder, TextEncoder } from 'text-encoding';
 
@@ -20,6 +21,7 @@ const rpc = new JsonRpc(url, { fetch });
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
 const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
+const { encodeName } = require('../services/dapp-services-node/common');
 
 var contractCode = 'vaccountsconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
@@ -47,18 +49,12 @@ function postData(url = ``, data = {}) {
 describe(`vAccounts Service Test Contract`, () => {
     const code = 'test1v';
     var account = code;
-    var selectedNetwork = getNetwork(getDefaultArgs());
-    var config = {
-        expireInSeconds: 120,
-        sign: true,
-        chainId: selectedNetwork.chainId,
-    };
+
     var endpoint;
-    var eosvram;
-    var testcontract;
     before(done => {
         (async() => {
             try {
+
                 var deployedContract = await deployer.deploy(ctrt, code);
                 var deployedContract2 = await deployer.deploy(ctrt, "test2v");
                 await genAllocateDAPPTokens(deployedContract, "vaccounts");
@@ -67,13 +63,9 @@ describe(`vAccounts Service Test Contract`, () => {
                 await genAllocateDAPPTokens(deployedContract2, "ipfs");
 
                 // create token
-                var keys = await getCreateKeys(account);
-                config.keyProvider = keys.active.privateKey;
-                eosvram = deployedContract.eos;
-                config.httpEndpoint = "http://localhost:13015";
-                endpoint = config.httpEndpoint;
-                eosvram = new Eos(config);
-                testcontract = await eosvram.contract(code);
+                // var keys = await getCreateKeys(account);
+                endpoint = "http://localhost:13015";
+                var testcontract = await getTestContract(code);
                 done();
             }
             catch (e) {
@@ -144,7 +136,7 @@ describe(`vAccounts Service Test Contract`, () => {
             data: payload.data
         }]);
         const toName = (name) => {
-            var res = new BigNumber(Eos.modules.format.encodeName(name, true));
+            var res = new BigNumber(encodeName(name, true));
             res = (toBound(res.toString(16), 8));
             return res;
         }
