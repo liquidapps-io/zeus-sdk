@@ -98,9 +98,11 @@ const handlers = {
             if (process.env.WEBHOOKS_HOST) {
               url = url.replace('http://localhost:', process.env.WEBHOOKS_HOST);
             }
-            event.txid = txid;
-            event.eventNum = eventNum;
-            event.blockNum = blockNum;
+            event.meta = {
+              txId: txid,
+              eventNum,
+              blockNum
+            }
             var r = await fetch(url, {
               headers: {
                 'Content-Type': 'application/json'
