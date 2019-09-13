@@ -69,8 +69,10 @@ describe(`${contractCode} Contract`, () => {
 
   const createAirdrop = async({ airdropContractName, token_contract, issuer = issuerUser, symbol = "TST", amount = "100000.0000", memo = "" }) => {
     var deployedAirdropContract = await deployer.deploy(contractArtifact, airdropContractName);
-    await genAllocateDAPPTokens(deployedAirdropContract, "readfn");
-    await genAllocateDAPPTokens(deployedAirdropContract, "oracle");
+    await genAllocateDAPPTokens(deployedAirdropContract, "readfn", "pprovider1", "default");
+    await genAllocateDAPPTokens(deployedAirdropContract, "oracle", "pprovider1", "default");
+    await genAllocateDAPPTokens(deployedAirdropContract, "readfn", "pprovider2", "foobar");
+    await genAllocateDAPPTokens(deployedAirdropContract, "oracle", "pprovider2", "foobar");
 
 
     var deployedToken = await deployer.deploy(tokenContract, token_contract);

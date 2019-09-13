@@ -11,7 +11,14 @@
 CONTRACT_START()
  [[eosio::action]] void testget(std::vector<char>  uri, std::vector<char> expectedfield) {
     eosio::check(getURI(uri, [&]( auto& results ) { 
-      return results[0].result;
+      auto itr = results.begin();
+      auto first = itr->result;
+      ++itr;
+      while(itr != results.end()) {
+        eosio::check(itr->result == first, "consensus failed");
+        ++itr;
+      }
+      return first;
     }) == expectedfield, "wrong data");
   }
   

@@ -21,17 +21,18 @@ async function deployLocalService(serviceModel, provider = 'pprovider1') {
   var contractInstance = await eos.contract(servicescontract)
   var serviceName = serviceModel.name;
   var serviceContract = getContractAccountFor(serviceModel);
-
+  var package_id = provider === 'pprovider1' ? 'default' : 'foobar';
+  var port = provider === 'pprovider1' ? '13015' : '26030';
   // reg provider packages
   await contractInstance.regpkg({
     newpackage: {
       id: 0,
       provider,
       enabled: false,
-      api_endpoint: `http://localhost:${serviceModel.port}`,
+      api_endpoint: `http://localhost:${port}`,
       package_json_uri: '',
       service: serviceContract,
-      package_id: 'default',
+      package_id,
       quota: '1.0000 QUOTA',
       min_stake_quantity: '1.0000 DAPP',
       min_unstake_period: 10,
@@ -56,7 +57,7 @@ async function deployLocalService(serviceModel, provider = 'pprovider1') {
   await contractServiceInstance.regprovider({
     provider,
     model: {
-      package_id: 'default',
+      package_id,
       model: generateModel(Object.keys(serviceModel.commands))
     }
   }, {

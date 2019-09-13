@@ -18,7 +18,9 @@ describe(`Oracle Service Test Contract`, () => {
       try {
 
         var deployedContract = await deployer.deploy(ctrt, code);
-        await genAllocateDAPPTokens(deployedContract, "oracle");
+        await genAllocateDAPPTokens(deployedContract, "oracle","pprovider1","default");
+        await genAllocateDAPPTokens(deployedContract, "oracle","pprovider2","foobar");
+        
         testcontract = await getTestContract(code);
         done();
       }

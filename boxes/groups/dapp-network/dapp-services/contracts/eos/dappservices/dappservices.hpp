@@ -423,7 +423,7 @@ void dispatchUsage(usage_t usage_report) {
     require_auth(payer);                                                       \
     auto currentProvider = provider;                                            \
       providermodels_t providermodels(_self, currentProvider.value);           \
-      auto providerModel = providermodels.find(package.value);                       \
+      auto providerModel = providermodels.find(package.value);      \
       eosio::check (providerModel != providermodels.end(), "package not found");\
       auto model = providerModel->model;                                        \
       auto usageResult = model.calc_usage(payer, currentProvider, signalData); \

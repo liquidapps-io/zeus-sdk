@@ -59,23 +59,25 @@ const actionHandlers = {
       await handleRequest(handler, act, packageid, serviceName, handlers.abi);
       return;
     }
+
     provider = await resolveProvider(payer, service, provider);
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider);
-    if (!simulated) {
+
+    if(provider !== paccount) {
+      var providerData = await resolveProviderData(service, provider, packageid);
+      if (!providerData) { return; }  
+      return await forwardEvent(act, providerData.endpoint, act.exception);
+    }    
+    if (!simulated ) {
       if (!(getContractAccountFor(model) == service && handler)) { return; }
       await handleRequest(handler, act, packageid, serviceName, handlers.abi);
       return;
     }
     if (!act.exception) { return; }
-
     if (getContractAccountFor(model) == service && handler) {
       await handleRequest(handler, act, packageid, serviceName, handlers.abi);
       return 'retry';
-    }
-    var providerData = await resolveProviderData(service, provider, packageid);
-    if (!providerData) { return; }
-
-    return await forwardEvent(act, providerData.endpoint, act.exception);
+    }    
   },
   'service_signal': async(act, simulated, serviceName, handlers) => {
     if (simulated) { return; }

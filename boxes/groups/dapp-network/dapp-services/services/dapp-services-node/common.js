@@ -220,7 +220,7 @@ const resolveExternalProviderData = async(service, provider, packageid) => {
 
   return {
     internal: true,
-    endpoint: result.endpoint
+    endpoint: result[0].api_endpoint
   };
 };
 
