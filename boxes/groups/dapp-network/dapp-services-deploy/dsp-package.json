@@ -12,6 +12,9 @@
   "engines": {
     "node": ">=8.2.1"
   },
+  "config": { 
+    "unsafe-perm": true 
+  },
   "dependencies": {
     "@types/jest": "^24.0.11",
     "babel-core": "^6.26.3",
@@ -28,8 +31,9 @@
     "daemonize-process": "^2.0.1",
     "dotenv": "^6.1.0",
     "eosjs-ecc": "^4.0.4",
-    "eosjs@20.0.0": true,
+    "eosjs": true,
     "express": "^4.16.4",
+    "fcbuffer": "^2.2.2",
     "readline-sync": "^1.4.9",
     "go-ipfs-dep": "^0.4.19",
     "http-proxy": "^1.17.0",
