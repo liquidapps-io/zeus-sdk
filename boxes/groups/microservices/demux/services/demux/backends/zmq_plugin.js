@@ -12,7 +12,7 @@ if (ztype == 'sub') { sock.subscribe('action_trace'); }
 
 var first = true;
 console.log('ZMQ connected');
-var i = 0;
+var i = process.env.DEMUX_HEAD_BLOCK || 0;
 sock.on('message', async(data) => {
   if (first) {
     console.log('Got first message');

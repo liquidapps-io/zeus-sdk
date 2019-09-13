@@ -47,6 +47,7 @@ const NODEOS_SECURED = globalEnv.NODEOS_SECURED || 'false'
 // Optional .env
 const WEBHOOK_DAPP_PORT = globalEnv.WEBHOOK_DAPP_PORT || 8812;
 const DEMUX_BACKEND = globalEnv.DEMUX_BACKEND || 'zmq_plugin';
+const DEMUX_HEAD_BLOCK = globalEnv.DEMUX_HEAD_BLOCK || 0;
 const WEBHOOK_DEMUX_PORT = globalEnv.WEBHOOK_DEMUX_PORT || 3195;
 const SOCKET_MODE = globalEnv.DEMUX_SOCKET_MODE || 'sub';
 const IPFS_PORT = globalEnv.IPFS_PORT || 5001;
@@ -128,6 +129,7 @@ module.exports = {
         NODEOS_WEBSOCKET_PORT,
         SOCKET_MODE,
         DEMUX_BACKEND,
+        DEMUX_HEAD_BLOCK,
         PORT: WEBHOOK_DEMUX_PORT
       }
     },

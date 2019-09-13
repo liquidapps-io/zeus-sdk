@@ -14,7 +14,7 @@ const ws = new WebSocket(`ws://${process.env.NODEOS_HOST || 'localhost'}:${proce
 
 var abis = getAbis();
 var abiabi = getAbiAbi();
-var c = 66000000;
+var c = process.env.DEMUX_HEAD_BLOCK || 35000000;
 var c2 = 0;
 var types;
 var head_block = 0;
@@ -308,7 +308,7 @@ ws.on('message', async function incoming(data) {
 
   //we have the abi now, create a get blocks request
   types.get('request').serialize(buffer, ['get_blocks_request_v0', {
-    'start_block_num': c,
+    'start_block_num': process.env.DEMUX_HEAD_BLOCK || 35000000,
     'end_block_num': 4294967295,
     'max_messages_in_flight': 4294967295,
     'have_positions': [],

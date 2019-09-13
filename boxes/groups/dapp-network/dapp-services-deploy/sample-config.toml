@@ -31,6 +31,8 @@ host_dsp_port = 3115
 backend = "state_history_plugin"
 # zmq: "zmq_plugin" only if using nodeos with eosrio's version of the ZMQ plugin: https://github.com/eosrio/eos_zmq_plugin
 socket_mode = "sub"
+# head block to sync demux from
+head_block = 35000000
 
 [ipfs]
 protocol = "http"

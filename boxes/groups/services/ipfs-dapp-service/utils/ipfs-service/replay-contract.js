@@ -48,9 +48,9 @@ const handleSingleTrx = async(trx) => {
 const getTransactions = async(handle, startat, cursor) => {
   var response;
   try {
-    response = await rpc.search_transactions(searchQuery, { start_block: startat, sort: 'asc', block_count: blockCount, cursor, limit: 100 });
-  }
-  catch (e) {
+    response = await rpc.search_transactions(searchQuery, { start_block: startat, sort: 'asc', cursor, limit: 100 });
+    // response = await rpc.search_transactions(searchQuery, { start_block: startat, sort: 'asc', block_count: blockCount, cursor, limit: 100 });
+  } catch (e) {
     console.log(e);
     e.response.body.pipe(process.stdout);
     return;
@@ -150,8 +150,8 @@ function chunk(arr, len) {
 var res = [];
 var tempToken = null;
 
-let lastBlock = 45419901;
-async function run(lower_bound) {
+let lastBlock = process.env.LAST_BLOCK || 35000000;
+async function run (lower_bound) {
   const response = await rpc.auth_issue(token);
   tempToken = response.token;
   rpc = new JsonRpc(`https://${dfuse_endpoint}`, { fetch, token: tempToken });
