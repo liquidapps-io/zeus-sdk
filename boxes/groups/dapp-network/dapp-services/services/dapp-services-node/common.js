@@ -215,11 +215,12 @@ const resolveExternalProviderData = async(service, provider, packageid) => {
     'limit': 1
   };
   const packages = await rpc.get_table_rows(payload);
-  const result = packages.rows.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service);
+  const result = packages.rows.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service); 
   if (result.length === 0) { throw new Error(`resolveExternalProviderData failed ${provider} ${service} ${packageid}`); }
+  if (!result[0].enabled) { console.log(`DEPRECATION WARNING for ${provider} ${service} ${packageid}: Packages must be enabled for DSP services to function in the future.`); } //TODO: Throw error instead
 
   return {
-    internal: true,
+    internal: false,
     endpoint: result[0].api_endpoint
   };
 };
@@ -260,15 +261,29 @@ const getProviders = async(payer, service, provider) => {
   };
   const serviceWithStakingResult = await rpc.get_table_rows(payload);
   const result = serviceWithStakingResult.rows.filter(a => (a.provider === provider || !provider) && a.account === payer && a.service === service);
-  if (result.length === 0) { throw new Error('resolveProviderPackage failed ' + provider); }
+  if (result.length === 0) { throw new Error(`resolveProviderPackage failed - no stakes for payer - ${provider} ${service}`); }
   return result;
 };
 const toBound = (numStr, bytes) =>
   `${(new Array(bytes * 2 + 1).join('0') + numStr).substring(numStr.length).toUpperCase()}`;
 const resolveProviderPackage = async(payer, service, provider) => {
   const serviceWithStakingResult = await getProviders(payer, service, provider);
-  var foundPacakges = serviceWithStakingResult[0];
-  return foundPacakges.package ? foundPacakges.package : foundPacakges.pending_package;
+  //we must iterate over staked packages and ensure they are enabled
+  let selectedPackage = null;
+  for(let i = 0; i < serviceWithStakingResult.length; i++) {
+    let checkProvider = serviceWithStakingResult[i];
+    let checkPackage = checkProvider.package ? checkProvider.package : checkProvider.pending_package;
+    try {
+      await resolveExternalProviderData(service,provider,checkPackage);
+      selectedPackage = checkPackage;
+      break;
+    } catch(e) {
+      console.log(`Provider ${provider} package ${checkPackage} does not exist or is disabled`);
+    }    
+  }
+  if(!selectedPackage) { throw new Error(`resolveProviderPackage failed - no enabled packages - ${provider} ${service}`); }
+
+  return selectedPackage;
 };
 
 const resolveProvider = async(payer, service, provider) => {
