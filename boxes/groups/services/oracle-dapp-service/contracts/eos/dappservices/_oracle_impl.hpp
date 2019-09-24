@@ -50,9 +50,6 @@ template<typename Lambda> \
 static std::vector<char> _extractResults(const oracleentry& existing, Lambda&& combinator){  \
     return combinator(existing.results); \
 } \
-static name _getNextProvider(const oracleentry& existing, std::vector<name> providers){  \
-    return providers[existing.results.size()]; \
-} \
 static checksum256 transaction_id() { \
    using namespace eosio; \
    checksum256 h; \
@@ -75,23 +72,17 @@ static std::vector<char> getURI(std::vector<char> uri, Lambda&& combinator){  \
 }\
 template<typename Lambda> \
 static std::vector<char> _getURI(std::vector<char> uri, Lambda&& combinator){  \
-    auto providers = getProvidersForAccount(name(current_receiver()), TONAME(SVC_CONTRACT_NAME_ORACLE)); \
     auto _self = name(current_receiver()); \
     oracleentries_t entries(_self, _self.value);  \
     auto cidx = entries.get_index<"byhash"_n>(); \
     auto existing = cidx.find(hashData(uri)); \
     if(existing == cidx.end()){  \
-        name nextProvider = providers[0]; \
         SEND_SVC_REQUEST(geturi, uri); \
     } \
     else {\
-        if(existing->results.size() >= providers.size()){\
-            auto results = _extractResults(*existing, combinator);\
-            cidx.erase(existing);\
-            return results; \
-        }\
-        name nextProvider = _getNextProvider(*existing, providers); \
-        SEND_SVC_REQUEST_P(geturi,nextProvider, uri); \
+        auto results = _extractResults(*existing, combinator);\
+        cidx.erase(existing);\
+        return results; \
     } \
     return std::vector<char>();\
 }  \

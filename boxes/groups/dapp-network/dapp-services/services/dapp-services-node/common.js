@@ -17,7 +17,6 @@ const { Serialize, JsonRpc } = eosjs2;
 const { TextDecoder, TextEncoder } = require('text-encoding');
 const { Long } = require('bytebuffer')
 
-
 var url = getUrl(getDefaultArgs());
 const rpc = new JsonRpc(url, { fetch });
 const networks = [{
@@ -592,4 +591,4 @@ const generateABI =
   (serviceModel) =>
   Object.keys(serviceModel.commands).map(c => generateCommandABI(c, serviceModel.commands[c]));
 
-module.exports = { deserialize, generateABI, genNode, genApp, forwardEvent, resolveProviderData, resolveProvider, processFn, handleAction, paccount, proxy, eosPrivate, eosconfig, nodeosEndpoint, resolveProviderPackage, eosDSPGateway, paccountPermission, encodeName, decodeName };
+module.exports = { deserialize, generateABI, genNode, genApp, forwardEvent, resolveProviderData, resolveProvider, processFn, handleAction, paccount, proxy, eosPrivate, eosconfig, nodeosEndpoint, resolveProviderPackage, eosDSPGateway, paccountPermission, encodeName, decodeName, getProviders };

@@ -16,13 +16,12 @@ var generateModel = (commandNames) => {
   return model;
 };
 
-async function deployLocalService(serviceModel, provider = 'pprovider1') {
+async function deployLocalService(serviceModel, provider = 'pprovider1', port = 13112) {
   var eos = await getEos(provider);
   var contractInstance = await eos.contract(servicescontract)
   var serviceName = serviceModel.name;
   var serviceContract = getContractAccountFor(serviceModel);
   var package_id = provider === 'pprovider1' ? 'default' : 'foobar';
-  var port = provider === 'pprovider1' ? '13015' : '26030';
   // reg provider packages
   await contractInstance.regpkg({
     newpackage: {
@@ -83,7 +82,7 @@ module.exports = async(args) => {
         SVC_PORT: serviceModel.port * (pi + 1),
         NODEOS_HOST_DSP_PORT: 13015 * (pi + 1),
       });
-      await deployLocalService(serviceModel, testProvider);
+      await deployLocalService(serviceModel, testProvider, serviceModel.port * (pi + 1));
     }
   }
 };

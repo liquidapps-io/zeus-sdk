@@ -11,6 +11,7 @@
 CONTRACT_START()
  [[eosio::action]] void testget(std::vector<char>  uri, std::vector<char> expectedfield) {
     eosio::check(getURI(uri, [&]( auto& results ) { 
+      eosio::check(results.size() > 1, "require multiple results for consensus");
       auto itr = results.begin();
       auto first = itr->result;
       ++itr;

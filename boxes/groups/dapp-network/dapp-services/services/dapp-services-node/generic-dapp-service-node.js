@@ -9,7 +9,8 @@ const fs = require('fs');
 const { loadModels } = require('../../extensions/tools/models');
 const { getCreateKeys } = require('../../extensions/helpers/key-utils');
 const { getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
-const { deserialize, generateABI, genNode, eosPrivate, paccount, forwardEvent, resolveProviderData, resolveProvider, resolveProviderPackage, paccountPermission } = require('./common');
+const { deserialize, generateABI, genNode, eosPrivate, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission } = require('./common');
+
 const handleRequest = async(handler, act, packageid, serviceName, abi) => {
   let { service, payer, provider, action, data } = act.event;
   data = deserialize(abi, data, action);
@@ -49,7 +50,7 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
 const actionHandlers = {
   'service_request': async(act, simulated, serviceName, handlers) => {
     let isReplay = act.replay;
-    let { service, payer, provider, action, data } = act.event;
+    let { service, payer, provider, action, broadcasted } = act.event;
     var handler = handlers[action];
     var models = await loadModels('dapp-services');
     var model = models.find(m => m.name == serviceName);
@@ -60,15 +61,28 @@ const actionHandlers = {
       return;
     }
 
+    if(model.commands[action].broadcast && !broadcasted) {      
+      //this is a broadcast action - spam all relevant DSPs in parallel
+      //including ourselves
+      act.event.broadcasted = true;
+      let providers = await getProviders(payer,service,false);
+      await Promise.all(providers.map(async(prov) => {
+        let packageid = await resolveProviderPackage(payer, service, prov.provider);
+        let providerData = await resolveProviderData(service, prov.provider, packageid);
+        if(!providerData) return;
+        await forwardEvent(act, providerData.endpoint, false);
+      }));
+      return 'retry';
+    }
+
     provider = await resolveProvider(payer, service, provider);
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider);
-
     if(provider !== paccount) {
       var providerData = await resolveProviderData(service, provider, packageid);
       if (!providerData) { return; }  
       return await forwardEvent(act, providerData.endpoint, act.exception);
     }    
-    if (!simulated ) {
+    if (!simulated ) {      
       if (!(getContractAccountFor(model) == service && handler)) { return; }
       await handleRequest(handler, act, packageid, serviceName, handlers.abi);
       return;
@@ -77,7 +91,7 @@ const actionHandlers = {
     if (getContractAccountFor(model) == service && handler) {
       await handleRequest(handler, act, packageid, serviceName, handlers.abi);
       return 'retry';
-    }    
+    }   
   },
   'service_signal': async(act, simulated, serviceName, handlers) => {
     if (simulated) { return; }
