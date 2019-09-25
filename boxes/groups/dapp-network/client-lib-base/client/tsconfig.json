@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+      /* Basic Options */
+      "module": "commonjs",
+      "outDir": "./dist",                       /* Redirect output structure to the directory. */
+      /* Strict Type-Checking Options */
+      "strict": true,                           /* Enable all strict type-checking options. */
+      /* Module Resolution Options */
+      "esModuleInterop": true,
+      "watch": false,
+      "resolveJsonModule": true,
+    },
+    "directory": ["src/**/*"]
+}

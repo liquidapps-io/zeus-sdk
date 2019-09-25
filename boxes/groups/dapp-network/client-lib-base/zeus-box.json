@@ -1,0 +1,19 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "dependencies":[
+    "seed-eos"
+  ],
+  "install":{
+    "npm-in-dirs":{
+      "client":{
+        "npm": {
+          "eosjs@20.0.0": true,
+          "eosjs-ecc": true
+        }
+      }
+    }
+  }
+}

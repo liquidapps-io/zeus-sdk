@@ -1,0 +1,48 @@
+{
+  "name": "@liquidapps/dapp-client",
+  "version": "0.0.0",
+  "description": "JS library for interacting with DAPP network services.",
+  "main": "dist/src/dapp-client-lib.js",
+  "types": "dist/src/dapp-client-lib.d.ts",
+  "scripts": {
+    "start": "npm run build:live",
+    "build": "tsc",
+    "build:live": "nodemon --watch '*.ts' --exec 'tsc' ./dapp-client-lib.js",
+    "docs": "documentation readme dist/src/dapp-client-lib.js -s API",
+    "test": "jest --coverage",
+    "watch": "nodemon -e ts -w ./src -x npm run watch:serve",
+    "watch:serve": "ts-node --inspect src/dapp-client-lib.ts",
+    "posttest": "tslint -p ."
+  },
+  "directories": {
+    "example": "examples"
+  },
+  "files": [
+    "dist"
+  ],
+  "author": "Natanael Prudhomme",
+  "license": "ISC",
+  "devDependencies": {
+    "bignumber.js": "^9.0.0",
+    "eosjs": "^20.0.0",
+    "eosjs-ecc": "^4.0.4",
+    "eslint": "^6.0.1"
+  },
+  "homepage": "https://liquidapps.io",
+  "dependencies": {
+    "@types/debug": "*",
+    "@types/http-server": "^0.10.0",
+    "@types/isomorphic-fetch": "*",
+    "@types/jest": "*",
+    "@types/node": "^12.7.5",
+    "babel-polyfill": "^6.26.0",
+    "documentation": "*",
+    "isomorphic-fetch": "*",
+    "jest": "*",
+    "nodemon": "^1.19.1",
+    "ts-jest": "*",
+    "ts-node": "^8.3.0",
+    "tslint": "*",
+    "typescript": "*"
+  }
+}
