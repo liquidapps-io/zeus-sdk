@@ -42,6 +42,7 @@ async function deployLocalExtensions() {
 }
 
 module.exports = async(args) => {
+  if (args.creator !== 'eosio') { return; } // only local
   await deployLocalExtensions();
   var servicesPorts = {};
   var loadedExtensions = await loadModels('dapp-services');

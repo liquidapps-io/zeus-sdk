@@ -69,6 +69,7 @@ async function deployLocalService(serviceModel, provider = 'pprovider1', port = 
 var serviceRunner = require('../../helpers/service-runner');
 
 module.exports = async(args) => {
+  if (args.creator !== 'eosio') { return; } // only local
   var models = await loadModels('dapp-services');
   var deployedServices = await deployer.deploy(servicesC, servicescontract);
   for (var i = 0; i < models.length; i++) {

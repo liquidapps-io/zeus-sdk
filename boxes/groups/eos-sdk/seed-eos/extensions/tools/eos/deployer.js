@@ -29,7 +29,7 @@ async function setContractPermissions(args, account, keys) {
 
       }]
     }
-  }, { authorization: `${account}@owner` });
+  }, { authorization: `${account}@active` });
 }
 
 async function deploy(contract, account, args = getDefaultArgs()) {
