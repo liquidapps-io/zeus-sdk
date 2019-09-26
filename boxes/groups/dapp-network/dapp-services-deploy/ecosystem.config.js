@@ -33,9 +33,12 @@ globalEnv = { ...globalEnv, ...process.env };
 // Require .env
 if (!globalEnv.DSP_ACCOUNT) throw new Error("DSP_ACCOUNT is required");
 if (!globalEnv.DSP_PRIVATE_KEY) throw new Error("DSP_PRIVATE_KEY is required");
+if (!globalEnv.DATABASE_URL) throw new Error("DATABASE_URL is required");
 const DSP_ACCOUNT = globalEnv.DSP_ACCOUNT;
 const DSP_PRIVATE_KEY = globalEnv.DSP_PRIVATE_KEY;
+const DATABASE_URL = process.env.DATABASE_URL;
 const DSP_ACCOUNT_PERMISSIONS = globalEnv.DSP_ACCOUNT_PERMISSIONS || 'active';
+const DATABASE_NODE_ENV = process.env.DATABASE_NODE_ENV || 'production';
 
 // Configure .env
 const DSP_PORT = globalEnv.DSP_PORT || 3115;
@@ -46,21 +49,20 @@ const NODEOS_SECURED = globalEnv.NODEOS_SECURED || 'false'
 
 // Optional .env
 const WEBHOOK_DAPP_PORT = globalEnv.WEBHOOK_DAPP_PORT || 8812;
-const DEMUX_BACKEND = globalEnv.DEMUX_BACKEND || 'zmq_plugin';
+const DEMUX_BACKEND = globalEnv.DEMUX_BACKEND || 'state_history_plugin';
 const DEMUX_HEAD_BLOCK = globalEnv.DEMUX_HEAD_BLOCK || 0;
 const WEBHOOK_DEMUX_PORT = globalEnv.WEBHOOK_DEMUX_PORT || 3195;
 const SOCKET_MODE = globalEnv.DEMUX_SOCKET_MODE || 'sub';
 const IPFS_PORT = globalEnv.IPFS_PORT || 5001;
 const IPFS_PROTOCOL = globalEnv.IPFS_PROTOCOL || 'http';
 const NODEOS_CHAINID = globalEnv.NODEOS_CHAINID || 'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906';
-const NODEOS_ZMQ_PORT = globalEnv.NODEOS_ZMQ_PORT || 5557;
 const NODEOS_WEBSOCKET_PORT = globalEnv.NODEOS_WEBSOCKET_PORT || 8887;
 
 const NODEOS_HOST_DSP = globalEnv.NODEOS_HOST_DSP;
 const NODEOS_HOST_DSP_PORT = globalEnv.NODEOS_HOST_DSP_PORT;
 
 // Assert .env
-if (['zmq_plugin', 'state_history_plugin'].indexOf(DEMUX_BACKEND) === -1) throw new Error("DEMUX_BACKEND must be either 'zmq_plugin' or 'state_history_plugin'");
+if (['state_history_plugin'].indexOf(DEMUX_BACKEND) === -1) throw new Error("DEMUX_BACKEND must be 'state_history_plugin'");
 if (['http', 'https'].indexOf(IPFS_PROTOCOL) === -1) throw new Error("IPFS_PROTOCOL must be either 'http' or 'https'");
 if (['true', 'false'].indexOf(NODEOS_SECURED) === -1) throw new Error("NODEOS_SECURED must be either 'true' or 'false'");
 
@@ -90,7 +92,9 @@ const commonEnv = {
   DSP_ACCOUNT,
   DSP_ACCOUNT_PERMISSIONS,
   DSP_PRIVATE_KEY,
-  DSP_PORT
+  DSP_PORT,
+  DATABASE_URL,
+  DATABASE_NODE_ENV
 };
 
 const createDSPServiceApp = (name) => ({
@@ -125,7 +129,6 @@ module.exports = {
       log_date_format: "YYYY-MM-DDTHH:mm:ss",
       env: {
         ...commonEnv,
-        NODEOS_ZMQ_PORT,
         NODEOS_WEBSOCKET_PORT,
         SOCKET_MODE,
         DEMUX_BACKEND,

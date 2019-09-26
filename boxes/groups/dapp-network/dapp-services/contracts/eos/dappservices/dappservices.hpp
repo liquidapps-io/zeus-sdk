@@ -27,7 +27,7 @@ using eosio::symbol_code;
 #include "dappservices.config.hpp"
 extern "C" {
    struct __attribute__((aligned (16))) capi_checksum256 { uint8_t hash[32]; };
- 
+
    __attribute__((eosio_wasm_import))
    void sha256( const char* data, uint32_t length, capi_checksum256* hash );
 
@@ -65,7 +65,7 @@ extern "C" {
 
 #define BUILD_FIELD(r, dummy, field)                                           \
   BOOST_PP_SEQ_ELEM(0, field) BOOST_PP_SEQ_ELEM(1, field);
-  
+
 #define POPULATE_FIELD(r, dummy, field)                                           \
   curr.BOOST_PP_SEQ_ELEM(1, field) = BOOST_PP_SEQ_ELEM(1, field);
 
@@ -123,17 +123,17 @@ extern "C" {
 
 #define SVC_RESP_NAME(svc,name) \
     _##svc##_##name
-    
+
 #define SVC_RESP_X(svc,name) \
     void SVC_RESP_NAME(svc,name)
-    
+
 #define ACTION_NAME(name) x##name
 
 #define SVC_ACTION_METHOD(aname, args)                                         \
  [[eosio::action]] void ACTION_NAME(aname)(name current_provider, name package, BUILD_ARGS(args))
 
 #define SVC_ACTION_METHOD_NOC(aname, args)                                         \
- [[eosio::action]] void ACTION_NAME(aname)(BUILD_ARGS(args))           
+ [[eosio::action]] void ACTION_NAME(aname)(BUILD_ARGS(args))
 
 #define SVC_ACTION(aname, fail_val, request_fields, signal_fields,             \
                    action_args, service_contract)                                                \
@@ -283,9 +283,9 @@ struct usage_t {
     }
   };
 
-  
+
   //we will scope to the payer/thirdparty
-  TABLE staking {    
+  TABLE staking {
     uint64_t id;            //id to ensure uniqueness
 
     name account;           //account that was staked to
@@ -308,10 +308,10 @@ struct usage_t {
 
   TABLE package {
     uint64_t id;
-    
+
     std::string api_endpoint;
     std::string package_json_uri;
-    
+
     name package_id;
     name service;
     name provider;
@@ -338,8 +338,8 @@ struct usage_t {
   TABLE reward {
     asset balance;
     uint64_t last_usage;
-    
-    asset total_staked; 
+
+    asset total_staked;
     uint64_t last_inflation_ts;
     uint64_t primary_key() const { return DAPPSERVICES_SYMBOL.code().raw(); }
   };
@@ -385,36 +385,36 @@ typedef eosio::multi_index<
                  const_mem_fun<accountext, uint128_t,
                                &accountext::by_account_service>>
                                >
-      accountexts_t;     
+      accountexts_t;
 
-std::vector<name> getProvidersForAccount(name account, name service) {       
-  // get from service account                                                
-  accountexts_t accountexts(DAPPSERVICES_CONTRACT, DAPPSERVICES_SYMBOL.code().raw());            
-  auto idxKey =                                                                
+std::vector<name> getProvidersForAccount(name account, name service) {
+  // get from service account
+  accountexts_t accountexts(DAPPSERVICES_CONTRACT, DAPPSERVICES_SYMBOL.code().raw());
+  auto idxKey =
     accountext::_by_account_service(account, service);
-  auto cidx = accountexts.get_index<"byext"_n>();                              
-  auto acct = cidx.find(idxKey);                                               
-  std::vector<name> result; 
-  while(acct != cidx.end()){ 
+  auto cidx = accountexts.get_index<"byext"_n>();
+  auto acct = cidx.find(idxKey);
+  std::vector<name> result;
+  while(acct != cidx.end()){
     if(acct->account != account || acct->service != service) return result;
-    result.push_back(acct->provider); 
+    result.push_back(acct->provider);
     acct++;
   }
-  return result; 
-}     
+  return result;
+}
 
 
-void dispatchUsage(usage_t usage_report) { 
-  action(permission_level{name(current_receiver()), "active"_n},              
-         DAPPSERVICES_CONTRACT, "usage"_n, std::make_tuple(usage_report))  
-      .send();                                                                
-}                                                                             
+void dispatchUsage(usage_t usage_report) {
+  action(permission_level{name(current_receiver()), "active"_n},
+         DAPPSERVICES_CONTRACT, "usage"_n, std::make_tuple(usage_report))
+      .send();
+}
 
 
 #define DAPPSERVICE_PROVIDER_ACTIONS                                               \
   template <typename T>                                                        \
   void _xsignal_provider(name actionName, name provider,name package, T signalData) {       \
-    auto payer = get_first_receiver();                                                        \
+    auto payer = get_first_receiver();  \
     std::vector<name> providers;                                               \
     if (provider != ""_n)                                                      \
       providers.push_back(provider);                                           \
@@ -477,7 +477,7 @@ void dispatchUsage(usage_t usage_report) {
 #define MODEL_START(signal) struct signal##_model_t
 
 #define HANDLE_MODEL_SIGNAL_FIELD2(signal)                                      \
-  signal##_model_t signal##_model_field;                                       
+  signal##_model_t signal##_model_field;
 #define STANDARD_USAGE_MODEL2(signal)                                           \
   MODEL_START(signal) {                                                        \
     uint64_t cost_per_action;                                                  \

@@ -16,19 +16,20 @@ var generateModel = (commandNames) => {
   return model;
 };
 
-async function deployLocalService(serviceModel, provider = 'pprovider1', port = 13112) {
+async function deployLocalService(serviceModel, provider = 'pprovider1', pi = 0) {
   var eos = await getEos(provider);
   var contractInstance = await eos.contract(servicescontract)
   var serviceName = serviceModel.name;
   var serviceContract = getContractAccountFor(serviceModel);
   var package_id = provider === 'pprovider1' ? 'default' : 'foobar';
+  var svcPort = serviceModel.port * (pi + 1);
   // reg provider packages
   await contractInstance.regpkg({
     newpackage: {
       id: 0,
       provider,
       enabled: false,
-      api_endpoint: `http://localhost:${port}`,
+      api_endpoint: `http://localhost:${svcPort}`,
       package_json_uri: '',
       service: serviceContract,
       package_id,
@@ -83,7 +84,7 @@ module.exports = async(args) => {
         SVC_PORT: serviceModel.port * (pi + 1),
         NODEOS_HOST_DSP_PORT: 13015 * (pi + 1),
       });
-      await deployLocalService(serviceModel, testProvider, serviceModel.port * (pi + 1));
+      await deployLocalService(serviceModel, testProvider, pi);
     }
   }
 };

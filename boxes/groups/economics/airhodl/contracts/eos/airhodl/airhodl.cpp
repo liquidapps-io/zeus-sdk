@@ -192,7 +192,7 @@ void airhodl::stake( name owner, name provider, name service, asset quantity) {
    //perform third party staking
    action(permission_level{_self, "active"_n}, 
       DAPP_TOKEN, "staketo"_n,
-      std::make_tuple(_self, owner, provider, service, asset(quantity.amount,DAPP_SYMBOL)))
+      std::make_tuple(_self, owner, provider, service, asset(quantity.amount,DAPP_SYMBOL), 0))
    .send();
 }
 

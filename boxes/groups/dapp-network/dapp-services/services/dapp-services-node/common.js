@@ -6,12 +6,12 @@ const { loadModels } = require('../../extensions/tools/models');
 const { getUrl } = require('../../extensions/tools/eos/utils');
 const { getEosWrapper } = require('../../extensions/tools/eos/eos-wrapper');
 const getDefaultArgs = require('../../extensions/helpers/getDefaultArgs');
-
 const bodyParser = require('body-parser');
 const express = require('express');
 const cors = require('cors');
 const httpProxy = require('http-proxy');
 const { BigNumber } = require('bignumber.js');
+const logger = require('../../extensions/helpers/logger');
 const eosjs2 = require('eosjs');
 const { Serialize, JsonRpc } = eosjs2;
 const { TextDecoder, TextEncoder } = require('text-encoding');
@@ -19,40 +19,25 @@ const { Long } = require('bytebuffer')
 
 var url = getUrl(getDefaultArgs());
 const rpc = new JsonRpc(url, { fetch });
-const networks = [{
-    name: 'Main Net',
-    host: 'node2.liquideos.com',
-    port: 80,
-    chainId: 'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906',
-    secured: false
-  },
-  {
-    name: 'Jungle Testnet',
-    host: 'jungle.cryptolions.io',
-    // secured: true,
-    chainId: '038f4b0fc8ff18a4f0842a8f0564611f6e96e8535901dd45e43ac8691a1c4dca',
-    port: 18888
-  },
-  {
-    name: 'Localhost',
-    host: process.env.NODEOS_HOST || 'localhost',
-    secured: process.env.NODEOS_SECURED === 'true' || false,
-    port: process.env.NODEOS_PORT || 8888,
-    chainId: process.env.NODEOS_CHAINID
-  }
-];
 
-var defaultIndex = 2;
-const network = networks[defaultIndex];
+const network = {
+  name: 'Localhost',
+  host: process.env.NODEOS_HOST || 'localhost',
+  secured: process.env.NODEOS_SECURED === 'true' || false,
+  port: process.env.NODEOS_PORT || 8888,
+  chainId: process.env.NODEOS_CHAINID
+};
 var eosconfig = {
   chainId: network.chainId, // 32 byte (64 char) hex string
-  expireInSeconds: 1200,
-  sign: true
+  expireInSeconds: 120,
+  sign: true,
+  broadcast: true,
+  blocksBehind: 10,
 };
 var eosdspconfig = { ...eosconfig };
 if (network.secured) {
   eosconfig.httpsEndpoint = 'https://' + network.host + ':' + network.port;
-  eosconfig.httpEndpoint = 'http://' + network.host + ':' + network.port;
+  eosconfig.httpEndpoint = 'https://' + network.host + ':' + network.port;
 }
 else {
   eosconfig.httpEndpoint = 'http://' + network.host + ':' + network.port;
@@ -169,7 +154,7 @@ function decodeName(value, littleEndian = true) {
 
 // const nameToString = (name) => {
 //     const tmp = new BigNumber(name.toString('hex'), 16);
-//     return decodeName(tmp.toString(), true);
+//     return decodeName(tmp.toString(), truFORWARDe);
 // }
 var eosPrivate = getEosWrapper(eosconfig);
 eosdspconfig.httpEndpoint = `http://${process.env.NODEOS_HOST_DSP || 'localhost'}:${process.env.NODEOS_HOST_DSP_PORT || process.env.DSP_PORT || 13015}`;
@@ -179,7 +164,6 @@ var eosDSPGateway = getEosWrapper(eosdspconfig);
 
 const forwardEvent = async(act, endpoint, redirect) => {
   if (redirect) { return endpoint; }
-
   const r = await fetch(endpoint + '/event', { method: 'POST', body: JSON.stringify(act) });
   await r.text();
 };
@@ -214,7 +198,7 @@ const resolveExternalProviderData = async(service, provider, packageid) => {
     'limit': 1
   };
   const packages = await rpc.get_table_rows(payload);
-  const result = packages.rows.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service); 
+  const result = packages.rows.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service);
   if (result.length === 0) { throw new Error(`resolveExternalProviderData failed ${provider} ${service} ${packageid}`); }
   if (!result[0].enabled) { console.log(`DEPRECATION WARNING for ${provider} ${service} ${packageid}: Packages must be enabled for DSP services to function in the future.`); } //TODO: Throw error instead
 
@@ -269,18 +253,19 @@ const resolveProviderPackage = async(payer, service, provider) => {
   const serviceWithStakingResult = await getProviders(payer, service, provider);
   //we must iterate over staked packages and ensure they are enabled
   let selectedPackage = null;
-  for(let i = 0; i < serviceWithStakingResult.length; i++) {
+  for (let i = 0; i < serviceWithStakingResult.length; i++) {
     let checkProvider = serviceWithStakingResult[i];
     let checkPackage = checkProvider.package ? checkProvider.package : checkProvider.pending_package;
     try {
-      await resolveExternalProviderData(service,provider,checkPackage);
+      await resolveExternalProviderData(service, provider, checkPackage);
       selectedPackage = checkPackage;
       break;
-    } catch(e) {
+    }
+    catch (e) {
       console.log(`Provider ${provider} package ${checkPackage} does not exist or is disabled`);
-    }    
+    }
   }
-  if(!selectedPackage) { throw new Error(`resolveProviderPackage failed - no enabled packages - ${provider} ${service}`); }
+  if (!selectedPackage) { throw new Error(`resolveProviderPackage failed - no enabled packages - ${provider} ${service}`); }
 
   return selectedPackage;
 };
@@ -369,6 +354,8 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi) => {
   const app = genApp();
   app.use(async(req, res, next) => {
     var uri = req.originalUrl;
+    logger.info("GATEWAY: %s\t[%s]", uri, req.ip);
+
     var isServiceRequest = uri.indexOf('/event') == 0;
     var isServiceAPIRequest = uri.indexOf('/v1/dsp/') == 0;
     var uriParts = uri.split('/');
@@ -393,6 +380,7 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi) => {
     }, async function(err, string) {
       if (err) return next(err);
       var body = JSON.parse(string.toString());
+
 
       if (isServiceRequest) {
         try {
@@ -494,7 +482,7 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi) => {
               for (var i = 0; i < rText.processed.action_traces.length; i++) {
                 var action = rText.processed.action_traces[i];
                 // skip actions that were already done previously (in exception)
-                await handleAction(actionHandlers, action, true, serviceName, handlers);
+                // await handleAction(actionHandlers, action, true, serviceName, handlers);
               }
             }
           }

@@ -7,6 +7,8 @@ const WebSocket = require('ws');
 const pako = require('pako');
 const { loadModels } = require('../../../extensions/tools/models');
 const { getAbis, getAbiAbi } = require('./state_history_abi');
+const logger = require('../../../extensions/helpers/logger');
+const dal = require('../../dapp-services-node/dal/dal');
 
 const ws = new WebSocket(`ws://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_WEBSOCKET_PORT || '8889'}`, {
   perMessageDeflate: false
@@ -14,12 +16,13 @@ const ws = new WebSocket(`ws://${process.env.NODEOS_HOST || 'localhost'}:${proce
 
 var abis = getAbis();
 var abiabi = getAbiAbi();
-var c = process.env.DEMUX_HEAD_BLOCK || 35000000;
+var c = process.env.DEMUX_HEAD_BLOCK || 0;
 var c2 = 0;
 var types;
 var head_block = 0;
 var current_block = 0;
 var pending = [];
+var genesisTimestampMs;
 
 
 let capturedEvents;
@@ -56,7 +59,7 @@ const loadEvents = async() => {
 };
 
 const handlers = {
-  'eosio': (account, method, code, actData, events) => {
+  'eosio': (txid, account, method, code, actData, events, eventNum, blockNum, cbevent) => {
     // all methods
     if (method == 'onblock') {
       // console.log('.');
@@ -75,29 +78,41 @@ const handlers = {
 
       var abi = localTypes.get('abi_def').deserialize(buffer);
       abis[actData.account] = abi;
-      console.log(`setabi for ${actData.account} - updating Serializer`);
+      logger.debug(`setabi for ${actData.account} - updating Serializer`);
     }
+    return eventNum;
     // else
     //     console.log("system", account,method,code,actData, events);
   },
   '*': {
     '*': {
-      '*': async(account, method, code, actData, event) => {
+      '*': async(txid, account, method, code, actData, event, eventNum, blockInfo, cbevent) => {
         // load from model.
+
         var events = await loadEvents();
         var curr = events;
-        if (!curr[event.etype]) return;
+        logger.debug(`handling ${txid} ${eventNum} ${account} ${code} ${JSON.stringify(event)} ${method} ${cbevent}`);
+
+        if (!curr[event.etype]) return eventNum;
         curr = curr[event.etype];
         if (!curr[code]) { curr = curr['*']; }
         else { curr = curr[code]; }
-        if (!curr) return;
+        if (!curr) return eventNum;
 
         if (!curr[method]) { curr = curr['*']; }
         else { curr = curr[method]; }
         if (curr) {
-          Promise.all(curr.map(async url => {
+          await Promise.all(curr.map(async url => {
             if (process.env.WEBHOOKS_HOST) {
               url = url.replace('http://localhost:', process.env.WEBHOOKS_HOST);
+            }
+            event.meta = {
+              txId: txid,
+              blockNum: blockInfo.number,
+              timestamp: blockInfo.timestamp,
+              blockId: blockInfo.id,
+              eventNum,
+              cbevent
             }
             var r = await fetch(url, {
               headers: {
@@ -112,31 +127,38 @@ const handlers = {
                 event
               })
             });
-            return r.text();
+
+            await r.text();
+            return eventNum;
             // call webhook
           }));
-          console.log('fired hooks:', account, method, event, code);
+          logger.debug(`fired hooks: ${account} ${method} ${JSON.stringify(event, null, 2)} ${code}`);
         }
+        return eventNum;
         //     else
         //         console.log("catching all unhandled events:", account,method,code,actData, event);
       }
     }
   }
 };
-async function recursiveHandle({ account, method, code, actData, events }, depth = 0, currentHandlers = handlers) {
-  if (depth == 3) { return; }
+async function recursiveHandle({ txid, account, method, code, actData, events }, depth = 0, currentHandlers = handlers, eventNum = 0, blockInfo, cbevent) {
+  if (depth == 3) {
+    console.log('not supposed to get here')
+    return;
+  }
 
   var key = account;
   if (depth == 2) {
     key = events;
-    if (Array.isArray(key)) {
-      for (var i = 0; i < key.length; i++) {
-        var currentEvent = key[i];
+    if (Array.isArray(events)) {
+      for (var i = 0; i < events.length; i++) {
+        var currentEvent = events[i];
         var eventType = currentEvent.etype;
+        logger.debug(`event: ${JSON.stringify(currentEvent, null, 2)}`);
         if (!eventType) { continue; }
-        await recursiveHandle({ account, method, code, actData, events: currentEvent }, depth, currentHandlers);
+        await recursiveHandle({ txid, account, method, code, actData, events: currentEvent }, depth, currentHandlers, eventNum + i, blockInfo, cbevent);
       }
-      return;
+      return eventNum + events.length;
     }
     key = events.etype;
   }
@@ -152,21 +174,21 @@ async function recursiveHandle({ account, method, code, actData, events }, depth
 
   if (subHandler) {
     if (typeof subHandler === 'function') {
-      return await subHandler(account, method, code, actData, events);
+      return await subHandler(txid, account, method, code, actData, events, eventNum, blockInfo, cbevent);
     }
     else if (typeof subHandler === 'object') {
-      return recursiveHandle({ account, method, code, actData, events }, depth + 1, subHandler);
+      return recursiveHandle({ txid, account, method, code, actData, events }, depth + 1, subHandler, eventNum, blockInfo, cbevent);
     }
     else {
-      console.log(`got action: ${code}.${method} ${account == code ? '' : `(${account})`} - ${JSON.stringify(events)}`);
+      logger.debug(`got action: ${code}.${method} ${account == code ? '' : `(${account})`} - ${JSON.stringify(events)}`);
     }
   }
   else {
-    console.log(`no handler for action: ${code}.${method} ${account == code ? '' : `(${account})`} - ${JSON.stringify(events)}`, currentHandlers, key);
+    logger.debug(`no handler for action: ${code}.${method} ${account == code ? '' : `(${account})`} - ${JSON.stringify(events)}`, currentHandlers, key);
   }
 }
 
-function parsedAction(account, method, code, actData, events) {
+function parsedAction(txid, account, method, code, actData, events, maxEventNum, blockInfo, cbevent) {
   var abi = abis[code];
   if (abi) {
     var localTypes = types = Serialize.getTypesFromAbi(types, abi);
@@ -182,10 +204,11 @@ function parsedAction(account, method, code, actData, events) {
       actData = theType.deserialize(buffer);
     }
   }
-  return recursiveHandle({ account, method, code, actData, events });
+  return recursiveHandle({ txid, account, method, code, actData, events }, 0, handlers, maxEventNum, blockInfo, cbevent);
 }
 
-async function parseEvents(text) {
+
+function parseEvents(text) {
   return text.split('\n').map(a => {
     if (a === '') { return null; }
     try {
@@ -194,21 +217,33 @@ async function parseEvents(text) {
     catch (e) {}
   }).filter(a => a);
 }
-
-async function actionHandler(action) {
+async function actionHandler(txid, action, maxEventNum, blockInfo, cbevent) {
   if (Array.isArray(action)) { action = action[1]; }
-  await parsedAction(action.receipt[1].receiver, action.act.name, action.act.account, action.act.data, await parseEvents(action.console));
-  if (action.inline_traces)
+  maxEventNum = await parsedAction(txid, action.receipt[1].receiver, action.act.name, action.act.account, action.act.data, parseEvents(action.console), maxEventNum, blockInfo, cbevent);
+  if (action.inline_traces) {
     for (var i = 0; i < action.inline_traces.length; i++) {
-      await actionHandler(action.inline_traces[i]);
+      maxEventNum = await actionHandler(txid, action.inline_traces[i], maxEventNum, blockInfo, cbevent);
     }
+  }
+  return maxEventNum;
 }
 
-async function transactionHandler(tx) {
+async function transactionHandler(tx, blockInfo) {
+  var startFrom = 0
+  var cbevent;
+  if (tx.action_traces[0][1].act.name === 'xcallback') {
+    // transaction is a service response
+    cbevent = parseEvents(tx.action_traces[0][1].console);
+    cbevent = cbevent[0];
+
+    startFrom++;
+  }
   var actionTraces = tx.action_traces;
-  for (var i = 0; i < actionTraces.length; i++) {
+  let maxEventNum = 0;
+  for (var i = startFrom; i < actionTraces.length; i++) {
+    // logger.debug(`action ${i} with current maxEventNum ${maxEventNum}`)
     var actionTrace = actionTraces[i];
-    await actionHandler(actionTrace);
+    maxEventNum = await actionHandler(tx.id, actionTrace, maxEventNum, blockInfo, cbevent);
   }
 }
 
@@ -220,12 +255,16 @@ async function messageHandler(data) {
   });
 
   const realData = types.get('result').deserialize(buffer);
-  if (++c % 10000 == 0 && current_block === 0) { console.log(`syncing ${c / 1000000}M (${head_block / 1000000}M}`); }
+  if (++c % 10000 == 0 && current_block === 0) { logger.info(`syncing ${c / 1000000}M (${head_block / 1000000}M}`); }
   head_block = realData[1].head.block_num;
+  const block_id = realData[1].head.block_id;
   if (!realData[1].traces) { return; }
   var traces = Buffer.from(realData[1].traces, 'hex');
   current_block = realData[1].this_block.block_num;
-  if (++c2 % 10000 == 0) { console.log('at', current_block - head_block); }
+  if (++c2 % 10000 == 0) { logger.info('at', current_block - head_block); }
+
+  const timestamp = await getBlockTimestamp(current_block);
+  const blockInfo = { timestamp, number: current_block, id: block_id };
 
   try {
     var n = traces.readUInt8(4);
@@ -243,43 +282,45 @@ async function messageHandler(data) {
     });
 
     var count = buffer2.getVaruint32();
-    //console.log('count', count);
     for (var i = 0; i < count; i++) {
       const transactionTrace = types.get('transaction_trace').deserialize(buffer2);
-      // console.log("transactionTrace", JSON.stringify(transactionTrace));
-      await transactionHandler(transactionTrace[1]);
+      await transactionHandler(transactionTrace[1], blockInfo);
     }
+
+    await dal.updateSettings({ last_processed_block: current_block });
   }
   catch (e) {
-    console.error(e);
+    logger.error(e);
   }
 }
 
 var retries = 0;
-async function watchMessages() {  
-  if(pending.length !== 0) {
+async function watchMessages() {
+  if (pending.length !== 0) {
     //always remove the message from pending
     const data = pending.shift();
     try {
       await messageHandler(data);
-    } catch(e) {
+    }
+    catch (e) {
       //if something went wrong, just carry on
-      console.log("Retry block");
+      logger.info("Retry block");
       pending.unshift(data);
       types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), abi);
       ++retries;
-      setImmediate(()=>watchMessages());
+      setImmediate(() => watchMessages());
       return;
     }
-    if(retries !== 0) {
-      console.log(`Success after ${retries} attempts`);
+    if (retries !== 0) {
+      logger.info(`Success after ${retries} attempts`);
       retries = 0;
     }
     //process this entire ticks worth of messages
-    process.nextTick(()=>watchMessages());
-  } else {
+    process.nextTick(() => watchMessages());
+  }
+  else {
     //wait for a full tick of messages
-    setImmediate(()=>watchMessages());
+    setImmediate(() => watchMessages());
   }
 }
 
@@ -287,7 +328,7 @@ var abi;
 var expectingABI = true;
 ws.on('open', function open() {
   expectingABI = true;
-  console.log('ws connected');
+  logger.info('ws connected');
 });
 
 ws.on('message', async function incoming(data) {
@@ -297,7 +338,7 @@ ws.on('message', async function incoming(data) {
     return;
   }
 
-  console.log('got abi');
+  logger.info('got abi');
   abi = JSON.parse(data);
   types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), abi);
 
@@ -306,9 +347,18 @@ ws.on('message', async function incoming(data) {
     textDecoder: new TextDecoder()
   });
 
+  let start_block_num;
+  try {
+    start_block_num = await getStartingBlockNumber();
+  } catch(e) {
+    logger.error(`Error getting starting block number: ${JSON.stringify(e)}`);
+    start_block_num = 1;
+  }
+  logger.info(`starting demux at block ${start_block_num}`);
+
   //we have the abi now, create a get blocks request
   types.get('request').serialize(buffer, ['get_blocks_request_v0', {
-    'start_block_num': process.env.DEMUX_HEAD_BLOCK || 35000000,
+    'start_block_num': start_block_num,
     'end_block_num': 4294967295,
     'max_messages_in_flight': 4294967295,
     'have_positions': [],
@@ -320,6 +370,53 @@ ws.on('message', async function incoming(data) {
   expectingABI = false;
   //send the request, all future messages should be blocks
   ws.send(buffer.asUint8Array());
-  console.log("Starting demux processing");
+  logger.info("Starting demux processing");
   watchMessages();
 });
+
+async function getStartingBlockNumber() {
+  const settings = await dal.getSettings();
+  if (settings && settings.data && settings.data.last_processed_block) {
+    return settings.data.last_processed_block;
+  }
+      
+  if (process.env.DEMUX_HEAD_BLOCK) {
+    return process.env.DEMUX_HEAD_BLOCK;
+  }
+
+  return process.env.DAPPSERVICES_GENESIS_BLOCK || 1;
+}
+
+async function getHeadBlockInfo() {
+  const nodeosHost = process.env.NODEOS_HOST || 'localhost';
+  const nodeosPort = process.env.NODEOS_PORT || 8888;
+  const nodeosUrl = 
+    `http${process.env.NODEOS_SECURED === 'true' ? 's' : ''}://${nodeosHost}:${nodeosPort}`;
+
+  const res = await fetch(nodeosUrl + '/v1/chain/get_info', {
+    method: 'post',
+    body: JSON.stringify({}),
+    headers: { 'Content-Type': 'application/json' },
+  })
+  const blockInfo = await res.json();
+  return blockInfo;
+}
+
+// NOTE: This method allows us to calculate a block's timestamp without
+// having the specific block stored. We calculate the timestamp of the genesis
+// block using the block_num and block_time of any block, then afterwards
+// deterministically calculate the timestamp as genesisTimestamp + 0.5*blocknum
+async function getBlockTimestamp(blockNum) {
+  if (!genesisTimestampMs) {
+    let info = await getHeadBlockInfo();
+    // convert to UTC
+    let ts = info.head_block_time.slice(-1) == 'Z' ? info.head_block_time : `${info.head_block_time}Z`;
+    genesisTimestampMs = 
+      (new Date(ts)).getTime() - (500 * (info.head_block_num - 1))
+    logger.info(`calculated genesis block timestamp (ms): ${genesisTimestampMs}`);
+  }
+  return genesisTimestampMs + (500 * (blockNum - 1)); // genesis block is 1 not 0
+}
+
+
+

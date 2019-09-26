@@ -54,20 +54,6 @@ module.exports = async(args) => {
           '-p 8889:8889'
         ];
         break;
-      case 'zmq_plugin':
-        nodeosArgs = [...nodeosArgs,
-          '--plugin=eosio::zmq_plugin',
-          '--zmq-enable-actions',
-          '--zmq-sender-bind=tcp://0.0.0.0:5556',
-          '--zmq-publisher-bind=tcp://0.0.0.0:5557',
-          '--zmq-enable-pub-socket'
-          // `--zmq-whitelist-account ${dappServicesContract}`
-        ];
-        ports = [...ports,
-          '-p 5556:5556',
-          '-p 5557:5557'
-        ];
-        break;
     }
   }
 

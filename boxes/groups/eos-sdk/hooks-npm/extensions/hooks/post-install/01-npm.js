@@ -4,7 +4,13 @@ const path = require('path');
 module.exports = async(args, zeusbox) => {
   if (!zeusbox.install) { return; }
   if (zeusbox.install.npm) {
-    var packages = Object.keys(zeusbox.install.npm).join(' ');
+    var packages = Object.keys(zeusbox.install.npm).map(pkg => {
+      var ver = zeusbox.install.npm[pkg];
+      if (ver === true) {
+        return pkg;
+      }
+      return `${pkg}@${ver}`;
+    }).join(' ');
     console.log(emojMap.eight_pointed_black_star + 'NPM Install', packages.yellow);
     try {
       await execPromise(`npm install --loglevel error ${packages}`, {
@@ -31,10 +37,19 @@ module.exports = async(args, zeusbox) => {
     await Promise.all(Object.keys(zeusbox.install['npm-in-dirs']).map(async dir => {
       var npmSection = zeusbox.install['npm-in-dirs'][dir];
       if (npmSection.npm) {
-        var packages = Object.keys(npmSection.npm).join(' ');
+        var packages = Object.keys(npmSection.npm).map(pkg => {
+          var ver = npmSection.npm[pkg];
+          if (ver === true) {
+            return pkg;
+          }
+          return `${pkg}@${ver}`;
+        }).join(' ');
         console.log(emojMap.eight_pointed_black_star + 'NPM Install', packages.yellow, 'in', dir.cyan);
         await execPromise(`npm install --loglevel error ${packages}`, {
-          cwd: path.resolve('.', dir)
+          cwd: path.resolve('.', dir),
+          env: {
+            ...process.env,
+          }
         });
       }
 

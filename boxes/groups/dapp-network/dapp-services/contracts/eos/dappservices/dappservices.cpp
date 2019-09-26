@@ -17,13 +17,22 @@ using namespace std;
   EVENTKVL("package", (usageResult).package)                                   \
   END_EVENT()
 
+
+#define EMIT_CALLBACK_SVC_EVENT(provider, request_id, meta)                                   \
+  START_EVENT("callback_report", "1.4")                                           \
+  EVENTKV("provider", provider)                                        \
+  EVENTKV("request_id", request_id)                                        \
+  EVENTKVL("meta", meta)                                   \
+  END_EVENT()
+
+
 CONTRACT dappservices : public eosio::contract {
 public:
   using contract::contract;
 
   const name HODL_ACCOUNT = "dappairhodl1"_n;
-  
-  
+
+
   TABLE account {
     asset balance;
     uint64_t primary_key() const { return balance.symbol.code().raw(); }
@@ -63,9 +72,9 @@ public:
     }
   };
 
-  
+
   //we will scope to the payer/thirdparty
-  TABLE staking {    
+  TABLE staking {
     uint64_t id;            //id to ensure uniqueness
 
     name account;           //account that was staked to
@@ -88,10 +97,10 @@ public:
 
   TABLE package {
     uint64_t id;
-    
+
     std::string api_endpoint;
     std::string package_json_uri;
-    
+
     name package_id;
     name service;
     name provider;
@@ -118,8 +127,8 @@ public:
   TABLE reward {
     asset balance;
     uint64_t last_usage;
-    
-    asset total_staked; 
+
+    asset total_staked;
     uint64_t last_inflation_ts;
     uint64_t primary_key() const { return DAPPSERVICES_SYMBOL.code().raw(); }
   };
@@ -154,9 +163,15 @@ public:
     }
   };
 
+  //scope to accountext id
+  TABLE stakingext {
+    name payer;
+    uint64_t primary_key() const { return payer.value; }
+  };
+
   //ADDING TYPE DEFS
 
-  
+
   typedef eosio::multi_index<
       "refunds"_n, refundreq,
       indexed_by<"byprov"_n,
@@ -176,9 +191,10 @@ public:
   typedef eosio::multi_index<"stat"_n, currency_stats> stats;
   typedef eosio::multi_index<"statext"_n, currency_stats_ext> stats_ext;
   typedef eosio::multi_index<"accounts"_n, account> accounts;
+  typedef eosio::multi_index<"stakingext"_n, stakingext> staking_ext_t;
   typedef eosio::multi_index<"reward"_n, reward> rewards_t;
-  
-  
+
+
   typedef eosio::multi_index<
       "accountext"_n, accountext,
       indexed_by<"byprov"_n,
@@ -188,7 +204,7 @@ public:
                  const_mem_fun<accountext, uint128_t,
                                &accountext::by_account_service>>
                                >
-      accountexts_t; 
+      accountexts_t;
 
   typedef eosio::multi_index<
       "staking"_n, staking,
@@ -196,7 +212,7 @@ public:
                  const_mem_fun<staking, checksum256,
                                &staking::by_account_service_provider>>
                                >
-      staking_t;     
+      staking_t;
 
  [[eosio::action]] void create(uint64_t maximum_supply_amount, double inflation_per_block, uint64_t inflation_starts_at) {
     require_auth(_self);
@@ -250,13 +266,13 @@ public:
       r.min_stake_quantity = newpackage.min_stake_quantity;
       r.min_unstake_period = newpackage.min_unstake_period;
       r.package_json_uri = newpackage.package_json_uri;
-      r.api_endpoint = newpackage.api_endpoint;      
+      r.api_endpoint = newpackage.api_endpoint;
       // a.min_staking_period = newpackage.min_staking_period;
       r.package_period = newpackage.package_period;
     });
   }
-  
-  
+
+
  [[eosio::action]] void modifypkg(name provider, name package_id, name service, std::string api_endpoint, std::string package_json_uri) {
     require_auth(provider);
 
@@ -279,7 +295,7 @@ public:
       if(package_json_uri != "")
         r.package_json_uri = package_json_uri;
       if(api_endpoint != "")
-        r.api_endpoint = api_endpoint;      
+        r.api_endpoint = api_endpoint;
       // a.min_staking_period = newpackage.min_staking_period;
       // r.package_period = newpackage.package_period;
     });
@@ -447,11 +463,28 @@ public:
                  std::vector<char> signalRawData) {
     require_auth(get_first_receiver());
     string str(signalRawData.begin(), signalRawData.end());
-    auto encodedData = fc::base64_encode(str);                                 
+    auto encodedData = fc::base64_encode(str);
     EMIT_SIGNAL_SVC_EVENT(name(get_first_receiver()), service, action, provider, package,
                           encodedData.c_str());
     require_recipient(service);
     require_recipient(provider);
+  }
+
+  [[eosio::action]] void xcallback(name provider, string request_id, string meta) {
+    require_auth(provider);
+    EMIT_CALLBACK_SVC_EVENT(provider, request_id, meta.c_str());
+  }
+
+  [[eosio::action]] void retirestake(name owner, name provider, name service, name package, std::vector<name> delegators) {
+    require_auth(owner);
+    eosio::check(delegators.size() > 0, "must provide atleast 1 delegator");
+    unstake_package(owner, service, provider, package, delegators, 0);
+  }
+
+  [[eosio::action]] void preselectpkg(name owner, name provider, name service, name package, uint8_t depth) {
+    require_auth(owner);
+    eosio::check(depth > 0, "depth must be 1 or greater");
+    unstake_package(owner, service, provider, package, {}, depth);
   }
 
  [[eosio::action]] void selectpkg(name owner, name provider, name service, name package) {
@@ -461,7 +494,7 @@ public:
   }
 
  [[eosio::action]] void migratestake(uint64_t id) {
-#ifdef MIGRATION_MODE    
+#ifdef MIGRATION_MODE
 
    accountexts_t accountexts(_self, DAPPSERVICES_SYMBOL.code().raw());
     auto acct = accountexts.find(id);
@@ -479,12 +512,12 @@ public:
 
       //they already have a stake in the new system, we can skip
       if(stake == stakeIdx.end()) {
-        stakes.emplace(_self, [&](auto &a) { 
-          a.id = stakes.available_primary_key();        
-          a.account = owner;  
+        stakes.emplace(_self, [&](auto &a) {
+          a.id = stakes.available_primary_key();
+          a.account = owner;
           a.balance = quantity;
           a.service = service;
-          a.provider = provider;           
+          a.provider = provider;
         });
       }
     }
@@ -492,37 +525,43 @@ public:
  }
 
  [[eosio::action]] void stake(name from, name provider, name service, asset quantity) {
-    staketo(from, from, provider, service, quantity);
+    staketo(from, from, provider, service, quantity, false);
   }
 
-  [[eosio::action]] void staketo(name from, name to, name provider, name service, asset quantity) {
+  [[eosio::action]] void staketo(name from, name to, name provider, name service, asset quantity, bool transfer) {
 
-    if(from != to) {
-      eosio::check(from == HODL_ACCOUNT,"third party staking only allowed for AirHODL");
-    }
+    // if(from != to) {
+    //   eosio::check(from == HODL_ACCOUNT,"third party staking only allowed for AirHODL");
+    // }
     require_auth(from);
     require_recipient(provider);
     require_recipient(service);
     require_recipient(to);
     refillPackage(to, provider, service);
-    add_provider_balance(from, to, service, provider, quantity);
+    add_provider_balance(from, to, service, provider, quantity, transfer);
     sub_balance(from, quantity);
     add_total_staked(quantity);
   }
+
 
  [[eosio::action]] void unstake(name to, name provider, name service, asset quantity) {
     unstaketo(to,to,provider,service,quantity);
   }
 
   [[eosio::action]] void unstaketo(name from, name to, name provider, name service, asset quantity) {
-    require_auth(from);
+    
+    if(has_auth(_self))
+      require_recipient(from);
+    else  
+      require_auth(from);
+
     require_recipient(provider);
-    require_recipient(service);
+    require_recipient(service);    
     require_recipient(to);
     refillPackage(to, provider, service);
     auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     uint64_t unstake_time = current_time_ms + getUnstakeRemaining(to,provider,service);
-    
+
     auto sym = quantity.symbol;
     eosio::check(DAPPSERVICES_SYMBOL == sym,
                  "wrong symbol or precision");
@@ -543,6 +582,22 @@ public:
                       [&](auto &a) { a.balance -= quantity; });
     } else {
       stakeIdx.erase(stake);
+
+      if(from != to && from != HODL_ACCOUNT) {
+        accountexts_t accountexts(_self, DAPPSERVICES_SYMBOL.code().raw());
+        auto idxKeyAcct =
+            accountext::_by_account_service_provider(to, service, provider);
+        auto cidxacct = accountexts.get_index<"byprov"_n>();
+        auto acct = cidxacct.find(idxKeyAcct);
+
+        //Check if we need to remove a stakingext
+        staking_ext_t stakingexts(_self, acct->id);
+        auto stake_ext = stakingexts.find(from.value);
+        if(stake_ext != stakingexts.end()) {
+          stakingexts.erase(stake_ext);
+        }
+      }
+      
     }
 
     refunds_table refunds_tbl(_self, from.value);
@@ -556,7 +611,8 @@ public:
         r.amount += quantity;
       });
     } else {
-      refunds_tbl.emplace(from, [&](refundreq &r) {
+      //TODO: who should pay for refund ram?
+      refunds_tbl.emplace(has_auth(_self) ? _self : from, [&](refundreq &r) {
         r.id = refunds_tbl.available_primary_key();
         r.unstake_time = unstake_time;
         r.account = to;
@@ -565,7 +621,7 @@ public:
         r.service = service;
       });
     }
-    uint64_t secondsLeft = 
+    uint64_t secondsLeft =
         (unstake_time - current_time_ms) / 1000; // calc how much left
     if(unstake_time < current_time_ms || secondsLeft == 0)
       secondsLeft = 1;
@@ -586,7 +642,7 @@ public:
     auto req = cidx.find(idxKey);
     eosio::check(req != cidx.end(), "refund request not found");
     refillPackage(to, provider, service);
-    uint64_t secondsLeft = 
+    uint64_t secondsLeft =
         (req->unstake_time - current_time_ms) / 1000; // calc how much left
     if(req->unstake_time < current_time_ms)
       secondsLeft = 0;
@@ -602,20 +658,21 @@ public:
     auto cidxacct = accountexts.get_index<"byprov"_n>();
     auto acct = cidxacct.find(idxKeyAcct);
     auto sym = quantity.symbol;
-    
+
     if(acct != cidxacct.end() && DAPPSERVICES_SYMBOL == sym){
       // we don't need this because refunds never exceed stakes now
-      // if(quantity > acct->balance) 
-      //   quantity = acct->balance;  
+      // if(quantity > acct->balance)
+      //   quantity = acct->balance;
+
 
       require_recipient(provider);
-      require_recipient(service);    
+      require_recipient(service);
 
       sub_provider_balance(to, service, provider, quantity);
       sub_total_staked(quantity);
       add_balance(from, quantity, from);
 
-      action(permission_level{_self, "active"_n}, 
+      action(permission_level{_self, "active"_n},
         _self, "refreceipt"_n,
         std::make_tuple(from, to, quantity))
       .send();
@@ -639,14 +696,14 @@ public:
     require_recipient(provider);
     require_recipient(service);
     require_recipient(payer);
-    
+
     usage_report.success = usequota(payer, provider, service, quantity);
     EMIT_USAGE_REPORT_EVENT(usage_report);
   }
 
  [[eosio::action]] void claimrewards(name provider) {
     require_auth(provider);
-    dist_rewards(provider); 
+    dist_rewards(provider);
     auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     rewards_t rewards(_self, provider.value);
     auto reward = rewards.find(DAPPSERVICES_SYMBOL.code().raw());
@@ -662,7 +719,7 @@ public:
     });
     // increase balance for self
     add_balance(_self, rewardAsset, _self);
-    
+
     action(permission_level{_self, "active"_n}, _self, "transfer"_n,
            std::make_tuple(_self, provider, rewardAsset, std::string("rewards")))
         .send();
@@ -714,18 +771,18 @@ private:
 
     cidx.modify(acct, eosio::same_payer,
                 [&](auto &a) { a.balance -= quantity; });
-                
+
     auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     rewards_t rewards(_self, provider.value);
     auto reward = rewards.find(DAPPSERVICES_SYMBOL.code().raw());
     eosio::check(reward != rewards.end(), "provider not found");
-    rewards.modify(reward, _self, [&](auto &a) { 
-      a.total_staked -= quantity; 
+    rewards.modify(reward, _self, [&](auto &a) {
+      a.total_staked -= quantity;
     });
   }
-  
+
   void add_provider_balance(name payer, name owner, name service, name provider,
-                            asset quantity) {
+                            asset quantity, bool transfer) {
     accountexts_t accountexts(_self, DAPPSERVICES_SYMBOL.code().raw());
     auto idxKey =
         accountext::_by_account_service_provider(owner, service, provider);
@@ -737,9 +794,21 @@ private:
     cidx.modify(acct, eosio::same_payer,
                 [&](auto &a) { a.balance += quantity; });
 
+    //Check if we need to add a stakingext
+    if(payer != owner && payer != HODL_ACCOUNT && !transfer) {
+      //use the accountexts id for scope
+      staking_ext_t stakingexts(_self, acct->id);
+      auto stake_ext = stakingexts.find(payer.value);
+      if(stake_ext == stakingexts.end()) {
+        stakingexts.emplace(payer, [&](auto &a) { 
+          a.payer = payer;
+        });
+      }
+    }
 
     //START STAKETO MODIFICATION
-    staking_t stakes(_self, payer.value);
+    auto scope = transfer ? owner.value : payer.value;
+    staking_t stakes(_self, scope);
     auto stakeKey = staking::_by_account_service_provider(owner, service, provider);
     auto stakeIdx = stakes.get_index<"byprov"_n>();
     auto stake = stakeIdx.find(stakeKey);
@@ -748,46 +817,82 @@ private:
       stakeIdx.modify(stake, eosio::same_payer,
                       [&](auto &a) { a.balance += quantity; });
     } else {
-      stakes.emplace(payer, [&](auto &a) { 
-        a.id = stakes.available_primary_key();        
-        a.account = owner;  
+      stakes.emplace(payer, [&](auto &a) {
+        a.id = stakes.available_primary_key();
+        a.account = owner;
         a.balance = quantity;
         a.service = service;
-        a.provider = provider;           
+        a.provider = provider;
       });
     }
-    //END STAKETO MODIFICATION            
-                
+    //END STAKETO MODIFICATION
+
     auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     rewards_t rewards(_self, provider.value);
     auto reward = rewards.find(DAPPSERVICES_SYMBOL.code().raw());
     if (reward != rewards.end()) {
-      rewards.modify(reward, _self, [&](auto &a) { 
+      rewards.modify(reward, _self, [&](auto &a) {
         a.total_staked += quantity;
       });
     } else {
-      rewards.emplace(_self, [&](auto &a) { 
-        a.total_staked = quantity; 
+      rewards.emplace(_self, [&](auto &a) {
+        a.total_staked = quantity;
         a.last_inflation_ts = current_time_ms;
         a.balance.symbol = quantity.symbol;
       });
     }
-
   }
+
+
+  void unstake_package(name owner, name service, name provider, name package, std::vector<name> delegators, uint8_t depth = 0) {
+    accountexts_t accountexts(_self, DAPPSERVICES_SYMBOL.code().raw());
+    auto idxKey =
+        accountext::_by_account_service_provider(owner, service, provider);
+    auto cidx = accountexts.get_index<"byprov"_n>();
+    auto acct = cidx.find(idxKey);
+    eosio::check(acct != cidx.end(), "package not found");
+    staking_ext_t stakingexts(_self, acct->id);
+    //key is universal, calculate once
+    auto stakeKey = staking::_by_account_service_provider(owner, service, provider);
+    //dry code :)
+    auto loop_depth = depth > 0 ? depth : delegators.size();
+    auto stake_ext = stakingexts.begin();
+    for(uint8_t i = 0; i < loop_depth; ++i) {
+      if(depth == 0) stake_ext = stakingexts.find(delegators[i].value);
+      if(stake_ext != stakingexts.end()) {
+        staking_t stakes(_self, stake_ext->payer.value);        
+        auto stakeIdx = stakes.get_index<"byprov"_n>();
+        auto stake = stakeIdx.find(stakeKey);
+        if(stake != stakeIdx.end()) {                
+          action(permission_level{_self, "active"_n}, 
+            _self, "unstaketo"_n,
+            std::make_tuple(stake_ext->payer,owner,provider,service,stake->balance))
+          .send();
+        }   
+        if(depth > 0) ++stake_ext;  
+      }      
+    }
+  }
+
   void choose_package(name owner, name service, name provider, name package) {
     accountexts_t accountexts(_self, DAPPSERVICES_SYMBOL.code().raw());
     auto idxKey =
         accountext::_by_account_service_provider(owner, service, provider);
     auto cidx = accountexts.get_index<"byprov"_n>();
     auto acct = cidx.find(idxKey);
-    if (acct != cidx.end()) {
+    if (acct != cidx.end()) {      
+      //ensure all third party stakes (except AirHODL) are unstaked
+      staking_ext_t stakingexts(_self, acct->id);
+      auto stake_ext = stakingexts.begin();
+      eosio::check(stake_ext == stakingexts.end(), "cannot select a new package if third parties are staked to it. use preselectpkg to remove all third party stakes"); 
+
       cidx.modify(acct, eosio::same_payer,
                   [&](auto &a) { a.pending_package = package; });
       return;
     }
-    accountexts.emplace(owner, [&](auto &a) { 
+    accountexts.emplace(owner, [&](auto &a) {
       a.id = accountexts.available_primary_key();
-      a.pending_package = package; 
+      a.pending_package = package;
       a.provider = provider;
       a.service = service;
       a.account = owner;
@@ -863,19 +968,19 @@ private:
     const auto &stx = *existingx;
     const auto &st = *existing;
     double inflation = stx.inflation_per_block;
-    
+
     auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
-    
+
     uint64_t last_inflation_ts = stx.last_inflation_ts;
-    
+
     if(current_time_ms <= last_inflation_ts + 500)
       return;
-  
+
     int64_t passed_blocks = (current_time_ms - last_inflation_ts) / 500;
     if(passed_blocks <= 0)
       return;
 
-    
+
     // calc global inflation
     double total_inflation_amount = (pow(1.0 + inflation, passed_blocks) - 1.0) * st.supply.amount;
     asset inflation_asset;
@@ -883,15 +988,15 @@ private:
     inflation_asset.amount = total_inflation_amount;
     if(inflation_asset.amount <= 0)
       return;
-    
+
     // increase supply
     statstable.modify(st, eosio::same_payer,
-                      [&](auto &s) { 
-                        s.supply += inflation_asset; 
+                      [&](auto &s) {
+                        s.supply += inflation_asset;
                       });
     // save last inflation point
     statsexts.modify(stx, eosio::same_payer,
-                      [&](auto &s) { 
+                      [&](auto &s) {
                         s.last_inflation_ts = current_time_ms;
                       });
   }
@@ -931,8 +1036,8 @@ private:
     return res;
   }
   void refillPackage(name payer, name provider, name service) {
-    dist_rewards(provider); 
-    
+    dist_rewards(provider);
+
     auto sym = DAPPSERVICES_SYMBOL;
     accountexts_t accountexts(_self, sym.code().raw());
     auto idxKey =
@@ -942,7 +1047,7 @@ private:
     if (acctx == cidx.end())
       return;
 
-    accountext &acct = (accountext &)*acctx;  
+    accountext &acct = (accountext &)*acctx;
     auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
     if (acct.package_end > current_time_ms) // not expired yet
       return;
@@ -954,7 +1059,7 @@ private:
     acct.package_end = acct.package_started;
 
     //update package if pending
-    if (acct.pending_package != ""_n) {  
+    if (acct.pending_package != ""_n) {
       // get package details
       packages_t packages(_self, _self.value);
       auto idxKey = package::_by_package_service_provider(acct.pending_package,
@@ -970,7 +1075,7 @@ private:
           acct.package = acct.pending_package;
           acct.package_end =
               acct.package_started + (newpackage.package_period * 1000);
-        }       
+        }
       }
     }
 
@@ -981,7 +1086,7 @@ private:
       a.package_end = acct.package_end;
       a.last_reward = current_time_ms;
       a.last_usage = current_time_ms;
-    });       
+    });
   }
 
   void dist_rewards(name provider) {
@@ -991,17 +1096,17 @@ private:
     rewards_t rewards(_self, provider.value);
     auto reward = rewards.find(DAPPSERVICES_SYMBOL.code().raw());
     auto sym = DAPPSERVICES_SYMBOL;
-    
+
     if(reward != rewards.end()){
       // calculate reward
       double amount = 0.0;
-      
+
       stats_ext statsexts(_self, sym.code().raw());
       auto existingx = statsexts.find(sym.code().raw());
       eosio::check(existingx != statsexts.end(),
                  "token with symbol does not exist");
       const auto &stx = *existingx;
-      
+
       double inflation = stx.inflation_per_block;
       int64_t passed_blocks = (current_time_ms - reward->last_inflation_ts) / 500;
       if(passed_blocks > 0){
@@ -1014,7 +1119,7 @@ private:
         auto totalStakeFactor = (1.0 * st.supply.amount) / stx.staked.amount;
         amount = (pow(1.0 + inflation, passed_blocks) - 1.0) * (current_stake*totalStakeFactor);
       }
-      
+
       asset quantity;
       quantity.symbol = DAPPSERVICES_SYMBOL;
       quantity.amount = amount;
@@ -1027,10 +1132,10 @@ private:
   void giveRewards(name provider, asset quantity) {
     auto sym = DAPPSERVICES_SYMBOL;
     auto current_time_ms = (current_time_point().time_since_epoch().count() / 1000);
-    
+
     stats statstable(_self, sym.code().raw());
     auto existing = statstable.find(sym.code().raw());
-    
+
     eosio::check(existing != statstable.end(),
                  "token with symbol does not exist, create token before issue");
     const auto &st = *existing;
@@ -1042,16 +1147,16 @@ private:
     eosio::check(quantity.amount <= st.max_supply.amount - st.supply.amount,
                  "quantity exceeds available supply");
 
-    
+
     rewards_t rewards(_self, provider.value);
     auto reward = rewards.find(DAPPSERVICES_SYMBOL.code().raw());
     if (reward != rewards.end()) {
-      rewards.modify(reward, _self, [&](auto &a) { 
-        a.balance += quantity; 
+      rewards.modify(reward, _self, [&](auto &a) {
+        a.balance += quantity;
         a.last_inflation_ts = current_time_ms;
       });
     } else {
-      rewards.emplace(_self, [&](auto &a) { 
+      rewards.emplace(_self, [&](auto &a) {
         a.balance = quantity;
         a.last_inflation_ts = current_time_ms;
       });
@@ -1081,7 +1186,7 @@ void apply(uint64_t receiver, uint64_t code, uint64_t action) {
           dappservices, (usage)(stake)(unstake)(refund)
                         (staketo)(unstaketo)(refundto)(refreceipt)
                         (claimrewards)(create)(issue)(transfer)
-                        (open)(close)(retire)
+                        (open)(close)(retire)(preselectpkg)(retirestake)(xcallback)
                         (selectpkg)(regpkg)(closeprv)(modifypkg)(disablepkg)(enablepkg))
     }
   } else {

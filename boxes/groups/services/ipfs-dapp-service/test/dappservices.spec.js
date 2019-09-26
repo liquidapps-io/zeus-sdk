@@ -111,6 +111,39 @@ async function selectPackage({ deployedContract, serviceName = 'ipfs', provider 
   });
 }
 
+async function preSelectPackage({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1', selectedPackage = 'default', delegators = [], depth = 0 }) {
+  var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
+  var service = model.contract;
+  let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
+  var contract = deployedContract.address;
+  if(depth == 0) {
+    await servicesTokenContract.retirestake({
+      owner: contract,
+      provider,
+      service,
+      'package': selectedPackage,
+      delegators
+    }, {
+      authorization: `${contract}@active`,
+      broadcast: true,
+      sign: true
+    });
+  } else {
+    await servicesTokenContract.preselectpkg({
+      owner: contract,
+      provider,
+      service,
+      'package': selectedPackage,
+      depth
+    }, {
+      authorization: `${contract}@active`,
+      broadcast: true,
+      sign: true
+    });
+  }
+  
+}
+
 async function stake({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1', amount = '500.0000' }) {
   var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
   var service = model.contract;
@@ -127,7 +160,7 @@ async function stake({ deployedContract, serviceName = 'ipfs', provider = 'pprov
   });
 }
 
-async function staketo({ deployedPayer, deployedContract, serviceName = 'ipfs', provider = 'pprovider1', amount = '500.0000' }) {
+async function staketo({ deployedPayer, deployedContract, serviceName = 'ipfs', provider = 'pprovider1', amount = '500.0000', transfer = false }) {
   var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
   var service = model.contract;
   var contract = deployedContract.address;
@@ -139,11 +172,13 @@ async function staketo({ deployedPayer, deployedContract, serviceName = 'ipfs', 
     to: contract,
     service,
     provider,
-    quantity: `${amount} DAPP`
+    quantity: `${amount} DAPP`,
+    transfer
   }, {
     authorization: `${payer}@active`,
   });
 }
+
 
 async function unstake({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1', amount = '500.0000' }) {
   var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
@@ -412,6 +447,220 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
           failed = true;
         }
         assert(failed, 'should have failed for no package');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  it('Simple package and transfer stake third party', done => {
+    (async() => {
+      try {
+        var selectedPackage = 'third111';
+        var testContractPayer = 'transfer1';
+        var testContractAccount = 'transfer2';
+        var package_period = 5;
+        var deployedPayer = await deployPayer(testContractPayer);
+        var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
+        await deployServicePackage({ package_id: selectedPackage, package_period });
+        await selectPackage({ deployedContract, selectedPackage });
+        await staketo({ deployedPayer, deployedContract, selectedPackage, transfer: true });
+        await invokeService(testContractAccount, testcontract);
+        await unstake({ deployedPayer: deployedContract, deployedContract, selectedPackage });
+        await delaySec(package_period + 1);
+        await refund({ deployedContract, selectedPackage });
+        await delaySec(package_period + 1);
+        var failed = false;
+        try {
+          await invokeService(testContractAccount, testcontract);
+        }
+        catch (e) {
+          failed = true;
+        }
+        assert(failed, 'should have failed for no stake');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  it('Simple package and stake third party - refund on package change', done => {
+    (async() => {
+      try {
+        var selectedPackage = 'third315';
+        var nextPackage = 'third325';
+        var testContractPayer = 'payer1';
+        var testContractPayer2 = 'payer2';
+        var testContractAccount = 'recip3';
+        var package_period = 5;
+        var deployedPayer = await deployPayer(testContractPayer);
+        var deployedPayer2 = await deployPayer(testContractPayer2);
+        var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
+        await deployServicePackage({ package_id: selectedPackage, package_period });
+        await deployServicePackage({ package_id: nextPackage, package_period });
+        await selectPackage({ deployedContract, selectedPackage });
+        await staketo({ deployedPayer, deployedContract, selectedPackage });
+        await staketo({ deployedPayer:deployedPayer2, deployedContract, selectedPackage });
+        
+        await invokeService(testContractAccount, testcontract);
+
+        var failed = false;
+        try {
+          await selectPackage({ deployedContract, selectedPackage: nextPackage });
+        }
+        catch (e) {
+          failed = true;
+        }
+        assert(failed, 'should have failed for thid party stakes');
+
+        
+        //await preSelectPackage({ deployedContract, selectedPackage, delegators: [testContractPayer,testContractPayer2] });
+        await preSelectPackage({ deployedContract, selectedPackage, depth: 2 });        
+        await selectPackage({ deployedContract, selectedPackage: nextPackage });
+        await delaySec(package_period*2);
+        failed = false;
+        try {
+          await invokeService(testContractAccount, testcontract);
+        }
+        catch (e) {
+          failed = true;
+        }
+        assert(failed, 'should have failed for no stake');
+
+        await staketo({ deployedPayer, deployedContract, selectedPackage: nextPackage });
+        await staketo({ deployedPayer:deployedPayer2, deployedContract, selectedPackage: nextPackage });
+        await invokeService(testContractAccount, testcontract);
+
+        failed = false;
+        try {
+          await selectPackage({ deployedContract, selectedPackage });
+        }
+        catch (e) {
+          failed = true;
+        }
+        assert(failed, 'should have failed for thid party stakes');
+        await preSelectPackage({ deployedContract, selectedPackage: nextPackage, delegators: [testContractPayer,testContractPayer2] });
+        await selectPackage({ deployedContract, selectedPackage });
+        await delaySec(package_period*2);
+
+        failed = false;
+        try {
+          await invokeService(testContractAccount, testcontract);
+        }
+        catch (e) {
+          failed = true;
+        }
+        assert(failed, 'should have failed for no stake');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  it('Third party preSelectPackage more than depth', done => {
+    (async() => {
+      try {
+        var selectedPackage = 'thirdparty1';
+        var nextPackage = 'thirdparty2';
+        var testContractPayer = 'thirdparty3';
+        var testContractPayer2 = 'thirdparty4';
+        var testContractAccount = 'thirdparty5';
+        var package_period = 5;
+        var deployedPayer = await deployPayer(testContractPayer);
+        var deployedPayer2 = await deployPayer(testContractPayer2);
+        var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
+        await deployServicePackage({ package_id: selectedPackage, package_period });
+        await deployServicePackage({ package_id: nextPackage, package_period });
+        await selectPackage({ deployedContract, selectedPackage });
+        // stake to 2 packages
+        await staketo({ deployedPayer, deployedContract, selectedPackage });
+        await staketo({ deployedPayer:deployedPayer2, deployedContract, selectedPackage });
+        
+        await invokeService(testContractAccount, testcontract);
+
+        var failed = true;
+        try {
+          // try to preSelectPackage for 3 packages (depth)
+          await preSelectPackage({ deployedContract, selectedPackage, depth: 3 });   
+        }
+        catch (e) {
+          failed = false;
+        }
+        assert(failed, 'should not have failed for thid party preSelectPackage more than depth');
+        await selectPackage({ deployedContract, selectedPackage: nextPackage });
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  it('Third party retireStake more than delegators staked', done => {
+    (async() => {
+      try {
+        var selectedPackage = 'thirdpart1';
+        var nextPackage = 'thirdpart2';
+        var testContractPayer = 'thirdpart3';
+        var testContractPayer2 = 'thirdpart4';
+        var testContractAccount = 'thirdpart5';
+        var package_period = 5;
+        var deployedPayer = await deployPayer(testContractPayer);
+        var deployedPayer2 = await deployPayer(testContractPayer2);
+        var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
+        await deployServicePackage({ package_id: selectedPackage, package_period });
+        await deployServicePackage({ package_id: nextPackage, package_period });
+        await selectPackage({ deployedContract, selectedPackage });
+        await staketo({ deployedPayer, deployedContract, selectedPackage });
+        await staketo({ deployedPayer:deployedPayer2, deployedContract, selectedPackage });
+        
+        await invokeService(testContractAccount, testcontract);
+        await preSelectPackage({ deployedContract, selectedPackage, delegators: [testContractPayer,testContractPayer2,"randomdelega"] });
+
+        var failed = true;
+        try {
+          await selectPackage({ deployedContract, selectedPackage: nextPackage });
+        }
+        catch (e) {
+          failed = false;
+        }
+        assert(failed, 'should have succeeded for clearing third party stakes');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  it('Third party test select new package with different provider/service pair', done => {
+    (async() => {
+      try {
+        var selectedPackage = 'thirdpar11';
+        var nextPackage = 'thirdpar22';
+        var testContractPayer = 'thirdpar33';
+        var testContractPayer2 = 'thirdpar44';
+        var testContractAccount = 'thirdpar55';
+        var package_period = 5;
+        var deployedPayer = await deployPayer(testContractPayer);
+        var deployedPayer2 = await deployPayer(testContractPayer2);
+        var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
+        await deployServicePackage({ package_id: selectedPackage, package_period });
+        await deployServicePackage({ serviceName: 'log', package_id: nextPackage, package_period, provider: 'pprovider2' });
+        await deployServicePackage({ package_id: nextPackage, package_period });
+        await selectPackage({ deployedContract, selectedPackage });
+        await staketo({ deployedPayer, deployedContract, selectedPackage });
+
+        var failed = true;
+        try {
+          await selectPackage({ deployedContract, nextPackage, serviceName: 'log', provider: 'pprovider2' });
+        }
+        catch (e) {
+          failed = false;
+        }
+        assert(failed, 'should have succeeded because selecting different provider/service pair, no need to clear third party stakes');
+        await staketo({ serviceName: 'log', deployedPayer:deployedPayer2, deployedContract, selectedPackage, provider: 'pprovider2' });
         done();
       }
       catch (e) {

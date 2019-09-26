@@ -5,7 +5,7 @@ const { TextEncoder, TextDecoder } = require('util'); // node only; native TextE
 
 function getEosWrapper(config) {
     const defaults = {
-        expireSeconds: 60,
+        expireSeconds: 120,
         sign: true,
         broadcast: true,
         blocksBehind: 10

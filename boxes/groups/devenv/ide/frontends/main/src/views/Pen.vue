@@ -278,13 +278,13 @@
                     </p>
                     <a
                       class="btn btn-primary"
-                      :href="'http://faucet.cryptokylin.io/create_account?'+registerAccount"
+                      :href="'http://faucet.cryptokylin.io/create/'+registerAccount"
                       :class=" { disable: !registerAccount}"
                       target="_blank"
                     >Create Account</a>
                     <a
                       class="btn btn-primary"
-                      :href="'http://faucet.cryptokylin.io/get_token?'+registerAccount"
+                      :href="'http://faucet.cryptokylin.io/get_token/'+registerAccount"
                       :class=" { disable: !registerAccount}"
                       target="_blank"
                     >Faucet (get free eos)</a>

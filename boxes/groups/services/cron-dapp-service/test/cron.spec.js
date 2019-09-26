@@ -52,7 +52,25 @@ describe(`Cron Service Test Contract`, () => {
           'table': 'stat',
           'limit': 100
         });
-        assert.equal(res.rows[0].counter, '4', 'counter did not increase');
+        var first = res.rows[0].counter;
+        await delay(2500);
+        res = await dspeos.getTableRows({
+          'json': true,
+          'scope': code,
+          'code': code,
+          'table': 'stat',
+          'limit': 100
+        });
+        assert.equal(res.rows[0].counter, first + 1, 'counter did not increase');
+        await delay(2500);
+        res = await dspeos.getTableRows({
+          'json': true,
+          'scope': code,
+          'code': code,
+          'table': 'stat',
+          'limit': 100
+        });
+        assert.equal(res.rows[0].counter, first + 2, 'counter did not increase');
 
         done();
       }
