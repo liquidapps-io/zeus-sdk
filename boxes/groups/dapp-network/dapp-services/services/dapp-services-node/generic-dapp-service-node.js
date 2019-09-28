@@ -86,7 +86,13 @@ const actionHandlers = {
     }
   }
 };
-
+const detectXCallback = async(eos) => {
+  var contract = await eos.contract(dappServicesContract);
+  if (contract.xcallback)
+    return true;
+  else return false;
+}
+let enableXCallback = null;
 const handleRequest = async(handler, act, packageid, serviceName, abi) => {
   let { service, payer, provider, action, data } = act.event;
 
@@ -119,19 +125,26 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
       // is async
       requestId = `${metadata.txId}.${act.event.action}.${account}.${metadata.eventNum}`;
     }
-    var actions = [{
-      account: dappServicesContract,
-      name: "xcallback",
-      authorization: [{
-        actor: paccount,
-        permission: 'active',
-      }],
-      data: {
-        provider: paccount,
-        request_id: requestId,
-        meta: JSON.stringify(meta)
-      },
-    }, {
+    var actions = [];
+    if (enableXCallback === null) {
+      enableXCallback = await detectXCallback(eosPrivate);
+    }
+    if (enableXCallback === true) {
+      actions.push({
+        account: dappServicesContract,
+        name: "xcallback",
+        authorization: [{
+          actor: paccount,
+          permission: 'active',
+        }],
+        data: {
+          provider: paccount,
+          request_id: requestId,
+          meta: JSON.stringify(meta)
+        },
+      });
+    }
+    actions.push({
       account: payer,
       name: response.action,
       authorization: [{
@@ -139,7 +152,7 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
         permission: 'active',
       }],
       data: response.payload,
-    }];
+    });
 
 
 
