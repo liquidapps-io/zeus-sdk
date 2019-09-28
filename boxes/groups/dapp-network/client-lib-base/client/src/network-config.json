@@ -1,0 +1,7 @@
+{
+    "networks": {
+        "mainnet": "https://nodes.get-scatter.com:443",
+        "kylin": "https://kylin-dsp-2.liquidapps.io",
+        "jungle": "https://jungle2.cryptolions.io:443"
+    }
+}

@@ -7,7 +7,7 @@
   "scripts": {
     "start": "npm run build:live",
     "build": "tsc",
-    "build:live": "nodemon --watch '*.ts' --exec 'tsc' ./dapp-client-lib.js",
+    "build:live": "nodemon --watch '*.ts' --exec 'tsc' ./src/dapp-client-lib.js",
     "docs": "documentation readme dist/src/dapp-client-lib.js -s API",
     "test": "jest --coverage",
     "watch": "nodemon -e ts -w ./src -x npm run watch:serve",
@@ -21,7 +21,7 @@
     "dist"
   ],
   "author": "Natanael Prudhomme",
-  "license": "ISC",
+  "license": "BSD 3-Clause",
   "devDependencies": {
     "bignumber.js": "^9.0.0",
     "eosjs": "^20.0.0",
@@ -42,6 +42,8 @@
     "nodemon": "^1.19.1",
     "ts-jest": "*",
     "ts-node": "^8.3.0",
+    "es5-shim": "4.5.13",
+    "es6-shim": "0.35.5",
     "tslint": "*",
     "typescript": "*"
   }
