@@ -61,6 +61,8 @@ const generateServiceDoc = async(subdir, boxName, zeusBoxJson, model, args) => {
     "";
   var stage = (model.stage) ? `## Stage
 ${model.stage}` : '';
+  var version = (model.version) ? `## Version
+${model.version}` : '';
 
   var docContent = `${prettyServiceName} Service
 =================
@@ -69,6 +71,8 @@ ${model.stage}` : '';
 ${model.description ? model.description : ""}
 
 ${stage}
+
+${version}
 
 ## Contract
 
@@ -200,7 +204,7 @@ return `* [\`${packageName}\`](http://npmjs.com/package/${packageName})`
 }).join('\n')}`;
   var examplesPart = `${Object.keys(examples).length ? `## Examples` : ''}
 ${Object.keys(examples).map(exampleKey=>{
-return `### ${exampleKey} 
+return `### ${exampleKey}
 \`\`\`bash
 ${examples[exampleKey]}
 \`\`\``}).join('\n')}
