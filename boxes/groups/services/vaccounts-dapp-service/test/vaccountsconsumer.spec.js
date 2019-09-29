@@ -9,7 +9,7 @@ const fetch = require('node-fetch');
 const ecc = require('eosjs-ecc')
 let { PrivateKey, PublicKey, Signature, Aes, key_utils, config } = require('eosjs-ecc')
 const eosjs2 = require('eosjs');
-const { JsonRpc, Api } = eosjs2;
+const { JsonRpc, Api, Serialize } = eosjs2;
 const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig'); // development only
 
 const { getUrl } = require('../extensions/tools/eos/utils');
@@ -20,7 +20,7 @@ const rpc = new JsonRpc(url, { fetch });
 
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
+const { genAllocateDAPPTokens, readVRAMData } = require('../extensions/tools/eos/dapp-services');
 const { encodeName } = require('../services/dapp-services-node/common');
 
 var contractCode = 'vaccountsconsumer';
@@ -49,6 +49,7 @@ function postData(url = ``, data = {}) {
 describe(`vAccounts Service Test Contract`, () => {
     const code = 'test1v';
     var account = code;
+    var chainId;
 
     var endpoint;
     before(done => {
@@ -66,6 +67,21 @@ describe(`vAccounts Service Test Contract`, () => {
                 // var keys = await getCreateKeys(account);
                 endpoint = "http://localhost:13015";
                 var testcontract = await getTestContract(code);
+
+                let info = await rpc.get_info();
+                chainId = info.chain_id;
+
+                let res = await testcontract.xvinit({
+                    chainid: chainId
+                }, {
+                    authorization: `${code}@active`,
+                });
+                testcontract = deployedContract2.contractInstance;
+                res = await testcontract.xvinit({
+                    chainid: chainId
+                }, {
+                    authorization: `test2v@active`,
+                });
                 done();
             }
             catch (e) {
@@ -93,6 +109,7 @@ describe(`vAccounts Service Test Contract`, () => {
 
 
     const runTrx = async({
+        nonce = 0,
         contract_code,
         payload,
         wif
@@ -106,29 +123,43 @@ describe(`vAccounts Service Test Contract`, () => {
             textEncoder: new TextEncoder(),
         });
 
+        let buffer = new Serialize.SerialBuffer({
+            textDecoder: new TextDecoder(),
+            textEncoder: new TextEncoder()
+        });
 
 
+        // let vchain = await rpc.get_table_rows({
+        //     json: true,
+        //     code: code,
+        //     scope: code,
+        //     table: 'vkey'
+        // });
+        // console.log(vchain);
 
-        const options = {
-            authorization: `${contract_code}@active`, //@active for activeKey, @owner for Owner key
-            //default authorizations will be calculated.
-            broadcast: false,
-            sign: true,
-            forceActionDataHex: true
-        };
+        const expiry = Math.floor(Date.now() / 1000) + 120; //two minute expiry
+        buffer.pushNumberAsUint64(expiry);
+        try {
+            var tableRes = await readVRAMData({
+                contract: contract_code,
+                key: payload.data.payload.vaccount,
+                table: "vkey",
+                scope: contract_code
+            });
+            nonce = tableRes.row.nonce;
+            console.log('got nonce', nonce);
+        }
+        catch (e) {
+            console.log('no nonce');
+            nonce = 0;
+        }
 
-        // const transaction = await eosvram.transaction({
-        //     actions: [{
-        //         account: contract_code,
-        //         name: payload.name,
-        //         authorization: [{
-        //             actor: contract_code,
-        //             permission: 'active'
-        //         }],
-        //         data: payload.data
-        //     }]
-        // }, options);
-        // const data = transaction.transaction.transaction;
+        buffer.pushNumberAsUint64(nonce);
+
+        let buf1 = buffer.getUint8Array(8);
+        let buf2 = buffer.getUint8Array(8);
+        let header = Serialize.arrayToHex(buf1) + Serialize.arrayToHex(buf2) + chainId;
+
         const response = await api.serializeActions([{
             account: contract_code,
             name: payload.name,
@@ -141,14 +172,59 @@ describe(`vAccounts Service Test Contract`, () => {
             return res;
         }
         var datasize = toBound(new BigNumber(response[0].data.length / 2).toString(16), 1).match(/.{2}/g).reverse().join('');
-        var payloadSerialized = "0000000000000000" + toName(payload.name) + "01" + "00000000000000000000000000000000" + datasize + response[0].data;
+        var payloadSerialized = header + "0000000000000000" + toName(payload.name) + "01" + "00000000000000000000000000000000" + datasize + response[0].data;
         return await postVirtualTx({
-            contract_code: "test1v",
+            contract_code,
             wif,
             payload: payloadSerialized
         });
     }
     it('Hello world', done => {
+        (async() => {
+            try {
+                let privateWif = (await PrivateKey.randomKey()).toWif();
+                var res = await runTrx({
+                    contract_code: "test1v",
+                    wif: privateWif,
+                    payload: {
+                        name: "regaccount",
+                        data: {
+                            payload: {
+
+                                vaccount: "vaccoun1"
+                            }
+                        }
+                    }
+                });
+                res = await runTrx({
+                    nonce: 0,
+                    contract_code: "test1v",
+                    wif: privateWif,
+                    payload: {
+                        name: "hello",
+                        data: {
+                            payload: {
+                                vaccount: "vaccoun1",
+                                b: 1,
+                                c: 2
+                            }
+                        }
+                    }
+                });
+                if (res.error)
+                    console.error("reserror", res.error.details[0]);
+                // console.log(res.result.processed.action_traces);
+                var outputLines = res.result.processed.action_traces[0].console.split('\n');
+                assert.equal(outputLines[outputLines.length - 2], "hello from vaccoun1 3", "wrong content");
+
+                done();
+            }
+            catch (e) {
+                done(e);
+            }
+        })();
+    });
+    it.skip('Hello world 2', done => {
         (async() => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();
@@ -166,6 +242,7 @@ describe(`vAccounts Service Test Contract`, () => {
                     }
                 });
                 res = await runTrx({
+                    nonce: 0,
                     contract_code: "test1v",
                     wif: privateWif,
                     payload: {
@@ -183,7 +260,7 @@ describe(`vAccounts Service Test Contract`, () => {
                     console.error("reserror", res.error.details[0]);
                 // console.log(res.result.processed.action_traces);
                 var outputLines = res.result.processed.action_traces[0].console.split('\n');
-                assert.equal(outputLines[outputLines.length - 2], "hello from vaccount1 3", "wrong content");
+                assert.equal(outputLines[outputLines.length - 2], "hello from vaccoun1 3", "wrong content");
 
                 done();
             }
@@ -221,20 +298,21 @@ describe(`vAccounts Service Test Contract`, () => {
                         name: "regaccount",
                         data: {
                             payload: {
-                                vaccount: "vaccount1"
+                                vaccount: "vaccoun1"
                             }
                         }
                     }
                 });
                 privateWif = (await PrivateKey.randomKey()).toWif();
                 res = await runTrx({
+                    nonce: 1,
                     contract_code: "test2v",
                     wif: privateWif,
                     payload: {
                         name: "hello",
                         data: {
                             payload: {
-                                vaccount: "vaccount1",
+                                vaccount: "vaccoun1",
                                 b: 1,
                                 c: 2
                             }

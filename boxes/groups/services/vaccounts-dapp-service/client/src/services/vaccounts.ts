@@ -6,7 +6,7 @@ const serviceContract = "accountless1";
 export const V1_DSP_PUSH_LIQUIDACCOUNT_ACTION = `/v1/dsp/${serviceContract}/push_action`;
 const Long = require('long');
 const ecc = require( "eosjs-ecc" );
-import { Api, JsonRpc } from 'eosjs';
+import { Api, JsonRpc,Serialize } from 'eosjs';
 
 const { PrivateKey } = ecc;
 const { BigNumber } = require( "bignumber.js" );
@@ -16,8 +16,10 @@ const { encodeName } = require( "../dapp-common" );
 import { JsSignatureProvider } from 'eosjs/dist/eosjs-jssig';
 
 export default class LiquidAccountsService extends DSPServiceClient {
+    private ipfs:any;
     constructor( api:any, contract:string, config:any) {
         super( api, contract, config, serviceContract);
+        this.ipfs = new (require('./ipfs').default)(api, contract, config);
     }
     /**
      * [POST /v1/dsp/accountless1/push_action](https://docs.liquidapps.io/en/stable/services/vaccounts-service.html)
@@ -94,69 +96,82 @@ private push_liquid_account_transaction_logic = async ( contract: string, privat
             time_to_live,
         );
     }
+ private postVirtualTx = ({
+        contract,
+        payload,
+        wif
+    }) => {
+        var signature = ecc.sign(Buffer.from(payload, 'hex'), wif);
+        const public_key = PrivateKey.fromString(wif).toPublic().toString()
+        return this.post(V1_DSP_PUSH_LIQUIDACCOUNT_ACTION, {
+            contract,
+            public_key,
+            payload,
+            signature
+        },{ contract });
+    }
 
-    private runTrx = async (
-        contract: string,
-        wif: any,
-        payload: liquidaccount.CombinedPayload,
-        time_to_live: number,
+
+    private runTrx = async(
+        contract,
+        payload,
+        wif,
+        time_to_live= 120
     ) => {
-        const signatureProvider = new JsSignatureProvider( [] );
-        const rpc = new JsonRpc( this.endpoint, { fetch } );
-        const api = new Api( {
-            rpc,
-            signatureProvider,
+
+
+
+        let buffer = new Serialize.SerialBuffer({
             textDecoder: new TextDecoder(),
-            textEncoder: new TextEncoder(),
-        } );
-        const response = await api.serializeActions( [{
+            textEncoder: new TextEncoder()
+        });
+
+        const expiry = Math.floor(Date.now() / 1000) + 120; //two minute expiry
+        buffer.pushNumberAsUint64(expiry);
+        var nonce =0;
+        try {
+            var tableRes = await this.ipfs.get_vram_row(
+                contract,
+                contract,
+                "vkey",
+                payload.data.payload.vaccount
+            );
+            nonce = tableRes.row.nonce;
+            console.log('got nonce', nonce);
+        }
+        catch (e) {
+            console.log('no nonce');
+            nonce = 0;
+        }
+
+        buffer.pushNumberAsUint64(nonce);
+        const infoRes: any = await this.get( endpoints.V1_GET_INFO );
+        var chainId = infoRes.chain_id;
+
+        let buf1 = buffer.getUint8Array(8);
+        let buf2 = buffer.getUint8Array(8);
+        let header = Serialize.arrayToHex(buf1) + Serialize.arrayToHex(buf2) + chainId;
+
+        const response = await this.api.serializeActions([{
             account: contract,
             name: payload.name,
             authorization: [],
-            data: payload.data,
-        }] );
-        const toName = ( name: string ) => {
-            let res = new BigNumber( encodeName( name, true ) );
-            res = ( toBound( res.toString( 16 ), 8 ) );
+            data: payload.data
+        }]);
+        const toName = (name) => {
+            var res = new BigNumber(encodeName(name, true));
+            res = (toBound(res.toString(16), 8));
             return res;
-        };
-        // transaction as proof of stake
-        const taposRes: any = await this.post( endpoints.V1_GET_INFO, { contract } );
-        // set sequence number
-        // var sequence_number = await this.get_vram_row( contract, contract, 'vkey', payload.name, network );
-        // sequence_number = sequence_number.data.sequence;
-        // console.log('sequence_number', sequence_number.data);
-        const datasize = toBound( new BigNumber( response[0].data.length / 2 ).toString( 16 ), 1 ).match( /.{2}/g )!.reverse().join( "" );
-        const payloadSerialized = "0000000000000000" + toName( payload.name ) + "01" + "00000000000000000000000000000000" + datasize + response[0].data;
-        return await this.postVirtualTx(
+        }
+        var datasize = toBound(new BigNumber(response[0].data.length / 2).toString(16), 1).match(/.{2}/g).reverse().join('');
+        var payloadSerialized = header + "0000000000000000" + toName(payload.name) + "01" + "00000000000000000000000000000000" + datasize + response[0].data;
+        return await this.postVirtualTx({
             contract,
             wif,
-            payloadSerialized,
-            taposRes.head_block_id,
-            // sequence_number,
-            time_to_live,
-        );
+            payload: payloadSerialized
+        });
     }
 
-    private postVirtualTx = async (
-        contract: string,
-        wif: string,
-        payload: string,
-        tapos: string,
-        // sequence_number,
-        time_to_live: number,
-    ) => {
-        const signature = ecc.sign( Buffer.from( payload, "hex" ), wif );
-        const public_key = PrivateKey.fromString( wif ).toPublic().toString();
-        const req_data = {
-            contract_code: contract,
-            public_key,
-            payload,
-            signature,
-            tapos,
-            // sequence_number,
-            time_to_live,
-        };
-        return await this.post( V1_DSP_PUSH_LIQUIDACCOUNT_ACTION, req_data, { contract } );
-    }
+
+
 }
