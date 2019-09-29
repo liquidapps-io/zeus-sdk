@@ -36,9 +36,9 @@ if (!globalEnv.DSP_PRIVATE_KEY) throw new Error("DSP_PRIVATE_KEY is required");
 if (!globalEnv.DATABASE_URL) throw new Error("DATABASE_URL is required");
 const DSP_ACCOUNT = globalEnv.DSP_ACCOUNT;
 const DSP_PRIVATE_KEY = globalEnv.DSP_PRIVATE_KEY;
-const DATABASE_URL = process.env.DATABASE_URL;
+const DATABASE_URL = globalEnv.DATABASE_URL;
 const DSP_ACCOUNT_PERMISSIONS = globalEnv.DSP_ACCOUNT_PERMISSIONS || 'active';
-const DATABASE_NODE_ENV = process.env.DATABASE_NODE_ENV || 'production';
+const DATABASE_NODE_ENV = globalEnv.DATABASE_NODE_ENV || 'production';
 
 // Configure .env
 const DSP_PORT = globalEnv.DSP_PORT || 3115;
