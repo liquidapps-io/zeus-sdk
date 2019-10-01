@@ -186,7 +186,9 @@ const stringToName = (str) => {
     return Buffer.from(fixedPaddedNum, 'hex');
   }
   if (isUpperCase(str)) { return stringToSymbol(str); }
-  return Buffer.from(new BigNumber(encodeName(str).toString()).toString(16), 'hex');
+  const hexNum = new BigNumber(encodeName(str).toString()).toString(16);
+  const paddedNum = '0'.repeat(16 - hexNum.length) + hexNum;
+  return Buffer.from(paddedNum, 'hex');
 };
 const nameToString = (name) => {
   const tmp = new BigNumber(name.toString('hex'), 16);

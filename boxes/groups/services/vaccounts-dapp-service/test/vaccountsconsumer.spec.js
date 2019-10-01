@@ -147,10 +147,10 @@ describe(`vAccounts Service Test Contract`, () => {
                 scope: contract_code
             });
             nonce = tableRes.row.nonce;
-            console.log('got nonce', nonce);
+            //console.log('got nonce', nonce);
         }
         catch (e) {
-            console.log('no nonce');
+            //console.log('no nonce');
             nonce = 0;
         }
 
@@ -191,7 +191,7 @@ describe(`vAccounts Service Test Contract`, () => {
                         data: {
                             payload: {
 
-                                vaccount: "vaccoun1"
+                                vaccount: "vaccount1"
                             }
                         }
                     }
@@ -204,39 +204,9 @@ describe(`vAccounts Service Test Contract`, () => {
                         name: "hello",
                         data: {
                             payload: {
-                                vaccount: "vaccoun1",
+                                vaccount: "vaccount1",
                                 b: 1,
                                 c: 2
-                            }
-                        }
-                    }
-                });
-                if (res.error)
-                    console.error("reserror", res.error.details[0]);
-                // console.log(res.result.processed.action_traces);
-                var outputLines = res.result.processed.action_traces[0].console.split('\n');
-                assert.equal(outputLines[outputLines.length - 2], "hello from vaccoun1 3", "wrong content");
-
-                done();
-            }
-            catch (e) {
-                done(e);
-            }
-        })();
-    });
-    it.skip('Hello world 2', done => {
-        (async() => {
-            try {
-                let privateWif = (await PrivateKey.randomKey()).toWif();
-                var res = await runTrx({
-                    contract_code: "test1v",
-                    wif: privateWif,
-                    payload: {
-                        name: "regaccount",
-                        data: {
-                            payload: {
-
-                                vaccount: "vaccount1"
                             }
                         }
                     }
@@ -260,7 +230,52 @@ describe(`vAccounts Service Test Contract`, () => {
                     console.error("reserror", res.error.details[0]);
                 // console.log(res.result.processed.action_traces);
                 var outputLines = res.result.processed.action_traces[0].console.split('\n');
-                assert.equal(outputLines[outputLines.length - 2], "hello from vaccoun1 3", "wrong content");
+                assert.equal(outputLines[outputLines.length - 2], "hello from vaccount1 3", "wrong content");
+
+                done();
+            }
+            catch (e) {
+                done(e);
+            }
+        })();
+    });
+    it('Hello world 2', done => {
+        (async() => {
+            try {
+                let privateWif = (await PrivateKey.randomKey()).toWif();
+                var res = await runTrx({
+                    contract_code: "test1v",
+                    wif: privateWif,
+                    payload: {
+                        name: "regaccount",
+                        data: {
+                            payload: {
+
+                                vaccount: "vaccount2"
+                            }
+                        }
+                    }
+                });
+                res = await runTrx({
+                    nonce: 0,
+                    contract_code: "test1v",
+                    wif: privateWif,
+                    payload: {
+                        name: "hello",
+                        data: {
+                            payload: {
+                                vaccount: "vaccount2",
+                                b: 1,
+                                c: 2
+                            }
+                        }
+                    }
+                });
+                if (res.error)
+                    console.error("reserror", res.error.details[0]);
+                // console.log(res.result.processed.action_traces);
+                var outputLines = res.result.processed.action_traces[0].console.split('\n');
+                assert.equal(outputLines[outputLines.length - 2], "hello from vaccount2 3", "wrong content");
 
                 done();
             }
@@ -298,7 +313,7 @@ describe(`vAccounts Service Test Contract`, () => {
                         name: "regaccount",
                         data: {
                             payload: {
-                                vaccount: "vaccoun1"
+                                vaccount: "vaccount1"
                             }
                         }
                     }
@@ -312,7 +327,7 @@ describe(`vAccounts Service Test Contract`, () => {
                         name: "hello",
                         data: {
                             payload: {
-                                vaccount: "vaccoun1",
+                                vaccount: "vaccount1",
                                 b: 1,
                                 c: 2
                             }
