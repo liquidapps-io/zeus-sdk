@@ -246,7 +246,7 @@ async function transactionHandler(tx, blockInfo) {
   }
 }
 
-var last_updated = 0;
+var last_processed = 0;
 async function messageHandler(data) {
   var buffer = new Serialize.SerialBuffer({
     textEncoder: new TextEncoder(),
@@ -287,6 +287,7 @@ async function messageHandler(data) {
       await transactionHandler(transactionTrace[1], blockInfo);
     }
     if(current_block - last_processed >= 10000) {
+      last_processed = current_block;
       await dal.updateSettings({ last_processed_block: current_block });
       logger.info("Updated database with current block: %s", current_block);
     }
@@ -341,8 +342,8 @@ ws.on('message', async function incoming(data) {
   if (!expectingABI) {
     pending.push(data);
     let currTime = Math.floor(Date.now() / 1000);
-    if((currTime - heartBeat2) >= 15) { //heartbeat every 15 seconds
-      heartBeat2 = currTime;
+    if((currTime - heartBeat) >= 15) { //heartbeat every 15 seconds
+      heartBeat = currTime;
       logger.info("Demux heartbeat - Processed Block: %s Pending Messages: %s",current_block,pending.length);
     }
     return;
