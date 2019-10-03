@@ -103,7 +103,10 @@ const createDSPServiceApp = (name) => ({
   autorestart: true,
   cwd: __dirname,
   log_date_format: "YYYY-MM-DDTHH:mm:ss",
-  env: commonEnv
+  env: {
+    ...commonEnv,
+    LOGFILE_NAME:`${name}-dapp-service-node` 
+  }
 });
 
 const servicesApps = services.map(createDSPServiceApp);
@@ -118,7 +121,8 @@ module.exports = {
       env: {
         PORT: DSP_PORT,
         WEBHOOK_DAPP_PORT,
-        ...commonEnv
+        ...commonEnv,
+        LOGFILE_NAME: 'dapp-services-node' 
       }
     },
     {
@@ -133,7 +137,8 @@ module.exports = {
         SOCKET_MODE,
         DEMUX_BACKEND,
         DEMUX_HEAD_BLOCK,
-        PORT: WEBHOOK_DEMUX_PORT
+        PORT: WEBHOOK_DEMUX_PORT,
+        LOGFILE_NAME: 'demux' 
       }
     },
     ...servicesApps
