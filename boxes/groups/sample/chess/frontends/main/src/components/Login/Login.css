@@ -1,0 +1,127 @@
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-text-fill-color: #E4E064;
+  background: url("./images/Game_Login_form.png");
+  font-size: 14.5px;
+  font-family: monospace;
+
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.Login {
+  position: relative;
+  margin: 0 auto;
+  max-width: 1366px;
+  top:150px;
+  height: 640px;
+  /*background: url("./images/popup_bg.png") center no-repeat;*/
+  background-size: 615px 670px;
+  color: #d4cfba;
+  font-size: 14.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  transform-origin: top left;
+        color: #f1eae5;
+
+  transition: all 500ms ease-in-out !important; }
+  .Login > * {
+    margin: 0 auto;
+    padding: 0 72px;
+    width: 615px; }
+  .Login .title {
+    position: absolute;
+    top: -70px;
+    max-width: 392px;
+    height: 163.5px;
+    background: url("./images/Game_logo.png");
+    background-size: 100%;
+    background-repeat: no-repeat;
+    color: transparent; }
+  .Login .description {
+    margin-top: 50px;
+    margin-bottom: 25px;
+    line-height: 1.5em; }
+  .Login .description b {
+    font-weight: bolder;
+    color: #E4E064;
+    font-size: 15.5px;
+  }
+
+  .Login .description a {
+    font-weight: bolder;
+    text-decoration: underline;
+    color: #6464E4;
+    font-size: 15.5px;
+  }
+
+  .Login .field {
+    text-align: center;
+    margin-bottom: 15px; }
+    .Login .field label {
+      color: #ffe4a9;
+      text-transform: uppercase;
+      text-shadow: 2px 2px 2px black; }
+    .Login .field input {
+            color: #f1eae5;
+
+      margin: 5px 0;
+      padding: 4px 20px 0;
+      width: 471.5px;
+      height: 42px;
+      background: url("./images/Game_Login_form.png");
+      background-size: 471.5px;
+      letter-spacing: 3px;
+      /* https://stackoverflow.com/a/37432260 */ }
+      .Login .field input::placeholder {
+      color: #c1bab5;
+        letter-spacing: 2px; }
+        .Login .field input:-webkit-autofill{
+          color: #aa9499 !important;
+        }
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        textarea:-webkit-autofill,
+        textarea:-webkit-autofill:hover,
+        textarea:-webkit-autofill:focus,
+        select:-webkit-autofill,
+        select:-webkit-autofill:hover,
+        select:-webkit-autofill:focus {
+          color: #aa9499 !important;
+        }
+
+@-webkit-keyframes autofill {
+  to {
+              color: #aa9499 !important;
+
+    background: url("./images/Game_Login_form.png");
+    background-size: 471.5px; } }
+      .Login .field input:-webkit-autofill {
+                  color: #aa9499 !important;
+
+        -webkit-animation-name: autofill;
+        -webkit-animation-fill-mode: both; }
+  .Login .form-error {
+    height: 1em;
+    font-size: 14.5px;
+    white-space: nowrap;
+    top:10px;
+    overflow: hidden; }
+    .Login .form-error .error {
+      width: 100%;
+      color: #ff5400;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      display: inline-block; }
+  .Login .bottom {
+    margin-top: -15px;
+    text-align: center; }

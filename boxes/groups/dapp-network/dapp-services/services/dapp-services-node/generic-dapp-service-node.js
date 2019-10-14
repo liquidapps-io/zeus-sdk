@@ -20,14 +20,17 @@ const actionHandlers = {
 
     var handler = handlers[action];
     var models = await loadModels('dapp-services');
-    var model = models.find(m => m.name == serviceName);
+    var model = models.find(m => m.contract == service);
     if (isReplay && provider == '') {
       provider = paccount;
       if (!(getContractAccountFor(model) == service && handler)) { return; }
       await handleRequest(handler, act, packageid, serviceName, handlers.abi);
       return;
     }
-
+    if (!model.commands[action]) {
+      logger.error(`not found in model ${action} in ${model.name} - ${service}`);
+      throw new Error(`not found in model ${action} in ${model.name} - ${service}`);
+    }
     if (model.commands[action].broadcast && !broadcasted) {
       //this is a broadcast action - spam all relevant DSPs in parallel
       //including ourselves
@@ -43,20 +46,22 @@ const actionHandlers = {
     }
 
     provider = await resolveProvider(payer, service, provider);
+
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider);
     if (provider !== paccount) {
       var providerData = await resolveProviderData(service, provider, packageid);
       if (!providerData) { return; }
       return await forwardEvent(act, providerData.endpoint, act.exception);
     }
+
     if (!simulated) {
       if (!(getContractAccountFor(model) == service && handler)) { return; }
-      await handleRequest(handler, act, packageid, serviceName, handlers.abi);
+      await handleRequest(handler, act, packageid, model.name, handlers.abi);
       return;
     }
     if (!act.exception) { return; }
     if (getContractAccountFor(model) == service && handler) {
-      await handleRequest(handler, act, packageid, serviceName, handlers.abi);
+      await handleRequest(handler, act, packageid, model.name, handlers.abi);
       return 'retry';
     }
   },
@@ -95,7 +100,6 @@ const detectXCallback = async(eos) => {
 let enableXCallback = null;
 const handleRequest = async(handler, act, packageid, serviceName, abi) => {
   let { service, payer, provider, action, data } = act.event;
-
   data = deserialize(abi, data, action);
   if (!data) { return; }
 
@@ -223,7 +227,8 @@ const nodeAutoFactory = async(serviceName) => {
     for (var i = 0; i < apiActions.length; i++) {
       var apiName = apiActions[i];
       var apiHandler = await loadIfExists(serviceName, `api/${apiName}`); // load from file
-      apiCommands[apiName] = async(opts, res) => {
+      logger.debug(`registering api ${serviceName} ${apiName}`);
+      apiCommands[apiName] = (async({ apiName, apiHandler }, opts, res) => {
         try {
           if (apiHandler)
             throw new Error('not implemented yet');
@@ -235,7 +240,7 @@ const nodeAutoFactory = async(serviceName) => {
           console.error("error:", e);
           res.send(JSON.stringify({ error: e.toString() }));
         }
-      }
+      }).bind(handlers, { apiName, apiHandler });
     }
   }
 
@@ -246,11 +251,18 @@ const nodeAutoFactory = async(serviceName) => {
   for (var i = 0; i < dspCommands.length; i++) {
     var requestName = dspCommands[i];
     var dspRequestHandler = await loadIfExists(serviceName, `chain/${requestName}`); // load from file
-    handlers[requestName] = async(opts, req) => {
-      if (dspRequestHandler)
+    logger.debug(`registering chain handler ${serviceName} ${requestName}`);
+    handlers[requestName] = (async({ requestName, dspRequestHandler }, opts, req) => {
+      if (!dspRequestHandler)
         throw new Error('not implemented yet');
-      return await dspRequestHandler(opts, req, state);
-    };
+      logger.debug(`running chain handler ${serviceName} ${requestName}`);
+      try {
+        return await dspRequestHandler(opts, req, state);
+      }
+      catch (e) {
+        logger.error(e);
+      }
+    }).bind(handlers, { requestName, dspRequestHandler });
   }
   return nodeFactory(serviceName, handlers);
 }
