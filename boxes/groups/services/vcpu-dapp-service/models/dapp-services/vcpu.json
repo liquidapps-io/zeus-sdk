@@ -1,0 +1,45 @@
+{
+    "name":"vcpu",
+    "port": 13386,
+    "prettyName":"VCPU",
+    "description":"DSP Hosted Computation Service",
+    "stage":"PoC",
+    "version": "0.1",
+    "contract": "vcpuservices",
+    "generateStubs": true,
+    "commands": {
+        "vrun": {
+            "blocking": true,
+            "broadcast": true,
+            "request": {
+                "uri": "std::vector<char>",
+                "payload": "std::vector<char>"
+            },
+            "callback": {
+                "size": "uint32_t",
+                "uri": "std::vector<char>",
+                "data": "std::vector<char>"
+            },
+            "signal": {
+                "size": "uint32_t",
+                "uri": "std::vector<char>"
+            }
+        },
+         "vrunclean": {
+            "blocking": false,
+            "request": {
+                "uri": "std::vector<char>"
+            },
+            "callback": {
+                "size": "uint32_t",
+                "uri": "std::vector<char>"
+            },
+            "signal": {
+                "size": "uint32_t",
+                "uri": "std::vector<char>"
+            }
+        }
+    }
+
+
+}

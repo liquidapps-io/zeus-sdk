@@ -205,62 +205,6 @@ describe(`IPFS Service Test Contract`, () => {
       }
     })();
   });
-
-  it('doesnt overwrite data when buckets collide', done => {
-    (async() => {
-      try {
-
-        await testcontract.testcollide({
-          id: 12345,
-          value: 12345
-        }, {
-          authorization: `${code}@active`,
-        });
-        let shardTable;
-
-        shardTable = await eosvram.getTableRows({
-          code: code,
-          scope: code,
-          table: 'test1',
-          json: true,
-        });
-        let shardUri1 = shardTable.rows[0].shard_uri;
-        await testcontract.testcollide({
-          id: 123456,
-          value: 123456
-        }, {
-          authorization: `${code}@active`,
-        });
-        shardTable = await eosvram.getTableRows({
-          code: code,
-          scope: code,
-          table: 'test1',
-          json: true,
-        });
-        let shardUri2 = shardTable.rows[0].shard_uri;
-        assert(shardUri1 !== shardUri2, "data didn't get written to same shard");
-        await testcontract.testcollide({
-          id: 12345,
-          value: 12345
-        }, {
-          authorization: `${code}@active`,
-        });
-        shardTable = await eosvram.getTableRows({
-          code: code,
-          scope: code,
-          table: 'test1',
-          json: true,
-        });
-        let shardUri3 = shardTable.rows[0].shard_uri;
-        assert(shardUri1 !== shardUri3, "data was overwritten");
-        done();
-      }
-      catch (e) {
-        done(e);
-      }
-    })();
-  });
-
   it('dapp::multi_index delayed cleanup', done => {
     (async() => {
       try {

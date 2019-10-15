@@ -34,9 +34,6 @@ CONTRACT_START()
   typedef dapp::multi_index<"test"_n, testindex> testindex_t;
   typedef eosio::multi_index<".test"_n, testindex> testindex_t_v_abi;
   typedef eosio::multi_index<"test"_n, testindex_shardbucket> testindex_t_abi;
-  typedef dapp::multi_index<"test1"_n, testindex> testindex1_t;
-  typedef eosio::multi_index<".test1"_n, testindex> testindex1_t_v_abi;
-  typedef eosio::multi_index<"test1"_n, testindex_shardbucket> testindex1_t_abi;
   typedef eosio::multi_index<".vconfig"_n, vconfig> vconfig_t_abi;
 
   
@@ -46,21 +43,6 @@ CONTRACT_START()
       a.id = id;
     });
   }
-
-  [[eosio::action]] void testcollide(uint64_t id, uint64_t value) {
-    testindex1_t testset(_self,_self.value, 1, 1);
-    auto existing = testset.find(id);
-    if(existing == testset.end())
-      testset.emplace(_self, [&]( auto& a ){
-        a.id = id;
-        a.sometestnumber = value;
-      });
-    else
-      testset.modify(existing,_self, [&]( auto& a ){
-        a.sometestnumber = value;
-      });
-  }
-
   [[eosio::action]] void testdelay(uint64_t id, uint64_t value, uint32_t delay_sec) {
     testindex_t testset(_self,_self.value, 1024, 64, false, false, delay_sec);
     auto existing = testset.find(id);
@@ -96,4 +78,4 @@ CONTRACT_START()
  [[eosio::action]] void testempty(std::string uri) {
     eosio::check(getRawData(uri, false, true).size() == 0, "wrong size");
   }  
-CONTRACT_END((testset)(testget)(testempty)(increment)(testindexa)(testresize)(testdelay)(xdcommit)(testcollide))
+CONTRACT_END((testset)(testget)(testempty)(increment)(testindexa)(testresize)(testdelay)(xdcommit))

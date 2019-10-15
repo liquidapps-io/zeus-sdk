@@ -6,6 +6,7 @@ const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork } = require('../extensions/tools/eos/utils');
 var Eos = require('eosjs');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
+const { getLocalDSPEos, getTestContract } = require('../extensions/tools/eos/utils');
 
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
@@ -35,6 +36,8 @@ describe(`${contractCode} Contract`, () => {
     };
     const code = getTestAccountName(Math.floor(Math.random() * 1000));
     var account = code;
+    var chainId;
+    var endpoint;
     before(done => {
         (async() => {
             try {
@@ -45,6 +48,17 @@ describe(`${contractCode} Contract`, () => {
                     await genAllocateDAPPTokens(deployedContract, service.name);
                 }
                 // create token
+                endpoint = "http://localhost:13015";
+                var testcontract = await getTestContract(code);
+
+                let info = await rpc.get_info();
+                chainId = info.chain_id;
+                let res = await testcontract.xvinit({
+                    chainid: chainId
+                }, {
+                    authorization: `${code}@active`,
+                });
+
                 var selectedNetwork = getNetwork(getDefaultArgs());
                 var config = {
                     expireInSeconds: 120,

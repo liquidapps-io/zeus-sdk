@@ -528,8 +528,8 @@ struct kv_t{
 };
 
 struct bucketParsedParts_t{
-    vector<char> after;
-    vector<char> before;
+    vector<char> *after;
+    vector<char> *before;
     
     uint64_t key;
     uint64_t scope;
@@ -541,7 +541,7 @@ struct bucketParsedParts_t{
 
 static std::vector<char> _combineParsedBucketParts(bucketParsedParts_t parts)
 {
-  auto result = parts.before;
+  auto result = std::vector<char>(*parts.before);
   char* chars;
   if(parts.include){
       chars = reinterpret_cast<char*>(&parts.scope);
@@ -551,7 +551,7 @@ static std::vector<char> _combineParsedBucketParts(bucketParsedParts_t parts)
     //   chars = reinterpret_cast<char*>(parts.value.data());
       result.insert(result.end(), parts.value.begin(), parts.value.end());
   }
-  auto remains = parts.after;
+  auto remains = *parts.after;
   result.insert(result.end(), remains.begin(), remains.end());
   
   return result;
@@ -566,8 +566,8 @@ static bucketParsedParts_t _parseCacheBucket(vector<char> dictStr, uint64_t scop
     
     auto empty = emptyentry();
     bucketParsedParts.value = empty;
-    bucketParsedParts.after = empty;
-    bucketParsedParts.before = dictStr;
+    bucketParsedParts.after = &empty;
+    bucketParsedParts.before = &dictStr;
     bucketParsedParts.key = key;
     bucketParsedParts.scope = scope;
     auto currentIter = bucketBegin;
@@ -600,7 +600,7 @@ static bucketParsedParts_t _parseCacheBucket(vector<char> dictStr, uint64_t scop
         currentIter += (keyLength*2);
         // found position
         auto before = (vector<char>(bucketBegin, entryStart));
-        bucketParsedParts.before = before;
+        bucketParsedParts.before = &before;
         auto copyEndPosition = entryStart;
         if(currentKey == key && currentScope == scope){
             // found key
@@ -617,7 +617,7 @@ static bucketParsedParts_t _parseCacheBucket(vector<char> dictStr, uint64_t scop
             bucketParsedParts.include = true;
         }
         auto after = (vector<char>(copyEndPosition, bucketEnd));
-        bucketParsedParts.after = after;
+        bucketParsedParts.after = &after;
         break;
     }
     // append.
