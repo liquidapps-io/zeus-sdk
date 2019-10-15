@@ -18,8 +18,7 @@ async function genAllocateDAPPTokens(deployedContract, serviceName, provider = '
   }
   for (var i = 0; i < providers.length; i++) {
     var currentProvider = providers[i];
-
-    await genAllocateDAPPTokensInner(deployedContract, serviceName, provider = currentProvider, (currentProvider == "pprovider2" && selectedPackage == 'default') ? 'foobar' : selectedPackage);
+    await genAllocateDAPPTokensInner(deployedContract, serviceName, provider = currentProvider, selectedPackage);
   }
 
 }

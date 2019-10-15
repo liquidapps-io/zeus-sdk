@@ -40,11 +40,11 @@ module.exports = {
       })
       .option('stake', {
         describe: 'account staking amount',
-        default: '300.0000'
+        default: '30.0000'
       }).example(`$0 ${cmd} --no-compile-all --no-reset`);
   },
   command: cmd,
-  handler: async(args) => {
+  handler: async (args) => {
     if (args.creator == 'eosio' && args.network !== 'development') {
       throw new Error(`must pass a creator when not using development network ${args.creator} ${args.network}`);
     }
@@ -67,8 +67,7 @@ module.exports = {
         console.log(emojMap.cloud + 'Migration', path.basename(script).cyan);
         return args;
       }, args);
-    }
-    catch (e) {
+    } catch (e) {
       console.log(emojMap.white_frowning_face + 'Migration failed');
       throw e;
     }

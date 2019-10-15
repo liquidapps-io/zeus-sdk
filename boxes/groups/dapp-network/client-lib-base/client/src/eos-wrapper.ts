@@ -1,5 +1,6 @@
 import { Api, JsonRpc } from 'eosjs';
 import { JsSignatureProvider } from 'eosjs/dist/eosjs-jssig';
+import fetch from  'isomorphic-fetch';
 const { TextDecoder, TextEncoder } = require( "text-encoding" );
 import { DappClient } from "./dapp-network";
 import { DappAirHODLClient } from "./dapp-airhodl";
@@ -21,17 +22,18 @@ async function createClient(config: {
     expireSeconds: 60,
     sign: true,
     broadcast: true,
+    fetch:fetch,
     blocksBehind: 10
   }
 
   config = {...defaults, ...config};
 
-  let rpc:JsonRpc = new JsonRpc(config.httpEndpoint, { fetch:config.fetch });
+  let rpc:JsonRpc = new JsonRpc(config.httpEndpoint, { fetch });
   if (config.keyProvider && !Array.isArray(config.keyProvider))
     config.keyProvider = [config.keyProvider];
   const signatureProvider = config.keyProvider ? new JsSignatureProvider(config.keyProvider) : new JsSignatureProvider([]);
-  const dappNetwork = new DappClient( "", { endpoint: config.httpEndpoint, fetch:config.fetch } );;
-  const dappAirHODLClient = new DappAirHODLClient( "", { endpoint: config.httpEndpoint, fetch:config.fetch } );;
+  const dappNetwork = new DappClient( "", { endpoint: config.httpEndpoint, fetch } );;
+  const dappAirHODLClient = new DappAirHODLClient( "", { endpoint: config.httpEndpoint, fetch } );;
   let api:any = new Api({ rpc, signatureProvider, textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
   if(config.endPointForContract){
     for (let i=0;i < config.services.length;i++){
@@ -42,7 +44,7 @@ async function createClient(config: {
         continue;
       config.httpEndpoint = endpoint;
 
-      rpc = new JsonRpc(endpoint, { fetch:config.fetch });
+      rpc = new JsonRpc(endpoint, { fetch });
     }
   }
   api = new Api({ rpc, signatureProvider, textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
@@ -71,11 +73,10 @@ async function createClient(config: {
         if(!endpoint)
           continue;
         config.httpEndpoint = endpoint;
-        currentRpc = new JsonRpc(endpoint, { fetch:config.fetch });
+        currentRpc = new JsonRpc(endpoint, { fetch });
         currentApi = new Api({ rpc:currentRpc, signatureProvider , textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
       }
     }
-
     const contractObj = await api.getContract(account);
     const { actions } = contractObj;
     let contractWrapper:any = {

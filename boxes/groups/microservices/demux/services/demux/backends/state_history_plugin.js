@@ -363,7 +363,7 @@ ws.on('message', async function incoming(data) {
     start_block_num = await getStartingBlockNumber();
   } catch(e) {
     logger.error(`Error getting starting block number: ${JSON.stringify(e)}`);
-    start_block_num = c;
+    start_block_num = 1;
   }
   c = start_block_num;
   logger.info(`starting demux at block ${start_block_num}`);

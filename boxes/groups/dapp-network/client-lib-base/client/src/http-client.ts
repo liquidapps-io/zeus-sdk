@@ -4,7 +4,9 @@ import network_config from "./network-config.json";
 
 function inferFetch( fetch?: Fetch ): Fetch {
 
-
+    if ( fetch !== undefined ) {
+      return fetch;
+    }
 
     // In both of the condition below to determine a global `fetch` to use,
     // we bind the `fetch` method to the global scope (either `window` or `global`

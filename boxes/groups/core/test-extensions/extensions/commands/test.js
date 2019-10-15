@@ -40,12 +40,12 @@ module.exports = {
       })
       .option('stake', {
         describe: 'account staking amount',
-        default: '300.0000'
+        default: '30.0000'
       }).example('$0 test contract.spec.js').example('$0 test').example('$0 test --compile-all');
   },
   command: 'test [testfile]',
 
-  handler: async(args) => {
+  handler: async (args) => {
     let stdout;
     if (args.compileAll) {
       await compileCommand.handler(args);
@@ -66,8 +66,7 @@ module.exports = {
       });
       // console.log(stdout);
       console.log(emojMap.ok + 'tests ok');
-    }
-    catch (e) {
+    } catch (e) {
       throw emojMap.white_frowning_face + 'Test failed';
     }
   }

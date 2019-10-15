@@ -29,7 +29,7 @@ CONTRACT ${name}service : public eosio::contract {
 
 private:
 public:
-
+  
   DAPPSERVICE_PROVIDER_ACTIONS
   ${upperName}_DAPPSERVICE_ACTIONS
   ${M('STANDARD_USAGE_MODEL')}
@@ -37,7 +37,7 @@ public:
 #ifdef ${upperName}_DAPPSERVICE_SERVICE_MORE
   ${upperName}_DAPPSERVICE_SERVICE_MORE
 #endif
-
+  
   struct model_t {
     ${M('HANDLE_MODEL_SIGNAL_FIELD')}
   };
@@ -46,17 +46,17 @@ public:
     name package_id;
     uint64_t primary_key() const { return package_id.value; }
   };
-
-  typedef eosio::multi_index<"providermdl"_n, providermdl> providermodels_t;
+    
+  typedef eosio::multi_index<"providermdl"_n, providermdl> providermodels_t;  
 
  [[eosio::action]] void xsignal(name service, name action,
                  name provider, name package, std::vector<char> signalRawData) {
-    if (current_receiver() != service || _self != service)
+    if (current_receiver() != service || _self != service) 
       return;
     require_auth(get_first_receiver());
     ${M('HANDLECASE_SIGNAL_TYPE')}
   }
-
+  
   DAPPSERVICE_PROVIDER_BASIC_ACTIONS
 };
 
@@ -208,15 +208,16 @@ const generateImplStubHppFile = (serviceModel) => {
   var skipHelper = false;
   var commandsImpl = commandNames.map(commandName => {
     var commandModel = serviceModel.commands[commandName];
-    var cargs = commandModel.callback;
-    var argsKeys = Object.keys(cargs);
+    var rargs = commandModel.request;
+    var argsKeys = Object.keys(rargs);
 
+    var fnArgs = argsKeys.join(', ');
 
-    cargs = { ...cargs, 'current_provider': 'name' };
-    var fnArgsWithType = argsKeys.map(name => cargs[name] + " " + name).join(', ');
+    rargs = { ...rargs, 'current_provider': 'name' };
+    var fnArgsWithType = argsKeys.map(name => rargs[name] + " " + name).join(', ');
     // check if exists _${name}_${commandName}_dspcmd.hpp
     return `${macro}(${commandName})(${fnArgsWithType}, name current_provider){
-#if __has_include("${name}/cmds/${commandName}.hpp")
+#if __has_include("${name}/cmds/${commandName}.hpp") 
 #include "${name}/cmds/${commandName}.hpp"
 #endif
 }`
@@ -224,11 +225,11 @@ const generateImplStubHppFile = (serviceModel) => {
   return `#pragma once
 #include <eosio/eosio.hpp>
 
-#if __has_include("${name}/headers.hpp")
+#if __has_include("${name}/headers.hpp") 
 #include "${name}/headers.hpp"
 #endif
 
-${commandsImpl.join('\n')}`
+${commandsImpl}`
 
 }
 
@@ -247,7 +248,7 @@ const generateServiceHppFile = (serviceModel) => {
 #include "../dappservices/dappservices.hpp"\n
 #define SVC_RESP_${upperName}(name) \\
     SVC_RESP_X(${name},name)
-
+    
 #define SVC_CONTRACT_NAME_${upperName} ${getContractAccountFor(serviceModel)} \n
 
 #include "../dappservices/_${name}_impl.hpp"\n
@@ -265,7 +266,7 @@ const generateServiceHppFile = (serviceModel) => {
 
 #else
 #define ${upperName}_DAPPSERVICE_ACTIONS \\
-  ${upperName}_DAPPSERVICE_BASE_ACTIONS
+  ${upperName}_DAPPSERVICE_BASE_ACTIONS 
 #endif
 
 

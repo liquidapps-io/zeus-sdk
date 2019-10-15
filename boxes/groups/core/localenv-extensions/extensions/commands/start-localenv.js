@@ -36,11 +36,11 @@ module.exports = {
       })
       .option('stake', {
         describe: 'account staking amount',
-        default: '300.0000'
+        default: '30.0000'
       }).example(`$0 ${cmd}`);
   },
   command: cmd,
-  handler: async(args) => {
+  handler: async (args) => {
     await execScripts(path.resolve('.', 'extensions/commands/start-localenv'), (script) => {
       console.log(emojMap.anchor + 'Setup environment', path.basename(script).green);
       return [args];

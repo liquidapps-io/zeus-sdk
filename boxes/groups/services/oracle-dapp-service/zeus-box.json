@@ -1,7 +1,7 @@
 {
   "ignore": [
     "README.md",
-    "LICENSE",
+    "LICENSE",    
     "zeus-box.json"
   ],
   "dependencies":[
@@ -16,7 +16,6 @@
     "npm":{
       "node-fetch": true,
       "tronweb": true,
-      "stockfish": true,
       "ripple-lib":true,
       "bitcoin-core":true
     }

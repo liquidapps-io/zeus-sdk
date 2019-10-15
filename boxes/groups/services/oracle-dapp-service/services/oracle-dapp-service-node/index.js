@@ -141,38 +141,6 @@ const randomHandler = async({ proto, address }) => {
 
   return new Buffer(Math.floor(Math.random() * range).toString());
 };
-var stockfish;
-
-
-const stockfishHandler = async({ proto, address }) => {
-  // stockfish://fen
-  if (!stockfish)
-    stockfish = require("stockfish")();
-  return new Promise((resolve, reject) => {
-    const fen = address;
-    // console.log("address", address);
-    stockfish.onmessage = function onmessage(event) {
-      if (!event)
-        return;
-      console.log(event);
-      var parts = event.split(' ');
-      var idx = 0;
-      var cmd = parts[idx++];
-      if (cmd == 'bestmove') {
-        var move = parts[idx++];
-        console.log('moveObj', move);
-        resolve(Buffer.from(move));
-      }
-
-
-
-    };
-    stockfish.postMessage(`uci`);
-    stockfish.postMessage(`position fen ${fen}`);
-    stockfish.postMessage(`go depth 10`);
-  });
-};
-
 const sisterChainBlocksHandler = async({ proto, address }) => {
   // sister_chain_block://chain/id/field
 
@@ -569,10 +537,8 @@ var handlers = {
   'sister_chain_state': undefined,
   'foreign_chain': foreignChainHandler,
   'past_self_state': undefined,
-  'random': randomHandler,
-  'stockfish': stockfishHandler
+  'random': randomHandler
 };
-
 nodeFactory('oracle', {
   geturi: async({ event, rollback }, { uri }) => {
     if (rollback) {

@@ -10,7 +10,7 @@ import { Api, JsonRpc,Serialize } from 'eosjs';
 
 const { PrivateKey } = ecc;
 const { BigNumber } = require( "bignumber.js" );
-const endpoints = require( "../types/endpoints" );
+const { endpoints } = require( "../types/endpoints" );
 const { encodeName } = require( "../dapp-common" );
 
 import { JsSignatureProvider } from 'eosjs/dist/eosjs-jssig';
@@ -98,13 +98,13 @@ private push_liquid_account_transaction_logic = async ( contract: string, privat
     }
  private postVirtualTx = ({
         contract,
-        wif,
-        payload
+        payload,
+        wif
     }) => {
         var signature = ecc.sign(Buffer.from(payload, 'hex'), wif);
         const public_key = PrivateKey.fromString(wif).toPublic().toString()
         return this.post(V1_DSP_PUSH_LIQUIDACCOUNT_ACTION, {
-            contract_code:contract,
+            contract,
             public_key,
             payload,
             signature
@@ -114,8 +114,8 @@ private push_liquid_account_transaction_logic = async ( contract: string, privat
 
     private runTrx = async(
         contract,
-        wif,
         payload,
+        wif,
         time_to_live= 120
     ) => {
 
