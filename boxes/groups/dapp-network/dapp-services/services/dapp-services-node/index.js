@@ -138,8 +138,6 @@ const bootTime = Date.now();
 let inRecoveryMode = false;
 const appWebHookListener = genApp();
 appWebHookListener.post('/', async(req, res) => {
-  logger.info(`Boot time: ${bootTime}`);
-
   req.body.replay = inRecoveryMode;
   await processFn(actionHandlers, req.body);
   res.send(JSON.stringify('ok'));

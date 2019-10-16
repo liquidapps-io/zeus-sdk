@@ -16,6 +16,7 @@ const ws = new WebSocket(`ws://${process.env.NODEOS_HOST || 'localhost'}:${proce
 
 var abis = getAbis();
 var abiabi = getAbiAbi();
+const dbTimeout = process.env.DB_TIMEOUT || 5000;
 var c = process.env.DEMUX_HEAD_BLOCK || 0;
 var c2 = 0;
 var types;
@@ -101,7 +102,7 @@ const handlers = {
         if (!curr[method]) { curr = curr['*']; }
         else { curr = curr[method]; }
         if (curr) {
-          await Promise.all(curr.map(async url => {
+          Promise.all(curr.map(async url => {
             if (process.env.WEBHOOKS_HOST) {
               url = url.replace('http://localhost:', process.env.WEBHOOKS_HOST);
             }
@@ -288,7 +289,12 @@ async function messageHandler(data) {
     }
     if(current_block - last_processed >= 10000) {
       last_processed = current_block;
-      await dal.updateSettings({ last_processed_block: current_block });
+      await Promise.race([
+        dal.updateSettings({ last_processed_block: current_block }),
+        new Promise((resolve, reject) => {
+          setTimeout(() => { reject('database call timeout') }, dbTimeout);
+        })
+      ]);
       logger.info("Updated database with current block: %s", current_block);
     }
     
@@ -387,7 +393,12 @@ ws.on('message', async function incoming(data) {
 });
 
 async function getStartingBlockNumber() {
-  const settings = await dal.getSettings();
+  const settings = await Promise.race([
+    dal.getSettings(),
+    new Promise((resolve, reject) => {
+      setTimeout(() => { reject('database call timeout') }, dbTimeout);
+    })
+  ]);
   if (settings && settings.data && settings.data.last_processed_block) {
     return settings.data.last_processed_block;
   }
