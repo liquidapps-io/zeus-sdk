@@ -128,7 +128,7 @@ function arrayBufferToBuffer(ab) {
 
 async function run(wasm, fn, payload) {
 
-    module = loader.instantiateBuffer(wasm, {
+    module = loader.instantiateSync(wasm, {
         env: { ...env,
             prints: (str) => {
                 const U32 = new Uint8Array(module.memory.buffer);
