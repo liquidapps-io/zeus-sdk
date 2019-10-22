@@ -1,5 +1,5 @@
-var fs = require("fs");
-var path = require("path");
+const fs = require("fs");
+const path = require("path");
 let networks = {
     'development': {
         chainId: '',
@@ -33,11 +33,16 @@ if (fs.existsSync(path.resolve('../../../zeus-config.js'))) {
 
 function getNetwork(args) {
     const selectedNetwork = networks[args.network];
-    if (!selectedNetwork) { throw new Error(`network not found (${args.network})`); }
+    if (!selectedNetwork) { 
+        throw new Error(`network not found (${args.network})`);
+    }
     return selectedNetwork;
 }
 
 function getUrl(args) {
+    if (args.NODEOS_SECURED && args.NODEOS_HOST && args.NODEOS_PORT) {
+        return `http${args.NODEOS_SECURED === 'true' ? 's' : ''}://${args.NODEOS_HOST}:${args.NODEOS_PORT}`;
+    }
     const selectedNetwork = getNetwork(args);
     return `http${selectedNetwork.secured ? 's' : ''}://${selectedNetwork.host}:${selectedNetwork.port}`;
 }
