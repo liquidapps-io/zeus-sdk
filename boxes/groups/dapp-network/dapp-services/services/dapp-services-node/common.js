@@ -359,6 +359,11 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi) => {
     var isServiceRequest = uri.indexOf('/event') == 0;
     var isServiceAPIRequest = uri.indexOf('/v1/dsp/') == 0;
     var uriParts = uri.split('/');
+    if(uri === '/v1/dsp/version'){
+      const pjson = require('../../package.json');
+      res.send(pjson.version); // send response to contain the version
+      return;
+    }
     if (uri != '/v1/chain/push_transaction' && !isServiceRequest && !isServiceAPIRequest) {
       proxy.web(req, res, { target: nodeosEndpoint });
       return;
