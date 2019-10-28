@@ -14,6 +14,20 @@ printf "\\nARCHITECTURE: %s" "${ARCH}"
 printf "\\nOS NAME: %s" "${OS_NAME}"
 printf "\\nOS VERSION: %s\\n" "${OS_VER}"
 
+function install_deb {
+    wget https://github.com/EOSIO/eosio.cdt/releases/download/v$1/eosio.cdt_$1-1-ubuntu-18.04_amd64.deb
+    sudo apt install -y ./eosio.cdt_$1-1-ubuntu-18.04_amd64.deb
+    rm ./eosio.cdt_$1-1-ubuntu-18.04_amd64.deb
+    printf "\\neosio.cdt installed.\\n"
+}
+
+function install_rpm {
+    wget https://github.com/EOSIO/eosio.cdt/releases/download/v$1/eosio.cdt-$1-1.el7.x86_64.rpm
+    sudo yum install -y ./eosio.cdt-$1-1.el7.x86_64.rpm
+    rm ./eosio.cdt-$1-1.el7.x86_64.rpm
+    printf "\\neosio.cdt installed.\\n"
+}
+
 if [ "$ARCH" == "Linux" ]; then
     case "$OS_NAME" in
     "Amazon Linux AMI"|"Amazon Linux")
@@ -25,10 +39,7 @@ if [ "$ARCH" == "Linux" ]; then
         	printf "\\nAmazon Linux AMI 2018 support is deprecated.  Please use Amazon Linux 2\\n"
         fi
         if ! [ -x "$(command -v eosio-cpp)" ] ; then
-            wget https://github.com/EOSIO/eosio.cdt/releases/download/v${EOSIO_CDT_VERSION}/eosio.cdt-${EOSIO_CDT_VERSION}-1.centos-x86_64.rpm
-            sudo yum install -y ./eosio.cdt-${EOSIO_CDT_VERSION}-1.centos-x86_64.rpm
-            rm ./eosio.cdt-${EOSIO_CDT_VERSION}-1.centos-x86_64.rpm
-            printf "\\neosio.cdt installed.\\n"
+            install_rpm ${EOSIO_CDT_VERSION}
         else 
             printf "\\neosio.cdt already installed.\\n"
         fi
@@ -40,19 +51,14 @@ if [ "$ARCH" == "Linux" ]; then
         	exit 1;
         fi
         if ! [ -x "$(command -v eosio-cpp)" ] ; then
-            wget https://github.com/EOSIO/eosio.cdt/releases/download/v${EOSIO_CDT_VERSION}/eosio.cdt-${EOSIO_CDT_VERSION}-1.centos-x86_64.rpm
-            sudo yum install -y ./eosio.cdt-${EOSIO_CDT_VERSION}-1.centos-x86_64.rpm
-            rm ./eosio.cdt-${EOSIO_CDT_VERSION}-1.centos-x86_64.rpm
-            printf "\\neosio.cdt installed.\\n"
+            install_rpm ${EOSIO_CDT_VERSION}
         else 
             printf "\\neosio.cdt already installed.\\n"
         fi
     ;;
     "elementary OS")
         if ! [ -x "$(command -v eosio-cpp)" ] ; then
-            wget https://github.com/EOSIO/eosio.cdt/releases/download/v${EOSIO_CDT_VERSION}/eosio.cdt_${EOSIO_CDT_VERSION}-1_amd64.deb
-            sudo apt install -y ./eosio.cdt_${EOSIO_CDT_VERSION}-1_amd64.deb
-            rm ./eosio.cdt_${EOSIO_CDT_VERSION}-1_amd64.deb
+            install_deb ${EOSIO_CDT_VERSION}
         else 
             printf "\\neosio.cdt already installed.\\n"
         fi
@@ -64,9 +70,7 @@ if [ "$ARCH" == "Linux" ]; then
         	exit 1;
         fi
         if ! [ -x "$(command -v eosio-cpp)" ] ; then
-            wget https://github.com/EOSIO/eosio.cdt/releases/download/v${EOSIO_CDT_VERSION}/eosio.cdt-${EOSIO_CDT_VERSION}-1.fedora-x86_64.rpm 
-            sudo yum install -y ./eosio.cdt-${EOSIO_CDT_VERSION}-1.fedora-x86_64.rpm 
-            rm ./eosio.cdt-${EOSIO_CDT_VERSION}-1.fedora-x86_64.rpm 
+            install_rpm ${EOSIO_CDT_VERSION}
         else 
             printf "\\neosio.cdt already installed.\\n"
         fi
@@ -78,9 +82,7 @@ if [ "$ARCH" == "Linux" ]; then
             exit 1
         fi
         if ! [ -x "$(command -v eosio-cpp)" ] ; then
-            wget https://github.com/EOSIO/eosio.cdt/releases/download/v${EOSIO_CDT_VERSION}/eosio.cdt_${EOSIO_CDT_VERSION}-1_amd64.deb
-            sudo apt install -y ./eosio.cdt_${EOSIO_CDT_VERSION}-1_amd64.deb
-            rm ./eosio.cdt_${EOSIO_CDT_VERSION}-1_amd64.deb
+            install_deb ${EOSIO_CDT_VERSION}
         else 
             printf "\\neosio.cdt already installed.\\n"
         fi
@@ -92,9 +94,7 @@ if [ "$ARCH" == "Linux" ]; then
     		exit 1
     	fi
         if ! [ -x "$(command -v eosio-cpp)" ] ; then
-                wget https://github.com/EOSIO/eosio.cdt/releases/download/v${EOSIO_CDT_VERSION}/eosio.cdt_${EOSIO_CDT_VERSION}-1_amd64.deb
-                sudo apt install -y ./eosio.cdt_${EOSIO_CDT_VERSION}-1_amd64.deb
-                rm ./eosio.cdt_${EOSIO_CDT_VERSION}-1_amd64.deb
+            install_deb ${EOSIO_CDT_VERSION}
         else 
             printf "\\neosio.cdt already installed.\\n"
         fi
@@ -106,9 +106,7 @@ if [ "$ARCH" == "Linux" ]; then
     		exit 1
     	fi
         if ! [ -x "$(command -v eosio-cpp)" ] ; then
-            wget https://github.com/EOSIO/eosio.cdt/releases/download/v${EOSIO_CDT_VERSION}/eosio.cdt_${EOSIO_CDT_VERSION}-1_amd64.deb
-            sudo apt install -y ./eosio.cdt_${EOSIO_CDT_VERSION}-1_amd64.deb
-            rm ./eosio.cdt_${EOSIO_CDT_VERSION}-1_amd64.deb
+            install_deb ${EOSIO_CDT_VERSION}
         else 
             printf "\\neosio.cdt already installed.\\n"
         fi
