@@ -31,14 +31,14 @@ module.exports = {
     yargs.option('endpoint', {
       describe: 'network to work on',
       default: 'http://localhost:13015'
-    }).example(`$0 ${cmd} mycontract mytable myscope mykey`);
+    }).example(`$0 ${cmd} mycontract mytable myscope mykey mykeytype`);
   },
-  command: `${cmd} <contract> <table> <scope> <key>`,
+  command: `${cmd} <contract> <table> <scope> <key> <keytype>`,
   handler: async (args) => {
     var models = await loadModels('dapp-services');
     var service = models.find(a => a.name == 'ipfs').contract;
-    const { contract, table, scope, key, endpoint } = args;
-    const result = await postData(`${endpoint}/v1/dsp/${service}/get_table_row`, { contract, scope, table, key });
+    const { contract, table, scope, key, keytype, endpoint } = args;
+    const result = await postData(`${endpoint}/v1/dsp/${service}/get_table_row`, { contract, scope, table, key, keytype });
     console.log(JSON.stringify(result));
   }
 };

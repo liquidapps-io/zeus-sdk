@@ -104,7 +104,8 @@ const readVRAMData = async({
   contract,
   key,
   table,
-  scope
+  scope,
+  keytype
 }) => {
   const service = "ipfsservice1";
   const endpoint = getEndpointForContract({ payer: contract, service });
@@ -112,7 +113,8 @@ const readVRAMData = async({
     contract,
     scope,
     table,
-    key
+    key,
+    keytype
   });
   if (result.error) {
     throw new Error(result.error);
