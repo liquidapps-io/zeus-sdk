@@ -70,6 +70,26 @@ describe(`Oracle Service Test Contract`, () => {
     })();
   });
 
+  it('Oracle HTTPS+POST+JSON', done => {
+    (async() => {
+      try {
+        const body = Buffer.from('{"block_num_or_id":"36568000"}').toString('base64')
+        const res = await testcontract.testget({
+          uri: Buffer.from(`https+post+json://timestamp/${body}/nodes.get-scatter.com:443/v1/chain/get_block`, 'utf8'),
+          expectedfield: Buffer.from('2019-01-09T18:20:23.000', 'utf8'),
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
   it('Oracle History Get', done => {
     (async() => {
       try {
