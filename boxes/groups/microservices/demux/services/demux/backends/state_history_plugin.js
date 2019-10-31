@@ -319,19 +319,19 @@ async function watchMessages() {
       pending.unshift(data);
       types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), abi);
       ++retries;
-      setImmediate(() => watchMessages());
+      setImmediate(watchMessages);
       return;
     }
     if (retries !== 0) {
       logger.info(`Success after ${retries} attempts`);
       retries = 0;
     }
-    //process this entire ticks worth of messages
-    process.nextTick(() => watchMessages());
+    // process another block recursively without blocking the event loop
+    setImmediate(watchMessages);
   }
   else {
-    //wait for a full tick of messages
-    setImmediate(() => watchMessages());
+    // otherwise be idle for 250ms
+    setTimeout(watchMessages, 250);
   }
 }
 
