@@ -147,10 +147,10 @@ describe(`vAccounts Service Test Contract`, () => {
                 scope: contract_code
             });
             nonce = tableRes.row.nonce;
-            console.log('got nonce', nonce);
+            //console.log('got nonce', nonce);
         }
         catch (e) {
-            console.log('no nonce');
+            //console.log('no nonce');
             nonce = 0;
         }
 
@@ -171,8 +171,23 @@ describe(`vAccounts Service Test Contract`, () => {
             res = (toBound(res.toString(16), 8));
             return res;
         }
-        var datasize = toBound(new BigNumber(response[0].data.length / 2).toString(16), 1).match(/.{2}/g).reverse().join('');
-        var payloadSerialized = header + "0000000000000000" + toName(payload.name) + "01" + "00000000000000000000000000000000" + datasize + response[0].data;
+        buffer.pushVaruint32(response[0].data.length / 2);
+        const varuintBytes = [];
+        while (buffer.haveReadData()) varuintBytes.push(buffer.get());
+        const serializedDataWithLength = Serialize.arrayToHex(Uint8Array.from(varuintBytes)) + response[0].data;
+
+        // payloadSerialized corresponds to the actual vAccount action (like regaccount) https://github.com/liquidapps-io/zeus-sdk/blob/a3041e9177ffe4375fd8b944f4a10f74a447e406/boxes/groups/services/vaccounts-dapp-service/contracts/eos/dappservices/_vaccounts_impl.hpp#L50-L60
+        // and is used as xvexec's payload vector<char>: https://github.com/liquidapps-io/zeus-sdk/blob/4e79122e42eeab50cf633097342b9c1fa00960c6/boxes/groups/services/vaccounts-dapp-service/services/vaccounts-dapp-service-node/index.js#L30
+        // eosio::action fields to serialize https://github.com/EOSIO/eosio.cdt/blob/master/libraries/eosiolib/action.hpp#L194-L221
+        const actionSerialized =
+        "0000000000000000" + // account_name
+        toName(payload.name) + // action_name
+        // std::vector<permission_level> authorization https://github.com/EOSIO/eosio.cdt/blob/master/libraries/eosiolib/action.hpp#L107-L155
+        "00" +
+        // std::vector<char> data;
+        serializedDataWithLength;
+
+        const payloadSerialized = header + actionSerialized;
         return await postVirtualTx({
             contract_code,
             wif,
@@ -180,51 +195,6 @@ describe(`vAccounts Service Test Contract`, () => {
         });
     }
     it('Hello world', done => {
-        (async() => {
-            try {
-                let privateWif = (await PrivateKey.randomKey()).toWif();
-                var res = await runTrx({
-                    contract_code: "test1v",
-                    wif: privateWif,
-                    payload: {
-                        name: "regaccount",
-                        data: {
-                            payload: {
-
-                                vaccount: "vaccoun1"
-                            }
-                        }
-                    }
-                });
-                res = await runTrx({
-                    nonce: 0,
-                    contract_code: "test1v",
-                    wif: privateWif,
-                    payload: {
-                        name: "hello",
-                        data: {
-                            payload: {
-                                vaccount: "vaccoun1",
-                                b: 1,
-                                c: 2
-                            }
-                        }
-                    }
-                });
-                if (res.error)
-                    console.error("reserror", res.error.details[0]);
-                // console.log(res.result.processed.action_traces);
-                var outputLines = res.result.processed.action_traces[0].console.split('\n');
-                assert.equal(outputLines[outputLines.length - 2], "hello from vaccoun1 3", "wrong content");
-
-                done();
-            }
-            catch (e) {
-                done(e);
-            }
-        })();
-    });
-    it.skip('Hello world 2', done => {
         (async() => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();
@@ -256,11 +226,71 @@ describe(`vAccounts Service Test Contract`, () => {
                         }
                     }
                 });
+                res = await runTrx({
+                    nonce: 0,
+                    contract_code: "test1v",
+                    wif: privateWif,
+                    payload: {
+                        name: "hello",
+                        data: {
+                            payload: {
+                                vaccount: "vaccount1",
+                                b: 1,
+                                c: 2
+                            }
+                        }
+                    }
+                });
                 if (res.error)
                     console.error("reserror", res.error.details[0]);
                 // console.log(res.result.processed.action_traces);
                 var outputLines = res.result.processed.action_traces[0].console.split('\n');
-                assert.equal(outputLines[outputLines.length - 2], "hello from vaccoun1 3", "wrong content");
+                assert.equal(outputLines[outputLines.length - 2], "hello from vaccount1 3", "wrong content");
+
+                done();
+            }
+            catch (e) {
+                done(e);
+            }
+        })();
+    });
+    it('Hello world 2', done => {
+        (async() => {
+            try {
+                let privateWif = (await PrivateKey.randomKey()).toWif();
+                var res = await runTrx({
+                    contract_code: "test1v",
+                    wif: privateWif,
+                    payload: {
+                        name: "regaccount",
+                        data: {
+                            payload: {
+
+                                vaccount: "vaccount2"
+                            }
+                        }
+                    }
+                });
+                res = await runTrx({
+                    nonce: 0,
+                    contract_code: "test1v",
+                    wif: privateWif,
+                    payload: {
+                        name: "hello",
+                        data: {
+                            payload: {
+                                vaccount: "vaccount2",
+                                b: 1,
+                                c: 2
+                            }
+                        }
+                    }
+                });
+                if (res.error)
+                    console.error("reserror", res.error.details[0]);
+                // console.log(res.result.processed.action_traces);
+                var outputLines = res.result.processed.action_traces[0].console.split('\n');
+                assert.equal(outputLines[outputLines.length - 2], "hello from vaccount2 3", "wrong content");
 
                 done();
             }
@@ -298,7 +328,7 @@ describe(`vAccounts Service Test Contract`, () => {
                         name: "regaccount",
                         data: {
                             payload: {
-                                vaccount: "vaccoun1"
+                                vaccount: "vaccount1"
                             }
                         }
                     }
@@ -312,7 +342,7 @@ describe(`vAccounts Service Test Contract`, () => {
                         name: "hello",
                         data: {
                             payload: {
-                                vaccount: "vaccoun1",
+                                vaccount: "vaccount1",
                                 b: 1,
                                 c: 2
                             }

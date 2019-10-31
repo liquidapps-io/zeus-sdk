@@ -16,6 +16,7 @@ const ws = new WebSocket(`ws://${process.env.NODEOS_HOST || 'localhost'}:${proce
 
 var abis = getAbis();
 var abiabi = getAbiAbi();
+const dbTimeout = process.env.DB_TIMEOUT || 5000;
 var c = process.env.DEMUX_HEAD_BLOCK || 0;
 var c2 = 0;
 var types;
@@ -23,7 +24,6 @@ var head_block = 0;
 var current_block = 0;
 var pending = [];
 var genesisTimestampMs;
-
 
 let capturedEvents;
 const loadEvents = async() => {
@@ -102,7 +102,7 @@ const handlers = {
         if (!curr[method]) { curr = curr['*']; }
         else { curr = curr[method]; }
         if (curr) {
-          await Promise.all(curr.map(async url => {
+          Promise.all(curr.map(async url => {
             if (process.env.WEBHOOKS_HOST) {
               url = url.replace('http://localhost:', process.env.WEBHOOKS_HOST);
             }
@@ -247,6 +247,7 @@ async function transactionHandler(tx, blockInfo) {
   }
 }
 
+var last_processed = 0;
 async function messageHandler(data) {
   var buffer = new Serialize.SerialBuffer({
     textEncoder: new TextEncoder(),
@@ -261,7 +262,7 @@ async function messageHandler(data) {
   if (!realData[1].traces) { return; }
   var traces = Buffer.from(realData[1].traces, 'hex');
   current_block = realData[1].this_block.block_num;
-  if (++c2 % 10000 == 0) { logger.info('at', current_block - head_block); }
+  if (++c2 % 10000 == 0) { logger.info('at %s', current_block - head_block); }
 
   const timestamp = await getBlockTimestamp(current_block);
   const blockInfo = { timestamp, number: current_block, id: block_id };
@@ -286,8 +287,17 @@ async function messageHandler(data) {
       const transactionTrace = types.get('transaction_trace').deserialize(buffer2);
       await transactionHandler(transactionTrace[1], blockInfo);
     }
-
-    await dal.updateSettings({ last_processed_block: current_block });
+    if(current_block - last_processed >= 10000) {
+      last_processed = current_block;
+      await Promise.race([
+        dal.updateSettings({ last_processed_block: current_block }),
+        new Promise((resolve, reject) => {
+          setTimeout(() => { reject('database call timeout') }, dbTimeout);
+        })
+      ]);
+      logger.info("Updated database with current block: %s", current_block);
+    }
+    
   }
   catch (e) {
     logger.error(e);
@@ -296,6 +306,7 @@ async function messageHandler(data) {
 
 var retries = 0;
 async function watchMessages() {
+  
   if (pending.length !== 0) {
     //always remove the message from pending
     const data = pending.shift();
@@ -308,19 +319,19 @@ async function watchMessages() {
       pending.unshift(data);
       types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), abi);
       ++retries;
-      setImmediate(() => watchMessages());
+      setImmediate(watchMessages);
       return;
     }
     if (retries !== 0) {
       logger.info(`Success after ${retries} attempts`);
       retries = 0;
     }
-    //process this entire ticks worth of messages
-    process.nextTick(() => watchMessages());
+    // process another block recursively without blocking the event loop
+    setImmediate(watchMessages);
   }
   else {
-    //wait for a full tick of messages
-    setImmediate(() => watchMessages());
+    // otherwise be idle for 250ms
+    setTimeout(watchMessages, 250);
   }
 }
 
@@ -331,10 +342,16 @@ ws.on('open', function open() {
   logger.info('ws connected');
 });
 
+var heartBeat = Math.floor(Date.now() / 1000);
 ws.on('message', async function incoming(data) {
   //start pushing messages after we received the ABI
   if (!expectingABI) {
     pending.push(data);
+    let currTime = Math.floor(Date.now() / 1000);
+    if((currTime - heartBeat) >= 15) { //heartbeat every 15 seconds
+      heartBeat = currTime;
+      logger.info("Demux heartbeat - Processed Block: %s Pending Messages: %s",current_block,pending.length);
+    }
     return;
   }
 
@@ -352,8 +369,9 @@ ws.on('message', async function incoming(data) {
     start_block_num = await getStartingBlockNumber();
   } catch(e) {
     logger.error(`Error getting starting block number: ${JSON.stringify(e)}`);
-    start_block_num = 1;
+    start_block_num = c;
   }
+  c = start_block_num;
   logger.info(`starting demux at block ${start_block_num}`);
 
   //we have the abi now, create a get blocks request
@@ -375,7 +393,12 @@ ws.on('message', async function incoming(data) {
 });
 
 async function getStartingBlockNumber() {
-  const settings = await dal.getSettings();
+  const settings = await Promise.race([
+    dal.getSettings(),
+    new Promise((resolve, reject) => {
+      setTimeout(() => { reject('database call timeout') }, dbTimeout);
+    })
+  ]);
   if (settings && settings.data && settings.data.last_processed_block) {
     return settings.data.last_processed_block;
   }

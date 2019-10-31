@@ -12,7 +12,7 @@ if (process.env.DATABASE_URL)
   env = 'production';
 var config = require(__dirname + '/../config/config.js')[env];
 var db = {};
-logger.info(`starting db: env - ${env}, config - ${JSON.stringify(config)}, database_url - ${process.env.DATABASE_URL}`);
+logger.info(`starting db: env - ${env}, dialect - ${config.dialect}`);
 var sequelize;
 try {
   if (config.use_env_variable) {

@@ -155,7 +155,8 @@ describe(`${contractCode} Contract`, () => {
           contract: code,
           key: symbol,
           table: "accounts",
-          scope: testUser
+          scope: testUser,
+          keytype: 'symbol'
         });
         assert(tableRes.row.balance == `1000.0000 ${symbol}`, "wrong balance");
         await testtoken.issue({
@@ -172,7 +173,8 @@ describe(`${contractCode} Contract`, () => {
           contract: code,
           key: symbol,
           table: "accounts",
-          scope: testUser
+          scope: testUser,
+          keytype: 'symbol'
         });
         assert(tableRes.row.balance == `2000.0000 ${symbol}`, "wrong balance");
         done();

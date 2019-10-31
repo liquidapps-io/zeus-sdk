@@ -8,11 +8,13 @@ const path = require('path');
 var thisProcess = process.argv[1];
 var parts = thisProcess.split(path.sep)
 var processName = parts[parts.length - 2];
+const logfileName = process.env.LOGFILE_NAME || processName;
+
 // define the custom settings for each transport (file, console)
 const options = {
     file: {
         level,
-        filename: `./logs/${paccount}-${processName}-%DATE%.log`,
+        filename: `./logs/${paccount}-${logfileName}-%DATE%.log`,
         maxsize: 5242880, // 5MB
         maxFiles: 5,
         datePattern: 'YYYY-MM-DD'

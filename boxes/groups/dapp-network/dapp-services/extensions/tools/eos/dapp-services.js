@@ -18,7 +18,8 @@ async function genAllocateDAPPTokens(deployedContract, serviceName, provider = '
   }
   for (var i = 0; i < providers.length; i++) {
     var currentProvider = providers[i];
-    await genAllocateDAPPTokensInner(deployedContract, serviceName, provider = currentProvider, selectedPackage);
+
+    await genAllocateDAPPTokensInner(deployedContract, serviceName, provider = currentProvider, (currentProvider == "pprovider2" && selectedPackage == 'default') ? 'foobar' : selectedPackage);
   }
 
 }
@@ -103,7 +104,8 @@ const readVRAMData = async({
   contract,
   key,
   table,
-  scope
+  scope,
+  keytype
 }) => {
   const service = "ipfsservice1";
   const endpoint = getEndpointForContract({ payer: contract, service });
@@ -111,7 +113,8 @@ const readVRAMData = async({
     contract,
     scope,
     table,
-    key
+    key,
+    keytype
   });
   if (result.error) {
     throw new Error(result.error);

@@ -10,7 +10,7 @@ import { Api, JsonRpc,Serialize } from 'eosjs';
 
 const { PrivateKey } = ecc;
 const { BigNumber } = require( "bignumber.js" );
-const { endpoints } = require( "../types/endpoints" );
+const endpoints = require( "../types/endpoints" );
 const { encodeName } = require( "../dapp-common" );
 
 import { JsSignatureProvider } from 'eosjs/dist/eosjs-jssig';
@@ -82,6 +82,7 @@ export default class LiquidAccountsService extends DSPServiceClient {
         const time_to_live = options.time_to_live || 3600;
         return await this.push_liquid_account_transaction_logic( contract, private_key, action, payload, time_to_live );
     }
+    
 private push_liquid_account_transaction_logic = async ( contract: string, private_key: string, action: string, payload: liquidaccount.Payload, time_to_live: number ) => {
         const wif = ( await PrivateKey.fromString( private_key ) ).toWif();
         return await this.runTrx(
@@ -96,30 +97,27 @@ private push_liquid_account_transaction_logic = async ( contract: string, privat
             time_to_live,
         );
     }
- private postVirtualTx = ({
+private postVirtualTx = ({
         contract,
-        payload,
-        wif
+        wif,
+        payload
     }) => {
         var signature = ecc.sign(Buffer.from(payload, 'hex'), wif);
         const public_key = PrivateKey.fromString(wif).toPublic().toString()
         return this.post(V1_DSP_PUSH_LIQUIDACCOUNT_ACTION, {
-            contract,
+            contract_code:contract,
             public_key,
             payload,
             signature
         },{ contract });
     }
 
-
     private runTrx = async(
         contract,
-        payload,
         wif,
+        payload,
         time_to_live= 120
     ) => {
-
-
 
         let buffer = new Serialize.SerialBuffer({
             textDecoder: new TextDecoder(),
@@ -163,15 +161,27 @@ private push_liquid_account_transaction_logic = async ( contract: string, privat
             res = (toBound(res.toString(16), 8));
             return res;
         }
-        var datasize = toBound(new BigNumber(response[0].data.length / 2).toString(16), 1).match(/.{2}/g).reverse().join('');
-        var payloadSerialized = header + "0000000000000000" + toName(payload.name) + "01" + "00000000000000000000000000000000" + datasize + response[0].data;
+        buffer.pushVaruint32(response[0].data.length / 2);
+        const varuintBytes = [];
+        while (buffer.haveReadData()) varuintBytes.push(buffer.get());
+        const serializedDataWithLength = Serialize.arrayToHex(Uint8Array.from(varuintBytes)) + response[0].data;
+
+        // payloadSerialized corresponds to the actual vAccount action (like regaccount) https://github.com/liquidapps-io/zeus-sdk/blob/a3041e9177ffe4375fd8b944f4a10f74a447e406/boxes/groups/services/vaccounts-dapp-service/contracts/eos/dappservices/_vaccounts_impl.hpp#L50-L60
+        // and is used as xvexec's payload vector<char>: https://github.com/liquidapps-io/zeus-sdk/blob/4e79122e42eeab50cf633097342b9c1fa00960c6/boxes/groups/services/vaccounts-dapp-service/services/vaccounts-dapp-service-node/index.js#L30
+        // eosio::action fields to serialize https://github.com/EOSIO/eosio.cdt/blob/master/libraries/eosiolib/action.hpp#L194-L221
+        const actionSerialized =
+        "0000000000000000" + // account_name
+        toName(payload.name) + // action_name
+        // std::vector<permission_level> authorization https://github.com/EOSIO/eosio.cdt/blob/master/libraries/eosiolib/action.hpp#L107-L155
+        "00" +
+        // std::vector<char> data;
+        serializedDataWithLength;
+
+        const payloadSerialized = header + actionSerialized;
         return await this.postVirtualTx({
             contract,
             wif,
             payload: payloadSerialized
         });
     }
-
-
-
 }

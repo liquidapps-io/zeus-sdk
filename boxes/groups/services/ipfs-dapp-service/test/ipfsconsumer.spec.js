@@ -194,7 +194,8 @@ describe(`IPFS Service Test Contract`, () => {
           contract: code,
           key: 12345,
           table: "test",
-          scope: code
+          scope: code,
+          keytype: 'number'
         });
         assert(tableRes.row.id == 12345, "wrong uint64_t");
 
@@ -205,6 +206,111 @@ describe(`IPFS Service Test Contract`, () => {
       }
     })();
   });
+
+  it('doesnt overwrite data when buckets collide', done => {
+    (async() => {
+      try {
+
+        await testcontract.testcollide({
+          id: 12345,
+          value: 12345
+        }, {
+          authorization: `${code}@active`,
+        });
+        let shardTable;
+
+        shardTable = await eosvram.getTableRows({
+          code: code,
+          scope: code,
+          table: 'test1',
+          json: true,
+        });
+        let shardUri1 = shardTable.rows[0].shard_uri;
+        await testcontract.testcollide({
+          id: 123456,
+          value: 123456
+        }, {
+          authorization: `${code}@active`,
+        });
+        shardTable = await eosvram.getTableRows({
+          code: code,
+          scope: code,
+          table: 'test1',
+          json: true,
+        });
+        let shardUri2 = shardTable.rows[0].shard_uri;
+        assert(shardUri1 !== shardUri2, "data didn't get written to same shard");
+        await testcontract.testcollide({
+          id: 12345,
+          value: 12345
+        }, {
+          authorization: `${code}@active`,
+        });
+        shardTable = await eosvram.getTableRows({
+          code: code,
+          scope: code,
+          table: 'test1',
+          json: true,
+        });
+        let shardUri3 = shardTable.rows[0].shard_uri;
+        assert(shardUri1 !== shardUri3, "data was overwritten");
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+  it('dapp::multi_index uint64_t Large Primary Key', done => {
+    (async() => {
+      try {
+
+        await testcontract.testindexa({
+          id: 15700377924853090
+        }, {
+          authorization: `${code}@active`,
+        });
+
+        await testcontract.increment({ somenumber: 2 }, {
+          authorization: `${code}@active`,
+        });
+
+        await testcontract.increment({ somenumber: 10 }, {
+          authorization: `${code}@active`,
+        });
+
+        var tableRes = await readVRAMData({
+          contract: code,
+          key: "15700377924853090",
+          table: "test",
+          scope: code,
+          keytype: "number"
+        });
+        assert(tableRes.row.id == "15700377924853090", "wrong uint64_t");
+        tableRes = await readVRAMData({
+          contract: code,
+          key: "15700377924853091",
+          table: "test",
+          scope: code,
+          keytype: "number"
+        });
+        assert(tableRes.row.id == "15700377924853091", "wrong uint64_t");
+        tableRes = await readVRAMData({
+          contract: code,
+          key: "15700377924853092",
+          table: "test",
+          scope: code,
+          keytype: "number"
+        });
+        assert(tableRes.row.id == "15700377924853092", "wrong uint64_t");
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+    })();
+  });
+
   it('dapp::multi_index delayed cleanup', done => {
     (async() => {
       try {
@@ -235,7 +341,8 @@ describe(`IPFS Service Test Contract`, () => {
           contract: code,
           key: 52343,
           table: "test",
-          scope: code
+          scope: code,
+          keytype: 'number'
         });
         assert(tableRes.row.sometestnumber == 125, "wrong uint64_t");
         await delaySec(10);
@@ -243,7 +350,8 @@ describe(`IPFS Service Test Contract`, () => {
           contract: code,
           key: 52343,
           table: "test",
-          scope: code
+          scope: code,
+          keytype: 'number'
         });
         assert(tableRes.row.sometestnumber == 125, "wrong uint64_t");
         await testcontract.testdelay({
@@ -265,7 +373,8 @@ describe(`IPFS Service Test Contract`, () => {
           contract: code,
           key: 52343,
           table: "test",
-          scope: code
+          scope: code,
+          keytype: 'number'
         });
         assert(tableRes.row.sometestnumber == 127, "wrong uint64_t");
         done();

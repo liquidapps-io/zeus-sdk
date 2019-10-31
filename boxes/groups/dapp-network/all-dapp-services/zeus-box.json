@@ -14,6 +14,7 @@
     "auth-dapp-service",
     "history-dapp-service",
     "readfn-dapp-service",
-    "dns-dapp-service"
+    "dns-dapp-service",
+    "vcpu-dapp-service"
   ]
 }

@@ -2,11 +2,11 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs');
 
-function getDefaultArgs () {
+function getDefaultArgs() {
   const defaultArgs = {
     network: 'development',
     storagePath: path.resolve(os.homedir(), '.zeus'),
-    stake: '30.0000',
+    stake: '300.0000',
     creator: 'eosio',
     wallet: 'zeus',
     creatorKey: '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3',

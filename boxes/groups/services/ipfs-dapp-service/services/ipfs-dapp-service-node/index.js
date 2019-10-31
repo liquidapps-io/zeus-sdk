@@ -123,13 +123,13 @@ const hashData256 = (data) => {
   return hash.hex();
 };
 
-const prepKeyForCalc = (key) => {
-  return nameToString(Buffer.from(stringToName(key)));
+const prepKeyForCalc = (key,keytype = null) => {
+  return nameToString(Buffer.from(stringToName(key,keytype)));
 }
 
-const calculateBucketShard = (key, scope, buckets, shards) => {
+const calculateBucketShard = (key, keytype, scope, buckets, shards) => {
   scope = prepKeyForCalc(scope);
-  key = prepKeyForCalc(key);
+  key = prepKeyForCalc(key, keytype);
   const fullkey = `${scope}-${key}`;
   const hashedKey = hashData(fullkey).match(/.{2}/g).reverse().join('');
   var num = new BigNumber(hashedKey, 16);
@@ -178,15 +178,17 @@ const stringToNameInner = (str) => {
   return Buffer.from(pad + str);
 };
 
-const stringToName = (str) => {
-  if (typeof str === 'number') {
+const stringToName = (str, keytype = null) => {
+  if (typeof str === 'number' || keytype === 'number') {
     const hexNum = new BigNumber(str).toString(16);
     const paddedNum = '0'.repeat(16 - hexNum.length) + hexNum;
     const fixedPaddedNum = paddedNum.match(/.{2}/g).reverse().join('');
     return Buffer.from(fixedPaddedNum, 'hex');
   }
-  if (isUpperCase(str)) { return stringToSymbol(str); }
-  return Buffer.from(new BigNumber(encodeName(str).toString()).toString(16), 'hex');
+  if (isUpperCase(str) || keytype === 'symbol') { return stringToSymbol(str); }
+  const hexNum = new BigNumber(encodeName(str).toString()).toString(16);
+  const paddedNum = '0'.repeat(16 - hexNum.length) + hexNum;
+  return Buffer.from(paddedNum, 'hex');
 };
 const nameToString = (name) => {
   const tmp = new BigNumber(name.toString('hex'), 16);
@@ -225,11 +227,11 @@ const extractRowFromShardData = async(shardData, bucket, scope, key, contract) =
   return await extractRowFromBucket(bucketData, scope, key, contract);
 };
 
-const getRowRaw = async(contract, table, scope, key, buckets, shards) => {
-  const { shard, bucket } = calculateBucketShard(key, scope, buckets, shards);
+const getRowRaw = async(contract, table, scope, key, keytype, buckets, shards) => {
+  const { shard, bucket } = calculateBucketShard(key, keytype, scope, buckets, shards);
   logger.debug(`shard, bucket ${shard} ${bucket}`);
   scope = stringToNameInner(stringToName(scope)).toString();
-  key = stringToNameInner(stringToName(key)).toString();
+  key = stringToNameInner(stringToName(key,keytype)).toString();
   logger.debug(`scope, key ${scope} ${key}`);
   const shardData = await fetchShard(contract, table, shard);
   // console.log('shardData', shardData);
@@ -307,9 +309,10 @@ nodeFactory('ipfs', {
     get_table_row: async({ body }, res) => {
       try {
         const { contract, table, scope, key } = body;
+        const keytype = body.keytype ? body.keytype : null;
         const buckets = body.buckets ? body.buckets : 64;
         const shards = body.shards ? body.shards : 1024;
-        const rowRaw = await getRowRaw(contract, table, scope, key, buckets, shards);
+        const rowRaw = await getRowRaw(contract, table, scope, key, keytype, buckets, shards);
         logger.debug(`rowRaw ${rowRaw}`);
         const row = await deserializeRow(contract, table, rowRaw);
         // get abi

@@ -1,16 +1,16 @@
-var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
+const { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
 const fetch = require('node-fetch');
 const { getUrl } = require('../../extensions/tools/eos/utils');
 const getDefaultArgs = require('../../extensions/helpers/getDefaultArgs');
 
-var url = getUrl(getDefaultArgs());
+const url = getUrl(getDefaultArgs());
 
 function split2(str, separator, limit) {
   limit--;
   str = str.split(separator);
 
   if (str.length > limit) {
-    var ret = str.splice(0, limit);
+    const ret = str.splice(0, limit);
     ret.push(str.join(separator));
 
     return ret;
@@ -34,23 +34,23 @@ const httpPostHandler = async({ proto, address }) => {
 };
 const httpGetHandlerJSON = async({ proto, address }) => {
   const parts = split2(address, '/', 2);
-  var field = parts[0];
-  var urlPart = parts[1];
+  const field = parts[0];
+  const urlPart = parts[1];
   proto = proto.split("+")[0];
   const r = await fetch(`${proto}://${urlPart}`, { method: 'GET' });
-  var item = await r.json();
+  const item = await r.json();
 
   return extractPath(item, field);
 };
 
 const httpPostHandlerJSON = async({ proto, address }) => {
-  const parts = split2(address, '/', 2);
-  const body = Buffer.from(parts[0], 'base64').toString();
-  var field = parts[0];
-  var urlPart = parts[1];
+  const parts = split2(address, '/', 3);
+  const body = Buffer.from(parts[1], 'base64').toString();
+  const field = parts[0];
+  const urlPart = parts[2];
   proto = proto.split("+")[0];
   const r = await fetch(`${proto}://${urlPart}`, { method: 'POST', body });
-  var item = await r.json();
+  const item = await r.json();
   return extractPath(item, field);
 };
 
@@ -96,7 +96,7 @@ const endpoints = {
   'meetone': 'https://fullnode.meet.one'
 };
 const resolveHistoryEndpointForSisterChain = (chain) => {
-  var endpoint = endpoints[chain];
+  const endpoint = endpoints[chain];
   if (!endpoint) { throw new Error('endpoint not found for ' + chain); }
   return endpoint;
 };
@@ -141,6 +141,38 @@ const randomHandler = async({ proto, address }) => {
 
   return new Buffer(Math.floor(Math.random() * range).toString());
 };
+let stockfish;
+
+
+const stockfishHandler = async({ proto, address }) => {
+  // stockfish://fen
+  if (!stockfish)
+    stockfish = require("stockfish")();
+  return new Promise((resolve, reject) => {
+    const fen = address;
+    // console.log("address", address);
+    stockfish.onmessage = function onmessage(event) {
+      if (!event)
+        return;
+      console.log(event);
+      const parts = event.split(' ');
+      let idx = 0;
+      const cmd = parts[idx++];
+      if (cmd == 'bestmove') {
+        const move = parts[idx++];
+        console.log('moveObj', move);
+        resolve(Buffer.from(move));
+      }
+
+
+
+    };
+    stockfish.postMessage(`uci`);
+    stockfish.postMessage(`position fen ${fen}`);
+    stockfish.postMessage(`go depth 10`);
+  });
+};
+
 const sisterChainBlocksHandler = async({ proto, address }) => {
   // sister_chain_block://chain/id/field
 
@@ -521,7 +553,7 @@ const foreignChainHandler = async({ address }) => {
     extractPath(res, field) : res;
 };
 
-var handlers = {
+const handlers = {
   'http': httpGetHandler,
   'https': httpGetHandler,
   'https+post': httpPostHandler,
@@ -537,8 +569,10 @@ var handlers = {
   'sister_chain_state': undefined,
   'foreign_chain': foreignChainHandler,
   'past_self_state': undefined,
-  'random': randomHandler
+  'random': randomHandler,
+  'stockfish': stockfishHandler
 };
+
 nodeFactory('oracle', {
   geturi: async({ event, rollback }, { uri }) => {
     if (rollback) {
