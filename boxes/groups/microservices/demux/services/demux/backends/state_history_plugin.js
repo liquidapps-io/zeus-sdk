@@ -10,6 +10,7 @@ const { getAbis, getAbiAbi } = require('./state_history_abi');
 const logger = require('../../../extensions/helpers/logger');
 const dal = require('../../dapp-services-node/dal/dal');
 
+const serviceResponseTimeout = parseInt(process.env.SERVICE_RESPONSE_TIMEOUT || 2000);
 const ws = new WebSocket(`ws://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_WEBSOCKET_PORT || '8889'}`, {
   perMessageDeflate: false
 });
@@ -102,7 +103,7 @@ const handlers = {
         if (!curr[method]) { curr = curr['*']; }
         else { curr = curr[method]; }
         if (curr) {
-          Promise.all(curr.map(async url => {
+          let proms = curr.map(async url => {
             if (process.env.WEBHOOKS_HOST) {
               url = url.replace('http://localhost:', process.env.WEBHOOKS_HOST);
             }
@@ -131,7 +132,13 @@ const handlers = {
             await r.text();
             return eventNum;
             // call webhook
-          }));
+          })
+          await Promise.race([
+            Promise.all(proms),
+            new Promise((resolve, reject) => {
+              setTimeout(() => reject('service response timeout for event', JSON.stringify(event)), serviceResponseTimeout);
+            })
+          ])
           logger.debug(`fired hooks: ${account} ${method} ${JSON.stringify(event, null, 2)} ${code}`);
         }
         return eventNum;
@@ -289,12 +296,7 @@ async function messageHandler(data) {
     }
     if(current_block - last_processed >= 10000) {
       last_processed = current_block;
-      await Promise.race([
-        dal.updateSettings({ last_processed_block: current_block }),
-        new Promise((resolve, reject) => {
-          setTimeout(() => { reject('database call timeout') }, dbTimeout);
-        })
-      ]);
+      await dal.updateSettings({ last_processed_block: current_block });
       logger.info("Updated database with current block: %s", current_block);
     }
     
@@ -393,12 +395,7 @@ ws.on('message', async function incoming(data) {
 });
 
 async function getStartingBlockNumber() {
-  const settings = await Promise.race([
-    dal.getSettings(),
-    new Promise((resolve, reject) => {
-      setTimeout(() => { reject('database call timeout') }, dbTimeout);
-    })
-  ]);
+  const settings = await dal.getSettings();
   if (settings && settings.data && settings.data.last_processed_block) {
     return settings.data.last_processed_block;
   }

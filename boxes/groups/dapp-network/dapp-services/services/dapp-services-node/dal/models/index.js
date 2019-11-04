@@ -7,11 +7,14 @@ var basename = path.basename(__filename);
 const logger = require('../../../../extensions/helpers/logger');
 
 var env = process.env.DATABASE_NODE_ENV || 'development';
+const dbTimeout = process.env.DB_TIMEOUT || '2000';
 
 if (process.env.DATABASE_URL)
   env = 'production';
 var config = require(__dirname + '/../config/config.js')[env];
+
 var db = {};
+
 logger.info(`starting db: env - ${env}, dialect - ${config.dialect}`);
 var sequelize;
 try {
@@ -34,7 +37,7 @@ fs
   })
   .forEach(file => {
     var model = sequelize['import'](path.join(__dirname, file));
-    db[model.name] = model;
+    db[model.name] = addTimeoutProxy(model, dbTimeout, model.name);
   });
 
 Object.keys(db).forEach(modelName => {
@@ -43,7 +46,40 @@ Object.keys(db).forEach(modelName => {
   }
 });
 
-db.sequelize = sequelize;
-db.Sequelize = Sequelize;
+// returns es6 proxy that intercepts async method calls and throws
+// if the method doesn't resolve within a given time
+function addTimeoutProxy(obj, timeout, objName) {
+  const handler = {
+    get(target, propKey, receiver) {
+      const origMethod = target[propKey];
+      if (typeof(origMethod) !== 'function')
+        return origMethod;
+
+      return function (...args) {
+        // logger.debug(`${objName} with method ${propKey} calling`);
+        const timedMethod = async function() {
+          const beforeTime = Date.now();
+          const result = await origMethod.apply(target, args);
+          const totalTime = Date.now() - beforeTime;
+          if (totalTime > 200)
+            logger.warn(`${objName} with method ${propKey} took ${totalTime} ms`);
+
+          return result;
+        }
+        return Promise.race([
+          timedMethod(),
+          new Promise((resolve, reject) => {
+            setTimeout(() => reject('db timeout'), timeout);
+          })
+        ]);
+      };
+    }
+  };
+  return new Proxy(obj, handler);
+}
+
+db.sequelize = addTimeoutProxy(sequelize, dbTimeout, 'sequelize');
+db.Sequelize = addTimeoutProxy(Sequelize, dbTimeout, 'Sequelize');
 
 module.exports = db;
+
