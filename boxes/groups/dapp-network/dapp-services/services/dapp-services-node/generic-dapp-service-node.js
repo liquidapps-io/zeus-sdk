@@ -10,7 +10,7 @@ const { loadModels } = require('../../extensions/tools/models');
 const { getCreateKeys } = require('../../extensions/helpers/key-utils');
 const { dappServicesContract, getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
 const { getEosWrapper } = require('../../extensions/tools/eos/eos-wrapper');
-const { deserialize, generateABI, genNode, eosPrivate, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission } = require('./common');
+const { deserialize, generateABI, genNode, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission } = require('./common');
 
 
 const actionHandlers = {
@@ -99,39 +99,111 @@ const detectXCallback = async(eos) => {
 }
 let enableXCallback = null;
 const handleRequest = async(handler, act, packageid, serviceName, abi) => {
-  let { service, payer, provider, action, data } = act.event;
+  var { sidechain, event } = act;
+  let { service, payer, provider, action, data } = event;
+  const metadata = act.event.meta;
   data = deserialize(abi, data, action);
   if (!data) { return; }
+  if (!sidechain && metadata && metadata.sidechain) {
+    var models = await loadModels('local-sidechains');
+    sidechain = models.find(m => m.name == metadata.sidechain);
+  }
 
   act.event.current_provider = paccount;
   act.event.packageid = packageid;
-  const metadata = act.event.meta;
   const account = act.account;
-  const eosPrivate = await getEosWrapper({
-    chainId: process.env.NODEOS_CHAINID, // 32 byte (64 char) hex string
+
+  // for provisioning
+
+  var eosSideChain = await getEosWrapper({
     expireInSeconds: 120,
     sign: true,
     broadcast: true,
     blocksBehind: 10,
-    httpEndpoint: `http${process.env.NODEOS_SECURED === 'true' || false ? 's':''}://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_PORT || 8888}`,
-    keyProvider: process.env.DSP_PRIVATE_KEY || (await getCreateKeys(paccount)).active.privateKey
+    httpEndpoint: sidechain ? sidechain.nodeos_endpoint : `http${process.env.NODEOS_SECURED === 'true' || false ? 's':''}://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_PORT || 8888}`,
+    keyProvider: process.env.DSP_PRIVATE_KEY || (await getCreateKeys(paccount, null, false, sidechain)).active.privateKey
   });
+
+  var requestId = "";
+  if (metadata) {
+    // is async
+    requestId = `${metadata.txId}.${act.event.action}.${account}.${metadata.eventNum}`;
+    if (metadata.sidechain)
+      requestId = `${metadata.sidechain}.${requestId}`;
+  }
+
+  if (sidechain) {
+    const eosProv = await getEosWrapper({
+      chainId: process.env.NODEOS_CHAINID, // 32 byte (64 char) hex string
+      expireInSeconds: 120,
+      sign: true,
+      broadcast: true,
+      blocksBehind: 10,
+      httpEndpoint: `http${process.env.NODEOS_SECURED === 'true' || false ? 's':''}://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_PORT || 8888}`,
+      keyProvider: process.env.DSP_PRIVATE_KEY || (await getCreateKeys(paccount)).active.privateKey
+    });
+    if (enableXCallback === null) {
+      enableXCallback = await detectXCallback(eosSideChain);
+    }
+    var pactions = [];
+
+    // get payer mapping from eosSideChain
+    // validate mapping in eosProv
+    var meta = {};
+
+    if (enableXCallback === true) {
+      pactions.push({
+        account: dappServicesContract,
+        name: "xcallback",
+        authorization: [{
+          actor: paccount,
+          permission: 'active',
+        }],
+        data: {
+          provider: paccount,
+          request_id: requestId,
+          meta: JSON.stringify(meta)
+        },
+      });
+    }
+    pactions.push({
+      account: "dappservices",
+      name: "usage",
+      authorization: [{
+        actor: paccount,
+        permission: 'active',
+      }],
+      data: {},
+    });
+    try {
+      await eosSideChain.transact({
+        actions: pactions
+      }, {
+        expireSeconds: 120,
+        sign: true,
+        broadcast: true,
+        blocksBehind: 10
+      });
+
+
+    }
+    catch (e) {
+      // fail if fails
+      throw new Error("provisioning failed");
+    }
+  }
+
 
   let responses = await handler(act, data);
   if (!responses) { return; }
   if (!Array.isArray(responses)) // needs conversion from a normal object
   { responses = respond(act.event, packageid, responses); }
-  var meta = {};
   await Promise.all(responses.map(async(response) => {
 
-    var requestId = "";
-    if (metadata) {
-      // is async
-      requestId = `${metadata.txId}.${act.event.action}.${account}.${metadata.eventNum}`;
-    }
+
     var actions = [];
     if (enableXCallback === null) {
-      enableXCallback = await detectXCallback(eosPrivate);
+      enableXCallback = await detectXCallback(eosSideChain);
     }
     if (enableXCallback === true) {
       actions.push({
@@ -161,7 +233,7 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
 
 
     try {
-      let tx = await eosPrivate.transact({
+      let tx = await eosSideChain.transact({
         actions
       }, {
         expireSeconds: 120,

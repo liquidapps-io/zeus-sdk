@@ -1,0 +1,13 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "install":{
+    "contracts":{
+      "dappservicex": true,
+      "liquidx": true
+    }
+  },
+  "dependencies":["local-sidechains","ipfs-dapp-service" ]
+}

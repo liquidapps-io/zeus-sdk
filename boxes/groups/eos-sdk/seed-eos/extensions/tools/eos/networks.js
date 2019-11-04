@@ -31,19 +31,29 @@ if (fs.existsSync(path.resolve('../../../zeus-config.js'))) {
     networks = zeusConfig.chains.eos.networks;
 }
 
-function getNetwork(args) {
+function getNetwork(args, sidechain) {
+    if (sidechain) {
+        return {
+            host: sidechain.nodeos_host || "localhost",
+            port: sidechain.nodeos_port,
+            secured: sidechain.secured
+        };
+    }
     const selectedNetwork = networks[args.network];
-    if (!selectedNetwork) { 
+    if (!selectedNetwork) {
         throw new Error(`network not found (${args.network})`);
     }
     return selectedNetwork;
 }
 
-function getUrl(args) {
+function getUrl(args, sidechain) {
+    if (sidechain) {
+        return sidechain.nodeos_endpoint;
+    }
     if (args.NODEOS_SECURED && args.NODEOS_HOST && args.NODEOS_PORT) {
         return `http${args.NODEOS_SECURED === 'true' ? 's' : ''}://${args.NODEOS_HOST}:${args.NODEOS_PORT}`;
     }
-    const selectedNetwork = getNetwork(args);
+    const selectedNetwork = getNetwork(args, sidechain);
     return `http${selectedNetwork.secured ? 's' : ''}://${selectedNetwork.host}:${selectedNetwork.port}`;
 }
 module.exports = { getNetwork, getUrl };

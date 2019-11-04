@@ -5,7 +5,7 @@ const fs = require('fs');
 const safe = require('./safe');
 const path = require('path');
 
-async function createKeys (args = getDefaultArgs()) {
+async function createKeys(args = getDefaultArgs()) {
   var key = await PrivateKey.randomKey();
   return {
     owner: {
@@ -19,7 +19,9 @@ async function createKeys (args = getDefaultArgs()) {
   };
 }
 
-async function getCreateKeys (account, args = getDefaultArgs(), dontCreateIfHaveKeys) {
+async function getCreateKeys(account, args = getDefaultArgs(), dontCreateIfHaveKeys, sidechain) {
+  if (!args)
+    args = getDefaultArgs();
   const { wallet, storagePath, network } = args;
   // check if private key exists.
   var accountDir = path.resolve(storagePath, 'networks', network, 'accounts');
@@ -31,12 +33,12 @@ async function getCreateKeys (account, args = getDefaultArgs(), dontCreateIfHave
     existingKeys = {
       owner: {
         privateKey: existingKeys.privateKey,
-        publicKey: existingKeys.publicKey 
+        publicKey: existingKeys.publicKey
       },
       active: {
         privateKey: existingKeys.privateKey,
-        publicKey: existingKeys.publicKey 
-      } 
+        publicKey: existingKeys.publicKey
+      }
     };
   }
   if (existingKeys && dontCreateIfHaveKeys) {
@@ -48,21 +50,21 @@ async function getCreateKeys (account, args = getDefaultArgs(), dontCreateIfHave
   return existingKeys;
 }
 
-async function saveKeys (fullPath, keys) {
+async function saveKeys(fullPath, keys) {
   // generate
   // console.log("fullPath",fullPath,keys);
   fs.writeFileSync(fullPath, JSON.stringify(keys));
   return keys;
 }
 
-async function loadKeys (fullPath) {
+async function loadKeys(fullPath) {
   // check if file exists
   if (fs.existsSync(fullPath)) {
     return JSON.parse(fs.readFileSync(fullPath).toString());
   }
 }
 
-function getEncryptedKey(account, password, args = getDefaultArgs()) {
+function getEncryptedKey(account, password, args = getDefaultArgs(), sidechain) {
   const keyPath = `${args.storagePath}/networks/${args.network}/encrypted-accounts/${account}.json`;
   const key = safe.decryptData(keyPath, password);
   return key;

@@ -18,9 +18,9 @@ describe(`Oracle Service Test Contract`, () => {
       try {
 
         var deployedContract = await deployer.deploy(ctrt, code);
-        await genAllocateDAPPTokens(deployedContract, "oracle","pprovider1","default");
-        await genAllocateDAPPTokens(deployedContract, "oracle","pprovider2","foobar");
-        
+        await genAllocateDAPPTokens(deployedContract, "oracle", "pprovider1", "default");
+        await genAllocateDAPPTokens(deployedContract, "oracle", "pprovider2", "foobar");
+
         testcontract = await getTestContract(code);
         done();
       }
@@ -199,7 +199,7 @@ describe(`Oracle Service Test Contract`, () => {
       }
     })();
   });
-  it('Oracle IBC Block Fetch - kylin', done => {
+  it.skip('Oracle IBC Block Fetch - kylin', done => {
     (async() => {
       try {
         var res = await testcontract.testget({

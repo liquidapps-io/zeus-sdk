@@ -160,7 +160,17 @@ var eosPrivate = getEosWrapper(eosconfig);
 eosdspconfig.httpEndpoint = `http://${process.env.NODEOS_HOST_DSP || 'localhost'}:${process.env.NODEOS_HOST_DSP_PORT || process.env.DSP_PORT || 13015}`;
 var eosDSPGateway = getEosWrapper(eosdspconfig);
 
+const getEosForSidechain = async(sidechainName, dspEndpoint) => {
+  const sidechains = await loadModels('local-sidechains');
+  const sidechain = sidechains.find(s => s.Name = sidechainName);
 
+
+  return getEosWrapper({ ...eosDSPGateway,
+    httpEndpoint: dspEndpoint ? `http://localhost:${sidechain.dsp_port}` : `http://localhost:${sidechain.nodeos_endpoint}`
+
+  });
+
+}
 
 const forwardEvent = async(act, endpoint, redirect) => {
   if (redirect) { return endpoint; }
@@ -168,25 +178,25 @@ const forwardEvent = async(act, endpoint, redirect) => {
   await r.text();
 };
 
-const resolveBackendServiceData = async(service, provider) => {
+const resolveBackendServiceData = async(service, provider, sidechain) => {
   // console.log('resolving backend service for', service, provider);
   // read from local service models
   var loadedExtensions = await loadModels('dapp-services');
   var loadedExtension = loadedExtensions.find(a => getContractAccountFor(a) == service);
-  if (!loadedExtension) { return; }
+  if (!loadedExtension) return null;
   var host = process.env[`DAPPSERVICE_HOST_${loadedExtension.name.toUpperCase()}`];
   var port = process.env[`DAPPSERVICE_PORT_${loadedExtension.name.toUpperCase()}`];
-  if (!host) { host = 'localhost'; }
-  if (!port) { port = loadedExtension.port; }
+  if (!host) host = 'localhost';
+  if (!port) port = loadedExtension.port;
   return {
     internal: true,
     endpoint: `http://${host}:${port}`
   };
 };
-const resolveExternalProviderData = async(service, provider, packageid) => {
+const resolveExternalProviderData = async(service, provider, packageid, sidechain) => {
   var key = getSvcProviderPkgKey(service, provider, packageid);
 
-  const payload = {
+  const packages = await rpc.get_table_rows({
     'json': true,
     'scope': dappServicesContract,
     'code': dappServicesContract,
@@ -196,11 +206,10 @@ const resolveExternalProviderData = async(service, provider, packageid) => {
     'encode_type': 'hex',
     'index_position': 2,
     'limit': 1
-  };
-  const packages = await rpc.get_table_rows(payload);
+  });
   const result = packages.rows.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service);
-  if (result.length === 0) { throw new Error(`resolveExternalProviderData failed ${provider} ${service} ${packageid}`); }
-  if (!result[0].enabled) { console.log(`DEPRECATION WARNING for ${provider} ${service} ${packageid}: Packages must be enabled for DSP services to function in the future.`); } //TODO: Throw error instead
+  if (result.length === 0) throw new Error(`resolveExternalProviderData failed ${provider} ${service} ${packageid}`);
+  if (!result[0].enabled) console.log(`DEPRECATION WARNING for ${provider} ${service} ${packageid}: Packages must be enabled for DSP services to function in the future.`); //TODO: Throw error instead
 
   return {
     internal: false,
@@ -208,8 +217,8 @@ const resolveExternalProviderData = async(service, provider, packageid) => {
   };
 };
 
-const resolveProviderData = async(service, provider, packageid) =>
-  ((paccount == provider) ? resolveBackendServiceData : resolveExternalProviderData)(service, provider, packageid);
+const resolveProviderData = async(service, provider, packageid, sidechain) =>
+  ((paccount === provider) ? resolveBackendServiceData : resolveExternalProviderData)(service, provider, packageid, sidechain);
 
 const getSvcProviderPkgKey = (service, provider, packageid) => {
   // package_id service.value, provider.value
@@ -230,7 +239,7 @@ const getSvcPayerKey = (payer, service) => {
   encodedPayer = (toBound(encodedPayer.toString(16), 8));
   return '0x' + encodedService + encodedPayer;
 };
-const getProviders = async(payer, service, provider) => {
+const getProviders = async(payer, service, provider, sidechain) => {
   const payload = {
     'json': true,
     'scope': 'DAPP',
@@ -249,15 +258,15 @@ const getProviders = async(payer, service, provider) => {
 };
 const toBound = (numStr, bytes) =>
   `${(new Array(bytes * 2 + 1).join('0') + numStr).substring(numStr.length).toUpperCase()}`;
-const resolveProviderPackage = async(payer, service, provider) => {
-  const serviceWithStakingResult = await getProviders(payer, service, provider);
+const resolveProviderPackage = async(payer, service, provider, sidechain) => {
+  const serviceWithStakingResult = await getProviders(payer, service, provider, sidechain);
   //we must iterate over staked packages and ensure they are enabled
   let selectedPackage = null;
   for (let i = 0; i < serviceWithStakingResult.length; i++) {
     let checkProvider = serviceWithStakingResult[i];
     let checkPackage = checkProvider.package ? checkProvider.package : checkProvider.pending_package;
     try {
-      await resolveExternalProviderData(service, provider, checkPackage);
+      await resolveExternalProviderData(service, provider, checkPackage, sidechain);
       selectedPackage = checkPackage;
       break;
     }
@@ -270,9 +279,9 @@ const resolveProviderPackage = async(payer, service, provider) => {
   return selectedPackage;
 };
 
-const resolveProvider = async(payer, service, provider) => {
+const resolveProvider = async(payer, service, provider, sidechain) => {
   if (provider != '') { return provider; }
-  const serviceWithStakingResult = await getProviders(payer, service, provider);
+  const serviceWithStakingResult = await getProviders(payer, service, provider, sidechain);
 
   // prefer self
   const intersectLists = serviceWithStakingResult.filter(accountProvider => accountProvider.model !== '').map(a => a.provider);
@@ -348,165 +357,190 @@ const notFound = (res, message = 'bad endpoint') => {
     }
   }));
 };
-var getRawBody = require('raw-body');
-const genNode = async(actionHandlers, port, serviceName, handlers, abi) => {
-  if (handlers) { handlers.abi = abi; }
+const getRawBody = require('raw-body');
+const sendError = (res, e) => {
+  res.status(500);
+  res.send(JSON.stringify({
+    code: 500,
+    error: {
+      details: [{ message: e.toString() }]
+    }
+  }));
+}
+const processRequstWithBody = async(req, res, body, actionHandlers, serviceName, handlers) => {
+  var uri = req.originalUrl;
+  logger.info("GATEWAY: %s\t[%s]", uri, req.ip);
+
+  var isServiceRequest = uri.indexOf('/event') == 0;
+  var isServiceAPIRequest = uri.indexOf('/v1/dsp/') == 0;
+  var uriParts = uri.split('/');
+  var sidechain = body.sidechain;
+  if (isServiceRequest) {
+    try {
+
+      await processFn(actionHandlers, body, false, serviceName, handlers);
+      res.send(JSON.stringify('ok'));
+    }
+    catch (e) {
+      sendError(res, e);
+    }
+    return;
+  }
+  if (isServiceAPIRequest) {
+    // invoke api
+    var api = handlers.api;
+    if (!api) { return notFound(res); }
+
+    var methodName = uriParts[4];
+    var method = api[methodName];
+    if (!method) { return notFound(res, 'method not found'); }
+
+    req.body = body;
+    try {
+      await method(req, res);
+    }
+    catch (e) {
+      sendError(res, e);
+    }
+    return;
+  }
+
+  let trys = 0;
+  const garbage = [];
+  const currentNodeosEndpoint = sidechain ? sidechain.nodeos_endpoint : nodeosEndpoint;
+  while (trys < 100) {
+    let r = await fetch(currentNodeosEndpoint + uri, { method: 'POST', body: JSON.stringify(body) });
+    let resText = await r.text();
+    let rText;
+    if (r.status !== 500) {
+      res.status(r.status);
+      return res.send(resText);
+
+    }
+    try {
+
+      rText = JSON.parse(resText);
+      const details = rText.error.details;
+      const detailMsg = details.find(d => d.message.indexOf(': required service') != -1);
+      if (!detailMsg) {
+        await rollBack(garbage, actionHandlers, serviceName, handlers);
+        res.status(r.status);
+        return res.send(resText);
+
+      }
+
+
+
+      const jsons = details[details.indexOf(detailMsg) + 1].message.split(': ', 2)[1].split('\n').filter(a => a.trim() != '');
+      let currentEvent;
+      for (var i = 0; i < jsons.length; i++) {
+        try {
+          currentEvent = JSON.parse(jsons[i]);
+        }
+        catch (e) {
+          continue;
+        }
+        currentEvent.sidechain = sidechain;
+        const currentActionObject = {
+          event: currentEvent,
+          sidechain,
+          exception: true
+        };
+        if (i < jsons.length - 1) await processFn(actionHandlers, currentActionObject, true, serviceName, handlers);
+      }
+      const event = currentEvent;
+      if (!event)
+        throw new Error("unable to parse service request. is nodeos missing 'contracts-console = true'?");
+      event.sidechain = sidechain;
+      const actionObject = {
+        event,
+        sidechain,
+        exception: true
+      };
+
+      const endpoint = await processFn(actionHandlers, actionObject, true, serviceName, handlers);
+      if (endpoint === 'retry') {
+        garbage.push({ ...actionObject, rollback: true });
+        console.log('Service request done:', trys++);
+        continue;
+      }
+
+      if (endpoint) {
+        r = await fetch(endpoint + uri, { method: 'POST', body: JSON.stringify(body) });
+        resText = await r.text();
+        rText = JSON.parse(resText);
+      }
+      if (r.status === 500) await rollBack(garbage, actionHandlers, serviceName, handlers);
+      res.status(r.status);
+      return res.send(resText);
+
+
+    }
+    catch (e) {
+      await rollBack(garbage, actionHandlers, serviceName, handlers);
+      console.error(e);
+      res.status(500);
+      res.send(JSON.stringify({
+        code: 500,
+        error: {
+          details: [{ message: e.toString(), response: rText }]
+        }
+      }));
+    }
+    return null;
+  }
+}
+const pjson = require('../../package.json');
+const genNode = async(actionHandlers, port, serviceName, handlers, abi, sidechain) => {
+  if (handlers) handlers.abi = abi;
   const app = genApp();
   app.use(async(req, res, next) => {
     var uri = req.originalUrl;
-    logger.info("GATEWAY: %s\t[%s]", uri, req.ip);
+    logger.info("GATEWAY: %s\t[%s] - %s", uri, req.ip, sidechain ? sidechain.name : undefined);
 
     var isServiceRequest = uri.indexOf('/event') == 0;
     var isServiceAPIRequest = uri.indexOf('/v1/dsp/') == 0;
     var uriParts = uri.split('/');
-    if(uri === '/v1/dsp/version'){
-      const pjson = require('../../package.json');
-      res.send(pjson.version); // send response to contain the version
-      return;
-    }
-    if (uri != '/v1/chain/push_transaction' && !isServiceRequest && !isServiceAPIRequest) {
-      proxy.web(req, res, { target: nodeosEndpoint });
-      return;
-    }
-    if (isServiceAPIRequest) {
-      if (uriParts.length < 5) { return notFound(res, 'bad endpoint format'); }
-      var service = uriParts[3];
-      if (serviceName == 'services') {
-        // forward
-        var providerData = await resolveBackendServiceData(service, paccount);
-        if (!providerData) { return notFound(res, 'service not found'); }
-        proxy.web(req, res, { target: providerData.endpoint });
-        return;
+    if (uri === '/v1/dsp/version')
+      return res.send(pjson.version); // send response to contain the version
+
+    if (uri != '/v1/chain/push_transaction' && !isServiceRequest && !isServiceAPIRequest)
+      return proxy.web(req, res, { target: sidechain ? sidechain.nodeos_endpoint : nodeosEndpoint });
+
+    if (isServiceAPIRequest && serviceName === 'services') {
+      if (uriParts.length < 5) return notFound(res, 'bad endpoint format');
+      const service = uriParts[3];
+      const providerData = await resolveBackendServiceData(service, paccount, sidechain);
+      if (!providerData) return notFound(res, 'service not found');
+      // forward
+      const options = {
+        target: providerData.endpoint,
+      };
+      if (sidechain) {
+        options.headers = {
+          sidechain: sidechain.name
+        }
       }
+      return proxy.web(req, res, options);
     }
 
     getRawBody(req, {
       length: req.headers['content-length']
     }, async function(err, string) {
       if (err) return next(err);
-      var body = JSON.parse(string.toString());
+      const body = JSON.parse(string.toString());
+      let currentSidechain = sidechain;
 
+      if (req.headers['sidechain'] && serviceName !== 'services') {
 
-      if (isServiceRequest) {
-        try {
-          await processFn(actionHandlers, body, false, serviceName, handlers);
-          res.send(JSON.stringify('ok'));
-        }
-        catch (e) {
-          res.status(500);
-          res.send(JSON.stringify({
-            code: 500,
-            error: {
-              details: [{ message: e.toString() }]
-            }
-          }));
-        }
-        return;
+        var sidechainName = req.headers['sidechain'];
+        logger.debug(`sidechain: ${sidechainName}`);
+        const sidechains = await loadModels('local-sidechains');
+        currentSidechain = sidechains.find(s => s.Name = sidechainName);
       }
-      if (isServiceAPIRequest) {
-        // invoke api
-        var api = handlers.api;
-        if (!api) { return notFound(res); }
+      body.sidechain = currentSidechain;
+      return processRequstWithBody(req, res, body, actionHandlers, serviceName, handlers);
 
-        var methodName = uriParts[4];
-        var method = api[methodName];
-        if (!method) { return notFound(res, 'method not found'); }
-
-        req.body = body;
-        try {
-          await method(req, res);
-        }
-        catch (e) {
-          res.status(500);
-          res.send(JSON.stringify({
-            code: 500,
-            error: {
-              details: [{ message: e.toString() }]
-            }
-          }));
-        }
-        return;
-      }
-
-      var trys = 0;
-      var garbage = [];
-      var rText;
-      while (true) {
-        var r = await fetch(nodeosEndpoint + uri, { method: 'POST', body: JSON.stringify(body) });
-        var resText = await r.text();
-        try {
-          rText = JSON.parse(resText);
-          if (r.status == 500) {
-            var details = rText.error.details;
-            var detailMsg = details.find(d => d.message.indexOf(': required service') != -1);
-            if (detailMsg) {
-              var jsons = details[details.indexOf(detailMsg) + 1].message.split(': ', 2)[1].split('\n').filter(a => a.trim() != '');
-              var currentEvent;
-              for (var i = 0; i < jsons.length; i++) {
-                try {
-                  currentEvent = JSON.parse(jsons[i]);
-                }
-                catch (e) {
-                  continue;
-                }
-                var currentActionObject = {
-                  event: currentEvent,
-                  exception: true
-                };
-                if (i < jsons.length - 1) { await processFn(actionHandlers, currentActionObject, true, serviceName, handlers); }
-              }
-              var event = currentEvent;
-              if (!event) {
-                throw new Error("unable to parse service request. is nodeos missing 'contracts-console = true'?");
-              }
-              var actionObject = {
-                event,
-                exception: true
-              };
-
-              var endpoint = await processFn(actionHandlers, actionObject, true, serviceName, handlers);
-              if (endpoint === 'retry') {
-                garbage.push({ ...actionObject, rollback: true });
-                console.log('Service request done:', trys++);
-                continue;
-              }
-              else if (endpoint) {
-                r = await fetch(endpoint + uri, { method: 'POST', body: JSON.stringify(body) });
-                resText = await r.text();
-                rText = JSON.parse(resText);
-              }
-              if (r.status == 500) { await rollBack(garbage, actionHandlers, serviceName, handlers); }
-              res.status(r.status);
-              res.send(JSON.stringify(rText));
-              return;
-            }
-            await rollBack(garbage, actionHandlers, serviceName, handlers);
-          }
-          else {
-            if (rText.processed) {
-              for (var i = 0; i < rText.processed.action_traces.length; i++) {
-                var action = rText.processed.action_traces[i];
-                // skip actions that were already done previously (in exception)
-                // await handleAction(actionHandlers, action, true, serviceName, handlers);
-              }
-            }
-          }
-          res.status(r.status);
-          res.send(JSON.stringify(rText));
-        }
-        catch (e) {
-          await rollBack(garbage, actionHandlers, serviceName, handlers);
-          console.error(e);
-          res.status(500);
-          res.send(JSON.stringify({
-            code: 500,
-            error: {
-              details: [{ message: e.toString(), response: rText }]
-            }
-          }));
-        }
-        return;
-      }
     });
   });
   app.listen(port, () => console.log(`${serviceName} listening on port ${port}!`));
@@ -584,4 +618,4 @@ const generateABI =
   (serviceModel) =>
   Object.keys(serviceModel.commands).map(c => generateCommandABI(c, serviceModel.commands[c]));
 
-module.exports = { deserialize, generateABI, genNode, genApp, forwardEvent, resolveProviderData, resolveProvider, processFn, handleAction, paccount, proxy, eosPrivate, eosconfig, nodeosEndpoint, resolveProviderPackage, eosDSPGateway, paccountPermission, encodeName, decodeName, getProviders };
+module.exports = { deserialize, generateABI, genNode, genApp, forwardEvent, resolveProviderData, resolveProvider, processFn, handleAction, paccount, proxy, eosPrivate, eosconfig, nodeosEndpoint, resolveProviderPackage, eosDSPGateway, paccountPermission, encodeName, decodeName, getProviders, getEosForSidechain };

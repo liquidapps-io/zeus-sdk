@@ -3,9 +3,10 @@ require('babel-core/register');
 require('babel-polyfill');
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getNetwork } = require('../extensions/tools/eos/utils');
+const { getNetwork, getCreateAccount } = require('../extensions/tools/eos/utils');
 const { getEosWrapper } = require('../extensions/tools/eos/eos-wrapper');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
+const { loadModels } = require('../extensions/tools/models');
 
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
@@ -15,17 +16,23 @@ const delaySec = sec => delay(sec * 1000);
 
 var contractCode = 'ipfsconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
-describe(`IPFS Service Test Contract`, () => {
+describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
   var testcontract;
   const code = 'test1';
   var eosvram;
+  var sidechainName = 'test1';
+  var sidechain;
   before(done => {
     (async() => {
       try {
-        var deployedContract = await deployer.deploy(ctrt, code);
-        await genAllocateDAPPTokens(deployedContract, 'ipfs');
+        var sidechains = await loadModels('local-sidechains');
+        sidechain = sidechains.find(a => a.name === sidechainName);
+        await getCreateAccount(code, null, false, sidechain);
+        await getCreateAccount(code, null, false);
+        var deployedContract = await deployer.deploy(ctrt, code, null, sidechain);
+        await genAllocateDAPPTokens(deployedContract, 'ipfs', '', 'default');
         // create token
-        var selectedNetwork = getNetwork(getDefaultArgs());
+        var selectedNetwork = getNetwork(getDefaultArgs(), sidechain);
         var config = {
           expireInSeconds: 120,
           sign: true,
@@ -36,7 +43,7 @@ describe(`IPFS Service Test Contract`, () => {
           config.keyProvider = keys.active.privateKey;
         }
         eosvram = deployedContract.eos;
-        config.httpEndpoint = 'http://localhost:13015';
+        config.httpEndpoint = `http://localhost:${sidechain.nodeos_port}`;
         eosvram = getEosWrapper(config);
 
         testcontract = await eosvram.contract(code);
@@ -49,7 +56,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
   var account = code;
-  it('IPFS Write', done => {
+  it('sidechain - IPFS Write', done => {
     (async() => {
       try {
         var res = await testcontract.testset({
@@ -74,7 +81,7 @@ describe(`IPFS Service Test Contract`, () => {
     })();
   });
 
-  it('IPFS Read', done => {
+  it('sidechain - IPFS Read', done => {
     (async() => {
       try {
         var res = await testcontract.testget({
@@ -95,7 +102,7 @@ describe(`IPFS Service Test Contract`, () => {
     })();
   });
 
-  it('dapp::multi_index Get Available Key', done => {
+  it('sidechain - dapp::multi_index Get Available Key', done => {
     (async() => {
       try {
         await testcontract.increment({ somenumber: 1 }, {
@@ -155,7 +162,7 @@ describe(`IPFS Service Test Contract`, () => {
     })();
   });
 
-  it('dapp::multi_index Resize Should Fail', done => {
+  it('sidechain - dapp::multi_index Resize Should Fail', done => {
     (async() => {
       try {
 
@@ -180,7 +187,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
 
-  it('dapp::multi_index uint64_t Primary Key', done => {
+  it('sidechain - dapp::multi_index uint64_t Primary Key', done => {
     (async() => {
       try {
 
@@ -195,7 +202,7 @@ describe(`IPFS Service Test Contract`, () => {
           key: 12345,
           table: "test",
           scope: code,
-          keytype: 'number'
+          sidechain
         });
         assert(tableRes.row.id == 12345, "wrong uint64_t");
 
@@ -206,112 +213,7 @@ describe(`IPFS Service Test Contract`, () => {
       }
     })();
   });
-
-  it('doesnt overwrite data when buckets collide', done => {
-    (async() => {
-      try {
-
-        await testcontract.testcollide({
-          id: 12345,
-          value: 12345
-        }, {
-          authorization: `${code}@active`,
-        });
-        let shardTable;
-
-        shardTable = await eosvram.getTableRows({
-          code: code,
-          scope: code,
-          table: 'test1',
-          json: true,
-        });
-        let shardUri1 = shardTable.rows[0].shard_uri;
-        await testcontract.testcollide({
-          id: 123456,
-          value: 123456
-        }, {
-          authorization: `${code}@active`,
-        });
-        shardTable = await eosvram.getTableRows({
-          code: code,
-          scope: code,
-          table: 'test1',
-          json: true,
-        });
-        let shardUri2 = shardTable.rows[0].shard_uri;
-        assert(shardUri1 !== shardUri2, "data didn't get written to same shard");
-        await testcontract.testcollide({
-          id: 12345,
-          value: 12345
-        }, {
-          authorization: `${code}@active`,
-        });
-        shardTable = await eosvram.getTableRows({
-          code: code,
-          scope: code,
-          table: 'test1',
-          json: true,
-        });
-        let shardUri3 = shardTable.rows[0].shard_uri;
-        assert(shardUri1 !== shardUri3, "data was overwritten");
-        done();
-      }
-      catch (e) {
-        done(e);
-      }
-      it('dapp::multi_index uint64_t Large Primary Key', done => {
-        (async() => {
-          try {
-
-            await testcontract.testindexa({
-              id: 15700377924853090
-            }, {
-              authorization: `${code}@active`,
-            });
-
-            await testcontract.increment({ somenumber: 2 }, {
-              authorization: `${code}@active`,
-            });
-
-            await testcontract.increment({ somenumber: 10 }, {
-              authorization: `${code}@active`,
-            });
-
-            var tableRes = await readVRAMData({
-              contract: code,
-              key: "15700377924853090",
-              table: "test",
-              scope: code,
-              keytype: "number"
-            });
-            assert(tableRes.row.id == "15700377924853090", "wrong uint64_t");
-            tableRes = await readVRAMData({
-              contract: code,
-              key: "15700377924853091",
-              table: "test",
-              scope: code,
-              keytype: "number"
-            });
-            assert(tableRes.row.id == "15700377924853091", "wrong uint64_t");
-            tableRes = await readVRAMData({
-              contract: code,
-              key: "15700377924853092",
-              table: "test",
-              scope: code,
-              keytype: "number"
-            });
-            assert(tableRes.row.id == "15700377924853092", "wrong uint64_t");
-            done();
-          }
-          catch (e) {
-            done(e);
-          }
-        })();
-      });
-    })();
-  });
-
-  it('dapp::multi_index delayed cleanup', done => {
+  it('sidechain - dapp::multi_index delayed cleanup', done => {
     (async() => {
       try {
 
@@ -342,7 +244,7 @@ describe(`IPFS Service Test Contract`, () => {
           key: 52343,
           table: "test",
           scope: code,
-          keytype: 'number'
+          sidechain
         });
         assert(tableRes.row.sometestnumber == 125, "wrong uint64_t");
         await delaySec(10);
@@ -351,7 +253,7 @@ describe(`IPFS Service Test Contract`, () => {
           key: 52343,
           table: "test",
           scope: code,
-          keytype: 'number'
+          sidechain
         });
         assert(tableRes.row.sometestnumber == 125, "wrong uint64_t");
         await testcontract.testdelay({
@@ -374,7 +276,7 @@ describe(`IPFS Service Test Contract`, () => {
           key: 52343,
           table: "test",
           scope: code,
-          keytype: 'number'
+          sidechain
         });
         assert(tableRes.row.sometestnumber == 127, "wrong uint64_t");
         done();
