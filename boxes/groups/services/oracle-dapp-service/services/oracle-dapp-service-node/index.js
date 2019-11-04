@@ -4,6 +4,7 @@ const { getUrl } = require('../../extensions/tools/eos/utils');
 const getDefaultArgs = require('../../extensions/helpers/getDefaultArgs');
 
 const url = getUrl(getDefaultArgs());
+const headers = {'Content-Type': 'application/json'};
 
 function split2(str, separator, limit) {
   limit--;
@@ -37,9 +38,8 @@ const httpGetHandlerJSON = async({ proto, address }) => {
   const field = parts[0];
   const urlPart = parts[1];
   proto = proto.split("+")[0];
-  const r = await fetch(`${proto}://${urlPart}`, { method: 'GET' });
+  const r = await fetch(`${proto}://${urlPart}`, { method: 'GET', headers });
   const item = await r.json();
-
   return extractPath(item, field);
 };
 
@@ -49,7 +49,7 @@ const httpPostHandlerJSON = async({ proto, address }) => {
   const field = parts[0];
   const urlPart = parts[2];
   proto = proto.split("+")[0];
-  const r = await fetch(`${proto}://${urlPart}`, { method: 'POST', body });
+  const r = await fetch(`${proto}://${urlPart}`, { method: 'POST', body, headers});
   const item = await r.json();
   return extractPath(item, field);
 };
@@ -351,7 +351,6 @@ const foreignChains = {
         'params': [],
         'id': 1
       });
-      const headers = { 'Content-Type': 'application/json' };
       const r = await fetch(`${endpoint}`, {
         headers,
         method: 'POST',
@@ -370,7 +369,6 @@ const foreignChains = {
         ],
         'id': 1
       });
-      const headers = { 'Content-Type': 'application/json' };
       const r = await fetch(`${endpoint}`, {
         headers,
         method: 'POST',
@@ -392,7 +390,6 @@ const foreignChains = {
         ],
         'id': 1
       });
-      const headers = { 'Content-Type': 'application/json' };
       const r = await fetch(`${endpoint}`, {
         headers,
         method: 'POST',
@@ -414,7 +411,6 @@ const foreignChains = {
         ],
         'id': 1
       });
-      const headers = { 'Content-Type': 'application/json' };
       const r = await fetch(`${endpoint}`, {
         headers,
         method: 'POST',
