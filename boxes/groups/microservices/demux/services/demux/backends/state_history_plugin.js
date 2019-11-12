@@ -9,8 +9,12 @@ const { loadModels } = require('../../../extensions/tools/models');
 const { getAbis, getAbiAbi } = require('./state_history_abi');
 const logger = require('../../../extensions/helpers/logger');
 const dal = require('../../dapp-services-node/dal/dal');
+const sidechainName = process.env.SIDECHAIN;
+let host = process.env.NODEOS_HOST || 'localhost';
+let port = process.env.NODEOS_WEBSOCKET_PORT || '8889';
+const serviceResponseTimeout = parseInt(process.env.SERVICE_RESPONSE_TIMEOUT || 2000);
 
-const ws = new WebSocket(`ws://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_WEBSOCKET_PORT || '8889'}`, {
+const ws = new WebSocket(`ws://${host}:${port}`, {
   perMessageDeflate: false
 });
 
@@ -24,12 +28,16 @@ var head_block = 0;
 var current_block = 0;
 var pending = [];
 var genesisTimestampMs;
-
+let sidechain = null;
 let capturedEvents;
 const loadEvents = async() => {
   if (!capturedEvents) {
     capturedEvents = {};
     var capturedEventsModels = await loadModels('captured-events');
+    var sidechains = await loadModels('local-sidechains');
+    if (sidechainName) {
+      sidechain = sidechains.find(a => a.name === sidechainName);
+    }
 
     capturedEventsModels.forEach(a => {
       if (process.env.TEST_ENV !== 'true' && a.testOnly)
@@ -102,7 +110,7 @@ const handlers = {
         if (!curr[method]) { curr = curr['*']; }
         else { curr = curr[method]; }
         if (curr) {
-          Promise.all(curr.map(async url => {
+          let proms = curr.map(async url => {
             if (process.env.WEBHOOKS_HOST) {
               url = url.replace('http://localhost:', process.env.WEBHOOKS_HOST);
             }
@@ -111,6 +119,7 @@ const handlers = {
               blockNum: blockInfo.number,
               timestamp: blockInfo.timestamp,
               blockId: blockInfo.id,
+              sidechain,
               eventNum,
               cbevent
             }
@@ -128,10 +137,17 @@ const handlers = {
               })
             });
 
-            await r.text();
+            const resText = await r.text();
+            //logger.debug(`resText ${resText}`);
             return eventNum;
             // call webhook
-          }));
+          })
+          await Promise.race([
+            Promise.all(proms),
+            new Promise((resolve, reject) => {
+              setTimeout(() => reject('service response timeout for event', JSON.stringify(event)), serviceResponseTimeout);
+            })
+          ])
           logger.debug(`fired hooks: ${account} ${method} ${JSON.stringify(event, null, 2)} ${code}`);
         }
         return eventNum;
@@ -287,17 +303,12 @@ async function messageHandler(data) {
       const transactionTrace = types.get('transaction_trace').deserialize(buffer2);
       await transactionHandler(transactionTrace[1], blockInfo);
     }
-    if(current_block - last_processed >= 10000) {
+    if (current_block - last_processed >= 10000) {
       last_processed = current_block;
-      await Promise.race([
-        dal.updateSettings({ last_processed_block: current_block }),
-        new Promise((resolve, reject) => {
-          setTimeout(() => { reject('database call timeout') }, dbTimeout);
-        })
-      ]);
+      await dal.updateSettings({ last_processed_block: current_block });
       logger.info("Updated database with current block: %s", current_block);
     }
-    
+
   }
   catch (e) {
     logger.error(e);
@@ -306,7 +317,7 @@ async function messageHandler(data) {
 
 var retries = 0;
 async function watchMessages() {
-  
+
   if (pending.length !== 0) {
     //always remove the message from pending
     const data = pending.shift();
@@ -348,9 +359,9 @@ ws.on('message', async function incoming(data) {
   if (!expectingABI) {
     pending.push(data);
     let currTime = Math.floor(Date.now() / 1000);
-    if((currTime - heartBeat) >= 15) { //heartbeat every 15 seconds
+    if ((currTime - heartBeat) >= 15) { //heartbeat every 15 seconds
       heartBeat = currTime;
-      logger.info("Demux heartbeat - Processed Block: %s Pending Messages: %s",current_block,pending.length);
+      logger.info("Demux heartbeat - Processed Block: %s Pending Messages: %s", current_block, pending.length);
     }
     return;
   }
@@ -367,7 +378,8 @@ ws.on('message', async function incoming(data) {
   let start_block_num;
   try {
     start_block_num = await getStartingBlockNumber();
-  } catch(e) {
+  }
+  catch (e) {
     logger.error(`Error getting starting block number: ${JSON.stringify(e)}`);
     start_block_num = c;
   }
@@ -393,16 +405,11 @@ ws.on('message', async function incoming(data) {
 });
 
 async function getStartingBlockNumber() {
-  const settings = await Promise.race([
-    dal.getSettings(),
-    new Promise((resolve, reject) => {
-      setTimeout(() => { reject('database call timeout') }, dbTimeout);
-    })
-  ]);
+  const settings = await dal.getSettings();
   if (settings && settings.data && settings.data.last_processed_block) {
     return settings.data.last_processed_block;
   }
-      
+
   if (process.env.DEMUX_HEAD_BLOCK) {
     return process.env.DEMUX_HEAD_BLOCK;
   }
@@ -413,7 +420,7 @@ async function getStartingBlockNumber() {
 async function getHeadBlockInfo() {
   const nodeosHost = process.env.NODEOS_HOST || 'localhost';
   const nodeosPort = process.env.NODEOS_PORT || 8888;
-  const nodeosUrl = 
+  const nodeosUrl =
     `http${process.env.NODEOS_SECURED === 'true' ? 's' : ''}://${nodeosHost}:${nodeosPort}`;
 
   const res = await fetch(nodeosUrl + '/v1/chain/get_info', {
@@ -434,12 +441,9 @@ async function getBlockTimestamp(blockNum) {
     let info = await getHeadBlockInfo();
     // convert to UTC
     let ts = info.head_block_time.slice(-1) == 'Z' ? info.head_block_time : `${info.head_block_time}Z`;
-    genesisTimestampMs = 
+    genesisTimestampMs =
       (new Date(ts)).getTime() - (500 * (info.head_block_num - 1))
     logger.info(`calculated genesis block timestamp (ms): ${genesisTimestampMs}`);
   }
   return genesisTimestampMs + (500 * (blockNum - 1)); // genesis block is 1 not 0
 }
-
-
-

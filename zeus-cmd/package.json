@@ -34,7 +34,7 @@
     "readline-sync": "^1.4.9",
     "sleep-promise": "^8.0.1",
     "temp": "^0.8.3",
-    "unzip": "^0.1.11",
+    "unzipper": "^0.10.5",
     "yargs": "^12.0.2"
   },
   "bin": {

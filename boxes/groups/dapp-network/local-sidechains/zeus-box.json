@@ -1,0 +1,10 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ],
+  "commands": {
+    "Start EOS with sidechains": "zeus start-localenv"
+  },
+  "dependencies":["dapp-services" ]
+}

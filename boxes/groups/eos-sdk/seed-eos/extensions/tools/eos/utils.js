@@ -19,9 +19,11 @@ const execPromise = function(cmd, options) {
   });
 };
 
-async function createAccount(wallet, creator, account, args = getDefaultArgs()) {
-  var newKeys = await getCreateKeys(account, args);
-  var eos = await getEos(creator, args);
+async function createAccount(wallet, creator, account, args = getDefaultArgs(), sidechain) {
+  if (!args)
+    args = getDefaultArgs();
+  var newKeys = await getCreateKeys(account, args, sidechain);
+  var eos = await getEos(creator, args, sidechain);
   var pubkey = newKeys.active.publicKey;
   await eos.transact({
     actions: [{
@@ -64,9 +66,11 @@ async function createAccount(wallet, creator, account, args = getDefaultArgs()) 
   return newKeys;
 }
 
-async function getCreateAccount(account, args = getDefaultArgs(), dontCreateIfHaveKeys) {
+async function getCreateAccount(account, args = getDefaultArgs(), dontCreateIfHaveKeys, sidechain) {
+  if (!args)
+    args = getDefaultArgs();
   const { creator, stake } = args;
-  var existingKeys = await getCreateKeys(account, args, dontCreateIfHaveKeys);
+  var existingKeys = await getCreateKeys(account, args, dontCreateIfHaveKeys, sidechain);
   // import keys if needed
 
   // import keys if needed
@@ -74,7 +78,7 @@ async function getCreateAccount(account, args = getDefaultArgs(), dontCreateIfHa
   var staking = stake;
   if (creator != account) {
     try {
-      var eos = await getEos(creator, args);
+      var eos = await getEos(creator, args, sidechain);
       var pubkey = existingKeys.active.publicKey;
       // console.log(account,existingKeys);
       // await eos.transaction(tr => {
@@ -150,8 +154,10 @@ async function getCreateAccount(account, args = getDefaultArgs(), dontCreateIfHa
   // give some SYS/EOS
   return existingKeys;
 }
-const getEos = async(account, args = getDefaultArgs()) => {
-  var selectedNetwork = getNetwork(args);
+const getEos = async(account, args = getDefaultArgs(), sidechain) => {
+  if (!args)
+    args = getDefaultArgs();
+  var selectedNetwork = getNetwork(args, sidechain);
   var config = {
     chainId: selectedNetwork.chainId
   };
@@ -161,20 +167,20 @@ const getEos = async(account, args = getDefaultArgs()) => {
       config.keyProvider = args.creatorKey;
     }
     else {
-      var keys = await getCreateKeys(account, args, true);
+      var keys = await getCreateKeys(account, args, true, sidechain);
       config.keyProvider = keys.active.privateKey;
     }
   }
 
-  var endpoint = getUrl(args);
+  var endpoint = getUrl(args, sidechain);
   config.httpEndpoint = endpoint;
   config.authorization = `${account}@active`;
   return await getEosWrapper(config);
 };
-const uploadContract = async(args, name, contract) => {
+const uploadContract = async(args, name, contract, sidechain) => {
   var wasm = fs.readFileSync(path.join(contract, `${path.basename(contract)}.wasm`));
   var abi = fs.readFileSync(path.join(contract, `${path.basename(contract)}.abi`), "utf-8");
-  var eos = await getEos(name, args);
+  var eos = await getEos(name, args, sidechain);
   // Publish contract to the blockchain
   try {
     const result = await eos.transact({
@@ -249,12 +255,12 @@ const uploadContract = async(args, name, contract) => {
   });
 };
 
-const uploadSystemContract = async(args, name, contract) => {
+const uploadSystemContract = async(args, name, contract, sidechain) => {
   contract = contract || name;
-  await uploadContract(args, name, `${path.resolve('.')}/contracts/eos/${contract}`);
+  await uploadContract(args, name, `${path.resolve('.')}/contracts/eos/${contract}`, sidechain);
 };
 
-const getLocalDSPEos = async(account) => {
+const getLocalDSPEos = async(account, sidechain) => {
   // create token
   var selectedNetwork = getNetwork(getDefaultArgs());
   var config = {
@@ -272,8 +278,8 @@ const getLocalDSPEos = async(account) => {
 
 }
 
-const getTestContract = async(code) => {
-  var eos = await getLocalDSPEos(code);
+const getTestContract = async(code, sidechain) => {
+  var eos = await getLocalDSPEos(code, sidechain);
   return await eos.contract(code);
 
 }

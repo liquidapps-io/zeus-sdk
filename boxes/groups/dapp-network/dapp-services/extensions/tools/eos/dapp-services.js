@@ -1,4 +1,5 @@
 const { getCreateKeys } = require('../../helpers/key-utils');
+const getDefaultArgs = require('../../helpers/getDefaultArgs');
 const { getEos } = require('./utils');
 
 const { loadModels } = require('../models');
@@ -11,7 +12,7 @@ function getContractAccountFor(model) {
   var envName = process.env[`DAPPSERVICES_CONTRACT_${model.name.toUpperCase()}`];
   return envName || model.contract;
 }
-async function genAllocateDAPPTokens(deployedContract, serviceName, provider = '', selectedPackage = 'default') {
+async function genAllocateDAPPTokens(deployedContract, serviceName, provider = '', selectedPackage = 'default', sidechain = null) {
   var providers = testProvidersList;
   if (provider !== '') {
     providers = [provider];
@@ -19,18 +20,18 @@ async function genAllocateDAPPTokens(deployedContract, serviceName, provider = '
   for (var i = 0; i < providers.length; i++) {
     var currentProvider = providers[i];
 
-    await genAllocateDAPPTokensInner(deployedContract, serviceName, provider = currentProvider, (currentProvider == "pprovider2" && selectedPackage == 'default') ? 'foobar' : selectedPackage);
+    await genAllocateDAPPTokensInner(deployedContract, serviceName, provider = currentProvider, (currentProvider == "pprovider2" && selectedPackage == 'default') ? 'foobar' : selectedPackage, sidechain);
   }
 
 }
 
-async function genAllocateDAPPTokensInner(deployedContract, serviceName, provider = 'pprovider1', selectedPackage = 'default') {
-  var key = await getCreateKeys(dappServicesContract);
+async function genAllocateDAPPTokensInner(deployedContract, serviceName, provider = 'pprovider1', selectedPackage = 'default', sidechain = null) {
+  var key = await getCreateKeys(dappServicesContract, null, false, sidechain);
   var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
   var service = getContractAccountFor(model);
 
   var contract = deployedContract.address;
-  var eos = await getEos(contract);
+  var eos = await getEos(contract, null, sidechain);
   let servicesTokenContract = await eos.contract(dappServicesContract);
   await servicesTokenContract.issue({
     to: contract,
@@ -95,8 +96,14 @@ function postData(url = ``, data = {}) {
 
 const getEndpointForContract = ({
   payer,
-  service
+  service,
+  sidechain
 }) => {
+  if (sidechain) {
+    // resolve sidechain
+
+    return `http://localhost:${sidechain.dsp_port}`;
+  }
   return "http://localhost:13015";
 };
 
@@ -105,10 +112,11 @@ const readVRAMData = async({
   key,
   table,
   scope,
-  keytype
+  keytype,
+  sidechain
 }) => {
   const service = "ipfsservice1";
-  const endpoint = getEndpointForContract({ payer: contract, service });
+  const endpoint = getEndpointForContract({ payer: contract, service, sidechain });
   const result = await postData(`${endpoint}/v1/dsp/${service}/get_table_row`, {
     contract,
     scope,

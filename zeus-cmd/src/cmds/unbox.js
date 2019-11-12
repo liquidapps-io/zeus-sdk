@@ -10,7 +10,7 @@ temp.track();
 const isDirectory = source => fs.lstatSync(source).isDirectory();
 const getDirectories = source =>
   fs.readdirSync(source).map(name => path.join(source, name)).filter(isDirectory);
-function copyFileSync (source, target, simulate, newIgnoreList, rootPath) {
+function copyFileSync(source, target, simulate, newIgnoreList, rootPath) {
   var targetFile = target;
 
   // if target is a directory a new file with the same name will be created
@@ -36,7 +36,7 @@ function copyFileSync (source, target, simulate, newIgnoreList, rootPath) {
 }
 var mapping = require('../mapping');
 
-function copyFolderRecursiveSync (source, target, simulate, ignoreList, newIgnoreList, rootPath) {
+function copyFolderRecursiveSync(source, target, simulate, ignoreList, newIgnoreList, rootPath) {
   var files = [];
 
   // check if folder needs to be created or integrated
@@ -145,7 +145,7 @@ const handler = async (args, globalCopyList = []) => {
           break;
         }
 
-        //
+      //
       case 'http':
       case 'https':
         // console.log(`downloading ${args.box}`);
@@ -159,7 +159,7 @@ const handler = async (args, globalCopyList = []) => {
 
       default:
         throw new Error('not supported yet. pass archive url:' + boxName);
-                    // code
+      // code
     }
   } else {
     throw new Error(`not supported yet. pass archive url ${args.box}`);
@@ -167,7 +167,7 @@ const handler = async (args, globalCopyList = []) => {
 
   // console.log(`extracting ${args.box}`);
   await (() => new Promise((resolve, reject) => {
-    var extractor = require('unzip').Extract({ path: extractPath });
+    var extractor = require('unzipper').Extract({ path: extractPath });
     extractor.on('close', resolve);
     extractor.on('error', reject);
     fs.createReadStream(inputPath).pipe(extractor);
@@ -249,7 +249,7 @@ const handler = async (args, globalCopyList = []) => {
     globalCopyList.forEach(f => {
       try {
         fs.unlinkSync(f);
-      } catch (e) {}
+      } catch (e) { }
     });
     if (args.createDir) {
       var dirToDelete = path.resolve('.');

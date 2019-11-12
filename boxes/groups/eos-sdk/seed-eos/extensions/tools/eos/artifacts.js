@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-function _require (f) {
+function _require(f) {
   const base = path.parse(f).base;
   const abiPath = `./contracts/eos/${base}/${base}.abi`;
   const abi = fs.readFileSync(abiPath).toString();

@@ -1,21 +1,22 @@
 var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
-const { deserialize, eosPrivate, encodeName, decodeName } = require('../dapp-services-node/common');
+const { deserialize, encodeName, decodeName } = require('../dapp-services-node/common');
 var IPFS = require('ipfs-api');
 const { BigNumber } = require('bignumber.js');
 var sha256 = require('js-sha256').sha256;
 const { getUrl } = require('../../extensions/tools/eos/utils');
 const getDefaultArgs = require('../../extensions/helpers/getDefaultArgs');
 const logger = require('../../extensions/helpers/logger');
+const { TextEncoder, TextDecoder } = require('util'); // node only; native TextEncoder/Decoder
 
 BigNumber.config({ ROUNDING_MODE: BigNumber.ROUND_FLOOR }); // equivalent
 
 const multihash = require('multihashes');
 
-const eos = eosPrivate;
+
 var ipfs = new IPFS({ host: process.env.IPFS_HOST || 'localhost', port: process.env.IPFS_PORT || 5001, protocol: process.env.IPFS_PROTOCOL || 'http' });
 
 const eosjs2 = require('eosjs');
-const { JsonRpc } = eosjs2;
+const { Api, JsonRpc, RpcError } = eosjs2;
 const fetch = require('node-fetch');
 
 var url = getUrl(getDefaultArgs());
@@ -82,7 +83,7 @@ const converToUri = (hash) => {
   const address = multihash.toB58String(bytes);
   return 'ipfs://z' + address;
 };
-const readPointer = async(hashWithPrefix, contract) => {
+const readPointer = async(hashWithPrefix, contract, sidechain) => {
   var hash = hashWithPrefix.toString('hex').slice(8);
   var matchHash = hash;
   matchHash = matchHash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('').match(/.{32}/g).reverse().join('').match(/.{2}/g).reverse().join('');
@@ -99,8 +100,12 @@ const readPointer = async(hashWithPrefix, contract) => {
     'index_position': 2,
     'limit': 1
   };
+  let currentRPC = rpc;
+  if (sidechain) {
+    currentRPC = new JsonRpc(sidechain.nodeos_endpoint, { fetch });
+  }
   // console.log("payload", payload);
-  const res = await rpc.get_table_rows(payload);
+  const res = await currentRPC.get_table_rows(payload);
   const uri = converToUri(hashWithPrefix);
   var result = res.rows.find(a => {
     var myHash = hashData256(Buffer.from(a.data, 'hex'));
@@ -123,8 +128,8 @@ const hashData256 = (data) => {
   return hash.hex();
 };
 
-const prepKeyForCalc = (key,keytype = null) => {
-  return nameToString(Buffer.from(stringToName(key,keytype)));
+const prepKeyForCalc = (key, keytype = null) => {
+  return nameToString(Buffer.from(stringToName(key, keytype)));
 }
 
 const calculateBucketShard = (key, keytype, scope, buckets, shards) => {
@@ -148,9 +153,14 @@ const parseShard = async(shardRaw) => {
   }
   return res;
 };
-const fetchShard = async(contract, table, shard) => {
+const fetchShard = async(contract, table, shard, sidechain) => {
   // get eos client instance
-  var res = await eos.getTableRows({
+  let currentRPC = rpc;
+  if (sidechain) {
+    currentRPC = new JsonRpc(sidechain.nodeos_endpoint, { fetch });
+  }
+  // console.log("payload", payload);
+  const res = await currentRPC.get_table_rows({
     'json': true,
     'scope': contract,
     'code': contract,
@@ -159,8 +169,10 @@ const fetchShard = async(contract, table, shard) => {
     'upper_bound': shard + 1,
     'limit': 1000
   });
+
+
   if (!res.rows.length) { return; }
-  var shardRaw = await readPointer(res.rows[0].shard_uri, contract);
+  var shardRaw = await readPointer(res.rows[0].shard_uri, contract, sidechain);
   // parse shard.
   return parseShard(shardRaw);
 };
@@ -208,41 +220,51 @@ const parseBucket = async(bucketRawData) => {
   }
   return bucket;
 };
-const fetchBucket = async(bucketPointer, contract) => {
-  var bucketRawData = await readPointer(bucketPointer, contract);
+const fetchBucket = async(bucketPointer, contract, sidechain) => {
+  var bucketRawData = await readPointer(bucketPointer, contract, sidechain);
   return parseBucket(bucketRawData);
 };
 
-const extractRowFromBucket = async(bucketData, scope, key, contract) => {
+const extractRowFromBucket = async(bucketData, scope, key, contract, sidechain) => {
   const rowPointer = bucketData[`${scope}.${key}`];
   logger.debug(`rowPointer ${rowPointer}`);
-  if (rowPointer) { return await readPointer(rowPointer, contract); }
+  if (rowPointer) { return await readPointer(rowPointer, contract, sidechain); }
 };
 
-const extractRowFromShardData = async(shardData, bucket, scope, key, contract) => {
+const extractRowFromShardData = async(shardData, bucket, scope, key, contract, sidechain) => {
   if (!shardData) { return; }
   const bucketPointer = shardData[bucket];
-  const bucketData = await fetchBucket(bucketPointer, contract);
+  const bucketData = await fetchBucket(bucketPointer, contract, sidechain);
   logger.debug(`bucketData ${bucketData}`);
-  return await extractRowFromBucket(bucketData, scope, key, contract);
+  return await extractRowFromBucket(bucketData, scope, key, contract, sidechain);
 };
 
-const getRowRaw = async(contract, table, scope, key, keytype, buckets, shards) => {
+const getRowRaw = async(contract, table, scope, key, keytype, buckets, shards, sidechain) => {
   const { shard, bucket } = calculateBucketShard(key, keytype, scope, buckets, shards);
   logger.debug(`shard, bucket ${shard} ${bucket}`);
   scope = stringToNameInner(stringToName(scope)).toString();
-  key = stringToNameInner(stringToName(key,keytype)).toString();
+  key = stringToNameInner(stringToName(key, keytype)).toString();
   logger.debug(`scope, key ${scope} ${key}`);
-  const shardData = await fetchShard(contract, table, shard);
+  logger.debug(`sidechain ${JSON.stringify(sidechain)}`);
+
+  const shardData = await fetchShard(contract, table, shard, sidechain);
   // console.log('shardData', shardData);
-  return await extractRowFromShardData(shardData, bucket, scope, key, contract);
+  return await extractRowFromShardData(shardData, bucket, scope, key, contract, sidechain);
 };
 
-const deserializeRow = async(contract, table, rowRaw) => {
+const deserializeRow = async(contract, table, rowRaw, sidechain) => {
   if (!rowRaw) { return; }
   // get abi
-  const abi = await eos.getAbi(contract);
+  let currentRPC = rpc;
+  if (sidechain) {
+    currentRPC = new JsonRpc(sidechain.nodeos_endpoint, { fetch });
+  }
 
+
+
+  const api = new Api({ rpc: currentRPC, signatureProvider: null, textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
+
+  const abi = await api.getAbi(contract);
   const abiTable = abi.tables.find(a => a.name == '.' + table);
   if (!abiTable) {
     console.error('abi not found', table);
@@ -312,9 +334,10 @@ nodeFactory('ipfs', {
         const keytype = body.keytype ? body.keytype : null;
         const buckets = body.buckets ? body.buckets : 64;
         const shards = body.shards ? body.shards : 1024;
-        const rowRaw = await getRowRaw(contract, table, scope, key, keytype, buckets, shards);
+
+        const rowRaw = await getRowRaw(contract, table, scope, key, keytype, buckets, shards, body.sidechain);
         logger.debug(`rowRaw ${rowRaw}`);
-        const row = await deserializeRow(contract, table, rowRaw);
+        const row = await deserializeRow(contract, table, rowRaw, body.sidechain);
         // get abi
         // parse object
         if (!row)
