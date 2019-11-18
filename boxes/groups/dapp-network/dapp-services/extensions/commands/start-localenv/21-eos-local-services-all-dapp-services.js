@@ -33,7 +33,7 @@ async function deployLocalService(serviceModel, provider = 'pprovider1', pi = 0)
       package_json_uri: '',
       service: serviceContract,
       package_id,
-      quota: '1.0000 QUOTA',
+      quota: '1000000.0000 QUOTA',
       min_stake_quantity: '1.0000 DAPP',
       min_unstake_period: 10,
       package_period: 10

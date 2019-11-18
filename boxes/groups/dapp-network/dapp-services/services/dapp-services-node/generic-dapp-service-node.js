@@ -285,10 +285,19 @@ const nodeAutoFactory = async(serviceName) => {
             logger.debug(`validating auth`);
 
             await authClient.validate({ ...opts.body, req: opts.req, allowClientSide: false }, async({ clientCode, payload, account, permission }) => {
-              const body = JSON.parse(payload);
-              if (permission !== authentication.permission) throw new Error(`wrong permissions (${authentication.permission} != ${permission})`);
-              const result = await apiHandler(body, state, model, { account, permission, clientCode });
-              res.send(JSON.stringify(result));
+              try {
+                const body = JSON.parse(payload);
+                if (permission !== authentication.permission) throw new Error(`wrong permissions (${authentication.permission} != ${permission})`);
+
+                const result = await apiHandler(body, state, model, { account, permission, clientCode });
+                res.send(JSON.stringify(result));
+              }
+              catch (e) {
+                logger.error(`${e.toString()}`);
+                res.status(400);
+                res.send(JSON.stringify({ error: e.toString() }));
+              }
+
             });
             return;
           }
@@ -296,8 +305,8 @@ const nodeAutoFactory = async(serviceName) => {
           res.send(JSON.stringify(result));
         }
         catch (e) {
+          logger.error(`${e.toString()}`);
           res.status(400);
-          console.error("error:", e);
           res.send(JSON.stringify({ error: e.toString() }));
         }
       }).bind(handlers, { apiName, apiHandler, authClient });

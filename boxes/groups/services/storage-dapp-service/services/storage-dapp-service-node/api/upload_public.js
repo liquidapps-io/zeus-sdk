@@ -5,6 +5,7 @@ var IPFS = require('ipfs-api');
 const { BigNumber } = require('bignumber.js');
 var sha256 = require('js-sha256').sha256;
 const { promisify } = require('util');
+const logger = require('../../../extensions/helpers/logger');
 
 BigNumber.config({ ROUNDING_MODE: BigNumber.ROUND_FLOOR }); // equivalent
 
@@ -37,7 +38,6 @@ const saveToIPFS = async(data) => {
 
     const filesAdded = await ipfs.files.add(bufData, { 'raw-leaves': true, 'cid-version': 1 });
     var theHash = filesAdded[0].hash;
-    console.log('commited to: ipfs://' + theHash);
     const resUri = `ipfs://${theHash}`;
     if (resUri != uri)
         throw new Error(`uris mismatch ${resUri} != ${uri}`);
@@ -45,9 +45,8 @@ const saveToIPFS = async(data) => {
 };
 const saveDirToIPFS = async(files) => {
     // console.log('writing data: ' +data);
-    const filesAdded = await ipfs.files.add(files);
-    var theHash = filesAdded[0].hash;
-    console.log('commited to: ipfs://' + theHash);
+    const filesAdded = await ipfs.add(files, { wrapWithDirectory: true });
+    var theHash = filesAdded[filesAdded.length - 1].hash;
     const resUri = `ipfs://${theHash}`;
     return resUri;
 };
@@ -66,10 +65,7 @@ const readFromIPFS = async(uri) => {
 };
 const untarCb = (archiveData, cb) => {
     // Initialize stream
-    var tarStream = new streamBuffers.ReadableStreamBuffer({
-        frequency: 10,
-        chunkSize: 2048
-    });
+    var tarStream = new streamBuffers.ReadableStreamBuffer({});
     var extract = tar.extract()
     var files = [];
     extract.on('entry', function(header, stream, next) {
@@ -77,30 +73,50 @@ const untarCb = (archiveData, cb) => {
         // header is the tar header
         // stream is the content body (might be an empty stream)
         // call next when you are done with this entry
+
         var path = header.name;
         var fileData = [];
-        stream.on('data', function(d) {
-            fileData.push(d);
-            next() // ready for next entry
-        })
-        stream.on('end', function() {
+        if (header.type === 'file') {
+            stream.on('data', function(d) {
+                fileData.push(d);
+                next() // ready for next entry
+            })
+            stream.on('end', function() {
+
+                files.push({
+                    path,
+                    content: Buffer.concat(fileData)
+                });
+                next() // ready for next entry
+            })
+        }
+        else {
             files.push({
-                path,
-                content: Buffer.concat(fileData)
+                path
             });
             next() // ready for next entry
-        })
+        }
 
         stream.resume() // just auto drain the stream
     })
 
-    extract.on('finish', function() {
+
+    extract.on('finish', function(e) {
         // all entries read
         cb(null, files);
     })
 
+    extract.on('error', function(e) {
+
+        // all entries read
+        cb(e, files);
+    })
+
     tarStream.put(Buffer.from(archiveData));
+    tarStream.stop();
+
     tarStream.pipe(extract);
+
 }
 const untar = promisify(untarCb);
 
@@ -109,7 +125,7 @@ const unpack = async(archiveData, format) => {
 
     switch (format) {
         case 'tar':
-            var files = await untar(archiveData);
+            files = await untar(archiveData);
             break;
 
         default:
@@ -122,20 +138,26 @@ const unpack = async(archiveData, format) => {
 }
 
 
-module.exports = async({ data, archive, sidechain, contract }, state, model, { account, permission, clientCode }) => {
+module.exports = async(body, state, model, { account, permission, clientCode }) => {
+    const { data, archive, sidechain, contract } = body;
+
     if (account !== contract) throw new Error('not allowed');
     let uri;
+    var length = 0;
     if (archive) {
         // unpack
         var archiveData = archive.data;
-        var format = archiveData.format || 'tar';
-        var files = await unpack(archiveData, format);
+        var format = archive.format || 'tar';
         // upload files
+        var files = await unpack(Buffer.from(archiveData, 'hex'), format);
+        length = archiveData.length / 2;
         uri = await saveDirToIPFS(files);
     }
-    else
+    else {
         uri = await saveToIPFS(data);
-    await emitUsage(contract, getContractAccountFor(model), data.length, sidechain, { uri })
+        length = data.length / 2;
+    }
+    await emitUsage(contract, getContractAccountFor(model), length, sidechain, { uri })
 
     return { uri };
 

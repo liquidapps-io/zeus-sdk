@@ -8,6 +8,7 @@ const fetch = require('node-fetch');
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
 const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
+var fs = require('fs')
 
 function postData(url = ``, data = {}) {
   // Default options are marked with *
@@ -65,6 +66,48 @@ describe(`LiquidStorage Test`, () => {
         const result = await authClient.invokeAuthedCall({ payload: { data: Buffer.from("test1234").toString('hex'), contract: account }, service: "liquidstorag", account, permission, keys, action: "upload_public", skipClientCode: true });
         assert.equal(result.uri, "ipfs://zb2rhga33kcyDrMLZDacqR7wLwcBRVgo6sSvLbzE7XSw1fswH");
         done();
+      }
+      catch (e) {
+        console.log(e);
+        done(e);
+      }
+    })();
+  });
+  it('Upload Archive', done => {
+    (async() => {
+      try {
+
+        var apiID = `pprovider1-${serviceName}`;
+        var authClient = new AuthClient(apiID, 'authenticato', null, endpoint);
+        var keys = await getCreateKeys(code);
+        const permission = "active";
+        var tar = require('tar-stream')
+        var pack = tar.pack() // pack is a streams2 stream
+        pack.entry({ name: 'test.html' }, 'Hello World!')
+        pack.entry({ name: 'index.html' }, 'index file');
+
+        var entry = pack.entry({ name: 'my-stream-test.txt', size: 11 }, function(err) {
+          pack.finalize();
+        })
+
+        entry.write('hello')
+        entry.write(' ')
+        entry.write('world')
+        entry.end()
+        var path = 'YourTarBall.tar'
+        var tarfile = fs.createWriteStream(path)
+
+
+        // pipe the pack stream somewhere
+        pack.pipe(tarfile);
+        tarfile.on('close', async function() {
+          var content = fs.readFileSync(path);
+
+          const result = await authClient.invokeAuthedCall({ payload: { archive: { data: content.toString('hex') }, contract: account }, service: "liquidstorag", account, permission, keys, action: "upload_public", skipClientCode: true });
+          assert.equal(result.uri, "ipfs://QmYS55iqu1zwxszW5ywEmT5w6m6VKjYwa9G9Xka8Uv4j9s");
+          done();
+        })
+
       }
       catch (e) {
         console.log(e);
