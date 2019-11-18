@@ -1,0 +1,14 @@
+{
+  "ignore": [
+    "README.md",
+    "LICENSE",
+    "zeus-box.json"
+  ],
+  "dependencies":["oracle-dapp-service"],
+  "install":{
+    "npm":{
+      "assemblyscript": "github:AssemblyScript/assemblyscript",
+      "node-fetch": "^2.6.0"
+    }
+  }
+}

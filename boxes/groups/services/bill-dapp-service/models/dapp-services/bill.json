@@ -1,0 +1,33 @@
+{
+    "name": "bill",
+    "port": 13145,
+    "contract": "liquidbillin",
+    "prettyName": "LiquidBilling",
+    "stage":"WIP",
+    "version": "0.0",
+    "description": "Transaction signing service for resource payment",
+    "generateStubs": true,
+    "commands": {
+         "sdummy2": {
+            "blocking": false,
+            "request": {
+                "data": "std::vector<char>"
+            },
+            "callback": {
+                "size": "uint32_t",
+                "uri": "std::string"
+            },
+            "signal": {
+                "size": "uint32_t",
+                "uri": "std::string"
+            }
+        }
+    },
+    "api": {
+        "push_transaction":{
+        },
+        "sign":{
+        }
+    }
+
+}

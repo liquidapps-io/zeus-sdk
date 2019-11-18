@@ -10,7 +10,7 @@ const { loadModels } = require('../../extensions/tools/models');
 const { getCreateKeys } = require('../../extensions/helpers/key-utils');
 const { dappServicesContract, getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
 const { getEosWrapper } = require('../../extensions/tools/eos/eos-wrapper');
-const { deserialize, generateABI, genNode, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission } = require('./common');
+const { deserialize, generateABI, genNode, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission, emitUsage, detectXCallback } = require('./common');
 
 
 const actionHandlers = {
@@ -42,6 +42,8 @@ const actionHandlers = {
         if (!providerData) return;
         await forwardEvent(act, providerData.endpoint, false);
       }));
+      logger.debug(`retry after broadcast ${action} to ${providers.length} providers`);
+
       return 'retry';
     }
 
@@ -61,7 +63,9 @@ const actionHandlers = {
     }
     if (!act.exception) { return; }
     if (getContractAccountFor(model) == service && handler) {
+
       await handleRequest(handler, act, packageid, model.name, handlers.abi);
+      logger.debug(`retry after handle ${action}`);
       return 'retry';
     }
   },
@@ -91,11 +95,14 @@ const actionHandlers = {
     }
   }
 };
-const detectXCallback = async(eos) => {
-  var contract = await eos.contract(dappServicesContract);
-  if (contract.xcallback)
-    return true;
-  else return false;
+const getLinkedAccount = async(eosSideChain, eosMain, account, sidechainName, isSisterChain) => {
+  if (!isSisterChain)
+    return account;
+
+  // TODO: resolve mapping if sidechain is sister chain (not same permissions)
+  // eosSideChain get linkedaccount
+  // eosMain get linkedaccount for sidechain_name
+  throw new Error('not implemented yet');
 }
 let enableXCallback = null;
 const handleRequest = async(handler, act, packageid, serviceName, abi) => {
@@ -125,6 +132,7 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
   });
 
   var requestId = "";
+  var meta = {};
   if (metadata) {
     // is async
     requestId = `${metadata.txId}.${act.event.action}.${account}.${metadata.eventNum}`;
@@ -132,8 +140,18 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
       requestId = `${metadata.sidechain}.${requestId}`;
   }
 
+
+
+  let responses = await handler(act, data);
+  if (!responses) { return; }
+  if (!Array.isArray(responses)) // needs conversion from a normal object
+    responses = respond(act.event, packageid, responses);
+
+
+
+  let sidechain_provider = paccount;
   if (sidechain) {
-    const eosProv = await getEosWrapper({
+    const eosMain = await getEosWrapper({
       chainId: process.env.NODEOS_CHAINID, // 32 byte (64 char) hex string
       expireInSeconds: 120,
       sign: true,
@@ -142,62 +160,10 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
       httpEndpoint: `http${process.env.NODEOS_SECURED === 'true' || false ? 's':''}://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_PORT || 8888}`,
       keyProvider: process.env.DSP_PRIVATE_KEY || (await getCreateKeys(paccount)).active.privateKey
     });
-    if (enableXCallback === null) {
-      enableXCallback = await detectXCallback(eosSideChain);
-    }
-    var pactions = [];
-
-    // get payer mapping from eosSideChain
-    // validate mapping in eosProv
-    var meta = {};
-
-    if (enableXCallback === true) {
-      pactions.push({
-        account: dappServicesContract,
-        name: "xcallback",
-        authorization: [{
-          actor: paccount,
-          permission: 'active',
-        }],
-        data: {
-          provider: paccount,
-          request_id: requestId,
-          meta: JSON.stringify(meta)
-        },
-      });
-    }
-    pactions.push({
-      account: "dappservices",
-      name: "usage",
-      authorization: [{
-        actor: paccount,
-        permission: 'active',
-      }],
-      data: {},
-    });
-    try {
-      await eosSideChain.transact({
-        actions: pactions
-      }, {
-        expireSeconds: 120,
-        sign: true,
-        broadcast: true,
-        blocksBehind: 10
-      });
-
-
-    }
-    catch (e) {
-      // fail if fails
-      throw new Error("provisioning failed");
-    }
+    const mainnet_account = await getLinkedAccount(eosSideChain, eosMain, account, sidechain.name, sidechain.is_sister_chain);
+    sidechain_provider = await getLinkedAccount(eosSideChain, eosMain, paccount, sidechain.name, sidechain.is_sister_chain);
+    await emitUsage(mainnet_account, service, 1, sidechain, meta, requestId);
   }
-
-
-  let responses = await handler(act, data);
-  if (!responses) { return; }
-  if (!Array.isArray(responses)) // needs conversion from a normal object
-  { responses = respond(act.event, packageid, responses); }
   await Promise.all(responses.map(async(response) => {
 
 
@@ -205,6 +171,9 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
     if (enableXCallback === null) {
       enableXCallback = await detectXCallback(eosSideChain);
     }
+
+
+
     if (enableXCallback === true) {
       actions.push({
         account: dappServicesContract,
@@ -214,7 +183,7 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
           permission: 'active',
         }],
         data: {
-          provider: paccount,
+          provider: sidechain_provider,
           request_id: requestId,
           meta: JSON.stringify(meta)
         },
@@ -224,12 +193,11 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
       account: payer,
       name: response.action,
       authorization: [{
-        actor: paccount,
+        actor: sidechain_provider,
         permission: 'active',
       }],
       data: response.payload,
     });
-
 
 
     try {
@@ -300,11 +268,31 @@ const nodeAutoFactory = async(serviceName) => {
       var apiName = apiActions[i];
       var apiHandler = await loadIfExists(serviceName, `api/${apiName}`); // load from file
       logger.debug(`registering api ${serviceName} ${apiName}`);
-      apiCommands[apiName] = (async({ apiName, apiHandler }, opts, res) => {
+      const authentication = model.api[apiName].authentication;
+      let authClient;
+      if (authentication && authentication.type === 'payer') {
+        var apiID = `${paccount}-${serviceName}`;
+        var AuthClient = require('../../extensions/tools/auth-client');
+        authClient = new AuthClient(apiID, authentication.contract);
+      }
+
+
+      apiCommands[apiName] = (async({ apiName, apiHandler, authClient }, opts, res) => {
         try {
-          if (apiHandler)
+          if (!apiHandler)
             throw new Error('not implemented yet');
-          const result = await apiHandler(opts, res, state);
+          if (authClient) {
+            logger.debug(`validating auth`);
+
+            await authClient.validate({ ...opts.body, req: opts.req, allowClientSide: false }, async({ clientCode, payload, account, permission }) => {
+              const body = JSON.parse(payload);
+              if (permission !== authentication.permission) throw new Error(`wrong permissions (${authentication.permission} != ${permission})`);
+              const result = await apiHandler(body, state, model, { account, permission, clientCode });
+              res.send(JSON.stringify(result));
+            });
+            return;
+          }
+          const result = await apiHandler(opts.body, res, model, state);
           res.send(JSON.stringify(result));
         }
         catch (e) {
@@ -312,7 +300,7 @@ const nodeAutoFactory = async(serviceName) => {
           console.error("error:", e);
           res.send(JSON.stringify({ error: e.toString() }));
         }
-      }).bind(handlers, { apiName, apiHandler });
+      }).bind(handlers, { apiName, apiHandler, authClient });
     }
   }
 
@@ -333,6 +321,7 @@ const nodeAutoFactory = async(serviceName) => {
       }
       catch (e) {
         logger.error(e);
+        throw e;
       }
     }).bind(handlers, { requestName, dspRequestHandler });
   }

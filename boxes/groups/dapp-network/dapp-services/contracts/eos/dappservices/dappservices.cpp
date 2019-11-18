@@ -549,14 +549,14 @@ public:
   }
 
   [[eosio::action]] void unstaketo(name from, name to, name provider, name service, asset quantity) {
-    
+
     if(has_auth(_self))
       require_recipient(from);
-    else  
+    else
       require_auth(from);
 
     require_recipient(provider);
-    require_recipient(service);    
+    require_recipient(service);
     require_recipient(to);
     refillPackage(to, provider, service);
     auto current_time_ms = current_time_point().time_since_epoch().count() / 1000;
@@ -597,7 +597,7 @@ public:
           stakingexts.erase(stake_ext);
         }
       }
-      
+
     }
 
     refunds_table refunds_tbl(_self, from.value);
@@ -688,6 +688,21 @@ public:
 
  [[eosio::action]] void usage(usage_t usage_report) {
     require_auth(usage_report.service);
+    auto payer = usage_report.payer;
+    auto service = usage_report.service;
+    auto provider = usage_report.provider;
+    auto quantity = usage_report.quantity;
+    auto package = usage_report.package;
+    require_recipient(provider);
+    require_recipient(service);
+    require_recipient(payer);
+
+    usage_report.success = usequota(payer, provider, service, quantity);
+    EMIT_USAGE_REPORT_EVENT(usage_report);
+  }
+
+  [[eosio::action]] void usagex(usage_t usage_report) {
+    require_auth(usage_report.provider);
     auto payer = usage_report.payer;
     auto service = usage_report.service;
     auto provider = usage_report.provider;
@@ -800,7 +815,7 @@ private:
       staking_ext_t stakingexts(_self, acct->id);
       auto stake_ext = stakingexts.find(payer.value);
       if(stake_ext == stakingexts.end()) {
-        stakingexts.emplace(payer, [&](auto &a) { 
+        stakingexts.emplace(payer, [&](auto &a) {
           a.payer = payer;
         });
       }
@@ -860,17 +875,17 @@ private:
     for(uint8_t i = 0; i < loop_depth; ++i) {
       if(depth == 0) stake_ext = stakingexts.find(delegators[i].value);
       if(stake_ext != stakingexts.end()) {
-        staking_t stakes(_self, stake_ext->payer.value);        
+        staking_t stakes(_self, stake_ext->payer.value);
         auto stakeIdx = stakes.get_index<"byprov"_n>();
         auto stake = stakeIdx.find(stakeKey);
-        if(stake != stakeIdx.end()) {                
-          action(permission_level{_self, "active"_n}, 
+        if(stake != stakeIdx.end()) {
+          action(permission_level{_self, "active"_n},
             _self, "unstaketo"_n,
             std::make_tuple(stake_ext->payer,owner,provider,service,stake->balance))
           .send();
-        }   
-        if(depth > 0) ++stake_ext;  
-      }      
+        }
+        if(depth > 0) ++stake_ext;
+      }
     }
   }
 
@@ -880,11 +895,11 @@ private:
         accountext::_by_account_service_provider(owner, service, provider);
     auto cidx = accountexts.get_index<"byprov"_n>();
     auto acct = cidx.find(idxKey);
-    if (acct != cidx.end()) {      
+    if (acct != cidx.end()) {
       //ensure all third party stakes (except AirHODL) are unstaked
       staking_ext_t stakingexts(_self, acct->id);
       auto stake_ext = stakingexts.begin();
-      eosio::check(stake_ext == stakingexts.end(), "cannot select a new package if third parties are staked to it. use preselectpkg to remove all third party stakes"); 
+      eosio::check(stake_ext == stakingexts.end(), "cannot select a new package if third parties are staked to it. use preselectpkg to remove all third party stakes");
 
       cidx.modify(acct, eosio::same_payer,
                   [&](auto &a) { a.pending_package = package; });
@@ -1187,7 +1202,7 @@ void apply(uint64_t receiver, uint64_t code, uint64_t action) {
                         (staketo)(unstaketo)(refundto)(refreceipt)
                         (claimrewards)(create)(issue)(transfer)
                         (open)(close)(retire)(preselectpkg)(retirestake)(xcallback)
-                        (selectpkg)(regpkg)(closeprv)(modifypkg)(disablepkg)(enablepkg))
+                        (selectpkg)(regpkg)(closeprv)(modifypkg)(disablepkg)(enablepkg)(usagex))
     }
   } else {
     switch (action) { EOSIO_DISPATCH_HELPER(dappservices, (xsignal)) }

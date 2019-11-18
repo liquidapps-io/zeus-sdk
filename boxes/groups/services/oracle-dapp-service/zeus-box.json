@@ -7,18 +7,15 @@
   "dependencies":[
     "dapp-services",
     "mocha",
-    "hooks-cpp-contracts"],
+    "hooks-cpp-contracts",
+    "oracle-web","oracle-self-history","oracle-random","oracle-sister-chain"],
   "install":{
     "contracts":{
       "oracleservice": true,
       "oracleconsumer": true
     },
     "npm":{
-      "node-fetch": true,
-      "tronweb": true,
-      "stockfish": true,
-      "ripple-lib":true,
-      "bitcoin-core":true
+      "node-fetch": true
     }
   }
 }

@@ -253,8 +253,8 @@ const generateServiceHppFile = (serviceModel) => {
 #include "../dappservices/_${name}_impl.hpp"\n
 
 
-#define ${upperName}_DAPPSERVICE_BASE_ACTIONS \\
-  ${commandsCodeText} \\
+#define ${upperName}_DAPPSERVICE_BASE_ACTIONS ${commandsCodeText.length ? '\\' : ''}
+  ${commandsCodeText} ${commandsHelpersCodeText.length ? '\\' : ''}
   ${commandsHelpersCodeText}
 
 

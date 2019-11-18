@@ -1,4 +1,4 @@
-const { deserialize, eosPrivate } = require('../dapp-services-node/common');
+const { emitUsage } = require('../dapp-services-node/common');
 var IPFS = require('ipfs-api');
 const { BigNumber } = require('bignumber.js');
 var sha256 = require('js-sha256').sha256;

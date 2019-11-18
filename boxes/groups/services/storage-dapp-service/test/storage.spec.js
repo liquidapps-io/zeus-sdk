@@ -2,7 +2,7 @@ import 'mocha';
 require('babel-core/register');
 require('babel-polyfill');
 const { assert } = require('chai'); // Using Assert style
-const { getTestContract } = require('../extensions/tools/eos/utils');
+const { getTestContract, getCreateKeys } = require('../extensions/tools/eos/utils');
 const fetch = require('node-fetch');
 
 const artifacts = require('../extensions/tools/eos/artifacts');
@@ -26,9 +26,13 @@ function postData(url = ``, data = {}) {
     })
     .then(response => response.json()); // parses response to JSON
 }
-var contractCode = 'readfnconsumer';
+var contractCode = 'eosio.token';
+var authContractCode = 'authenticator';
+var AuthClient = require('../extensions/tools/auth-client');
+
 var ctrt = artifacts.require(`./${contractCode}/`);
-describe(`Storage Service Test Contract`, () => {
+var ctrta = artifacts.require(`./${authContractCode}/`);
+describe(`LiquidStorage Test`, () => {
   var testcontract;
   const code = 'test1';
   var endpoint = "http://localhost:13015";
@@ -36,7 +40,9 @@ describe(`Storage Service Test Contract`, () => {
     (async() => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
-        await genAllocateDAPPTokens(deployedContract, 'readfn');
+        var deployedContractAuth = await deployer.deploy(ctrta, 'authenticato');
+
+        await genAllocateDAPPTokens(deployedContract, 'storage');
         testcontract = await getTestContract(code);
         done();
       }
@@ -45,25 +51,23 @@ describe(`Storage Service Test Contract`, () => {
       }
     })();
   });
-  const invokeReadFn = ({
-    method,
-    payload
-  }) => {
-    return postData(`${endpoint}/v1/dsp/readfndspsvc/read`, {
-      contract_code: code,
-      method,
-      payload
-    });
-  };
+
+  const serviceName = 'storage';
   var account = code;
-  it('Test Read', done => {
+  it('Upload File (authenticated)', done => {
     (async() => {
       try {
-        var res = await invokeReadFn({ method: "readtest", payload: { testnum: 123 } });
-        assert.equal(res.result, "hello-123");
+
+        var apiID = `pprovider1-${serviceName}`;
+        var authClient = new AuthClient(apiID, 'authenticato', null, endpoint);
+        var keys = await getCreateKeys(code);
+        const permission = "active";
+        const result = await authClient.invokeAuthedCall({ payload: { data: Buffer.from("test1234").toString('hex'), contract: account }, service: "liquidstorag", account, permission, keys, action: "upload_public", skipClientCode: true });
+        assert.equal(result.uri, "ipfs://zb2rhga33kcyDrMLZDacqR7wLwcBRVgo6sSvLbzE7XSw1fswH");
         done();
       }
       catch (e) {
+        console.log(e);
         done(e);
       }
     })();

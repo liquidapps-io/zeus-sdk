@@ -195,7 +195,7 @@ const uploadContract = async(args, name, contract, sidechain) => {
             account: name,
             vmtype: 0,
             vmversion: 0,
-            code: new Buffer(wasm).toString('hex')
+            code: Buffer.from(wasm).toString('hex')
           },
         },
 
