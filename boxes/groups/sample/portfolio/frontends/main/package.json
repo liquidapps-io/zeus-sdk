@@ -1,0 +1,46 @@
+{
+  "name": "example-dapp",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "lint": "eslint src/**/*.js src/**/*.jsx --fix"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@liquidapps/dapp-client": "^2.0.2615-staging",
+    "axios": "^0.19.0",
+    "bignumber.js": "^9.0.0",
+    "crypto": "^1.0.1",
+    "eosjs": "^20.0.0",
+    "eslint-plugin-react": "^7.16.0",
+    "eslint-plugin-sonarjs": "^0.4.0",
+    "node-sass": "^4.12.0",
+    "react": "^16.10.2",
+    "react-dom": "^16.10.2",
+    "react-scripts": "3.2.0",
+    "react-router-dom": "^5.1.2",
+    "semistandard": "^14.2.0",
+    "standard-ecies": "^1.0.0",
+    "wallet-address-validator": "^0.2.4"
+  }
+}

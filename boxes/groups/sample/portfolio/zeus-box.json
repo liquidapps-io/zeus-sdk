@@ -1,0 +1,38 @@
+{
+  "ignore": [
+    "README.md",
+    "LICENSE",
+    "zeus-box.json"
+  ],
+  "commands": {
+    "Deploy contract": "zeus migrate",
+    "Run frontend locally": "zeus run frontend main",
+    "Build frontend": "zeus build frontend main",
+    "Deploy frontend": "zeus deploy frontend main",
+    "Deploy and register frontend": "zeus deploy frontend main --ipfs --register portfolio"
+  },
+  "dependencies":[
+    "hooks-npm",
+    "mocha","seed-eos", 
+    "seed-migrations", 
+    "ipfs-dapp-service",
+    "vaccounts-dapp-service",
+    "oracle-dapp-service",
+    "cron-dapp-service",
+    "hooks-cpp-contracts",
+    "eos-common",
+    "seed-frontends",
+    "seed-models"],
+  "install":{
+    "contracts":{
+      "liquidportfolio": true
+    },
+    "npm-in-dirs":{
+      "frontends/main":{
+        "npm": {
+
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+@import 'src/App.module.scss';
+
+.container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    @include mobile {
+      margin-left: 25px;
+      margin-right: 25px;
+    }
+    @include tablet {
+      margin-left: 25px;
+      margin-right: 25px;
+    }
+}
+
+.logo {
+    width: 143px;
+    height: 24px;
+}
+
+.middle {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, 0);
+}
+  
+.headerTitle {
+    @include mobile {
+        display: none;
+    }
+    font-family: IBMPlexMono, sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    font-style: normal;
+    font-stretch: normal;
+    line-height: normal;
+    letter-spacing: normal;
+    color: $color-dark-blue;
+}

@@ -1,0 +1,45 @@
+{
+  "globals": {
+    "__COMMIT_HASH__": true,
+    "it": true,
+    "fetch": false
+  },
+  "plugins": ["sonarjs"],
+  "extends": [
+    "plugin:sonarjs/recommended",
+    "semistandard",
+    "plugin:react/recommended",
+    "eslint:recommended",
+    "plugin:react/recommended"
+  ],
+  "rules": {
+    "react/prop-types": 0,
+    "react/self-closing-comp": ["error", {
+      "component": true,
+      "html": false
+    }],
+    "brace-style": ["error", "stroustrup", { "allowSingleLine": true }],
+    "curly": ["error", "multi-or-nest"],
+    "function-paren-newline": ["error", { "minItems": 6 }],
+    "camelcase": "warn",
+    "no-console": "off",
+    "quotes": ["error", "single"],
+    "space-before-function-paren": [
+      "error",
+      {
+        "anonymous": "never",
+        "named": "never",
+        "asyncArrow": "never"
+      }
+    ]
+  },
+  "parser": "babel-eslint",
+  "parserOptions": {
+    "ecmaVersion": 6,
+    "sourceType": "module",
+    "allowImportExportEverywhere": true,
+    "ecmaFeatures": {
+      "jsx": true
+    }
+  }
+}

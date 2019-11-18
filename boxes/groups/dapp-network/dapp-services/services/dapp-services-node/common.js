@@ -597,7 +597,8 @@ var typesDict = {
   'vector<char>': 'bytes',
   'symbol_code': 'symbol_code',
   'checksum256': 'checksum256',
-  'eosio::symbol_code': 'symbol_code'
+  'eosio::symbol_code': 'symbol_code',
+  'uint8[][]': 'bytes[]'
 };
 const convertToAbiType = (aType) => {
   if (!typesDict[aType]) { throw new Error('unrecognized type', aType); }
