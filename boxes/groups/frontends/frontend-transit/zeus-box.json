@@ -9,6 +9,8 @@
     "npm-in-dirs":{
       "frontends/main":{
         "npm": {
+          "@scatterjs/core": "^2.7.47",
+          "@scatterjs/eosjs2": "^1.5.29",
           "eosjs": true,
           "eosjs-ecc": true,
           "scatterjs-core": true,
