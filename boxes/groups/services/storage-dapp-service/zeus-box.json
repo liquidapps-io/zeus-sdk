@@ -1,15 +1,20 @@
 {
   "ignore": [
     "README.md",
-    "LICENSE",    
+    "LICENSE",
     "zeus-box.json"
   ],
   "dependencies":[
     "dapp-services",
     "seed-utils",
     "mocha",
-    "hooks-cpp-contracts"],
+    "hooks-cpp-contracts",
+    "auth-dapp-service"],
   "install":{
+    "npm":{
+      "tar-stream": true,
+      "stream-buffers": true
+    },
     "contracts":{
       "storageservice": true
     }

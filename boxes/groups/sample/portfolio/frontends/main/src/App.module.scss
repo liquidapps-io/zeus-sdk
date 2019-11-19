@@ -1,0 +1,73 @@
+// font global imports
+
+@import url("https://fonts.googleapis.com/css?family=Rajdhani:400,500,600,700");
+@import url("https://fonts.googleapis.com/css?family=IBM+Plex+Mono:400,500,600,700");
+
+// mixin global sizes
+
+$mobile: 500px;
+
+@mixin mobile {
+  @media (max-width: #{$mobile}) {
+    @content;
+  }
+}
+
+$tablet: 501px;
+
+@mixin tablet {
+  @media (min-width: #{$tablet}) and (max-width: #{$desktop}) {
+    @content;
+  }
+}
+
+$desktop: 1000px;
+
+@mixin desktop {
+  @media (min-width: #{$desktop}) {
+    @content;
+  }
+}
+
+// color variables
+
+$color-white: #FFFFFF;
+$color-light-blue: #30E0FF;
+$color-blue: #3131FF;
+$color-dark-blue: #0F1032;
+$color-purple: #201F46;
+$color-light-grey: #F4F5FB;
+$color-grey: #4B5671;
+$color-error: red;
+
+body {
+  background-color: $color-light-grey;
+}
+
+// default container
+
+.rootContainer {
+  margin: auto;
+  @include desktop {
+    width: 960px;
+  }
+}
+
+/* NavLink overrides */
+
+a {
+  text-decoration: none;
+}
+a:visited {
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: none;
+}
+a:focus {
+  text-decoration: none;
+}
+a:hover,
+a:active {
+  text-decoration: none;
+}

@@ -1,0 +1,63 @@
+@import 'src/App.module.scss';
+
+@mixin base {
+    font-family: Rajdhani, sans-serif;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 12px 16px;
+    cursor: pointer;
+    @include mobile {
+      margin: auto;
+    }
+    @include tablet {
+      margin: auto;
+    }
+  }
+  
+  .primary {
+    @include base;
+    background: $color-blue;
+    transition: 0.3s;
+    border: none;
+    color: white;
+    &:hover {
+      background: $color-light-blue;
+      color: $color-dark-blue;
+    }
+  }
+  
+  .secondary {
+    @include base;
+    background: $color-dark-blue;
+    transition: 0.3s;
+    border: none;
+    color: white;
+    &:hover {
+      background: $color-light-blue;
+      color: $color-dark-blue;
+    }
+  }
+  
+  .outline {
+    @include base;
+    background: transparent;
+    border: 1px solid $color-blue;
+    transition: 0.3s;
+    color: white;
+    &:hover {
+      border: 1px solid $color-light-blue;
+    }
+  }
+  
+  .disabled {
+    @include base;
+    border: none;
+    color: $color-white;
+    background: #97a5b8;
+    cursor: not-allowed;
+    &:hover {
+      color: #333;
+      background: #f4f5fb;
+    }
+  }
+  

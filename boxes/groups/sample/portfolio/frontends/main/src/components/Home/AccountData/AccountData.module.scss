@@ -1,0 +1,110 @@
+@import 'src/App.module.scss';
+
+.container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background: $color-dark-blue;
+    padding-top: 50px;
+    padding-bottom: 50px;
+    @include mobile {
+      margin-left: 25px;
+      margin-right: 25px;
+      padding-left: 25px;
+      padding-right: 25px;
+      margin-bottom: 70px;
+    }
+    @include tablet {
+    margin-left: 25px;
+    margin-right: 25px;
+    padding-left: 25px;
+    padding-right: 25px;
+      margin-bottom: 70px;
+    }
+    @include desktop {
+      margin-bottom: 90px;
+    }
+}
+  
+.title {
+    @include mobile {
+        font-size: 16px;
+    }
+    font-family: IBMPlexMono, sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    font-style: normal;
+    font-stretch: normal;
+    line-height: normal;
+    letter-spacing: normal;
+    color: $color-white;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+}
+  
+.dataTitle {
+    @include mobile {
+        font-size: 12px;
+    }
+    font-family: Rajdhani, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    font-style: normal;
+    font-stretch: normal;
+    line-height: normal;
+    letter-spacing: normal;
+    color: $color-white;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+  
+.dataTotal {
+    font-family: Rajdhani, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    font-style: normal;
+    font-stretch: normal;
+    line-height: normal;
+    letter-spacing: normal;
+    color: $color-white;
+}
+
+.dataBox {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    @include mobile {
+        flex-direction: column;
+    }
+    @include tablet {
+        flex-direction: column;
+    }
+}
+
+.subDataBox {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.verticalSpacing {
+    @include mobile {
+        padding-top: 0px;
+    }
+    @include tablet {
+        padding-top: 0px;
+    }
+    @include desktop {
+        margin-top: 20px;
+    }
+}
+
+.verticalSpacingMobileTablet {
+    @include mobile {
+        padding-top: 15px;
+    }
+    @include tablet {
+        padding-top: 15px;
+    }
+}

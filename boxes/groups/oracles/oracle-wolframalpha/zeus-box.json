@@ -1,0 +1,13 @@
+{
+  "ignore": [
+    "README.md",
+    "LICENSE",
+    "zeus-box.json"
+  ],
+  "dependencies":[
+    "oracle-dapp-service"],
+  "install":{
+    "npm":{
+    }
+  }
+}

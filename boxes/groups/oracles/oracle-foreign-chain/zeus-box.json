@@ -1,0 +1,16 @@
+{
+  "ignore": [
+    "README.md",
+    "LICENSE",
+    "zeus-box.json"
+  ],
+  "dependencies":[
+    "oracle-dapp-service"],
+  "install":{
+    "npm":{
+      "tronweb": true,
+      "ripple-lib":true,
+      "bitcoin-core":true
+    }
+  }
+}

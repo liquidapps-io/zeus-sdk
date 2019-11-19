@@ -1,6 +1,7 @@
 const paccount = process.env.DSP_ACCOUNT || process.env.PROOF_PROVIDER_ACCOUNT || 'pprovider1';
 const paccountPermission = process.env.DSP_ACCOUNT_PERMISSIONS || 'active';
 const fetch = require('node-fetch');
+const { getCreateKeys } = require('../../extensions/helpers/key-utils');
 const { dappServicesContract, getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
 const { loadModels } = require('../../extensions/tools/models');
 const { getUrl } = require('../../extensions/tools/eos/utils');
@@ -48,7 +49,7 @@ const proxy = httpProxy.createProxyServer();
 
 proxy.on('error', function(err, req, res) {
   if (err) {
-    console.error(err);
+    logger.error(err);
   }
   if (!res) { return; }
   res.writeHead(500, {
@@ -393,7 +394,7 @@ const processRequstWithBody = async(req, res, body, actionHandlers, serviceName,
 
     var methodName = uriParts[4];
     var method = api[methodName];
-    if (!method) { return notFound(res, 'method not found'); }
+    if (!method) { return notFound(res, `method not found ${methodName}`); }
 
     req.body = body;
     try {
@@ -461,7 +462,7 @@ const processRequstWithBody = async(req, res, body, actionHandlers, serviceName,
       const endpoint = await processFn(actionHandlers, actionObject, true, serviceName, handlers);
       if (endpoint === 'retry') {
         garbage.push({ ...actionObject, rollback: true });
-        console.log('Service request done:', trys++);
+        logger.debug(`Service request done: ${trys++}`);
         continue;
       }
 
@@ -489,6 +490,7 @@ const processRequstWithBody = async(req, res, body, actionHandlers, serviceName,
     }
     return null;
   }
+  return notFound(res, `too many tries ${uri}`);
 }
 const pjson = require('../../package.json');
 const genNode = async(actionHandlers, port, serviceName, handlers, abi, sidechain) => {
@@ -595,7 +597,8 @@ var typesDict = {
   'vector<char>': 'bytes',
   'symbol_code': 'symbol_code',
   'checksum256': 'checksum256',
-  'eosio::symbol_code': 'symbol_code'
+  'eosio::symbol_code': 'symbol_code',
+  'uint8[][]': 'bytes[]'
 };
 const convertToAbiType = (aType) => {
   if (!typesDict[aType]) { throw new Error('unrecognized type', aType); }
@@ -618,4 +621,94 @@ const generateABI =
   (serviceModel) =>
   Object.keys(serviceModel.commands).map(c => generateCommandABI(c, serviceModel.commands[c]));
 
-module.exports = { deserialize, generateABI, genNode, genApp, forwardEvent, resolveProviderData, resolveProvider, processFn, handleAction, paccount, proxy, eosPrivate, eosconfig, nodeosEndpoint, resolveProviderPackage, eosDSPGateway, paccountPermission, encodeName, decodeName, getProviders, getEosForSidechain };
+const detectXCallback = async(eos) => {
+  var contract = await eos.contract(dappServicesContract);
+  if (contract.xcallback)
+    return true;
+  else return false;
+}
+let enableXCallback = null;
+
+const emitUsage = async(contract, service, quantity = 1, sidechain = null, meta = {}, requestId = '') => {
+  const provider = paccount;
+  const currentPackage = await resolveProviderPackage(contract, service, provider, sidechain);
+  const eosProv = await getEosWrapper({
+    chainId: process.env.NODEOS_CHAINID, // 32 byte (64 char) hex string
+    expireInSeconds: 120,
+    sign: true,
+    broadcast: true,
+    blocksBehind: 10,
+    httpEndpoint: `http${process.env.NODEOS_SECURED === 'true' || false ? 's':''}://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_PORT || 8888}`,
+    keyProvider: process.env.DSP_PRIVATE_KEY || (await getCreateKeys(paccount)).active.privateKey
+  });
+  if (enableXCallback === null) {
+    enableXCallback = await detectXCallback(eosProv);
+  }
+  var pactions = [];
+  if (sidechain) {
+    var eosSideChain = await getEosWrapper({
+      expireInSeconds: 120,
+      sign: true,
+      broadcast: true,
+      blocksBehind: 10,
+      httpEndpoint: sidechain.nodeos_endpoint,
+      keyProvider: process.env.DSP_PRIVATE_KEY || (await getCreateKeys(paccount, null, false, sidechain)).active.privateKey
+    });
+    // todo: get payer account mapping from eosSideChain
+    // todo: get dsp account mapping
+
+  }
+  var quantityAsset = `${(quantity / 1000).toFixed(4)} QUOTA`;
+  if (enableXCallback === true) {
+    pactions.push({
+      account: dappServicesContract,
+      name: "xcallback",
+      authorization: [{
+        actor: paccount,
+        permission: paccountPermission,
+      }],
+      data: {
+        provider: paccount,
+        request_id: requestId,
+        meta: JSON.stringify(meta)
+      },
+    });
+  }
+  pactions.push({
+    account: "dappservices",
+    name: "usagex",
+    authorization: [{
+      actor: paccount,
+      permission: paccountPermission,
+    }],
+    data: {
+      usage_report: {
+        "provider": paccount,
+        "package": currentPackage,
+        "payer": contract,
+        "service": service,
+        "quantity": quantityAsset,
+        "success": true
+      }
+    }
+  });
+  try {
+    await eosProv.transact({
+      actions: pactions
+    }, {
+      expireSeconds: 120,
+      sign: true,
+      broadcast: true,
+      blocksBehind: 10
+    });
+
+
+  }
+  catch (e) {
+    // fail if fails
+    console.log('provisioning failed', e);
+    throw new Error("provisioning failed");
+  }
+
+}
+module.exports = { deserialize, generateABI, genNode, genApp, forwardEvent, resolveProviderData, resolveProvider, processFn, handleAction, paccount, proxy, eosPrivate, eosconfig, nodeosEndpoint, resolveProviderPackage, eosDSPGateway, paccountPermission, encodeName, decodeName, getProviders, getEosForSidechain, emitUsage, detectXCallback };

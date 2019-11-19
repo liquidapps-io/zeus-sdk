@@ -1,0 +1,38 @@
+@import url("https://fonts.googleapis.com/css?family=Rajdhani:400,500,600,700");
+@import url("https://fonts.googleapis.com/css?family=IBM+Plex+Mono:400,500,600,700");
+body {
+  background-color: #F4F5FB;
+}
+
+.rootContainer {
+  margin: auto;
+}
+
+@media (min-width: 1000px) {
+  .rootContainer {
+    width: 960px;
+  }
+}
+
+/* NavLink overrides */
+a {
+  text-decoration: none;
+}
+
+a:visited {
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+a:focus {
+  text-decoration: none;
+}
+
+a:hover,
+a:active {
+  text-decoration: none;
+}
+/*# sourceMappingURL=App.module.css.map */

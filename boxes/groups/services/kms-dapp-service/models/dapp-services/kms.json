@@ -1,0 +1,35 @@
+{
+    "name":"kms",
+    "port": 13214,
+    "prettyName":"LiquidKMS",
+    "description":"Key Management Service",
+    "stage":"WIP",
+    "version": "0.0",
+    "contract": "kmsservices1",
+    "generateStubs": true,
+    "commands": {
+        "sdummy3": {
+            "blocking": false,
+            "request": {
+                "data": "std::vector<char>"
+            },
+            "callback": {
+                "size": "uint32_t",
+                "uri": "std::string"
+            },
+            "signal": {
+                "size": "uint32_t",
+                "uri": "std::string"
+            }
+        }
+    },
+    "api":{
+        "create_key":{
+            "authentication":{
+                "type":"payer",
+                "contract":"authenticato"
+            }
+        }
+    }
+
+}

@@ -1,0 +1,101 @@
+@import 'src/App.module.scss';
+
+.container {
+    display: flex;
+    flex-direction: column;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    @include mobile {
+      margin-left: 25px;
+      margin-right: 25px;
+    }
+    @include tablet {
+      margin-left: 25px;
+      margin-right: 25px;
+    }
+}
+
+.footerHr {
+  background-color: #2e2e5d;
+  width: 100%;
+}
+
+.flexColumn{
+    display: flex;
+    justify-content: space-between;
+    @include mobile {
+        flex-direction: column;
+    }
+}
+
+.flexSubColumn{
+    display: flex;
+    flex-direction: column;
+}
+
+.flexSubColumnCenter{
+    display: flex;
+    flex-direction: column;
+    @include mobile {
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    @include tablet {
+        position: absolute;
+        left: 50%;
+        transform: translate(-50%, 0);
+    }
+    @include desktop {
+        position: absolute;
+        left: 50%;
+        transform: translate(-50%, 0);
+    }
+}
+
+.columnTitleText {
+    font-family: Rajdhani, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: normal;
+    letter-spacing: normal;
+    color: $color-purple;
+    padding-bottom: 18px;
+    text-transform: uppercase;
+}
+
+.columnText {
+    font-family: Rajdhani, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    font-style: normal;
+    font-stretch: normal;
+    line-height: normal;
+    letter-spacing: normal;
+    color: $color-blue;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    &:hover {
+      color: $color-light-blue;
+    }
+}
+
+.columnTextDiv {
+    padding-bottom: 14px;
+}
+
+.copyright {
+  font-family: Rajdhani, sans-serif;
+  font-size: 14px;
+  font-weight: normal;
+  font-style: normal;
+  font-stretch: normal;
+  line-height: normal;
+  letter-spacing: normal;
+  color: $color-grey;
+}
+
+.footerImage {
+  padding-right: 10px;
+  height: 22px;
+}

@@ -1,7 +1,7 @@
 var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
 var apiID = "ssAuthAPI";
 var AuthClient = require('../../extensions/tools/auth-client');
-// todo: periodically call "usage" 
+// todo: periodically call "usage"
 // todo: add multisig signature from DSP
 var permissionCode = "identify";
 var permissionCodes = [permissionCode];

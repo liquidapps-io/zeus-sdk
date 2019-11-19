@@ -3,42 +3,57 @@
     "port": 13142,
     "contract": "liquidstorag",
     "prettyName": "LiquidStorage",
-    "stage":"WIP",
-    "version": "0.0",
+    "stage":"Alpha",
+    "version": "0.5",
     "description": "Distributed storage and hosting",
+    "generateStubs": true,
     "commands": {
-        "strstore":{
+         "sdummy": {
             "blocking": false,
-            "request":{
+            "request": {
+                "data": "std::vector<char>"
             },
-            "callback":{
-                "size":"uint64_t"
+            "callback": {
+                "size": "uint32_t",
+                "uri": "std::string"
             },
-            "signal":{
-                "size":"uint64_t"
-            }
-        },
-        "strhold":{
-            "blocking": false,
-            "request":{
-            },
-            "callback":{
-                "size":"uint64_t"
-            },
-            "signal":{
-                "size":"uint64_t"
-            }
-        },
-        "strserve":{
-            "blocking": false,
-            "request":{
-            },
-            "callback":{
-                "size":"uint64_t"
-            },
-            "signal":{
-                "size":"uint64_t"
+            "signal": {
+                "size": "uint32_t",
+                "uri": "std::string"
             }
         }
+    },
+    "api": {
+        "upload_public":{
+            "authentication":{
+                "type":"payer",
+                "contract":"authenticato",
+                "permission":"active"
+            }
+        },
+        "upload_private":{
+            "authentication":{
+                "type":"payer",
+                "contract":"authenticato",
+                "permission":"active"
+            }
+        },
+        "decrypt":{
+            "authentication":{
+                "type":"custom",
+                "contract":"authenticato"
+            }
+        },
+        "unpin":{
+            "authentication":{
+                "type":"payer",
+                "contract":"authenticato",
+                "permission":"active"
+            }
+        },
+        "ipfshttpgw":{
+
+        }
     }
+
 }

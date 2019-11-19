@@ -15,6 +15,14 @@
     "history-dapp-service",
     "readfn-dapp-service",
     "dns-dapp-service",
-    "vcpu-dapp-service"
+    "vcpu-dapp-service",
+    "oracle-web",
+    "oracle-self-history",
+    "oracle-foreign-chain",
+    "oracle-sister-chain",
+    "oracle-wolframalpha",
+    "oracle-random",
+    "oracle-sql",
+    "oracle-vcpu"
   ]
 }

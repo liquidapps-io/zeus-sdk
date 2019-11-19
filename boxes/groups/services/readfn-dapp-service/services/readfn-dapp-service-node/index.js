@@ -1,6 +1,6 @@
 var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
 const { getCreateKeys } = require('../../extensions/helpers/key-utils');
-const { eosDSPGateway, paccount, resolveProviderPackage, paccountPermission } = require('../dapp-services-node/common');
+const { emitUsage, eosDSPGateway, paccount, resolveProviderPackage, paccountPermission } = require('../dapp-services-node/common');
 const { loadModels } = require("../../extensions/tools/models");
 
 
@@ -11,7 +11,7 @@ nodeFactory('readfn', {
       // todo: verify api key or ref domain
 
       try {
-        const { contract_code, method, payload } = body;
+        const { contract_code, method, payload, sidechain } = body;
         var contract = await eosDSPGateway.contract(contract_code);
         let key = {};
         if (!process.env.DSP_PRIVATE_KEY)
@@ -20,10 +20,11 @@ nodeFactory('readfn', {
         var loadedExtensions = await loadModels("dapp-services");
         var service = loadedExtensions.find(a => a.name == "readfn").contract;
 
-        var resolvedPackages = await resolveProviderPackage(contract_code, service, paccount);
 
         if (method.indexOf("read") !== 0)
           throw new Error("readfn can only invoke actions named 'read*'");
+        await emitUsage(contract_code, service, 1, sidechain, {})
+
         try {
           await contract[method](payload, {
             authorization: `${paccount}@${paccountPermission}`,
@@ -47,6 +48,7 @@ nodeFactory('readfn', {
             throw new Error(resMsg);
           var result = parsedMsg[1];
           res.send(JSON.stringify({ result }));
+
           return;
         }
         throw new Error("'read functions' must complete with READFN_RETURN(result)");

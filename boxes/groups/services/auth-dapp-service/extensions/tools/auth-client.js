@@ -25,7 +25,7 @@ function postData(url = ``, data = {}) {
       var text = await response.text();
       var json = JSON.parse(text);
       if (json.error)
-        throw new Error(json.error);
+        throw new Error(`server error: ${JSON.stringify(json.error)}`);
       return json;
     }); // parses response to JSON
 }
@@ -36,9 +36,8 @@ class AuthClient {
     this.method = "x" + this.methodSuffix;
     this.authContract = authContract;
     this.apiID = apiID;
-    this.endpoint = this.endpoint;
+    this.endpoint = endpoint;
     this.useServer = endpoint !== undefined;
-    console.log("eosDSPGateway", eosDSPGateway.config);
     this.chainId = chainId || "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906";
     this.abi = null;
   };
@@ -49,7 +48,6 @@ class AuthClient {
   };
 
   async validateSignature(trx, pk, signature) {
-    console.log("trx", trx);
     // const eos = Eos({ defaults: true })
     const { structs, types } = eosDSPGateway.fc
     var Transaction = structs.transaction;
@@ -85,10 +83,10 @@ class AuthClient {
     var hexData = actionData;
     return deserialize(this.abi, hexData, this.methodSuffix, "hex");
   }
-  async auth({ trx, max_ttl, contract, method }) {
+  async auth({ trx, max_ttl, parsedTrx, contract, method }) {
 
     //  verify single action
-    var actions = trx.transaction.transaction.actions;
+    var actions = parsedTrx.actions;
     if (actions.length !== 1) {
       throw new Error('must have only one action in auth transaction');
     }
@@ -98,7 +96,7 @@ class AuthClient {
     }
     var authorization = action.authorization[0];
 
-    var expiry = trx.transaction.transaction.expiration;
+    var expiry = parsedTrx.expiration;
     if (false) { // expiry > now + ttl*1000
       // todo: verify transaction expiration time is not more than max_ttl
     }
@@ -114,7 +112,8 @@ class AuthClient {
     }
     var account = authorization.actor;
     var permission = authorization.permission;
-    var actionData = await this.getActionData(action.data, method, actContract);
+    // var actionData = await this.getActionData(action.data, method, actContract);
+    var actionData = action.data;
 
     if (await this.isFake(account)) {
       var clientCode = actionData.client_code;
@@ -122,30 +121,25 @@ class AuthClient {
       // extract public key
 
       // validate public_key is valid and transaction is signed correctly
-      await this.validateSignature(trx, clientData.pk, trx.transaction.signatures[0]);
+      await this.validateSignature(parsedTrx, clientData.pk, trx.signatures[0]);
       return "true";
     }
     try {
       // post transaction
-      var res = await eosDSPGateway.pushTransaction(trx.transaction);
+      var res = await eosDSPGateway.pushSignedTransaction(trx);
       // handle audited transactions (non failing)
       // validate auth from transaction result
     }
     catch (expectedError) {
+
       // validate auth from transaction result
       if (expectedError.message)
         expectedError = expectedError.message;
-
-      if (typeof expectedError === "string") {
-        expectedError = JSON.parse(expectedError);
-      }
-      console.log("expectedError", expectedError.error.details);
-      var resMsg = expectedError.error.details[0].message;
+      var resMsg = expectedError;
       var parsedMsg = resMsg.split("assertion failure with message: afn:", 2);
       if (parsedMsg.length != 2)
         throw new Error(resMsg);
       var result = parsedMsg[1];
-      console.log("result", result);
       return result;
     }
     throw new Error("'auth functions' must complete with an exception");
@@ -186,7 +180,9 @@ class AuthClient {
   };
 
   async validate({ req, trx, payload, allowClientSide }, callback) {
-    var actions = trx.transaction.transaction.actions;
+    trx.serializedTransaction = Object.values(trx.serializedTransaction);
+    var parsedTrx = await eosDSPGateway.deserializeTransactionWithActions(trx.serializedTransaction);
+    var actions = parsedTrx.actions;
     var action = actions[0];
     var authorization = action.authorization[0];
 
@@ -198,8 +194,8 @@ class AuthClient {
     var contract = this.authContract;
 
 
-    // todo: extract from trx
-    var actionData = await this.getActionData(action.data, this.method, contract);
+    // var actionData = await this.getActionData(action.data, this.method, contract);
+    var actionData = action.data;
 
     var { payload_hash, client_code } = actionData;
     // verify dataSignature == calculatedSignature
@@ -214,29 +210,30 @@ class AuthClient {
     }
 
     // verify request params (ip, cookie, publickey, account+permission, etc)
-    const ip = "1.2.3.4"; //todo: extract from req
-    if (clientData.ip != ip) {
-      throw new Error('ip mismatch');
+    // const ip = undefined; //todo: extract from req
+    // if (clientData.ip != ip) {
+    //   throw new Error('ip mismatch ' + clientData.ip);
 
-    }
+    // }
 
     // throttle/block
 
     // verify client_code is from this API (by uuid)
-    if (clientData.apiID != this.apiID) {
-      throw new Error('wrong apiID');
-    }
+    // if (clientData.apiID != this.apiID) {
+    //   throw new Error('wrong apiID');
+    // }
     // todo: validate clientCode didnt expire
 
     var max_ttl = 10;
     if (await this.isFake(account) && !allowClientSide)
       throw new Error('anonymous actions not allowed');
 
-    // invoke auth call 
+    // invoke auth call
     var authRes = await this.auth({
       trx,
       max_ttl,
       contract,
+      parsedTrx,
       method: this.method
     });
     if (authRes !== "true")
@@ -244,8 +241,8 @@ class AuthClient {
 
     return await callback({ payload, clientCode: client_code, account, permission });
   };
-  async getClientCodeFromServer({ publickey }) {
-    return (await postData(`${this.endpoint}/v1/dsp/authfndspsvc/code`, { publickey })).code;
+  async getClientCodeFromServer({ publickey, service = 'authfndspsvc' }) {
+    return (await postData(`${this.endpoint}/v1/dsp/${service}/code`, { publickey })).code;
   };
 
   async createAPICallTransaction(contract, method, account, permission, actionData, ttl, keys) {
@@ -286,13 +283,17 @@ class AuthClient {
       action
     })
   };
+
   async invokeAuthedCall({
     payload,
     account,
     permission = "api",
     keys,
     contract,
-    action = 'auth_account_call'
+    action = 'auth_account_call',
+    service = 'authfndspsvc',
+    skipClientCode = false,
+    skipAdditionalSig = false
   }) {
 
     var payloadStr = JSON.stringify(payload);
@@ -301,10 +302,12 @@ class AuthClient {
     var opts = {};
     if (account === "............")
       opts.publickey = keys.publicKey;
-
-    var clientCode = await this.getClientCodeFromServer(opts);
-
-    var signature = await this.sign(payload_hash, account, keys, ttl, clientCode);
+    let clientCode = '';
+    if (!skipClientCode)
+      clientCode = await this.getClientCodeFromServer({ publicKey: opts.publickey });
+    let signature = '';
+    if (!skipAdditionalSig)
+      signature = await this.sign(payload_hash, account, keys, ttl, clientCode);
     var actionData = {
       account,
       permission,
@@ -314,11 +317,12 @@ class AuthClient {
       current_provider: "",
       "package": ""
     }
+    contract = contract || this.authContract;
     var trx = await this.createAPICallTransaction(contract, this.method, account, permission, actionData, ttl, keys);
     if (!this.useServer)
       throw new Error('not supported yet')
     // to a test api
-    return postData(`${this.endpoint}/v1/dsp/authfndspsvc/${action}`, {
+    return postData(`${this.endpoint}/v1/dsp/${service}/${action}`, {
       trx,
       payload: payloadStr
     });

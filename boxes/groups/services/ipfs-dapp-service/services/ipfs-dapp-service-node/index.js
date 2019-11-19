@@ -252,7 +252,7 @@ const getRowRaw = async(contract, table, scope, key, keytype, buckets, shards, s
   return await extractRowFromShardData(shardData, bucket, scope, key, contract, sidechain);
 };
 
-const deserializeRow = async(contract, table, rowRaw, sidechain) => {
+const deserializeRow = async(contract, table, rowRaw, sidechain, encoding) => {
   if (!rowRaw) { return; }
   // get abi
   let currentRPC = rpc;
@@ -271,7 +271,7 @@ const deserializeRow = async(contract, table, rowRaw, sidechain) => {
     return;
   }
   const structName = abiTable.type;
-  return deserialize(abi.structs, rowRaw, structName);
+  return deserialize(abi.structs, rowRaw, structName, encoding);
 };
 
 async function verifyIPFSConnection() {
@@ -334,10 +334,11 @@ nodeFactory('ipfs', {
         const keytype = body.keytype ? body.keytype : null;
         const buckets = body.buckets ? body.buckets : 64;
         const shards = body.shards ? body.shards : 1024;
+        const encoding = body.encoding ? body.encoding : 'base64';
 
         const rowRaw = await getRowRaw(contract, table, scope, key, keytype, buckets, shards, body.sidechain);
         logger.debug(`rowRaw ${rowRaw}`);
-        const row = await deserializeRow(contract, table, rowRaw, body.sidechain);
+        const row = await deserializeRow(contract, table, rowRaw, body.sidechain, encoding);
         // get abi
         // parse object
         if (!row)

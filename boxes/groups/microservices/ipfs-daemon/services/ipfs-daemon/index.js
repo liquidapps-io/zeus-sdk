@@ -9,16 +9,18 @@ const { promisify } = require('util');
 const fs = require('fs');
 const IPFSFactory = require('ipfsd-ctl');
 
-function error (e) {
+function error(e) {
   console.error(e);
   fs.writeFileSync('.out.txt', e);
   process.exit(1);
 }
 
-async function run () {
+async function run() {
   const f = IPFSFactory.create({ type: 'go' });
-  try { await kill(5001); } catch (e) {}
-  try { await kill(4002); } catch (e) {}
+  try { await kill(5001); }
+  catch (e) {}
+  try { await kill(4002); }
+  catch (e) {}
   f.spanwAsync = promisify(f.spawn);
 
   const ipfsd = await f.spanwAsync({
@@ -28,7 +30,8 @@ async function run () {
           '/ip4/0.0.0.0/tcp/4002',
           '/ip4/127.0.0.1/tcp/4003/ws'
         ],
-        API: '/ip4/127.0.0.1/tcp/5001'
+        API: '/ip4/127.0.0.1/tcp/5001',
+        Gateway: '/ip4/0.0.0.0/tcp/8080'
       },
       Bootstrap: [
         '/ip4/104.236.176.52/tcp/4001/ipfs/QmSoLnSGccFuZQJzRadHn95W2CrSFmZuTdDWP8HXaHca9z',
