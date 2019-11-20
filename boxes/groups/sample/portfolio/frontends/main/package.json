@@ -2,8 +2,6 @@
   "name": "example-dapp",
   "version": "0.1.0",
   "private": true,
-  "dependencies": {
-  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
@@ -37,10 +35,11 @@
     "node-sass": "^4.12.0",
     "react": "^16.10.2",
     "react-dom": "^16.10.2",
-    "react-scripts": "3.2.0",
     "react-router-dom": "^5.1.2",
+    "react-scripts": "3.2.0",
     "semistandard": "^14.2.0",
     "standard-ecies": "^1.0.0",
-    "wallet-address-validator": "^0.2.4"
+    "wallet-address-validator": "^0.2.4",
+    "js-sha256": "^0.9.0"
   }
 }
