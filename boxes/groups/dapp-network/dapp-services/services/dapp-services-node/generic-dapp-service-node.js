@@ -180,7 +180,7 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
         name: "xcallback",
         authorization: [{
           actor: paccount,
-          permission: 'active',
+          permission: paccountPermission,
         }],
         data: {
           provider: sidechain_provider,
@@ -194,7 +194,7 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
       name: response.action,
       authorization: [{
         actor: sidechain_provider,
-        permission: 'active',
+        permission: paccountPermission,
       }],
       data: response.payload,
     });
