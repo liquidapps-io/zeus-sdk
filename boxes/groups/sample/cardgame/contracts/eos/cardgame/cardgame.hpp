@@ -161,5 +161,5 @@ CONTRACT_START()
     void nextround(player_struct payload);
 
     VACCOUNTS_APPLY(((player_struct)(login))((player_struct)(startgame))((player_struct)(endgame))((player_struct)(nextround))((play_struct)(playcard)))
-CONTRACT_END((login)(startgame)(playcard)(nextround)(endgame)(xdcommit)(regaccount))
+CONTRACT_END((login)(startgame)(playcard)(nextround)(endgame)(xdcommit)(regaccount)(xvinit))
 
