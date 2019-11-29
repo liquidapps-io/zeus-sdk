@@ -3,6 +3,7 @@ var os = require('os');
 var fs = require('fs');
 var { execPromise, emojMap } = require('../helpers/_exec');
 var temp = require('temp');
+const mapping = require('../mapping');
 
 const { promisify } = require('util');
 const mkdir = promisify(temp.mkdir); // (A)
@@ -34,7 +35,6 @@ function copyFileSync(source, target, simulate, newIgnoreList, rootPath) {
     fs.chmodSync(targetFile, stats.mode);
   }
 }
-var mapping = require('../mapping');
 
 function copyFolderRecursiveSync(source, target, simulate, ignoreList, newIgnoreList, rootPath) {
   var files = [];
@@ -89,7 +89,8 @@ const handler = async (args, globalCopyList = []) => {
   var boxName = args.box;
   // var repo = boxName.split('/')[0];
   // var repo = boxName.split('/')[1];
-  if (mapping[boxName]) { boxName = mapping[boxName]; }
+  const boxes = mapping.load(args);
+  if (boxes[boxName]) { boxName = boxes[boxName]; }
   var extractPath = await mkdir('zeus');
   let stdout;
   var inputPath;

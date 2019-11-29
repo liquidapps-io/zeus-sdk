@@ -7,6 +7,7 @@ module.exports = {
   },
   command: 'list-boxes',
   handler: async (args) => {
-    console.log(Object.keys(mapping).join('\n'));
+    const boxes = mapping.load(args);
+    console.log(Object.keys(boxes).join('\n'));
   }
 };

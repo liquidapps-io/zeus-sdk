@@ -1,6 +1,7 @@
-var path = require('path');
-var os = require('os');
-var fs = require('fs');
+const path = require('path');
+const os = require('os');
+const fs = require('fs');
+const mapping = require('../../mapping');
 var { execPromise } = require('../../helpers/_exec');
 var temp = require('temp');
 var AWS = require('aws-sdk');
@@ -120,12 +121,11 @@ module.exports = {
     // var archive = `https://github.com/${}/${}/archive/master.zip`;
     // https://github.com/zeit/serve/archive/master.zip
     if (args['update-mapping']) {
-      console.log('updating local mapping', packageName);
+      console.log('updating local mapping for', packageName);
 
-      var mappingFile = path.resolve(__dirname, '../../mapping.js');
-      var boxes = require('../../mapping');
+      var boxes = mapping.load(args);
       boxes[packageName] = uri;
-      fs.writeFileSync(path.resolve(mappingFile), `module.exports = ${JSON.stringify(boxes, null, 2)};`);
+      mapping.save(args, boxes);
     }
     console.log('done.');
     process.exit();

@@ -1,4 +1,25 @@
-module.exports = {
+var path = require('path');
+var fs = require('fs');
+
+const MAPPINGFILE = 'mapping.json';
+
+const load = (args) => {
+  const mappingFile = path.join(args.storagePath, MAPPINGFILE);
+  var mapping;
+  if (fs.existsSync(mappingFile)) {
+    mapping = JSON.parse(fs.readFileSync(mappingFile));
+  } else {
+    mapping = DEFAULT;
+  }
+  return mapping;
+};
+
+const save = (args, mapping) => {
+  const mappingFile = path.join(args.storagePath, MAPPINGFILE);
+  fs.writeFileSync(mappingFile, JSON.stringify(mapping, null, 2));
+};
+
+const DEFAULT = {
   'microauctions': 'https://s3.us-east-2.amazonaws.com/liquidapps.artifacts/boxes/783f09bb892346fb1aae580d8d6c3fd57427b0baaa1228121e01f6f1bf2fba15.zip',
   'test-extensions': 'https://s3.us-east-2.amazonaws.com/liquidapps.artifacts/boxes/94f4a35006cb6b398affb3aa4835e239943c9f812e5562a8893afcca34ca682e.zip',
   'seed-migrations': 'https://s3.us-east-2.amazonaws.com/liquidapps.artifacts/boxes/0e17d894a1613e76d7148f5dbfa6507e95f9c5d7b42aa84983b1c436061106c9.zip',
@@ -57,3 +78,5 @@ module.exports = {
   'eos-client-js': 'https://s3.us-east-2.amazonaws.com/liquidapps.artifacts/boxes/3d7874eaca665d69d7ea8a3cd07145724a4e0b4430e43d410ffd50a6f1fba48d.zip',
   'cardgame': 'https://s3.us-east-2.amazonaws.com/liquidapps.artifacts/boxes/bddc9f188c638a349c52b8df0e58479734474711f708e26729f058984827c63c.zip'
 };
+
+module.exports = { load, save };
