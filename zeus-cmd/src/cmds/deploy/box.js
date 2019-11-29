@@ -9,6 +9,13 @@ const { promisify } = require('util');
 const mkdir = promisify(temp.mkdir); // (A)
 temp.track();
 
+// Setup process exit/crash handler to always cleanup temp
+const cleanup = function () {
+  // console.log('cleaning up');
+  temp.cleanupSync();
+};
+['exit', 'SIGINT', 'uncaughtException'].map(sig => process.on(sig, cleanup));
+
 module.exports = {
   description: 'installs a templated plugin or a seed, without writing in deps',
   builder: (yargs) => {
@@ -80,6 +87,12 @@ module.exports = {
     var uri = '';
     var hash;
     switch (args.type) {
+      case 'local':
+        const packagePath = path.join(args.storagePath, args.prefix, packageName);
+        await execPromise(`mkdir -p ${packagePath}`);
+        stdout = await execPromise(`cp ./box.zip ${packagePath}/`, { cwd: stagingPath });
+        uri = `file://${packagePath}/box.zip`;
+        break;
       case 's3':
         args.invalidate = false;
         const s3 = new AWS.S3({ apiVersion: '2006-03-01' });
@@ -109,14 +122,12 @@ module.exports = {
     // run post script
 
     // invalidate endpoints:
-    if (args.invalidate && process.env.SKIP_IPFS_GATEWAY != 'true') {
+    if (args.type === 'ipfs' && args.invalidate && process.env.SKIP_IPFS_GATEWAY != 'true') {
       console.log('invalidating ipfs...');
       var urls = [`https://ipfs.io/ipfs/${hash}`, `https://cloudflare-ipfs.com/ipfs/${hash}`, `https://ipfs.io/ipfs/${hash}`, `https://cloudflare-ipfs.com/ipfs/${hash}`];
       await Promise.race(urls.map(url => execPromise(`${process.env.CURL || 'curl'} --silent --output /dev/null ${url}`, {})));
     }
 
-    // console.log('cleaning up');
-    temp.cleanupSync();
     // var archive = `https://github.com/${}/${}/archive/master.zip`;
     // https://github.com/zeit/serve/archive/master.zip
     if (args['update-mapping']) {
