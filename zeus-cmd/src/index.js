@@ -40,7 +40,6 @@ if (!currentYargs.argv.rcIgnore && fs.existsSync(currentYargs.argv.rcFile)) {
 } else if (currentYargs.argv.rcIgnore) {
   console.log('ignoring rc file');
 }
-console.log(currentYargs.argv)
 
 var extPath = path.join(path.resolve('.'), 'extensions/commands');
 if (fs.existsSync(extPath) && global.enableExt) { currentYargs = currentYargs.commandDir(extPath); }
