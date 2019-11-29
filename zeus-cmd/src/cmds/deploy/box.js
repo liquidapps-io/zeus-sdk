@@ -128,6 +128,8 @@ module.exports = {
       await Promise.race(urls.map(url => execPromise(`${process.env.CURL || 'curl'} --silent --output /dev/null ${url}`, {})));
     }
 
+    // console.log('cleaning up');
+    temp.cleanupSync();
     // var archive = `https://github.com/${}/${}/archive/master.zip`;
     // https://github.com/zeit/serve/archive/master.zip
     if (args['update-mapping']) {
