@@ -41,7 +41,6 @@ var currentYargs = require('yargs') // eslint-disable-line
     } else if (argv['rc-ignore']) {
       console.log('ignoring rc file');
     }
-    console.log(argv);
     return argv;
   }, true)
   .option('verbose', {
