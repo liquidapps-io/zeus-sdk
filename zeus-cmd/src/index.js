@@ -4,6 +4,7 @@ require('babel-core/register');
 require('babel-polyfill');
 const path = require('path');
 const fs = require('fs');
+const camelcase = require('camelcase');
 
 global.enableExt = !(process.argv[2] == 'deploy' && process.argv[3] == 'box');
 global.enableExt = global.enableExt && !(process.argv[3] == 'deploy' && process.argv[4] == 'box');
