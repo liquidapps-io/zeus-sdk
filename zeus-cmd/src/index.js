@@ -30,14 +30,14 @@ var currentYargs = require('yargs') // eslint-disable-line
     if (!argv['rc-ignore'] && fs.existsSync(argv['rc-file'])) {
       console.log(`loading options from rc file ${argv['rc-file']}`);
       const rc = JSON.parse(fs.readFileSync(argv['rc-file']));
-      var config = { ...rc.global };
-      var other = rc;
-      argv['_'].map(cmd => {
-        if (config[cmd]) delete config[cmd];
-        other = (other && cmd in other) ? other[cmd] : undefined;
-        if (other) config = { ...config, ...other };
+      const validKeys = Object.keys(rc).filter(key => key in argv);
+      validKeys.map(key => {
+        argv[key] = rc[key];
+        const cam = camelcase(key);
+        if (cam in argv) {
+          argv[cam] = rc[key];
+        }
       });
-      argv = { ...argv, ...config };
     } else if (argv['rc-ignore']) {
       console.log('ignoring rc file');
     }
