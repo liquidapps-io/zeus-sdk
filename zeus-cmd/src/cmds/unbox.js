@@ -8,6 +8,14 @@ const mapping = require('../mapping');
 const { promisify } = require('util');
 const mkdir = promisify(temp.mkdir); // (A)
 temp.track();
+
+// Setup process exit/crash handler to always cleanup temp
+const cleanup = function () {
+  // console.log('cleaning up');
+  temp.cleanupSync();
+};
+['exit', 'SIGINT', 'uncaughtException'].map(sig => process.on(sig, cleanup));
+
 const isDirectory = source => fs.lstatSync(source).isDirectory();
 const getDirectories = source =>
   fs.readdirSync(source).map(name => path.join(source, name)).filter(isDirectory);
