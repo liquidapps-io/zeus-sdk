@@ -1,4 +1,4 @@
-var mapping = require('../mapping');
+var mapping = require('../helpers/_mapping');
 
 module.exports = {
   description: 'list canned boxes',
@@ -7,7 +7,7 @@ module.exports = {
   },
   command: 'list-boxes',
   handler: async (args) => {
-    const boxes = mapping.load(args);
+    const boxes = mapping.load(args.storagePath);
     console.log(Object.keys(boxes).join('\n'));
   }
 };

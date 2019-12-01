@@ -1,9 +1,9 @@
-var path = require('path');
-var os = require('os');
-var fs = require('fs');
-var { execPromise, emojMap } = require('../helpers/_exec');
-var temp = require('temp');
-const mapping = require('../mapping');
+const path = require('path');
+const os = require('os');
+const fs = require('fs');
+const { execPromise, emojMap } = require('../helpers/_exec');
+const mapping = require('../helpers/_mapping');
+const temp = require('temp');
 
 const { promisify } = require('util');
 const mkdir = promisify(temp.mkdir); // (A)
@@ -97,7 +97,7 @@ const handler = async (args, globalCopyList = []) => {
   var boxName = args.box;
   // var repo = boxName.split('/')[0];
   // var repo = boxName.split('/')[1];
-  const boxes = mapping.load(args);
+  const boxes = mapping.load(args.storagePath);
   if (boxes[boxName]) { boxName = boxes[boxName]; }
   var extractPath = await mkdir('zeus');
   let stdout;

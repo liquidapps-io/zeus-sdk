@@ -1,7 +1,7 @@
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
-const mapping = require('../../mapping');
+const mapping = require('../../helpers/_mapping');
 var { execPromise } = require('../../helpers/_exec');
 var temp = require('temp');
 var AWS = require('aws-sdk');
@@ -123,9 +123,7 @@ module.exports = {
     if (args['update-mapping']) {
       console.log('updating local mapping for', packageName);
 
-      var boxes = mapping.load(args);
-      boxes[packageName] = uri;
-      mapping.save(args, boxes);
+      mapping.update(args.storagePath, packageName, uri);
     }
     console.log('done.');
     process.exit();
