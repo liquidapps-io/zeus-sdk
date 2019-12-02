@@ -7,7 +7,7 @@
   "dependencies":[
     "dapp-services",
     "log-dapp-service",
-    "seed-utils",
+    "seed-utils-cleanup",
     "mocha",
     "hooks-cpp-contracts"],
   "install":{

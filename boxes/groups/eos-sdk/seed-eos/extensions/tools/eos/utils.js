@@ -284,4 +284,6 @@ const getTestContract = async(code, sidechain) => {
 
 }
 
-module.exports = { execPromise, createKeys, createAccount, getCreateAccount, getNetwork, getUrl, uploadSystemContract, uploadContract, getEos, getLocalDSPEos, getCreateKeys, getTestContract };
+const genRandomId = () => Array.apply(null, {length:64}).map(Function.call, () => Math.floor(9*Math.random())).join('') 
+
+module.exports = { execPromise, createKeys, createAccount, getCreateAccount, getNetwork, getUrl, uploadSystemContract, uploadContract, getEos, getLocalDSPEos, getCreateKeys, getTestContract, genRandomId };
