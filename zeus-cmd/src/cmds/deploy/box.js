@@ -72,10 +72,7 @@ module.exports = {
       });
     }
 
-    var moddate = await execPromise(`find . -not -name "." -exec date -I -r '{}' \\; | sort -rn | head -1`, { cwd: stagingPath });
-    moddate = moddate.trim() + ' 00:00';
     stdout = await execPromise(`${process.env.ZIP || 'zip'} -X -r ./box.zip .`, { cwd: stagingPath });
-    // console.log("moddate",moddate)
 
     var uri = '';
     var hash;
@@ -102,7 +99,6 @@ module.exports = {
         var ipfsout = await execPromise(`${process.env.IPFS || 'ipfs'} add ./box.zip`, { cwd: stagingPath });
         hash = ipfsout.split(' ')[1];
         uri = `ipfs://${hash}`;
-        stdout = await execPromise(`touch -d "${moddate}" ./box.zip`, { cwd: stagingPath });
     }
 
     console.log(`box deployed to ${uri}`);
