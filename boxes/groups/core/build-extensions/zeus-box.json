@@ -5,7 +5,7 @@
   ],
   "commands": {
   },
-  "dependencies":["seed-extensions","ipfs-daemon"],
+  "dependencies":["seed-extensions"],
   "hooks": {
   }
 }

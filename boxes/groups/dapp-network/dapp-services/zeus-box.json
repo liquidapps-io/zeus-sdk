@@ -4,7 +4,7 @@
     "LICENSE",
     "zeus-box.json"
   ],
-  "dependencies":["seed","seed-microservices","core-extensions","demux", "seed-eos", "events", "seed-models","hooks-cpp-contracts", "mocha", "client-lib-base"],
+  "dependencies":["seed","seed-microservices","core-extensions","demux", "seed-eos", "events", "seed-models","hooks-cpp-contracts", "mocha", "client-lib-base", "ipfs-daemon"],
   "install":{
     "contracts":{
       "dappservices": true
