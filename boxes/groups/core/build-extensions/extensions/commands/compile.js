@@ -22,10 +22,12 @@ module.exports = {
       const module = require((__dirname, `./compile/${args.phase}`));
       await module.call(module, args);
     } else {
-      await execScripts(path.resolve(__dirname, './compile'), (script) => {
-        console.log(emojMap.hammer_and_pick + 'Compile', path.basename(script, '.js').green);
-        return args;
-      }, args);
+      let module = require((__dirname, `./compile/dapp-services-eos`));
+      await module.call(module, args);
+      module = require((__dirname, `./compile/eos`));
+      await module.call(module, args);
+      module = require((__dirname, `./compile/npm`));
+      await module.call(module, args);
     }
   }
 };
