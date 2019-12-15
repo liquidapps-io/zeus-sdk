@@ -34,7 +34,7 @@ module.exports = {
   builder: (yargs) => {
     return yargs.option('type', {
       // describe: '',
-      default: 'ipfs'
+      default: 'local'
     }).option('invalidate', {
       // describe: '',
       default: true
@@ -46,7 +46,7 @@ module.exports = {
       default: 'boxes/'
     }).option('update-mapping', {
       // describe: '',
-      default: false
+      default: true
     }).option('moddate', {
       // describe: '',
       default: false
@@ -114,11 +114,10 @@ module.exports = {
     var uri = '';
     var hash;
     switch (args.type) {
-      case 'local':
-        const packagePath = path.join(args.storagePath, args.prefix, packageName);
-        await execPromise(`mkdir -p ${packagePath}`);
-        await execPromise(`cp ./box.zip ${packagePath}/`, { cwd: stagingPath });
-        uri = `file://${packagePath}/box.zip`;
+      case 'ipfs':
+        var ipfsout = await execPromise(`${process.env.IPFS || 'ipfs'} add ./box.zip`, { cwd: stagingPath });
+        hash = ipfsout.split(' ')[1];
+        uri = `ipfs://${hash}`;
         break;
       case 's3':
         args.invalidate = false;
@@ -137,11 +136,12 @@ module.exports = {
         }).promise();
         uri = `https://s3.us-east-2.amazonaws.com/${args.bucket}/${s3Key}`;
         break;
-      case 'ipfs':
+      case 'local':
       default:
-        var ipfsout = await execPromise(`${process.env.IPFS || 'ipfs'} add ./box.zip`, { cwd: stagingPath });
-        hash = ipfsout.split(' ')[1];
-        uri = `ipfs://${hash}`;
+        const packagePath = path.join(args.storagePath, args.prefix, packageName);
+        await execPromise(`mkdir -p ${packagePath}`);
+        await execPromise(`cp ./box.zip ${packagePath}/`, { cwd: stagingPath });
+        uri = `file://${packagePath}/box.zip`;
     }
 
     console.log(`box deployed to ${uri}`);
