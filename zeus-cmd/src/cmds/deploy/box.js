@@ -9,12 +9,32 @@ const { promisify } = require('util');
 const mkdir = promisify(temp.mkdir); // (A)
 temp.track();
 
+function walk(dir) {
+  var results = [];
+  var list = fs.readdirSync(dir, { withFileTypes: true });
+  list.forEach(function (dirent) {
+    var file = dir + '/' + dirent.name;
+    results.push({ path: file, isDirectory: dirent.isDirectory() });
+    if (dirent.isDirectory()) {
+      results = results.concat(walk(file));
+    }
+  });
+  return results;
+}
+
+// Setup process exit/crash handler to always cleanup temp
+const cleanup = function () {
+  temp.cleanupSync();
+};
+['exit', 'SIGINT', 'uncaughtException'].map(sig => process.on(sig, cleanup));
+
+
 module.exports = {
   description: 'installs a templated plugin or a seed, without writing in deps',
   builder: (yargs) => {
     return yargs.option('type', {
       // describe: '',
-      default: 'ipfs'
+      default: 'local'
     }).option('invalidate', {
       // describe: '',
       default: true
@@ -25,6 +45,9 @@ module.exports = {
       // describe: '',
       default: 'boxes/'
     }).option('update-mapping', {
+      // describe: '',
+      default: true
+    }).option('moddate', {
       // describe: '',
       default: false
     }).example('$0 deploy box');
@@ -72,14 +95,30 @@ module.exports = {
       });
     }
 
-    var moddate = await execPromise(`find . -not -name "." -exec date -I -r '{}' \\; | sort -rn | head -1`, { cwd: stagingPath });
-    moddate = moddate.trim() + ' 00:00';
-    stdout = await execPromise(`${process.env.ZIP || 'zip'} -X -r ./box.zip .`, { cwd: stagingPath });
-    // console.log("moddate",moddate)
+    if (args.moddate) {
+      var files = await walk(stagingPath);
+
+      for (var file of files) {
+        // As git does not store directories, it will not be able to set the moddate in step.sh
+        if (file.isDirectory) {
+          await execPromise(`touch -d "2019-10-01 12:00:00" ${file.path}`);
+        }
+
+        let localPath = file.path.replace(stagingPath, '.');
+        stdout = await execPromise(`${process.env.ZIP || 'zip'} -X ./box.zip ${localPath}`, { cwd: stagingPath });
+      }
+    } else {
+      stdout = await execPromise(`${process.env.ZIP || 'zip'} -X -r ./box.zip .`, { cwd: stagingPath });
+    }
 
     var uri = '';
     var hash;
     switch (args.type) {
+      case 'ipfs':
+        var ipfsout = await execPromise(`${process.env.IPFS || 'ipfs'} add ./box.zip`, { cwd: stagingPath });
+        hash = ipfsout.split(' ')[1];
+        uri = `ipfs://${hash}`;
+        break;
       case 's3':
         args.invalidate = false;
         const s3 = new AWS.S3({ apiVersion: '2006-03-01' });
@@ -97,19 +136,19 @@ module.exports = {
         }).promise();
         uri = `https://s3.us-east-2.amazonaws.com/${args.bucket}/${s3Key}`;
         break;
-      case 'ipfs':
+      case 'local':
       default:
-        var ipfsout = await execPromise(`${process.env.IPFS || 'ipfs'} add ./box.zip`, { cwd: stagingPath });
-        hash = ipfsout.split(' ')[1];
-        uri = `ipfs://${hash}`;
-        stdout = await execPromise(`touch -d "${moddate}" ./box.zip`, { cwd: stagingPath });
+        const packagePath = path.join(args.storagePath, args.prefix, packageName);
+        await execPromise(`mkdir -p ${packagePath}`);
+        await execPromise(`cp ./box.zip ${packagePath}/`, { cwd: stagingPath });
+        uri = `file://${packagePath}/box.zip`;
     }
 
     console.log(`box deployed to ${uri}`);
     // run post script
 
     // invalidate endpoints:
-    if (args.invalidate && process.env.SKIP_IPFS_GATEWAY != 'true') {
+    if (args.type === 'ipfs' && args.invalidate && process.env.SKIP_IPFS_GATEWAY !== 'true') {
       console.log('invalidating ipfs...');
       var urls = [`https://ipfs.io/ipfs/${hash}`, `https://cloudflare-ipfs.com/ipfs/${hash}`, `https://ipfs.io/ipfs/${hash}`, `https://cloudflare-ipfs.com/ipfs/${hash}`];
       await Promise.race(urls.map(url => execPromise(`${process.env.CURL || 'curl'} --silent --output /dev/null ${url}`, {})));

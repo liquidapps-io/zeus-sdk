@@ -12,6 +12,7 @@ const { PrivateKey } = ecc;
 const { BigNumber } = require( "bignumber.js" );
 const endpoints = require( "../types/endpoints" );
 const { encodeName } = require( "../dapp-common" );
+const { TextDecoder, TextEncoder } = require( "text-encoding" );
 
 import { JsSignatureProvider } from 'eosjs/dist/eosjs-jssig';
 

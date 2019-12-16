@@ -162,7 +162,7 @@ const handler = async (args, globalCopyList = []) => {
       // code
     }
   } else {
-    throw new Error(`not supported yet. pass archive url ${args.box}`);
+    throw new Error(`box '${args.box}' not found. maybe mapping not updated?`);
   }
 
   // console.log(`extracting ${args.box}`);

@@ -10,7 +10,7 @@ var crypto = require('crypto');
 
 const algorithm = 'aes-256-ctr';
 
-function encrypt (text, password) {
+function encrypt(text, password) {
   var cipher = crypto.createCipher(algorithm, password);
   var crypted = cipher.update(text, 'utf8', 'hex');
   crypted += cipher.final('hex');
@@ -34,7 +34,7 @@ const getAllBoxes = async (source) => {
 const deployBox = async (subdir, encBoxes, boxes, invalidate, type) => {
   var name = path.basename(subdir);
   try {
-    var stdout = await execPromise(`${process.env.ZEUS_CMD || 'zeus'} deploy box --type ${type} ${invalidate ? '--invalidate' : '--no-invalidate'}`, {
+    var stdout = await execPromise(`${process.env.ZEUS_CMD || 'zeus'} deploy box --moddate --type ${type} ${invalidate ? '--invalidate' : '--no-invalidate'}`, {
       cwd: subdir
     });
     var target = stdout.split('box deployed to ')[1].split('\n')[0];

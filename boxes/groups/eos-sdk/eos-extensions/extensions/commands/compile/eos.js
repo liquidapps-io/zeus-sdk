@@ -168,7 +168,7 @@ module.exports = async (args) => {
         ...localTools
       }
     });
-    stdout = await execPromise(`${make || `docker run -w /contracts -u $(id -u \$USER) --name zeus-make -i --rm -v ${path.resolve('./contracts/eos')}:/contracts ${dockerImage} make clean`}`, {
+    stdout = await execPromise(`${make || `docker run -w /contracts -u $(id -u \$USER) --name zeus-make -i --rm -v ${path.resolve('./contracts/eos')}:/contracts ${dockerImage} make clean`} ${args.contract ? args.contract : ''}`, {
       cwd: path.resolve('./contracts/eos'),
       printOutStream: process.stdout,
       printErrStream: process.stderr,
@@ -176,15 +176,15 @@ module.exports = async (args) => {
       printOutCB: processStdOut
     });
 
-    stdout = await execPromise(`${make || `docker run -w /contracts -u $(id -u\ $USER) --name zeus-make -i --rm -v ${path.resolve('./contracts/eos')}:/contracts ${dockerImage} make`}`, {
+    stdout = await execPromise(`${make || `docker run -w /contracts -u $(id -u\ $USER) --name zeus-make -i --rm -v ${path.resolve('./contracts/eos')}:/contracts ${dockerImage} make`} ${args.contract ? args.contract : ''}`, {
       cwd: path.resolve('./contracts/eos'),
       printOutStream: process.stdout,
       printErrStream: process.stderr,
       printErrCB: processStdOut,
       printOutCB: processStdOut
-
     });
   } catch (e) {
+    if(e.stderr.includes('No rule to make target')) throw new Error(`${emojMap.white_frowning_face} ${args.contract} was not found, please ensure the file exists`);
     throw emojMap.white_frowning_face + 'eos contracts compile failed';
   }
 };

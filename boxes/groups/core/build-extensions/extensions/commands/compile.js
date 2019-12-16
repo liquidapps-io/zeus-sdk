@@ -1,5 +1,5 @@
-var path = require('path');
-var { execScripts, emojMap } = require('../helpers/_exec');
+const fs = require('fs');
+const { execScripts, emojMap } = require('../helpers/_exec');
 
 module.exports = {
   description: 'compile contracts',
@@ -19,13 +19,25 @@ module.exports = {
   command: 'compile [contract]',
   handler: async (args) => {
     if(args.phase) {
-      const module = require((__dirname, `./compile/${args.phase}`));
-      await module.call(module, args);
+      if(fs.existsSync(`${__dirname}/compile/${args.phase}.js`)) {
+        const module = require((__dirname, `./compile/${args.phase}`));
+        await module.call(module, args);
+      } else {
+        throw new Error(emojMap.white_frowning_face + `${args.phase}.js file does not exist in ${__dirname}/compile/${args.phase}`);
+      }
     } else {
-      await execScripts(path.resolve(__dirname, './compile'), (script) => {
-        console.log(emojMap.hammer_and_pick + 'Compile', path.basename(script, '.js').green);
-        return args;
-      }, args);
+      if(fs.existsSync(`${__dirname}/compile/dapp-services-eos.js`)) {
+        const module = require((__dirname, `./compile/dapp-services-eos`));
+        await module.call(module, args);
+      } 
+      if(fs.existsSync(`${__dirname}/compile/eos.js`)){
+        const module = require((__dirname, `./compile/eos`));
+        await module.call(module, args);
+      } 
+      if(fs.existsSync(`${__dirname}/compile/npm.js`)){
+        const module = require((__dirname, `./compile/npm`));
+        await module.call(module, args);
+      }
     }
   }
 };

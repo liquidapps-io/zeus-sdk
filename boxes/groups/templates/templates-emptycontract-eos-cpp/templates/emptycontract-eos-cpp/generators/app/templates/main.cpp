@@ -150,5 +150,4 @@ CONTRACT_START()
 
     VACCOUNTS_APPLY(((dummy_action_hello)(hello))((dummy_action_hello)(hello2)))
 
-};
-EOSIO_DISPATCH_SVC_TRX(CONTRACT_NAME(), (withdraw)(hello)(hello2)(regaccount)(testschedule))
+CONTRACT_END((withdraw)(hello)(hello2)(regaccount)(testschedule)(xvinit))
