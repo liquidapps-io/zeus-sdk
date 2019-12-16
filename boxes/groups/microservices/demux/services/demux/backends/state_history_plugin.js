@@ -14,27 +14,22 @@ let host = process.env.NODEOS_HOST || 'localhost';
 let port = process.env.NODEOS_WEBSOCKET_PORT || '8889';
 const serviceResponseTimeout = parseInt(process.env.SERVICE_RESPONSE_TIMEOUT || 2000);
 
-const ws = new WebSocket(`ws://${host}:${port}`, {
-  perMessageDeflate: false
-});
-
-var abis = getAbis();
-var abiabi = getAbiAbi();
-const dbTimeout = process.env.DB_TIMEOUT || 5000;
-var c = process.env.DEMUX_HEAD_BLOCK || 0;
-var c2 = 0;
-var types;
-var head_block = 0;
-var current_block = 0;
-var pending = [];
-var genesisTimestampMs;
+let abis = getAbis();
+let abiabi = getAbiAbi();
+let c = process.env.DEMUX_HEAD_BLOCK || 0;
+let c2 = 0;
+let types;
+let head_block = 0;
+let current_block = 0;
+let pending = [];
+let genesisTimestampMs;
 let sidechain = null;
 let capturedEvents;
 const loadEvents = async() => {
   if (!capturedEvents) {
     capturedEvents = {};
-    var capturedEventsModels = await loadModels('captured-events');
-    var sidechains = await loadModels('local-sidechains');
+    let capturedEventsModels = await loadModels('captured-events');
+    let sidechains = await loadModels('local-sidechains');
     if (sidechainName) {
       sidechain = sidechains.find(a => a.name === sidechainName);
     }
@@ -76,15 +71,15 @@ const handlers = {
       // console.log(`new account: ${actData.name}`);
     }
     else if (method == 'setabi') {
-      var localTypes = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), abiabi);
-      var buf = Buffer.from(actData.abi, 'hex');
-      var buffer = new Serialize.SerialBuffer({
+      const localTypes = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), abiabi);
+      const buf = Buffer.from(actData.abi, 'hex');
+      const buffer = new Serialize.SerialBuffer({
         textEncoder: new TextEncoder(),
         textDecoder: new TextDecoder()
       });
       buffer.pushArray(Serialize.hexToUint8Array(actData.abi));
 
-      var abi = localTypes.get('abi_def').deserialize(buffer);
+      const abi = localTypes.get('abi_def').deserialize(buffer);
       abis[actData.account] = abi;
       logger.debug(`setabi for ${actData.account} - updating Serializer`);
     }
@@ -97,8 +92,8 @@ const handlers = {
       '*': async(txid, account, method, code, actData, event, eventNum, blockInfo, cbevent) => {
         // load from model.
 
-        var events = await loadEvents();
-        var curr = events;
+        let events = await loadEvents();
+        let curr = events;
         logger.debug(`handling ${txid} ${eventNum} ${account} ${code} ${JSON.stringify(event)} ${method} ${cbevent}`);
 
         if (!curr[event.etype]) return eventNum;
@@ -110,7 +105,7 @@ const handlers = {
         if (!curr[method]) { curr = curr['*']; }
         else { curr = curr[method]; }
         if (curr) {
-          let proms = curr.map(async url => {
+          const proms = curr.map(async url => {
             if (process.env.WEBHOOKS_HOST) {
               url = url.replace('http://localhost:', process.env.WEBHOOKS_HOST);
             }
@@ -123,7 +118,7 @@ const handlers = {
               eventNum,
               cbevent
             }
-            var r = await fetch(url, {
+            const r = await fetch(url, {
               headers: {
                 'Content-Type': 'application/json'
               },
@@ -346,63 +341,74 @@ async function watchMessages() {
   }
 }
 
-var abi;
-var expectingABI = true;
-ws.on('open', function open() {
-  expectingABI = true;
-  logger.info('ws connected');
-});
-
-var heartBeat = Math.floor(Date.now() / 1000);
-ws.on('message', async function incoming(data) {
-  //start pushing messages after we received the ABI
-  if (!expectingABI) {
-    pending.push(data);
-    let currTime = Math.floor(Date.now() / 1000);
-    if ((currTime - heartBeat) >= 15) { //heartbeat every 15 seconds
-      heartBeat = currTime;
-      logger.info("Demux heartbeat - Processed Block: %s Pending Messages: %s", current_block, pending.length);
-    }
-    return;
-  }
-
-  logger.info('got abi');
-  abi = JSON.parse(data);
-  types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), abi);
-
-  var buffer = new Serialize.SerialBuffer({
-    textEncoder: new TextEncoder(),
-    textDecoder: new TextDecoder()
+let ws, abi;
+let expectingABI = true;
+let heartBeat = Math.floor(Date.now() / 1000);
+const connect = () => {
+  ws = new WebSocket(`ws://${host}:${port}`, {
+    perMessageDeflate: false
   });
+  ws.on('open', function open() {
+    expectingABI = true;
+    logger.info('ws connected');
+  });
+  ws.on('error', function() {
+      logger.warn('ws error');
+  });
+  ws.on('close', function() {
+      setTimeout(connect, 1000); //hardcoded interval
+  });
+  ws.on('message', async function incoming(data) {
+    //start pushing messages after we received the ABI
+    if (!expectingABI) {
+      pending.push(data);
+      let currTime = Math.floor(Date.now() / 1000);
+      if ((currTime - heartBeat) >= 15) { //heartbeat every 15 seconds
+        heartBeat = currTime;
+        logger.info("Demux heartbeat - Processed Block: %s Pending Messages: %s", current_block, pending.length);
+      }
+      return;
+    }
 
-  let start_block_num;
-  try {
-    start_block_num = await getStartingBlockNumber();
-  }
-  catch (e) {
-    logger.error(`Error getting starting block number: ${JSON.stringify(e)}`);
-    start_block_num = c;
-  }
-  c = start_block_num;
-  logger.info(`starting demux at block ${start_block_num}`);
+    logger.info('got abi');
+    abi = JSON.parse(data);
+    types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), abi);
 
-  //we have the abi now, create a get blocks request
-  types.get('request').serialize(buffer, ['get_blocks_request_v0', {
-    'start_block_num': start_block_num,
-    'end_block_num': 4294967295,
-    'max_messages_in_flight': 4294967295,
-    'have_positions': [],
-    'irreversible_only': false,
-    'fetch_block': true,
-    'fetch_traces': true,
-    'fetch_deltas': false
-  }]);
-  expectingABI = false;
-  //send the request, all future messages should be blocks
-  ws.send(buffer.asUint8Array());
-  logger.info("Starting demux processing");
-  watchMessages();
-});
+    const buffer = new Serialize.SerialBuffer({
+      textEncoder: new TextEncoder(),
+      textDecoder: new TextDecoder()
+    });
+
+    let start_block_num;
+    try {
+      start_block_num = await getStartingBlockNumber();
+    }
+    catch (e) {
+      logger.error(`Error getting starting block number: ${JSON.stringify(e)}`);
+      start_block_num = c;
+    }
+    c = start_block_num;
+    logger.info(`starting demux at block ${start_block_num}`);
+
+    //we have the abi now, create a get blocks request
+    types.get('request').serialize(buffer, ['get_blocks_request_v0', {
+      'start_block_num': start_block_num,
+      'end_block_num': 4294967295,
+      'max_messages_in_flight': 4294967295,
+      'have_positions': [],
+      'irreversible_only': false,
+      'fetch_block': true,
+      'fetch_traces': true,
+      'fetch_deltas': false
+    }]);
+    expectingABI = false;
+    //send the request, all future messages should be blocks
+    ws.send(buffer.asUint8Array());
+    logger.info("Starting demux processing");
+    watchMessages();
+  });
+}
+connect();
 
 async function getStartingBlockNumber() {
   const settings = await dal.getSettings();
