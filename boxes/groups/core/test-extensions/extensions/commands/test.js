@@ -41,12 +41,11 @@ module.exports = {
       .option('stake', {
         describe: 'account staking amount',
         default: '300.0000'
-      }).example('$0 test contract.spec.js').example('$0 test').example('$0 test --compile-all');
+      }).example('$0 test contract').example('$0 test').example('$0 test contract --no-compile-all').example('$0 test --no-compile-all');
   },
-  command: 'test [testfile]',
+  command: 'test [contract]',
 
   handler: async(args) => {
-    let stdout;
     if (args.compileAll) {
       await compileCommand.handler(args);
     }
@@ -55,16 +54,17 @@ module.exports = {
     }
     console.log(emojMap.zap + 'Running tests');
     try {
-      var npmCommand = process.env.CI == 'true' ? 'run test-ci' : 'test';
-      stdout = await execPromise(`${process.env.NPM || 'npm'} ${npmCommand} ${args.testfile || ''}`, {
-        // cwd: path.resolve("./contracts/eos")
+      const preNpmCommand = process.env.NPM || 'npm';
+      const npmCommand = process.env.CI === 'true' ? 'run test-ci' : 'test';
+      const subContractCommand = `-- test/${args.contract}.spec.js`;
+      const contractCommand = `${args.contract ? subContractCommand : ''}`;
+      await execPromise(`${preNpmCommand} ${npmCommand} ${contractCommand}`, {
         env: { ...process.env,
           ZEUS_ARGS: JSON.stringify(args)
         },
         printOutStream: process.stdout,
         printErrStream: process.stderr
       });
-      // console.log(stdout);
       console.log(emojMap.ok + 'tests ok');
     }
     catch (e) {
