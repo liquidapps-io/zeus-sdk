@@ -32,7 +32,7 @@ module.exports = async(args) => {
     '--contracts-console',
     '--max-transaction-time=150000',
     '--http-validate-host=false',
-    '--verbose-http-errors'
+    '--verbose-http-errors',
   ];
   var ports = [
     '-p 8888:8888',
@@ -69,6 +69,12 @@ module.exports = async(args) => {
         nodeosArgs = [...nodeosArgs,
           '--trace-history-debug-mode',
           "--delete-state-history"
+        ]
+      }
+      if (e.stdout.trim() >= "v2.0.0") {
+        console.log('Adding 2.0.0 Parameters');
+        nodeosArgs = [...nodeosArgs,
+        '--eos-vm-oc-enable'
         ]
       }
     }
