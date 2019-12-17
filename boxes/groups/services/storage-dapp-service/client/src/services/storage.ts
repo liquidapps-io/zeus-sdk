@@ -17,7 +17,7 @@ export default class LiquidStorageService extends DSPServiceClient {
         permission:string = "uploader",
         apiID?:string
     )  => {
-        return await this.auth.invokeAuthedCall({ apiID, payload: { data: buffer.toString('hex'), contract: this.contract }, service: serviceContract, account:this.contract, permission, keys:{active:key}, action: "upload_public"});
+        return await this.auth.invokeAuthedCall({ apiID, payload: { data: buffer.toString('hex'), contract: this.contract }, service: serviceContract, account:this.contract, permission, key, action: "upload_public"});
     }
     public unpin = async (
         uri: any,
@@ -25,7 +25,7 @@ export default class LiquidStorageService extends DSPServiceClient {
         permission:string = "deleter",
         apiID?:string
     )  => {
-        return await this.auth.invokeAuthedCall({ apiID, payload: { uri, contract: this.contract }, service: serviceContract, account:this.contract, permission, keys:{active:key}, action: "unpin"});
+        return await this.auth.invokeAuthedCall({ apiID, payload: { uri, contract: this.contract }, service: serviceContract, account:this.contract, permission, key, action: "unpin"});
     }
 
 }
