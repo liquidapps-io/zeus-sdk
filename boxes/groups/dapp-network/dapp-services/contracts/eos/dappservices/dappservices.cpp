@@ -253,7 +253,8 @@ public:
     auto existing = cidx.find(idxKey);
     eosio::check(existing == cidx.end(), "already exists");
 
-    eosio::check(newpackage.quota.symbol == DAPPSERVICES_QUOTA_SYMBOL, "wrong symbol");
+    eosio::check(newpackage.quota.symbol == DAPPSERVICES_QUOTA_SYMBOL, "wrong symbol (QUOTA) or precision (.0000)");
+    eosio::check(newpackage.min_stake_quantity.symbol == DAPPSERVICES_SYMBOL, "wrong symbol (DAPP) or precision (.0000)");
 
     packages.emplace(newpackage.provider, [&](package &r) {
       // start disabled.

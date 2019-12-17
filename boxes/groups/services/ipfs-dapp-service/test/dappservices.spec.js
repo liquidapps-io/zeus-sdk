@@ -803,4 +803,32 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
       }
     })();
   });
+  it('Wrong token symbol precision (4,QUOTA / 4,DAPP) when registering service package', done => {
+    (async() => {
+      try {
+        var selectedPackage = 'test136';
+        var package_period = 5;
+        var failed = false;
+        try {
+          await deployServicePackage({ package_id: selectedPackage, package_period, min_stake_quantity: "1 DAPP" });
+        }
+        catch (e) {
+          failed = true;
+        }
+        assert(failed, 'should have failed, DAPP token requires 4 decimals of precision (wrong: 1 DAPP -> right: 1.0000 DAPP');
+        failed = false;
+        try {
+          await deployServicePackage({ package_id: selectedPackage, package_period, quota: "1 QUOTA" });
+        }
+        catch (e) {
+          failed = true;
+        }
+        assert(failed, 'should have failed, QUOTA token requires 4 decimals of precision (wrong: 1 QUOTA -> right: 1.0000 QUOTA');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
 });
