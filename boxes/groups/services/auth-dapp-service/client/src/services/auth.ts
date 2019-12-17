@@ -25,12 +25,12 @@ export default class AuthService extends DSPServiceClient {
     };
 
 
-   async createAPICallTransaction(contract:string, method:string, account:string, permission:string, actionData:any, keys:any) {
+   async createAPICallTransaction(contract:string, method:string, account:string, permission:string, actionData:any, key:any) {
     var opts = {
       authorization: `${account}@${permission}`,
       broadcast: false,
       sign: true,
-      keyProvider: [keys.active.privateKey]
+      keyProvider: [key]
     };
     var theContract = await this.api.contract(contract);
 
@@ -43,7 +43,7 @@ export default class AuthService extends DSPServiceClient {
     payload,
     account,
     permission = "active",
-    keys,
+    key,
     contract,
     action = 'auth_account_call',
     service = 'authfndspsvc',
@@ -55,13 +55,13 @@ export default class AuthService extends DSPServiceClient {
       account,
       permission,
       payload_hash,
-      client_code: null,
-      signature:null,
+      client_code: "",
+      signature:"",
       current_provider: "",
       "package": ""
     }
     contract = contract || this.authContract;
-    var trx = await this.createAPICallTransaction(contract, this.method, account, permission, actionData,  keys);
+    var trx = await this.createAPICallTransaction(contract, this.method, account, permission, actionData, key);
     return this.post(`/v1/dsp/${service}/${action}`, {
       trx,
       payload: payloadStr

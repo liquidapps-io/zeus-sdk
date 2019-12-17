@@ -4,32 +4,17 @@ require('babel-polyfill');
 const { assert } = require('chai'); // Using Assert style
 const { getTestContract, getCreateKeys } = require('../extensions/tools/eos/utils');
 const fetch = require('node-fetch');
+const { createClient } = require("@liquidapps/dapp-client");
+//dappclient requirement
+global.fetch = fetch;
 
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
 const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
 var fs = require('fs')
 
-function postData(url = ``, data = {}) {
-  // Default options are marked with *
-  return fetch(url, {
-      method: 'POST', // *GET, POST, PUT, DELETE, etc.
-      mode: 'cors', // no-cors, cors, *same-origin
-      cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-      credentials: 'same-origin', // include, *same-origin, omit
-      headers: {
-        // "Content-Type": "application/json",
-        // "Content-Type": "application/x-www-form-urlencoded",
-      },
-      redirect: 'follow', // manual, *follow, error
-      referrer: 'no-referrer', // no-referrer, *client
-      body: JSON.stringify(data) // body data type must match "Content-Type" header
-    })
-    .then(response => response.json()); // parses response to JSON
-}
-var contractCode = 'eosio.token';
-var authContractCode = 'authenticator';
-var AuthClient = require('../extensions/tools/auth-client');
+const contractCode = 'eosio.token';
+const authContractCode = 'authenticator';
 
 var ctrt = artifacts.require(`./${contractCode}/`);
 var ctrta = artifacts.require(`./${authContractCode}/`);
@@ -55,15 +40,20 @@ describe(`LiquidStorage Test`, () => {
 
   const serviceName = 'storage';
   var account = code;
-  it('Upload File (authenticated)', done => {
+  it.skip('Upload File (authenticated)', done => {
     (async() => {
       try {
-
-        var apiID = `pprovider1-${serviceName}`;
-        var authClient = new AuthClient(apiID, 'authenticato', null, endpoint);
-        var keys = await getCreateKeys(code);
+        const dappClient = await createClient({ httpEndpoint: endpoint, fetch });
+        const storageClient = await dappClient.service(
+          "storage",
+          code
+        );
+        //var authClient = new AuthClient(apiID, 'authenticato', null, endpoint);
+        const keys = await getCreateKeys(code);
+        const key = keys.active.privateKey;
+        const data = Buffer.from("test1234");
         const permission = "active";
-        const result = await authClient.invokeAuthedCall({ payload: { data: Buffer.from("test1234").toString('hex'), contract: account }, service: "liquidstorag", account, permission, keys, action: "upload_public", skipClientCode: true });
+        const result = await storageClient.upload_public_file(data, key, permission);
         assert.equal(result.uri, "ipfs://zb2rhga33kcyDrMLZDacqR7wLwcBRVgo6sSvLbzE7XSw1fswH");
         done();
       }
@@ -73,20 +63,25 @@ describe(`LiquidStorage Test`, () => {
       }
     })();
   });
-  it('Upload Archive', done => {
+  it.skip('Upload Archive', done => {
     (async() => {
       try {
 
-        var apiID = `pprovider1-${serviceName}`;
-        var authClient = new AuthClient(apiID, 'authenticato', null, endpoint);
-        var keys = await getCreateKeys(code);
+        const dappClient = await createClient({ httpEndpoint: endpoint, fetch });
+        const storageClient = await dappClient.service(
+          "storage",
+          code
+        );
+        //var authClient = new AuthClient(apiID, 'authenticato', null, endpoint);
+        const keys = await getCreateKeys(code);
+        const key = keys.active.privateKey;
         const permission = "active";
-        var tar = require('tar-stream')
-        var pack = tar.pack() // pack is a streams2 stream
+        const tar = require('tar-stream')
+        const pack = tar.pack() // pack is a streams2 stream
         pack.entry({ name: 'test.html' }, 'Hello World!')
         pack.entry({ name: 'index.html' }, 'index file');
 
-        var entry = pack.entry({ name: 'my-stream-test.txt', size: 11 }, function(err) {
+        const entry = pack.entry({ name: 'my-stream-test.txt', size: 11 }, function(err) {
           pack.finalize();
         })
 
@@ -94,16 +89,16 @@ describe(`LiquidStorage Test`, () => {
         entry.write(' ')
         entry.write('world')
         entry.end()
-        var path = 'YourTarBall.tar'
-        var tarfile = fs.createWriteStream(path)
+        const path = 'YourTarBall.tar'
+        const tarfile = fs.createWriteStream(path)
 
 
         // pipe the pack stream somewhere
         pack.pipe(tarfile);
         tarfile.on('close', async function() {
-          var content = fs.readFileSync(path);
+          const content = fs.readFileSync(path);
 
-          const result = await authClient.invokeAuthedCall({ payload: { archive: { data: content.toString('hex') }, contract: account }, service: "liquidstorag", account, permission, keys, action: "upload_public", skipClientCode: true });
+          const result = await storageClient.upload_public_file(content, key, permission);
           assert.equal(result.uri, "ipfs://QmYS55iqu1zwxszW5ywEmT5w6m6VKjYwa9G9Xka8Uv4j9s");
           done();
         })

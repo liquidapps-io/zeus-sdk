@@ -25,7 +25,8 @@
       "sequelize": "5.19.0",
       "pg": "7.12.1",
       "minipass@2.7.0":true,
-      "sqlite3": "4.1.0"
+      "sqlite3": "4.1.0",
+      "@liquidapps/dapp-client": "^2.0.0"
     }
   }
 }
