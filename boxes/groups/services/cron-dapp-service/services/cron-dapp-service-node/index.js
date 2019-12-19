@@ -44,7 +44,7 @@ nodeFactory('cron', {
           if (n < 10) {
             const nextTrySeconds = (Math.pow(2, n)) * 1000;
             logger.info(`scheduling callback with payload ${payload} on timer ${payer+'_'+timer} for ${nextTrySeconds} from now`);
-            timers[`${payer}_${timer}`] = setTimeout(() => fn(n + 1), );
+            timers[`${payer}_${timer}`] = setTimeout(() => fn(n+1), nextTrySeconds);
           }
           logger.error(`failed callback for timer ${payer+'_'+timer} too many times, giving up`, e);
           // throw e;
