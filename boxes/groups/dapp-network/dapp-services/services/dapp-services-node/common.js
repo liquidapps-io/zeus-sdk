@@ -194,7 +194,7 @@ const resolveBackendServiceData = async(service, provider, sidechain) => {
     endpoint: `http://${host}:${port}`
   };
 };
-const resolveExternalProviderData = async(service, provider, packageid, sidechain) => {
+const resolveExternalProviderData = async(service, provider, packageid, sidechain, balance) => {
   var key = getSvcProviderPkgKey(service, provider, packageid);
 
   const packages = await rpc.get_table_rows({
@@ -211,7 +211,9 @@ const resolveExternalProviderData = async(service, provider, packageid, sidechai
   const result = packages.rows.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service);
   if (result.length === 0) throw new Error(`resolveExternalProviderData failed ${provider} ${service} ${packageid}`);
   if (!result[0].enabled) console.log(`DEPRECATION WARNING for ${provider} ${service} ${packageid}: Packages must be enabled for DSP services to function in the future.`); //TODO: Throw error instead
-
+  if(balance !== undefined)
+    if (Number(balance.substring(0, balance.length - 5)) < Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)))
+      logger.warn(`DAPP Balance is less than minimum stake quantity for provider: ${provider}, service: ${service}, packageid: ${packageid}: ${Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)) - Number(balance.substring(0, balance.length - 5))} more DAPP must be staked to meet threshold`);
   return {
     internal: false,
     endpoint: result[0].api_endpoint
@@ -266,8 +268,9 @@ const resolveProviderPackage = async(payer, service, provider, sidechain) => {
   for (let i = 0; i < serviceWithStakingResult.length; i++) {
     let checkProvider = serviceWithStakingResult[i];
     let checkPackage = checkProvider.package ? checkProvider.package : checkProvider.pending_package;
+    let checkBalance = checkProvider.balance;
     try {
-      await resolveExternalProviderData(service, provider, checkPackage, sidechain);
+      await resolveExternalProviderData(service, provider, checkPackage, sidechain, checkBalance);
       selectedPackage = checkPackage;
       break;
     }
