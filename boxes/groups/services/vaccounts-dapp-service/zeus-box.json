@@ -4,6 +4,7 @@
     "LICENSE",    
     "zeus-box.json"
   ],
+  "Watch": "zeus vaccounts push-action",
   "dependencies":[
     "dapp-services",
     "seed-utils",
@@ -18,8 +19,9 @@
       "vaccountsconsumer": true
     },
     "npm":{
-      "node-fetch": true
-      
+      "node-fetch": true,
+      "@liquidapps/dapp-client": true,
+      "eosjs-ecc": true
     }
   }
 }
