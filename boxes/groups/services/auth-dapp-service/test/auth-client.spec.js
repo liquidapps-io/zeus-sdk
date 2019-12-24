@@ -14,7 +14,7 @@ const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services
 var contractCode = 'authenticator';
 var ctrt = artifacts.require(`./${contractCode}/`);
 var AuthClient = require('../extensions/tools/auth-client');
-const code = 'authenticato';
+const code = 'authentikeos';
 var apiID = 'ssAuthAPI';
 
 var authClient = new AuthClient(apiID, code, "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906");

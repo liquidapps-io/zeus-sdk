@@ -26,7 +26,7 @@ describe(`LiquidStorage Test`, () => {
     (async() => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
-        var deployedContractAuth = await deployer.deploy(ctrta, 'authenticato');
+        var deployedContractAuth = await deployer.deploy(ctrta, 'authentikeos');
 
         await genAllocateDAPPTokens(deployedContract, 'storage');
         testcontract = await getTestContract(code);
@@ -48,7 +48,7 @@ describe(`LiquidStorage Test`, () => {
           "storage",
           code
         );
-        //var authClient = new AuthClient(apiID, 'authenticato', null, endpoint);
+        //var authClient = new AuthClient(apiID, 'authentikeos', null, endpoint);
         const keys = await getCreateKeys(code);
         const key = keys.active.privateKey;
         const data = Buffer.from("test1234");
@@ -72,7 +72,7 @@ describe(`LiquidStorage Test`, () => {
           "storage",
           code
         );
-        //var authClient = new AuthClient(apiID, 'authenticato', null, endpoint);
+        //var authClient = new AuthClient(apiID, 'authentikeos', null, endpoint);
         const keys = await getCreateKeys(code);
         const key = keys.active.privateKey;
         const permission = "active";

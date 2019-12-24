@@ -55,7 +55,7 @@ module.exports = {
           cwd: path.join(path.resolve('./frontends'), args.frontend)
         });
         var apiID = `${args['storage-provider']}-storage`;
-        var authClient = new AuthClient(apiID, 'authenticato', null, args['nodeos-endpoint']);
+        var authClient = new AuthClient(apiID, 'authentikeos', null, args['nodeos-endpoint']);
         var keys = { active: { privateKey: args['storage-key'] } };
         const account = args['storage-account'];
         const permission = "active";

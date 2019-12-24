@@ -27,7 +27,7 @@
         "create_key":{
             "authentication":{
                 "type":"payer",
-                "contract":"authenticato"
+                "contract":"authentikeos"
             }
         }
     }
