@@ -19,7 +19,8 @@
       "hooks-extensions",
       "update-extensions",
       "log-extensions",
-      "sync-builtin-boxes-extensions"
+      "sync-builtin-boxes-extensions",
+      "templates-emptycontract-eos-cpp"
     ],
   "hooks": {
   }
