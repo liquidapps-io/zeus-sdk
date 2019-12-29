@@ -128,14 +128,25 @@ const hashData256 = (data) => {
   return hash.hex();
 };
 
-const prepKeyForCalc = (key, keytype = null) => {
-  return nameToString(Buffer.from(stringToName(key, keytype)));
+const prepKeyForCalc = (key, keytype = null, keysize = 64) => {
+  let prep = "";
+  let buf = Buffer.from(stringToName(key, keytype, keysize));
+  let pos = buf.length / 8;
+  while(pos > 0) {
+    let word = buf.slice((pos-1)*8, pos*8);
+    prep += nameToString(word) + "-";
+    --pos;
+  }
+  return prep.slice(0,-1);
 }
 
-const calculateBucketShard = (key, keytype, scope, buckets, shards) => {
-  scope = prepKeyForCalc(scope);
-  key = prepKeyForCalc(key, keytype);
-  const fullkey = `${scope}-${key}`;
+const calculateBucketShard = (key, keytype, keysize, scope, buckets, shards) => {
+  let prepscope = prepKeyForCalc(scope);
+  let prepkey = prepKeyForCalc(key, keytype, keysize);
+  //TODO: for keysize = 128, fullkey = `${scope}-${key0}-${key1}`
+  //TODO: for keysize = 256, fullkey = `${scope}-${key0}-${key1}-${key2}-${key3}`
+  //TODO: where key0 is the left (most significant) bits
+  const fullkey = `${prepscope}-${prepkey}`;
   const hashedKey = hashData(fullkey).match(/.{2}/g).reverse().join('');
   var num = new BigNumber(hashedKey, 16);
   logger.debug(`fullkey ${fullkey} num ${num.toString()}`);
@@ -185,44 +196,57 @@ const stringToSymbol = (str) => {
   return Buffer.from(str + pad);
 };
 
-const stringToNameInner = (str) => {
-  const pad = '\0'.repeat(8 - str.length);
+const stringToNameInner = (str, keysize = 64) => {
+  let length = keysize / 8;
+  //we have to reverse 256bit strings
+  if(str.length === 32 || keysize === 256) {
+    let first = str.slice(0,16);
+    let second = str.slice(16,32);
+    return Buffer.from(second+first);
+  }
+  const pad = '\0'.repeat(length - str.length);
   return Buffer.from(pad + str);
-};
+};  
 
-const stringToName = (str, keytype = null) => {
+const stringToName = (str, keytype = null, keysize = 64) => {
+  let length = keysize / 4;
   if (typeof str === 'number' || keytype === 'number') {
     const hexNum = new BigNumber(str).toString(16);
-    const paddedNum = '0'.repeat(16 - hexNum.length) + hexNum;
+    const paddedNum = '0'.repeat(length - hexNum.length) + hexNum;
+    const fixedPaddedNum = paddedNum.match(/.{2}/g).reverse().join('');
+    return Buffer.from(fixedPaddedNum, 'hex');
+  }
+  if(keytype === 'hex') {
+    const paddedNum = '0'.repeat(length - str.length) + str;
     const fixedPaddedNum = paddedNum.match(/.{2}/g).reverse().join('');
     return Buffer.from(fixedPaddedNum, 'hex');
   }
   if (isUpperCase(str) || keytype === 'symbol') { return stringToSymbol(str); }
   const hexNum = new BigNumber(encodeName(str).toString()).toString(16);
-  const paddedNum = '0'.repeat(16 - hexNum.length) + hexNum;
+  const paddedNum = '0'.repeat(length - hexNum.length) + hexNum;
   return Buffer.from(paddedNum, 'hex');
 };
 const nameToString = (name) => {
   const tmp = new BigNumber(name.toString('hex'), 16);
   return decodeName(tmp.toString(), true);
 };
-const parseBucket = async(bucketRawData) => {
+const parseBucket = async(bucketRawData, keysize) => {
   const bucket = {};
   var pos = 0;
   while (pos < bucketRawData.length) {
     const scope = bucketRawData.slice(pos, pos + 8);
     pos += 8;
-    const key = bucketRawData.slice(pos, pos + 8);
-    pos += 8;
+    const key = bucketRawData.slice(pos, pos + (keysize/8));
+    pos += (keysize/8);
     const hash = bucketRawData.slice(pos, pos + 36);
     pos += 36;
     bucket[`${scope}.${key}`] = hash;
   }
   return bucket;
 };
-const fetchBucket = async(bucketPointer, contract, sidechain) => {
+const fetchBucket = async(bucketPointer, contract, sidechain, keysize) => {
   var bucketRawData = await readPointer(bucketPointer, contract, sidechain);
-  return parseBucket(bucketRawData);
+  return parseBucket(bucketRawData, keysize);
 };
 
 const extractRowFromBucket = async(bucketData, scope, key, contract, sidechain) => {
@@ -231,25 +255,25 @@ const extractRowFromBucket = async(bucketData, scope, key, contract, sidechain) 
   if (rowPointer) { return await readPointer(rowPointer, contract, sidechain); }
 };
 
-const extractRowFromShardData = async(shardData, bucket, scope, key, contract, sidechain) => {
+const extractRowFromShardData = async(shardData, bucket, scope, key, keysize, contract, sidechain) => {
   if (!shardData) { return; }
   const bucketPointer = shardData[bucket];
-  const bucketData = await fetchBucket(bucketPointer, contract, sidechain);
-  logger.debug(`bucketData ${bucketData}`);
+  const bucketData = await fetchBucket(bucketPointer, contract, sidechain, keysize);
+  logger.debug(`bucketData ${JSON.stringify(bucketData)}`);
   return await extractRowFromBucket(bucketData, scope, key, contract, sidechain);
 };
 
-const getRowRaw = async(contract, table, scope, key, keytype, buckets, shards, sidechain) => {
-  const { shard, bucket } = calculateBucketShard(key, keytype, scope, buckets, shards);
+const getRowRaw = async(contract, table, scope, key, keytype, keysize, buckets, shards, sidechain) => {
+  const { shard, bucket } = calculateBucketShard(key, keytype, keysize, scope, buckets, shards);
   logger.debug(`shard, bucket ${shard} ${bucket}`);
-  scope = stringToNameInner(stringToName(scope)).toString();
-  key = stringToNameInner(stringToName(key, keytype)).toString();
-  logger.debug(`scope, key ${scope} ${key}`);
+  let innerscope = stringToNameInner(stringToName(scope)).toString();
+  let innerkey = stringToNameInner(stringToName(key, keytype, keysize), keysize).toString();
+  logger.debug(`scope, key ${innerscope} ${innerkey}`);
   logger.debug(`sidechain ${JSON.stringify(sidechain)}`);
 
   const shardData = await fetchShard(contract, table, shard, sidechain);
   // console.log('shardData', shardData);
-  return await extractRowFromShardData(shardData, bucket, scope, key, contract, sidechain);
+  return await extractRowFromShardData(shardData, bucket, innerscope, innerkey, keysize, contract, sidechain);
 };
 
 const deserializeRow = async(contract, table, rowRaw, sidechain, encoding) => {
@@ -332,11 +356,12 @@ nodeFactory('ipfs', {
       try {
         const { contract, table, scope, key } = body;
         const keytype = body.keytype ? body.keytype : null;
+        const keysize = body.keysize ? body.keysize : 64;
         const buckets = body.buckets ? body.buckets : 64;
         const shards = body.shards ? body.shards : 1024;
         const encoding = body.encoding ? body.encoding : 'base64';
 
-        const rowRaw = await getRowRaw(contract, table, scope, key, keytype, buckets, shards, body.sidechain);
+        const rowRaw = await getRowRaw(contract, table, scope, key, keytype, keysize, buckets, shards, body.sidechain);
         logger.debug(`rowRaw ${rowRaw}`);
         const row = await deserializeRow(contract, table, rowRaw, body.sidechain, encoding);
         // get abi

@@ -113,6 +113,7 @@ const readVRAMData = async({
   table,
   scope,
   keytype,
+  keysize,
   sidechain
 }) => {
   const service = "ipfsservice1";
@@ -122,7 +123,8 @@ const readVRAMData = async({
     scope,
     table,
     key,
-    keytype
+    keytype,
+    keysize
   });
   if (result.error) {
     throw new Error(result.error);

@@ -144,7 +144,7 @@ describe(`IPFS Service Test Contract`, () => {
         });
         next_key = table.rows[0].next_available_key;
 
-        assert.equal(next_key, 556, 'wrong key');
+        assert.equal(next_key, '000000000000000000000000000000000000000000000000000000000000022c', 'wrong key');
 
 
         done();
@@ -179,13 +179,23 @@ describe(`IPFS Service Test Contract`, () => {
     })();
   });
 
-
   it('dapp::multi_index uint64_t Primary Key', done => {
     (async() => {
       try {
-
         await testcontract.testindexa({
           id: 12345
+        }, {
+          authorization: `${code}@active`,
+        });
+
+        await testcontract.testfind({
+          id: 12345
+        }, {
+          authorization: `${code}@active`,
+        });
+
+        await testcontract.testfind({
+          id: 0
         }, {
           authorization: `${code}@active`,
         });
@@ -199,9 +209,122 @@ describe(`IPFS Service Test Contract`, () => {
         });
         assert(tableRes.row.id == 12345, "wrong uint64_t");
 
+        tableRes = await readVRAMData({
+          contract: code,
+          key: 0,
+          table: "test",
+          scope: code,
+          keytype: 'number'
+        });
+        assert(tableRes.row.id == 0, "wrong uint64_t");
+
         done();
       }
       catch (e) {
+        console.log(JSON.stringify(e.json));
+        done(e);
+      }
+    })();
+  });
+
+  it('dapp::multi_index uint128_t Primary Key', done => {
+    (async() => {
+      try {
+
+        let res = await testcontract.testmed({
+          id: 12345,
+          value: 45678
+        }, {
+          authorization: `${code}@active`,
+        });
+
+        res = await testcontract.checkmed({
+          id: 12345,
+          value: 45678
+        }, {
+          authorization: `${code}@active`,
+        });
+
+        var tableRes = await readVRAMData({
+          contract: code,
+          key: 12345,
+          table: "test3",
+          scope: code,
+          keytype: 'number',
+          keysize: 128
+        });
+        assert(tableRes.row.id == 12345, "wrong uint128_t");
+
+        done();
+      }
+      catch (e) {
+        console.log(JSON.stringify(e.json));
+        done(e);
+      }
+    })();
+  });
+
+  it('dapp::multi_index checksum256 Primary Key', done => {
+    (async() => {
+      try {
+
+        let res = await testcontract.testbig({
+          id: '0000000000000000000000000000000000000000000000000000000000003039',
+          value: 45678
+        }, {
+          authorization: `${code}@active`,
+        });
+
+        res = await testcontract.checkbig({
+          id: '0000000000000000000000000000000000000000000000000000000000003039',
+          value: 45678
+        }, {
+          authorization: `${code}@active`,
+        });
+
+        var tableRes = await readVRAMData({
+          contract: code,
+          key: '0000000000000000000000000000000000000000000000000000000000003039',
+          table: "test2",
+          scope: code,
+          keytype: 'hex',
+          keysize: 256
+        });
+        assert(tableRes.row.id == '0000000000000000000000000000000000000000000000000000000000003039', "wrong checksum256");
+
+        done();
+      }
+      catch (e) {
+        console.log(JSON.stringify(e.json));
+        done(e);
+      }
+    })();
+  });
+
+  it('dapp::multi_index checksum256 Get Available Key', done => {
+    (async() => {
+      try {
+
+        let res = await testcontract.testbig({
+          id: '00000000000000000000000000000000ffffffffffffffffffffffffffffffff',
+          value: 45678
+        }, {
+          authorization: `${code}@active`,
+        });
+
+        let table = await eosvram.getTableRows({
+          code: code,
+          scope: 'test2',
+          table: '.vconfig',
+          json: true,
+        });
+        let next_key = table.rows[0].next_available_key;
+        assert.equal(next_key, '0000000000000000000000000000000100000000000000000000000000000000', 'wrong key');
+
+        done();
+      }
+      catch (e) {
+        console.log(JSON.stringify(e.json));
         done(e);
       }
     })();
@@ -380,6 +503,114 @@ describe(`IPFS Service Test Contract`, () => {
         done();
       }
       catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  var backup = {};
+  it.skip('IPFS Save Manifest', done => {
+    (async () => {
+      try {
+        //backup = await generateBackup(code,"test");            
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it('IPFS Clear', done => {
+    (async () => {
+      try {
+
+        let failed = false;
+
+        await testcontract.testfind({
+          id: 20
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+        
+        await testcontract.testclear({}, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        try {
+          await testcontract.testfind({
+            id: 20
+          }, {
+            authorization: `${code}@active`,
+            broadcast: true,
+            sign: true
+          });
+        } catch(e) {
+          failed = true;
+        }        
+
+        assert(failed, 'should have failed');        
+        done();
+      } catch (e) {        
+        done(e);
+      }
+    })();
+  });
+
+  it.skip('IPFS Load Manifest', done => {
+    (async () => {
+      try {
+        // let shardbuckets = pastbuckets.map((data) => {
+        //   return {
+        //     key: data.shard,
+        //     value: data.shard_uri
+        //   }
+        // })
+
+        // let manifest = {
+        //   next_available_key: 556,
+        //   shards: 1024,
+        //   buckets_per_shard: 64,
+        //   shardbuckets
+        // }
+        let manifest = backup.manifest;
+        let failed = false;      
+
+        try {
+          await testcontract.testfind({
+            id: 20
+          }, {
+            authorization: `${code}@active`,
+            broadcast: true,
+            sign: true
+          });
+        } catch(e) {
+          failed = true;
+        }  
+        
+        assert(failed, 'should have failed');  
+
+        await testcontract.testman({
+          man: manifest
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+        
+        await testcontract.testfind({
+          id: 20
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+              
+        done();
+      } catch (e) {
         done(e);
       }
     })();
