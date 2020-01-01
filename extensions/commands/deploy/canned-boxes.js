@@ -34,7 +34,7 @@ const getAllBoxes = async (source) => {
 const deployBox = async (subdir, encBoxes, boxes, invalidate, type) => {
   var name = path.basename(subdir);
   try {
-    var stdout = await execPromise(`${process.env.ZEUS_CMD || 'zeus'} deploy box --moddate --type ${type} ${invalidate ? '--invalidate' : '--no-invalidate'}`, {
+    var stdout = await execPromise(`${process.env.ZEUS_CMD || 'zeus'} deploy box --moddate --no-update-mapping --type ${type} ${invalidate ? '--invalidate' : '--no-invalidate'}`, {
       cwd: subdir
     });
     var target = stdout.split('box deployed to ')[1].split('\n')[0];
