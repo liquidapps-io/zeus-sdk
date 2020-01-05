@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "description": "",
   "main": "index.js",
-  "repository": "github:liquidapps-io/zeus-cmd",
+  "repository": "github:liquidapps-io/zeus-sdk",
   "scripts": {
     "build": "babel -d dist/ src/",
     "prepublish": "npm run build",
