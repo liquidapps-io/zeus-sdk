@@ -23,8 +23,6 @@
   "author": "Natanael Prudhomme",
   "license": "BSD 3-Clause",
   "devDependencies": {
-    "bignumber.js": "^9.0.0",
-    "eosjs": "^20.0.0",
     "eosjs-ecc": "^4.0.7",
     "eslint": "^6.0.1"
   },
@@ -35,6 +33,8 @@
     "@types/isomorphic-fetch": "*",
     "@types/jest": "*",
     "@types/node": "^12.7.5",
+    "bignumber.js": "^9.0.0",
+    "eosjs": "^20.0.0",
     "babel-polyfill": "^6.26.0",
     "documentation": "*",
     "isomorphic-fetch": "*",
