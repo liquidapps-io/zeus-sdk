@@ -20,8 +20,10 @@
     },
     "npm":{
       "node-fetch": true,
-      "@liquidapps/dapp-client": true,
       "eosjs-ecc": true
     }
+  },
+  "hooks": {
+    "post-install": "cd client && npm run build"
   }
 }

@@ -3,7 +3,6 @@ import {sha256} from "js-sha256";
 const serviceContract = "authfndspsvc"
 import {DSPServiceClient} from '../dsp-service-client';
 import * as common from "../dapp-common";
-import * as get_table_row from "../types/chain/get_table_row";
 const defaultAuth:string = `authentikeos`;
 
 export default class AuthService extends DSPServiceClient {

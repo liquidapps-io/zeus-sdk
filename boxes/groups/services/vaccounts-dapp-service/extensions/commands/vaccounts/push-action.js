@@ -1,4 +1,4 @@
-import { createClient } from '@liquidapps/dapp-client';
+const { createClient } = require('../../../client/dist/src/dapp-client-lib');
 const { PrivateKey } = require('eosjs-ecc');
 const { execPromise, emojMap } = require('../../helpers/_exec');
 const safe = require('../../helpers/safe');
