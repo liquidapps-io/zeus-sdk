@@ -13,7 +13,8 @@
   "install":{
     "contracts":{
       "ipfsservice": true,
-      "ipfsconsumer": true
+      "ipfsconsumer": true,
+      "oldipfscons": true
     },
     "npm":{
       "ipfs-api": "^24.0.2",

@@ -22,7 +22,7 @@
 #include <eosio/crypto.hpp>
 #include <eosio/singleton.hpp>
 
-
+#ifdef USE_ADVANCED_IPFS
 namespace dapp {
     
     using namespace eosio;
@@ -1368,4 +1368,4 @@ typedef h_const_iterator const_iterator;
       }
 };
 }
-
+#endif
