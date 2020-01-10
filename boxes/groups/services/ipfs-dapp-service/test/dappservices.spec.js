@@ -101,6 +101,7 @@ async function selectPackage({ deployedContract, serviceName = 'ipfs', provider 
   var contract = deployedContract.address;
   var eos = await getEos(contract);
   let servicesTokenContract = await eos.contract(dappServicesContract);
+  let systemContract = await eos.contract('eosio');
   await servicesTokenContract.selectpkg({
     owner: contract,
     provider,
@@ -109,6 +110,31 @@ async function selectPackage({ deployedContract, serviceName = 'ipfs', provider 
   }, {
     authorization: `${contract}@active`,
   });
+  await systemContract.updateauth({
+    account: contract,
+    permission: 'dsp',
+    parent: 'active',
+    auth: {
+      threshold: 1,
+      keys: [],
+      accounts: [{
+        permission: { actor: provider, permission: 'active' },
+        weight: 1,
+      }],
+      waits: []
+    }
+  }, { authorization: `${contract}@active` });
+  try {
+    var commandNames = Object.keys(model.commands);
+    await Promise.all(commandNames.map(async(command) => {
+      await systemContract.linkauth({
+        account: contract,
+        code: contract,
+        type: `x${command}`,
+        requirement: 'dsp'
+      }, { authorization: `${contract}@active` });
+    }));
+  } catch(e) {} 
 }
 
 async function preSelectPackage({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1', selectedPackage = 'default', delegators = [], depth = 0 }) {

@@ -462,6 +462,7 @@ public:
 
  [[eosio::action]] void xsignal(name service, name action, name provider, name package,
                  std::vector<char> signalRawData) {
+    authorizeUsage(provider);
     require_auth(get_first_receiver());
     string str(signalRawData.begin(), signalRawData.end());
     auto encodedData = fc::base64_encode(str);
@@ -1177,6 +1178,32 @@ private:
         a.last_inflation_ts = current_time_ms;
       });
     }
+  }
+
+  void authorizeUsage( name provider ) {
+    auto size = transaction_size();
+    char buf[size];
+    uint32_t read = read_transaction( buf, size );
+    check( size == read, "read_transaction failed");
+    auto tx = unpack<transaction>(buf, size);
+    //check last action, and then first ation
+    auto last = tx.actions.rbegin();
+    if(last != tx.actions.rend()) {
+      if(last->account == DAPPSERVICES_CONTRACT && last->name == "xcallback"_n) {
+        auto auth = last->authorization.begin();
+        check(auth != last->authorization.end(), "xcallback has no permissions"); //this should never happen        
+        if(auth->actor == provider) return; //we assume xcallback will have a single permission
+      }
+    }
+    auto first = tx.actions.begin();
+    if(first != tx.actions.end()) {
+      if(first->account == DAPPSERVICES_CONTRACT && first->name == "xcallback"_n) {
+        auto auth = first->authorization.begin();
+        check(auth != first->authorization.end(), "xcallback has no permissions"); //this should never happen        
+        if(auth->actor == provider) return; //we assume xcallback will have a single permission
+      }
+    }
+    check(false, "provider has not authorized themselves with xcallback");
   }
 
   bool usequota(name payer, name provider, name service, asset quantity) {

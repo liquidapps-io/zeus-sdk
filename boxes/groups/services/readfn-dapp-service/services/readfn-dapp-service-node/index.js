@@ -12,7 +12,8 @@ nodeFactory('readfn', {
 
       try {
         const { contract_code, method, payload, sidechain } = body;
-        var contract = await eosDSPGateway.contract(contract_code);
+        var gateway = await eosDSPGateway();
+        var contract = await gateway.contract(contract_code);
         let key = {};
         if (!process.env.DSP_PRIVATE_KEY)
           key = await getCreateKeys(paccount);

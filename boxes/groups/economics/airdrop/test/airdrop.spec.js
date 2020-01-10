@@ -2,7 +2,7 @@ import { assert } from 'chai';
 import 'mocha';
 require('babel-core/register');
 require('babel-polyfill');
-const { eosDSPGateway } = require('../services/dapp-services-node/common');
+const { eosDSPEndpoint } = require('../services/dapp-services-node/common');
 
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
@@ -69,16 +69,15 @@ describe(`${contractCode} Contract`, () => {
 
   const createAirdrop = async({ airdropContractName, token_contract, issuer = issuerUser, symbol = "TST", amount = "100000.0000", memo = "" }) => {
     var deployedAirdropContract = await deployer.deploy(contractArtifact, airdropContractName);
-    await genAllocateDAPPTokens(deployedAirdropContract, "readfn", "pprovider1", "default");
-    await genAllocateDAPPTokens(deployedAirdropContract, "oracle", "pprovider1", "default");
-    await genAllocateDAPPTokens(deployedAirdropContract, "readfn", "pprovider2", "foobar");
-    await genAllocateDAPPTokens(deployedAirdropContract, "oracle", "pprovider2", "foobar");
+    await genAllocateDAPPTokens(deployedAirdropContract, "readfn");
+    await genAllocateDAPPTokens(deployedAirdropContract, "oracle");
 
 
     var deployedToken = await deployer.deploy(tokenContract, token_contract);
     var airdropkey = await getCreateKeys(airdropContractName);
     var tokenkey = await getCreateKeys(token_contract);
     var issuerkey = await getCreateAccount(issuer, args);
+    
 
     // create token
     await deployedToken.contractInstance.create({
@@ -116,7 +115,7 @@ describe(`${contractCode} Contract`, () => {
   const grab = async({ airdropContractName, token_contract, owner }) => {
     var key = await getCreateAccount(owner);
 
-    var contract = await eosDSPGateway.contract(airdropContractName);
+    var contract = await eosDSPEndpoint.contract(airdropContractName);
     return await contract.grab({
       owner,
       token_contract
@@ -129,7 +128,7 @@ describe(`${contractCode} Contract`, () => {
   }
   const open = async({ token_contract, owner }) => {
     var key = await getCreateAccount(owner);
-    var contract = await eosDSPGateway.contract(token_contract);
+    var contract = await eosDSPEndpoint.contract(token_contract);
     var res = await contract.open({
       owner,
       symbol: "TST",
@@ -144,7 +143,7 @@ describe(`${contractCode} Contract`, () => {
   }
   const issueairdrop = async({ airdropContractName, issuer = issuerUser, owner, token_contract, quantity, memo }) => {
     var key = await getCreateAccount(issuer);
-    var contract = await eosDSPGateway.contract(airdropContractName);
+    var contract = await eosDSPEndpoint.contract(airdropContractName);
     return await contract.issueairdrop({
       owner,
       token_contract,
@@ -159,7 +158,7 @@ describe(`${contractCode} Contract`, () => {
   }
   const cleanup = async({ airdropContractName, owner, token_contract }) => {
     var key = await getCreateKeys(airdropContractName);
-    var contract = await eosDSPGateway.contract(airdropContractName);
+    var contract = await eosDSPEndpoint.contract(airdropContractName);
     return await contract.cleanup({
       owner,
       token_contract

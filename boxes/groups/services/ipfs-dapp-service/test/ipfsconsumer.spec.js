@@ -16,30 +16,36 @@ const delaySec = sec => delay(sec * 1000);
 var contractCode = 'ipfsconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
 describe(`IPFS Service Test Contract`, () => {
-  var testcontract;
+  var testcontract, testcontract2;
   const code = 'test1';
+  const code2 = 'tstbakcomp';
   var eosvram;
   before(done => {
     (async() => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
+        var deployedContract2 = await deployer.deploy(ctrt, code2);
         await genAllocateDAPPTokens(deployedContract, 'ipfs');
+        await genAllocateDAPPTokens(deployedContract2, 'ipfs', '', 'default', null, false);
         // create token
         var selectedNetwork = getNetwork(getDefaultArgs());
         var config = {
           expireInSeconds: 120,
           sign: true,
-          chainId: selectedNetwork.chainId
+          chainId: selectedNetwork.chainId,
+          httpEndpoint: 'http://localhost:13015'
         };
-        if (account) {
-          var keys = await getCreateKeys(account);
-          config.keyProvider = keys.active.privateKey;
-        }
-        eosvram = deployedContract.eos;
-        config.httpEndpoint = 'http://localhost:13015';
-        eosvram = getEosWrapper(config);
 
+        var keysTest1 = await getCreateKeys(code);
+        config.keyProvider = keysTest1.active.privateKey;
+        eosvram = getEosWrapper(config);
         testcontract = await eosvram.contract(code);
+
+        var keysTest2 = await getCreateKeys(code2);
+        config.keyProvider = keysTest2.active.privateKey;
+        eosvram = getEosWrapper(config);
+        testcontract2 = await eosvram.contract(code2);
+
         done();
       }
       catch (e) {
@@ -48,7 +54,6 @@ describe(`IPFS Service Test Contract`, () => {
     })();
   });
 
-  var account = code;
   it('IPFS Write', done => {
     (async() => {
       try {
@@ -611,6 +616,24 @@ describe(`IPFS Service Test Contract`, () => {
               
         done();
       } catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it('IPFS without custom dsp permissions (backwards compatibility)', done => {
+    (async() => {
+      try {
+        // now this needs to be warmed up
+        await testcontract2.testget({
+          uri: 'ipfs://zb2rhnyodRMHNeY4iaSVXzVhtFmYdWxsvddrhzhWZFUMiZdrd',
+          expectedfield: 123
+        }, {
+          authorization: `${code2}@active`,
+        });
+        done();
+      }
+      catch (e) {
         done(e);
       }
     })();

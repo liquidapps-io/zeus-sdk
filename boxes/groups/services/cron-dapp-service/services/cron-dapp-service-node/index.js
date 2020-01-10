@@ -1,11 +1,9 @@
 var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
-const { deserialize, generateABI, genNode, eosPrivate, eosDSPGateway, paccount, forwardEvent, resolveProviderData, resolveProvider, resolveProviderPackage } = require('../dapp-services-node/common');
-const { getCreateKeys } = require('../../extensions/helpers/key-utils');
+const { eosDSPGateway, pushTransaction } = require('../dapp-services-node/common');
 const logger = require('../../extensions/helpers/logger');
 
-var timers = {
+var timers = {};
 
-};
 nodeFactory('cron', {
   schedule: async({ rollback, replay, event, exception }, { timer, payload, seconds }) => {
     if (exception || replay || rollback || process.env.PASSIVE_DSP_NODE) { return; }
@@ -20,25 +18,22 @@ nodeFactory('cron', {
     logger.info(`firing timer ${payer} ${timer}`);
 
     var fn = (async(n) => {
-      let key;
       delete timers[`${payer}_${timer}`];
-      var contract = await eosDSPGateway.contract(payer);
-      if (!process.env.DSP_PRIVATE_KEY) { key = await getCreateKeys(paccount); }
+      const eosMain = await eosDSPGateway();
+      let data = {
+        current_provider,
+        timer,
+        'package': packageid,
+        payload,
+        seconds
+      };
       try {
-        await contract.xschedule({
-          current_provider: current_provider,
-          timer,
-          'package': packageid,
-          payload,
-          seconds
-        }, {
-          authorization: `${paccount}@active`,
-          broadcast: true,
-          sign: true,
-          keyProvider: [process.env.DSP_PRIVATE_KEY ? process.env.DSP_PRIVATE_KEY : key.active.privateKey]
-        });
+        await pushTransaction(eosMain,payer,current_provider, "xschedule", data);
       }
       catch (e) {
+        console.error("error:", e);
+        logger.error(`Error executing cron transaction: ${e.json ? JSON.stringify(e.json) : JSON.stringify(e)}`);
+                
         if (e.toString().indexOf('duplicate') == -1) {
           logger.error(`response error, could not call contract timer callback ${payer} ${timer} ${e.toString()}`, e);
           if (n < 10) {

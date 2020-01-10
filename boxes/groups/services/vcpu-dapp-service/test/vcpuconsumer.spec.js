@@ -38,8 +38,7 @@ describe(`${contractCode} Contract`, () => {
         (async() => {
             try {
                 var deployedContract = await deployer.deploy(ctrt, account);
-                await genAllocateDAPPTokens(deployedContract, serviceName, "pprovider1", "default");
-                await genAllocateDAPPTokens(deployedContract, serviceName, "pprovider2", "foobar");
+                await genAllocateDAPPTokens(deployedContract, serviceName);
                 testcontract = await getTestContract(account);
 
 

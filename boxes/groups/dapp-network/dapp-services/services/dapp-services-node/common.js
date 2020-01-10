@@ -29,7 +29,7 @@ const network = {
   chainId: process.env.NODEOS_CHAINID
 };
 var eosconfig = {
-  chainId: network.chainId, // 32 byte (64 char) hex string
+  //chainId: network.chainId, // 32 byte (64 char) hex string
   expireInSeconds: 120,
   sign: true,
   broadcast: true,
@@ -155,22 +155,40 @@ function decodeName(value, littleEndian = true) {
 
 // const nameToString = (name) => {
 //     const tmp = new BigNumber(name.toString('hex'), 16);
-//     return decodeName(tmp.toString(), truFORWARDe);
+//     return decodeName(tmp.toString(), true);
 // }
-var eosPrivate = getEosWrapper(eosconfig);
-eosdspconfig.httpEndpoint = `http://${process.env.NODEOS_HOST_DSP || 'localhost'}:${process.env.NODEOS_HOST_DSP_PORT || process.env.DSP_PORT || 13015}`;
-var eosDSPGateway = getEosWrapper(eosdspconfig);
 
-const getEosForSidechain = async(sidechainName, dspEndpoint) => {
-  const sidechains = await loadModels('local-sidechains');
-  const sidechain = sidechains.find(s => s.Name = sidechainName);
+const eosPrivate = async() => {
+  let config = {
+    ...eosconfig,
+    keyProvider: process.env.DSP_PRIVATE_KEY || (await getCreateKeys(paccount)).active.privateKey //TODO: any reason not to include authorization here?
+  }
+  return getEosWrapper(config);
+}
 
+const eosDSPGateway = async() => {
+  let config = {
+    ...eosdspconfig,
+    httpEndpoint: `http://${process.env.NODEOS_HOST_DSP || 'localhost'}:${process.env.NODEOS_HOST_DSP_PORT || process.env.DSP_PORT || 13015}`,
+    keyProvider: process.env.DSP_PRIVATE_KEY || (await getCreateKeys(paccount)).active.privateKey //TODO: any reason not to include authorization here?
+  }
+  return getEosWrapper(config);
+}
 
-  return getEosWrapper({ ...eosDSPGateway,
-    httpEndpoint: dspEndpoint ? `http://localhost:${sidechain.dsp_port}` : `http://localhost:${sidechain.nodeos_endpoint}`
+var eosDSPEndpoint = getEosWrapper({
+  ...eosdspconfig,
+  httpEndpoint: `http://${process.env.NODEOS_HOST_DSP || 'localhost'}:${process.env.NODEOS_HOST_DSP_PORT || process.env.DSP_PORT || 13015}`  
+});
 
-  });
-
+const getEosForSidechain = async(sidechain, dspEndpoint = null) => {
+  // const sidechains = await loadModels('local-sidechains');
+  // const sidechain = sidechains.find(s => s.Name = sidechainName);
+  let config = {
+    ...eosdspconfig,
+    httpEndpoint: dspEndpoint ? `http://localhost:${sidechain.dsp_port}` : sidechain.nodeos_endpoint, //TODO: do we need to check for https?
+    keyProvider: process.env.DSP_PRIVATE_KEY || (await getCreateKeys(paccount, null, false, sidechain)).active.privateKey //TODO: any reason not to include authorization here?
+  }
+  return getEosWrapper(config);
 }
 
 const forwardEvent = async(act, endpoint, redirect) => {
@@ -632,80 +650,112 @@ const detectXCallback = async(eos) => {
 }
 let enableXCallback = null;
 
-const emitUsage = async(contract, service, quantity = 1, sidechain = null, meta = {}, requestId = '') => {
-  const provider = paccount;
-  const currentPackage = await resolveProviderPackage(contract, service, provider, sidechain);
-  const eosProv = await getEosWrapper({
-    chainId: process.env.NODEOS_CHAINID, // 32 byte (64 char) hex string
-    expireInSeconds: 120,
-    sign: true,
-    broadcast: true,
-    blocksBehind: 10,
-    httpEndpoint: `http${process.env.NODEOS_SECURED === 'true' || false ? 's':''}://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_PORT || 8888}`,
-    keyProvider: process.env.DSP_PRIVATE_KEY || (await getCreateKeys(paccount)).active.privateKey
-  });
-  if (enableXCallback === null) {
-    enableXCallback = await detectXCallback(eosProv);
+const getPayerPermissions = async(endpoint, payer, provider, permission) => {
+  let authorization = [{actor: provider,permission}]; //backwards compatability
+  if(payer == dappServicesContract) return authorization; //make this universal for emitting
+  try {
+    let account = await endpoint.rpc.get_account(payer);
+    let dsp = account.permissions.find(p=>p.perm_name == "dsp");
+    if(!dsp) throw new Error('no dsp permission');
+    let found = dsp.required_auth.accounts.find(a=>a.permission.actor == provider && a.permission.permission == permission);
+    if(!found) {
+      logger.warn("CONSUMER ISSUE: %s is not on the DSP permission for %s",provider,payer);
+      throw new Error('this provider is not on the dsp permission list');
+    }
+    authorization = [{actor: payer, permission: "dsp"}]; //if detected - we will use this
+  } catch(e) {    
+    logger.warn("CONSUMER ISSUE: %s does not have a valid DSP permission configured", payer);
+    let forcePayer = process.env.DSP_CONSUMER_PAYS || false;
+    if(forcePayer) {
+      throw e;
+    }    
   }
-  var pactions = [];
-  if (sidechain) {
-    var eosSideChain = await getEosWrapper({
-      expireInSeconds: 120,
-      sign: true,
-      broadcast: true,
-      blocksBehind: 10,
-      httpEndpoint: sidechain.nodeos_endpoint,
-      keyProvider: process.env.DSP_PRIVATE_KEY || (await getCreateKeys(paccount, null, false, sidechain)).active.privateKey
-    });
-    // todo: get payer account mapping from eosSideChain
-    // todo: get dsp account mapping
+  return authorization;
+}
 
+const pushTransaction = async(endpoint, payer, provider, action, payload, requestId = "", meta = {}) => {
+  var actions = [];
+  if (enableXCallback === null) {
+    enableXCallback = await detectXCallback(endpoint);
   }
-  var quantityAsset = `${(quantity / 1000).toFixed(4)} QUOTA`;
+  let payerPermissions = await getPayerPermissions(endpoint, payer, provider, paccountPermission);
+  
+  actions.push({
+    account: payer,
+    name: action,
+    authorization: payerPermissions,
+    data: payload,
+  });
+
   if (enableXCallback === true) {
-    pactions.push({
+    actions.push({
       account: dappServicesContract,
       name: "xcallback",
       authorization: [{
-        actor: paccount,
+        actor: provider,
         permission: paccountPermission,
       }],
       data: {
-        provider: paccount,
+        provider: provider,
         request_id: requestId,
         meta: JSON.stringify(meta)
       },
     });
   }
-  pactions.push({
-    account: "dappservices",
-    name: "usagex",
-    authorization: [{
-      actor: paccount,
-      permission: paccountPermission,
-    }],
-    data: {
-      usage_report: {
-        "provider": paccount,
-        "package": currentPackage,
-        "payer": contract,
-        "service": service,
-        "quantity": quantityAsset,
-        "success": true
-      }
-    }
-  });
+
+  logger.debug("TRANSMITTING ACTION: \n%j\n", JSON.stringify(actions));
+
   try {
-    await eosProv.transact({
-      actions: pactions
+    let tx = await endpoint.transact({
+      actions
     }, {
       expireSeconds: 120,
       sign: true,
       broadcast: true,
       blocksBehind: 10
     });
+    return tx;    
+  }
+  catch (e) {
+    logger.debug("TRANSMITTING ACTION FAILED: \n%j\n", JSON.stringify(actions));
+    throw e;    
+  }
+}
 
+const emitUsage = async(contract, service, quantity = 1, sidechain = null, meta = {}, requestId = '') => {
+  const provider = paccount;
+  const currentPackage = await resolveProviderPackage(contract, service, provider, sidechain);
+  const eosProv = await eosPrivate();
+  if (enableXCallback === null) {
+    enableXCallback = await detectXCallback(eosProv);
+  }
+  if (sidechain) {
+    var eosSideChain = await getEosForSidechain(sidechain);
+    // todo: get payer account mapping from eosSideChain
+    // todo: get dsp account mapping
 
+  }
+  var quantityAsset = `${(quantity / 1000).toFixed(4)} QUOTA`;
+  let report = {
+    usage_report: {
+      "provider": paccount,
+      "package": currentPackage,
+      "payer": contract,
+      "service": service,
+      "quantity": quantityAsset,
+      "success": true
+    }
+  }
+  try {
+    await pushTransaction(
+      eosProv,
+      dappServicesContract,
+      paccount,
+      "usagex",
+      report,
+      requestId,
+      meta
+    );
   }
   catch (e) {
     // fail if fails
@@ -714,4 +764,4 @@ const emitUsage = async(contract, service, quantity = 1, sidechain = null, meta 
   }
 
 }
-module.exports = { deserialize, generateABI, genNode, genApp, forwardEvent, resolveProviderData, resolveProvider, processFn, handleAction, paccount, proxy, eosPrivate, eosconfig, nodeosEndpoint, resolveProviderPackage, eosDSPGateway, paccountPermission, encodeName, decodeName, getProviders, getEosForSidechain, emitUsage, detectXCallback };
+module.exports = { deserialize, generateABI, genNode, genApp, forwardEvent, resolveProviderData, resolveProvider, processFn, handleAction, paccount, proxy, eosPrivate, eosconfig, nodeosEndpoint, resolveProviderPackage, eosDSPGateway, paccountPermission, encodeName, decodeName, getProviders, getEosForSidechain, emitUsage, detectXCallback, pushTransaction, eosDSPEndpoint };

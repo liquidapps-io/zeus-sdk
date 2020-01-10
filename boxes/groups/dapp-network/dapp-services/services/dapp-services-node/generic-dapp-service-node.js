@@ -10,7 +10,7 @@ const { loadModels } = require('../../extensions/tools/models');
 const { getCreateKeys } = require('../../extensions/helpers/key-utils');
 const { dappServicesContract, getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
 const { getEosWrapper } = require('../../extensions/tools/eos/eos-wrapper');
-const { deserialize, generateABI, genNode, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission, emitUsage, detectXCallback } = require('./common');
+const { deserialize, generateABI, genNode, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, emitUsage, pushTransaction, eosPrivate, getEosForSidechain } = require('./common');
 
 
 const actionHandlers = {
@@ -104,7 +104,8 @@ const getLinkedAccount = async(eosSideChain, eosMain, account, sidechainName, is
   // eosMain get linkedaccount for sidechain_name
   throw new Error('not implemented yet');
 }
-let enableXCallback = null;
+
+
 const handleRequest = async(handler, act, packageid, serviceName, abi) => {
   var { sidechain, event } = act;
   let { service, payer, provider, action, data } = event;
@@ -121,16 +122,7 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
   const account = act.account;
 
   // for provisioning
-
-  var eosSideChain = await getEosWrapper({
-    expireInSeconds: 120,
-    sign: true,
-    broadcast: true,
-    blocksBehind: 10,
-    httpEndpoint: sidechain ? sidechain.nodeos_endpoint : `http${process.env.NODEOS_SECURED === 'true' || false ? 's':''}://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_PORT || 8888}`,
-    keyProvider: process.env.DSP_PRIVATE_KEY || (await getCreateKeys(paccount, null, false, sidechain)).active.privateKey
-  });
-
+  var eosSideChain = sidechain ? (await getEosForSidechain(sidechain)) : (await eosPrivate());
   var requestId = "";
   var meta = {};
   if (metadata) {
@@ -140,89 +132,39 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
       requestId = `${metadata.sidechain}.${requestId}`;
   }
 
-
-
   let responses = await handler(act, data);
   if (!responses) { return; }
   if (!Array.isArray(responses)) // needs conversion from a normal object
     responses = respond(act.event, packageid, responses);
-
-
-
   let sidechain_provider = paccount;
   if (sidechain) {
-    const eosMain = await getEosWrapper({
-      chainId: process.env.NODEOS_CHAINID, // 32 byte (64 char) hex string
-      expireInSeconds: 120,
-      sign: true,
-      broadcast: true,
-      blocksBehind: 10,
-      httpEndpoint: `http${process.env.NODEOS_SECURED === 'true' || false ? 's':''}://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_PORT || 8888}`,
-      keyProvider: process.env.DSP_PRIVATE_KEY || (await getCreateKeys(paccount)).active.privateKey
-    });
+    const eosMain = await eosPrivate();
     const mainnet_account = await getLinkedAccount(eosSideChain, eosMain, account, sidechain.name, sidechain.is_sister_chain);
     sidechain_provider = await getLinkedAccount(eosSideChain, eosMain, paccount, sidechain.name, sidechain.is_sister_chain);
     await emitUsage(mainnet_account, service, 1, sidechain, meta, requestId);
   }
+  
   await Promise.all(responses.map(async(response) => {
-
-
-    var actions = [];
-    if (enableXCallback === null) {
-      enableXCallback = await detectXCallback(eosSideChain);
-    }
-
-
-
-    if (enableXCallback === true) {
-      actions.push({
-        account: dappServicesContract,
-        name: "xcallback",
-        authorization: [{
-          actor: paccount,
-          permission: paccountPermission,
-        }],
-        data: {
-          provider: sidechain_provider,
-          request_id: requestId,
-          meta: JSON.stringify(meta)
-        },
-      });
-    }
-    actions.push({
-      account: payer,
-      name: response.action,
-      authorization: [{
-        actor: sidechain_provider,
-        permission: paccountPermission,
-      }],
-      data: response.payload,
-    });
-
-
     try {
-      let tx = await eosSideChain.transact({
-        actions
-      }, {
-        expireSeconds: 120,
-        sign: true,
-        broadcast: true,
-        blocksBehind: 10
-      });
+      let tx = await pushTransaction(
+        eosSideChain,
+        payer,
+        sidechain_provider,
+        response.action,
+        response.payload,
+        requestId,
+        meta
+      );
       logger.debug("REQUEST\n%j\nRESPONSE: [%s]\n%j", act, tx.transaction_id, response);
-
-
-    }
-    catch (e) {
+    } catch(e) {
       if (e.json)
         e.error = e.json.error;
-
       logger.warn("REQUEST\n%j\nRESPONSE: [FAILED]\n%j", act, e);
       if (e.toString().indexOf('duplicate') == -1) {
         console.log(`response error, could not call contract callback for ${response.action}`, e);
         throw e;
       }
-    }
+    }    
     // dispatch on chain response - call response.action with params with paccount permissions
   }));
 };

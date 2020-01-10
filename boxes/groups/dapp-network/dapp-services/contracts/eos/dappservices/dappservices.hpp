@@ -1,6 +1,7 @@
 #pragma once
 
 #include <eosio/action.hpp>
+#include <eosio/transaction.hpp>
 #include <eosio/asset.hpp>
 #include <eosio/contract.hpp>
 #include <eosio/dispatcher.hpp>
@@ -39,6 +40,7 @@ extern "C" {
 #define STR(x) XSTR(x)
 #define IDENT(x) x
 #define EMPTYSEQ ()
+
 
 #define EMIT_REQUEST_SVC_EVENT(payer, service, action, provider,             \
                                encodedData)                                    \
@@ -139,7 +141,7 @@ extern "C" {
                    action_args, service_contract)                                                \
   SIGNAL_T(aname, signal_fields, service_contract)                                               \
   REQUEST_T(aname, fail_val, request_fields, service_contract)                                   \
-  static void signal_svc(name service, name provider,name package,                        \
+  static void signal_svc(name service, name provider,name package,             \
                          SIGNAL_NAME(aname) signalData) {                      \
     name actionName = TONAME(aname);                                           \
     std::vector<char> raw = eosio::pack<SIGNAL_NAME(aname)>(signalData);       \
@@ -387,6 +389,8 @@ typedef eosio::multi_index<
                                >
       accountexts_t;
 
+
+
 std::vector<name> getProvidersForAccount(name account, name service) {
   // get from service account
   accountexts_t accountexts(DAPPSERVICES_CONTRACT, DAPPSERVICES_SYMBOL.code().raw());
@@ -402,7 +406,6 @@ std::vector<name> getProvidersForAccount(name account, name service) {
   }
   return result;
 }
-
 
 void dispatchUsage(usage_t usage_report) {
   action(permission_level{name(current_receiver()), "active"_n},
@@ -420,7 +423,6 @@ void dispatchUsage(usage_t usage_report) {
       providers.push_back(provider);                                           \
     else                                                                       \
       providers = getProvidersForAccount(payer, name(current_receiver()));     \
-    require_auth(payer);                                                       \
     auto currentProvider = provider;                                            \
       providermodels_t providermodels(_self, currentProvider.value);           \
       auto providerModel = providermodels.find(package.value);      \
