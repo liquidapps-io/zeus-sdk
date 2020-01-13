@@ -11,13 +11,15 @@ module.exports = {
     yargs
       .option('wallet', {
         describe: 'keosd wallet to use',
-        default: 'zeus'
+        default: 'zeus',
+        alias: 'w'
       }).option('creator-key', {
         describe: 'private key to set contract to',
         default: '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3'
       }).option('creator', {
         describe: 'eos account to set contract to',
-        default: 'eosio'
+        default: 'eosio',
+        alias: 'a'
       }).option('reset', {
         describe: 'reset local environment',
         default: true
@@ -27,9 +29,10 @@ module.exports = {
       }).option('network', {
         describe: 'network to work on',
         default: 'development'
-      }).option('compile-all', {
-        describe: 'compile all contracts',
-        default: true
+      }).option('compile', {
+        describe: 'compile contract(s)',
+        alias: 'c',
+        default: false
       }).option('verbose-rpc', {
         describe: 'verbose logs for blockchain communication',
         default: false
@@ -40,13 +43,18 @@ module.exports = {
       })
       .option('stake', {
         describe: 'account staking amount',
-        default: '300.0000'
-      }).example('$0 test contract').example('$0 test').example('$0 test contract --no-compile-all').example('$0 test --no-compile-all');
+        default: '300.0000',
+        alias: 's'
+      })
+      .example('$0 test contract')
+      .example('$0 test')
+      .example('$0 test contract -c')
+      .example('$0 test -c');
   },
   command: 'test [contract]',
 
   handler: async(args) => {
-    if (args.compileAll) {
+    if (args.compile) {
       await compileCommand.handler(args);
     }
     if (args.reset) {
