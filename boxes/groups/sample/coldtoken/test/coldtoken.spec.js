@@ -79,45 +79,45 @@ describe(`${contractCode} Contract`, () => {
           broadcast: true,
           sign: true
         });
-        // await delay(3000);
-        // await testtoken.transfer({
-        //   from: code,
-        //   to: code2,
-        //   quantity: `1.0001 ${symbol}`,
-        //   memo: ''
-        // }, {
-        //   authorization: `${code}@active`,
-        //   broadcast: true,
-        //   sign: true
-        // });
-        // await delay(3000);
-        // await testtoken.transfer({
-        //   from: code,
-        //   to: code2,
-        //   quantity: `1.0002 ${symbol}`,
-        //   memo: ''
-        // }, {
-        //   authorization: `${code}@active`,
-        //   broadcast: true,
-        //   sign: true
-        // });
-        // await delay(3000);
-        // try {
-        //   await testtoken.transfer({
-        //     from: code,
-        //     to: code2,
-        //     quantity: `1000.0003 ${symbol}`,
-        //     memo: ''
-        //   }, {
-        //     authorization: `${code}@active`,
-        //     broadcast: true,
-        //     sign: true
-        //   });
-        // }
-        // catch (e) {
-        //   failed = true;
-        // }
-        // assert(failed, 'should have failed big transfer');
+        await delay(3000);        
+        await testtoken.transfer({
+          from: code,
+          to: code2,
+          quantity: `1.0001 ${symbol}`,
+          memo: ''
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+        await delay(3000);
+        await testtoken.transfer({
+          from: code,
+          to: code2,
+          quantity: `1.0002 ${symbol}`,
+          memo: ''
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+        await delay(3000);
+        try {
+          await testtoken.transfer({
+            from: code,
+            to: code2,
+            quantity: `1000.0003 ${symbol}`,
+            memo: ''
+          }, {
+            authorization: `${code}@active`,
+            broadcast: true,
+            sign: true
+          });
+        }
+        catch (e) {
+          failed = true;
+        }
+        assert(failed, 'should have failed big transfer');
         done();
       }
       catch (e) {
@@ -126,7 +126,7 @@ describe(`${contractCode} Contract`, () => {
     })();
   });
 
-  it.skip('issue and read', done => {
+  it('issue and read', done => {
     (async() => {
       try {
         var symbol = 'AIRU';

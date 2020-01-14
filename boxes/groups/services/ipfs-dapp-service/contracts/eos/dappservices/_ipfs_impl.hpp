@@ -5,6 +5,7 @@
 #include <eosio/eosio.hpp>
 #include <eosio/transaction.hpp>
 #include <eosio/crypto.hpp>
+#include <eosio/binary_extension.hpp>
 using std::vector;
 using ipfsmultihash_t = std::vector<char>; 
 
@@ -86,6 +87,7 @@ static std::string data_to_uri(std::vector<char> data) {
 TABLE ipfsentry {  
    uint64_t                      id; 
    std::vector<char>             data; 
+   binary_extension<bool>        pending_commit;
    uint64_t primary_key()const { return id; }  
    checksum256 hash_key()const { return uri_to_key256(data_to_uri(data)); }  
 };  
@@ -98,6 +100,7 @@ typedef eosio::multi_index<"ipfsentry"_n, ipfsentry,
 TABLE ipfsentry {  \
    uint64_t                      id; \
    std::vector<char>             data; \
+   binary_extension<bool>        pending_commit;\
    uint64_t primary_key()const { return id; }  \
    checksum256 hash_key()const { return uri_to_key256(data_to_uri(data)); }  \
 };  \
@@ -129,13 +132,16 @@ static std::vector<char> getRawData(std::string uri, bool pin = false, bool skip
     auto cidx = entries.get_index<"byhash"_n>(); \
     auto key =  uri_to_key256(uri); \
     auto existing = cidx.find(key); \
-    if(existing == cidx.end())  \
+    if(existing == cidx.end()) {  \
         svc_ipfs_warmup(uri); \
-    else if(skip_commit){ \
+    } else if(skip_commit){ \
         cidx.erase(existing); \
-    }\
-    else if(!pin)\
+    } else if(!pin && !existing->pending_commit.value_or()) {\
+        entries.modify(*existing, eosio::same_payer, [&]( auto& a ) {  \
+            a.pending_commit.emplace(true); \
+        }); \
         defer_commit(existing->data, short_hash(key), delay_sec); \
+    }\
     return existing->data;  \
 }  \
 static std::string setRawData(std::vector<char> data, bool pin = false, uint32_t delay_sec = 0){  \
@@ -146,15 +152,21 @@ static std::string setRawData(std::vector<char> data, bool pin = false, uint32_t
     auto key = uri_to_key256(currentUri); \
     auto existing = cidx.find(key); \
     uint64_t id = 0;  \
+    bool pending_commit = false; \
     if(existing == cidx.end()){  \
         entries.emplace(_self, [&]( auto& a ) {  \
                     a.id = entries.available_primary_key();  \
                     id = a.id; \
+                    a.pending_commit.emplace(!pin); \
                     a.data = data;  \
         }); \
-    } else \
+    } else {\
         id = existing->id;\
-    if(!pin) defer_commit(data, short_hash(key), delay_sec); \
+        pending_commit = existing->pending_commit.has_value() ? existing->pending_commit.value() : false;\
+    } \
+    if(!pin && !pending_commit) {\
+        defer_commit(data, short_hash(key), delay_sec); \
+    }\
     return currentUri; \
 }\
 template<typename T>  \
@@ -176,6 +188,7 @@ SVC_RESP_IPFS(warmup)(uint32_t size,std::string uri,std::vector<char> data, name
     entries.emplace(DAPP_RAM_PAYER, [&]( auto& a ) {  \
                 a.id = entries.available_primary_key();  \
                 a.data = data;  \
+                a.pending_commit.emplace(false);\
     }); \
 } \
 SVC_RESP_IPFS(cleanup)(uint32_t size, std::string uri, name current_provider){ \
