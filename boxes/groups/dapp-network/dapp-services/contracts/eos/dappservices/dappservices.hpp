@@ -241,7 +241,7 @@ struct usage_t {
   if (action == TONAME(signal)) {                                              \
     _xsignal_provider<SIGNAL_NAME(signal)>(                                    \
         action, provider,package,                                              \
-        eosio::unpack<SIGNAL_NAME(signal)>(signalRawData));                    \
+        eosio::unpack<SIGNAL_NAME(signal)>(signalRawData), dappserviceContract, payer);                    \
     return;                                                                    \
   }
 
@@ -407,22 +407,25 @@ std::vector<name> getProvidersForAccount(name account, name service) {
   return result;
 }
 
-void dispatchUsage(usage_t usage_report) {
+void dispatchUsage(usage_t usage_report, name servicesContract) {
   action(permission_level{name(current_receiver()), "active"_n},
-         DAPPSERVICES_CONTRACT, "usage"_n, std::make_tuple(usage_report))
+         servicesContract, "usage"_n, std::make_tuple(usage_report))
       .send();
 }
 
 
 #define DAPPSERVICE_PROVIDER_ACTIONS                                               \
   template <typename T>                                                        \
-  void _xsignal_provider(name actionName, name provider,name package, T signalData) {       \
-    auto payer = get_first_receiver();  \
+  void _xsignal_provider(name actionName, name provider,name package, T signalData, name servicesContract, name payer) {       \
     std::vector<name> providers;                                               \
     if (provider != ""_n)                                                      \
       providers.push_back(provider);                                           \
     else                                                                       \
       providers = getProvidersForAccount(payer, name(current_receiver()));     \
+    if(servicesContract == DAPPSERVICES_CONTRACT)                             \
+      require_auth(payer);                                                       \
+    else                                                                        \
+      require_auth(servicesContract);                                                       \
     auto currentProvider = provider;                                            \
       providermodels_t providermodels(_self, currentProvider.value);           \
       auto providerModel = providermodels.find(package.value);      \
@@ -433,7 +436,7 @@ void dispatchUsage(usage_t usage_report) {
       usageResult.payer = payer;                                               \
       usageResult.package = package;                                               \
       usageResult.service = name(current_receiver());                        \
-      dispatchUsage(usageResult);                                              \
+      dispatchUsage(usageResult, servicesContract);                                              \
   }
 
 #define DAPPSERVICE_PROVIDER_BASIC_ACTIONS                                       \
@@ -452,7 +455,7 @@ void dispatchUsage(usage_t usage_report) {
   extern "C" {                                                                 \
   void apply(uint64_t receiver, uint64_t code, uint64_t action) { \
     if (code == receiver) {                                                    \
-      switch (action) { EOSIO_DISPATCH_HELPER(contract, (regprovider)) }       \
+      switch (action) { EOSIO_DISPATCH_HELPER(contract, (regprovider)(ACTION_NAME(signalx))) }       \
     } else                                                                     \
       switch (action) {                                                        \
         EOSIO_DISPATCH_HELPER(contract, (ACTION_NAME(signal)))                 \

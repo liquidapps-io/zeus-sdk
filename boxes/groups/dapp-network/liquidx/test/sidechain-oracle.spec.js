@@ -15,13 +15,13 @@ const { genAllocateDAPPTokens, readVRAMData, createLiquidXMapping } = require('.
 const delay = ms => new Promise(res => setTimeout(res, ms));
 const delaySec = sec => delay(sec * 1000);
 
-var contractCode = 'ipfsxtest';
+var contractCode = 'orcxtest';
 var ctrt = artifacts.require(`./${contractCode}/`);
-describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
+describe(`LiquidX Sidechain Oracle Service Test Contract`, () => {
   var testcontract;
-  const mainnet_code = 'testc5';
-  const sister_code = 'testc5x';
-  var eosvram;
+  const mainnet_code = 'testorc1';
+  const sister_code = 'testorc1x';
+  var eosconsumer;
   var sidechainName = 'test1';
   var sidechain;
   before(done => {
@@ -32,7 +32,7 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
         await getCreateAccount(sister_code, null, false, sidechain);
         await getCreateAccount(mainnet_code, null, false);
         var deployedContract = await deployer.deploy(ctrt, sister_code, null, sidechain);
-        await genAllocateDAPPTokens({ address: mainnet_code }, 'ipfs', '', 'default');
+        await genAllocateDAPPTokens({ address: mainnet_code }, 'oracle', '', 'default');
         await createLiquidXMapping(sidechain.name, mainnet_code, sister_code);
         // allowdsps
         const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechain.name && m.mainnet_account === 'dappservices');
@@ -51,12 +51,12 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
           var keys = await getCreateKeys(account, getDefaultArgs(), false, sidechain);
           config.keyProvider = keys.active.privateKey;
         }
-        eosvram = deployedContract.eos;
+        eosconsumer = deployedContract.eos;
         config.httpEndpoint = `http://localhost:${sidechain.dsp_port}`;
-        eosvram = getEosWrapper(config);
+        eosconsumer = getEosWrapper(config);
 
-        testcontract = await eosvram.contract(account);
-        const dappservicexInstance = await eosvram.contract(dappservicex);
+        testcontract = await eosconsumer.contract(account);
+        const dappservicexInstance = await eosconsumer.contract(dappservicex);
         try {
           await dappservicexInstance.adddsp({ owner: sister_code, dsp: 'xprovider1' }, {
             authorization: `${sister_code}@active`,
@@ -76,95 +76,17 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
       }
     })();
   });
-  const multihash = require('multihashes');
-
-  const converToUri = (hash) => {
-    const bytes = Buffer.from(hash, 'hex');
-    const address = multihash.toB58String(bytes);
-    return 'ipfs://z' + address;
-  };
-  const hashData256 = (data) => {
-    var hash = sha256.create();
-    hash.update(data);
-    return hash.hex();
-  };
   var account = sister_code;
-  let uri = "ipfs://zb2rhnyodRMHNeY4iaSVXzVhtFmYdWxsvddrhzhWZFUMiZdrd";
-  it('sidechain - IPFS Write', done => {
+  it('sidechain - Random Number', done => {
     (async() => {
       try {
-        var res = await testcontract.testset({
-          data: {
-            field1: 123,
-            field2: new Buffer('hello-world').toString('hex'),
-            field3: 312
-          }
+        var id = 100;
+        var res = await testcontract.testrnd({
+          uri: Buffer.from(`random://1024/${id}`, 'utf8'),
         }, {
           authorization: `${sister_code}@active`,
-        });
-        // var bufData = Buffer.from(JSON.parse(res.processed.action_traces[0].console).data, 'base64');
-        // const hash = hashData256(bufData);
-        // uri = converToUri("01551220" + hash);
-
-        done();
-      }
-      catch (e) {
-        done(e);
-      }
-    })();
-  });
-  it('sidechain - cleanup1', done => {
-    (async() => {
-      try {
-        await delaySec(10);
-        await testcontract.verfempty({
-          id: 52343,
-          value: 123,
-          delay_sec: 2
-        }, {
-          authorization: `${sister_code}@active`,
-        });
-        done();
-      }
-      catch (e) {
-        done(e);
-      }
-    })();
-  });
-  it('sidechain - IPFS Read', done => {
-    (async() => {
-      try {
-        await delaySec(10);
-
-        await testcontract.testget({
-          uri,
-          expectedfield: 123
-        }, {
-          authorization: `${sister_code}@active`,
-        });
-
-        // var eventResp = JSON.parse(res.processed.action_traces[0].console);
-        // assert.equal(eventResp.etype, "service_request", "wrong etype");
-        // assert.equal(eventResp.provider,"", "wrong provider");
-        // assert.equal(eventResp.action, "cleanup", "wrong action");
-        done();
-      }
-      catch (e) {
-        done(e);
-      }
-    })();
-  });
-
-  it('sidechain - cleanup2', done => {
-    (async() => {
-      try {
-        await delaySec(10);
-        await testcontract.verfempty({
-          id: 52343,
-          value: 123,
-          delay_sec: 2
-        }, {
-          authorization: `${sister_code}@active`,
+          broadcast: true,
+          sign: true
         });
         done();
       }

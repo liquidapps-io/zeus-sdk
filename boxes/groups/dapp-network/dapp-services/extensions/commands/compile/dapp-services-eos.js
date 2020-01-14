@@ -54,6 +54,15 @@ public:
     if (current_receiver() != service || _self != service)
       return;
     require_auth(get_first_receiver());
+    auto payer = get_first_receiver();  \
+    name dappserviceContract = DAPPSERVICES_CONTRACT;
+    ${M('HANDLECASE_SIGNAL_TYPE')}
+  }
+  [[eosio::action]] void xsignalx(name service, name action,
+                 name provider, name package, std::vector<char> signalRawData, name dappserviceContract, name payer) {
+    if (current_receiver() != service || _self != service)
+      return;
+    require_auth(dappserviceContract);
     ${M('HANDLECASE_SIGNAL_TYPE')}
   }
 
@@ -170,13 +179,15 @@ const generateServiceAbiFile = (serviceModel) => {
 const generateCommandCodeText = (serviceName, commandName, commandModel, serviceContract) => {
   var fnArgs = (args) => Object.keys(args).map(name => `((${args[name]})(${name}))`).join('');
   var fnPassArgs = (args) => Object.keys(args).join(', ');
+  var upperName = serviceName.toUpperCase();
 
-  return `SVC_ACTION(${commandName}, ${commandModel.blocking}, ${fnArgs(commandModel.request)},     \
-         ${fnArgs(commandModel.signal)}, \
-         ${fnArgs(commandModel.callback)},"${serviceContract}"_n) { \
-    _${serviceName}_${commandName}(${fnPassArgs({ ...commandModel.callback, 'current_provider': 'name' })}); \
-    SEND_SVC_SIGNAL(${commandName}, current_provider, package, ${fnPassArgs(commandModel.signal)})                         \
-};`;
+  return `SVC_ACTION(${commandName}, ${commandModel.blocking}, ${fnArgs(commandModel.request)},     \\
+         ${fnArgs(commandModel.signal)}, \\
+         ${fnArgs(commandModel.callback)},TONAME(SVC_CONTRACT_NAME_${upperName}) ) \\
+{ \\
+    _${serviceName}_${commandName}(${fnPassArgs({ ...commandModel.callback, 'current_provider': 'name' })}); \\
+    SEND_SVC_SIGNAL(${commandName}, current_provider, package, ${fnPassArgs(commandModel.signal)})                         \\
+}; `;
 };
 
 const generateCommandHelperCodeText = (serviceName, commandName, commandModel) => {
@@ -188,8 +199,8 @@ const generateCommandHelperCodeText = (serviceName, commandName, commandModel) =
   rargs = { ...rargs, 'current_provider': 'name' };
   var fnArgsWithType = argsKeys.map(name => `${rargs[name]} ${name}`).join(', ');
 
-  return `static void svc_${serviceName}_${commandName}(${fnArgsWithType}) { \
-    SEND_SVC_REQUEST(${commandName}, ${fnArgs}) \
+  return `static void svc_${serviceName}_${commandName}(${fnArgsWithType}) { \\
+    SEND_SVC_REQUEST(${commandName}, ${fnArgs}) \\
 };`;
 };
 
@@ -235,27 +246,37 @@ ${commandsImpl.join('\n')}`
 const generateServiceHppFile = (serviceModel) => {
   var name = serviceModel.name;
   var upperName = name.toUpperCase();
+  const serviceContract = getContractAccountFor(serviceModel);
   var commandNames = Object.keys(serviceModel.commands);
   var commandsCodeText = commandNames.map(
     commandName => generateCommandCodeText(name, commandName,
-      serviceModel.commands[commandName], getContractAccountFor(serviceModel))).join('\\\n');
+      serviceModel.commands[commandName], serviceContract)).join('\\\n');
   var commandsHelpersCodeText = commandNames.map(
     commandName => generateCommandHelperCodeText(name, commandName,
-      serviceModel.commands[commandName], getContractAccountFor(serviceModel))).join('\\\n');
+      serviceModel.commands[commandName], serviceContract)).join('\\\n');
+  const mapEntries = (loadModels('liquidx-mappings')).filter(m => m.mainnet_account === serviceContract);
+  const liquidxDefines = mapEntries.map(a => `#define SVC_CONTRACT_NAME_${upperName}_${a.sidechain_name.toUpperCase()} ${a.chain_account}`).join('\n');
+  const selectedSideChain = mapEntries.map(a => a.sidechain_name.toUpperCase()).find(a => a);
 
   return `#pragma once
 #include "../dappservices/dappservices.hpp"\n
 #define SVC_RESP_${upperName}(name) \\
     SVC_RESP_X(${name},name)
 
-#define SVC_CONTRACT_NAME_${upperName} ${getContractAccountFor(serviceModel)} \n
+${liquidxDefines}
+
+#ifdef LIQUIDX\n
+#define SVC_CONTRACT_NAME_${upperName} SVC_CONTRACT_NAME_${upperName}_${selectedSideChain} \n
+#else
+#define SVC_CONTRACT_NAME_${upperName} ${serviceContract} \n
+#endif
 
 #include "../dappservices/_${name}_impl.hpp"\n
 
 
 #define ${upperName}_DAPPSERVICE_BASE_ACTIONS ${commandsCodeText.length ? '\\' : ''}
-  ${commandsCodeText} ${commandsHelpersCodeText.length ? '\\' : ''}
-  ${commandsHelpersCodeText}
+${commandsCodeText} ${commandsHelpersCodeText.length ? '\\' : ''}
+${commandsHelpersCodeText}
 
 
 #ifdef ${upperName}_DAPPSERVICE_ACTIONS_MORE
@@ -311,10 +332,23 @@ const compileDappService = async(serviceModel) => {
   }
 };
 const generateConfig = async() => {
+  const mapEntries = (loadModels('liquidx-mappings')).filter(m => m.mainnet_account === 'dappservices');
+  const liquidxDefines = mapEntries.map(a => `#define DAPPSERVICEX_CONTRACT_${a.sidechain_name.toUpperCase()} "${a.chain_account}"_n`).join('\n');
+  const selectedSideChain = mapEntries.map(a => a.sidechain_name.toUpperCase()).find(a => a);
   fs.writeFileSync(path.resolve(`./contracts/eos/dappservices/dappservices.config.hpp`),
-    `#define DAPPSERVICES_CONTRACT "${dappServicesContract}"_n\n`);
-};
+    `\n
+
+${liquidxDefines}
+
+#define DAPPSERVICESA_CONTRACT "${dappServicesContract}"_n\n
+#ifdef LIQUIDX\n
+#define DAPPSERVICES_CONTRACT DAPPSERVICEX_CONTRACT_${selectedSideChain}\n
+#else\n
+#define DAPPSERVICES_CONTRACT DAPPSERVICESA_CONTRACT\n
+#endif`);
+}
 module.exports = async(args) => {
+
   await Promise.all((await loadModels('dapp-services')).map(compileDappService));
   await generateConfig();
 };

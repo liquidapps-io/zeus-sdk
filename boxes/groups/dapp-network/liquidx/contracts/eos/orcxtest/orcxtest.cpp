@@ -1,3 +1,5 @@
+#define LIQUIDX
+
 #include "../dappservices/oracle.hpp"
 
 #define DAPPSERVICES_ACTIONS() \
@@ -6,7 +8,7 @@
 #define DAPPSERVICE_ACTIONS_COMMANDS() \
   ORACLE_SVC_COMMANDS() 
 
-#define CONTRACT_NAME() oracleconsumer 
+#define CONTRACT_NAME() orcxtest 
 
 CONTRACT_START()
  [[eosio::action]] void testget(std::vector<char>  uri, std::vector<char> expectedfield) {

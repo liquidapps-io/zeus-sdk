@@ -1,6 +1,8 @@
 var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
-const { eosDSPGateway, pushTransaction } = require('../dapp-services-node/common');
+const { eosDSPGateway, pushTransaction, getEosForSidechain, paccount, getLinkedAccount, emitUsage } = require('../dapp-services-node/common');
 const logger = require('../../extensions/helpers/logger');
+const { dappServicesContract } = require('../../extensions/tools/eos/dapp-services');
+const { loadModels } = require("../../extensions/tools/models");
 
 var timers = {};
 
@@ -8,7 +10,9 @@ nodeFactory('cron', {
   schedule: async({ rollback, replay, event, exception }, { timer, payload, seconds }) => {
     if (exception || replay || rollback || process.env.PASSIVE_DSP_NODE) { return; }
 
-    const { payer, packageid, current_provider } = event;
+    const { payer, packageid, current_provider, meta } = event;
+    const { sidechain } = meta;
+    logger.debug("Received event: %j", event);
     logger.info(`setting timer ${payer} ${timer}`);
     const timerId = timers[`${payer}_${timer}`];
     if (timerId) {
@@ -19,7 +23,14 @@ nodeFactory('cron', {
 
     var fn = (async(n) => {
       delete timers[`${payer}_${timer}`];
-      const eosMain = await eosDSPGateway();
+      let eosMain = await eosDSPGateway();
+      let dapp = dappServicesContract;
+
+      
+      if(sidechain) {
+        dapp = await getLinkedAccount(null, null, dappServicesContract, sidechain.name);
+        eosMain = await getEosForSidechain(sidechain,current_provider,true);
+      }
       let data = {
         current_provider,
         timer,
@@ -27,8 +38,15 @@ nodeFactory('cron', {
         payload,
         seconds
       };
-      try {
-        await pushTransaction(eosMain,payer,current_provider, "xschedule", data);
+      try {        
+        await pushTransaction(eosMain,dapp,payer,current_provider, "xschedule", data);
+        if(sidechain) {
+          let loadedExtensions = await loadModels("dapp-services");
+          let service = loadedExtensions.find(a => a.name == "cron").contract;
+          let mainnet_account = getLinkedAccount(null, null, payer, sidechain.name);
+          await emitUsage(mainnet_account, service);
+        }
+        //TODO: verify usage, emit if sidechain
       }
       catch (e) {
         console.error("error:", e);

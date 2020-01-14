@@ -21,7 +21,7 @@ module.exports = async(gargs) => {
         await uploadSystemContract(args, 'eosio', 'eosio.bios', sidechain);
       }
       catch (e) {
-        await sleep(500);
+        await sleep(5000);
       }
     }
 

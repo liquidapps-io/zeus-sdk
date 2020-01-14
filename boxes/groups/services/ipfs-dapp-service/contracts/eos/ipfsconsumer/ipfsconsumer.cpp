@@ -6,9 +6,9 @@
   XSIGNAL_DAPPSERVICE_ACTION \
   IPFS_DAPPSERVICE_ACTIONS
 #define DAPPSERVICE_ACTIONS_COMMANDS() \
-  IPFS_SVC_COMMANDS() 
+  IPFS_SVC_COMMANDS()
 
-#define CONTRACT_NAME() ipfsconsumer 
+#define CONTRACT_NAME() ipfsconsumer
 
 CONTRACT_START()
   TABLE testindex {
@@ -33,7 +33,7 @@ CONTRACT_START()
      uint64_t                      field1;
      std::vector<char>             field2;
      uint64_t                      field3;
-  };  
+  };
   TABLE vconfig {
     checksum256 next_available_key;
     uint32_t shards;
@@ -153,6 +153,12 @@ CONTRACT_START()
       });
   }
 
+  [[eosio::action]] void verfempty(uint64_t id, uint64_t value, uint32_t delay_sec) {
+    ipfsentries_t entries(_self,_self.value);
+    eosio::check(entries.begin() == entries.end(),"must be empty");
+
+  }
+
   [[eosio::action]] void increment(uint32_t somenumber) {
     testindex_t testset(_self,_self.value);
     testset.emplace(_self, [&]( auto& a ){
@@ -173,7 +179,8 @@ CONTRACT_START()
   }
  [[eosio::action]] void testempty(std::string uri) {
     eosio::check(getRawData(uri, false, true).size() == 0, "wrong size");
-  }  
+  }
+
 CONTRACT_END(
   (testset)(testget)(testempty)(increment)
   (testindex)(testindexa)(testresize)(testclear)
@@ -181,4 +188,5 @@ CONTRACT_END(
   (testcollide)
   (testbig)(checkbig)
   (testmed)(checkmed)
+  (verfempty)
   )

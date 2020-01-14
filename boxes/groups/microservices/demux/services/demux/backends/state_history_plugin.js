@@ -10,9 +10,12 @@ const { getAbis, getAbiAbi } = require('./state_history_abi');
 const logger = require('../../../extensions/helpers/logger');
 const dal = require('../../dapp-services-node/dal/dal');
 const sidechainName = process.env.SIDECHAIN;
-let host = process.env.NODEOS_HOST || 'localhost';
-let port = process.env.NODEOS_WEBSOCKET_PORT || '8889';
-const serviceResponseTimeout = parseInt(process.env.SERVICE_RESPONSE_TIMEOUT || 2000);
+const nodeosWebsocketPort = process.env.NODEOS_WEBSOCKET_PORT || '8889';
+const nodeosHost = process.env.NODEOS_HOST || 'localhost';
+const nodeosRpcPort = process.env.NODEOS_PORT || '8888';
+const nodeosUrl =
+  `http${process.env.NODEOS_SECURED === 'true' ? 's' : ''}://${nodeosHost}:${nodeosRpcPort}`;
+const serviceResponseTimeout = parseInt(process.env.SERVICE_RESPONSE_TIMEOUT || 10000);
 
 let abis = getAbis();
 let abiabi = getAbiAbi();
@@ -345,7 +348,7 @@ let ws, abi;
 let expectingABI = true;
 let heartBeat = Math.floor(Date.now() / 1000);
 const connect = () => {
-  ws = new WebSocket(`ws://${host}:${port}`, {
+  ws = new WebSocket(`ws://${nodeosHost}:${nodeosWebsocketPort}`, {
     perMessageDeflate: false
   });
   ws.on('open', function open() {
@@ -424,11 +427,6 @@ async function getStartingBlockNumber() {
 }
 
 async function getHeadBlockInfo() {
-  const nodeosHost = process.env.NODEOS_HOST || 'localhost';
-  const nodeosPort = process.env.NODEOS_PORT || 8888;
-  const nodeosUrl =
-    `http${process.env.NODEOS_SECURED === 'true' ? 's' : ''}://${nodeosHost}:${nodeosPort}`;
-
   const res = await fetch(nodeosUrl + '/v1/chain/get_info', {
     method: 'post',
     body: JSON.stringify({}),

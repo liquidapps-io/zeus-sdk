@@ -6,9 +6,18 @@ const { loadModels } = require('../models');
 const fetch = require('node-fetch');
 
 const dappServicesContract = process.env.DAPPSERVICES_CONTRACT || 'dappservices';
+const dappServicesLiquidXContract = process.env.DAPPSERVICES_LIQUIDX_CONTRACT || 'liquidx';
+
+
 const testProvidersList = ['pprovider1', 'pprovider2'];
 
-function getContractAccountFor(model) {
+function getContractAccountFor(model, sidechain = null) {
+  if (sidechain) {
+    const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechain.name && m.mainnet_account === model.contract);
+    if (!mapEntry)
+      throw new Error('mapping not found')
+    return mapEntry.chain_account;
+  }
   var envName = process.env[`DAPPSERVICES_CONTRACT_${model.name.toUpperCase()}`];
   return envName || model.contract;
 }
@@ -69,7 +78,7 @@ async function genAllocateDAPPTokensInner(deployedContract, serviceName, provide
     }
   });
 
-  await (await deployedContract.eos.contract('eosio')).updateauth({
+  await (await eos.contract('eosio')).updateauth({
     account: contract,
     permission: 'dsp',
     parent: 'active',
@@ -84,7 +93,7 @@ async function genAllocateDAPPTokensInner(deployedContract, serviceName, provide
   try {
     var commandNames = Object.keys(model.commands);
     await Promise.all(commandNames.map(async(command) => {
-      await (await deployedContract.eos.contract('eosio')).linkauth({
+      await (await eos.contract('eosio')).linkauth({
         account: contract,
         code: contract,
         type: `x${command}`,
@@ -151,4 +160,27 @@ const readVRAMData = async({
   return result;
 };
 
-module.exports = { genAllocateDAPPTokens, dappServicesContract, getContractAccountFor, readVRAMData, getEndpointForContract, testProvidersList };
+const createLiquidXMapping = async(sidechain_name, mainnet_account, chain_account, oneway) => {
+  const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechain_name && m.mainnet_account === "dappservices");
+  if (!mapEntry)
+    throw new Error('mapping not found')
+  const dappservicex = mapEntry.chain_account;
+  var sidechain = (await loadModels('local-sidechains')).find(m => m.name == sidechain_name);
+  const eos = await getEos(chain_account, null, sidechain);
+  let sisterChainDappServices = await eos.contract(dappservicex);
+  await sisterChainDappServices.setlink({
+    owner: chain_account,
+    mainnet_owner: mainnet_account,
+  }, { authorization: `${chain_account}@active` });
+  if (!oneway) {
+    var eosMain = await getEos(mainnet_account);
+    let liquidXInstance = await eosMain.contract(dappServicesLiquidXContract);
+    await liquidXInstance.addaccount({
+      owner: mainnet_account,
+      chain_account,
+      chain_name: sidechain_name
+    }, { authorization: `${mainnet_account}@active` });
+  }
+
+}
+module.exports = { genAllocateDAPPTokens, dappServicesContract, getContractAccountFor, readVRAMData, getEndpointForContract, testProvidersList, dappServicesLiquidXContract, createLiquidXMapping };

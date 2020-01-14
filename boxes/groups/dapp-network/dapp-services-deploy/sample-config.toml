@@ -46,3 +46,18 @@ head_block = 35000000
 protocol = "http"
 host = "localhost"
 port = 5001
+
+[sidechains]
+  [sidechains.test1]
+    dsp_port = 12346
+    nodeos_secured = false
+    nodeos_host = "localhost"
+    nodeos_port = 2424
+    nodeos_state_history_port = 12341
+    demux_port = 1232
+    demux_head_block = 50000000
+    name = "test1"
+    dsp_account = "<DSP SIDECHAIN ACCOUNT>"
+    dsp_private_key = "<DSP SIDECHAIN PRIVATE KEY>"
+    chainid = "<SIDECHAIN CHAIN ID>"
+    mapping = "dappservices:dappservicex,cronservices:cronservicex,ipfsservice1:ipfsservice2"

@@ -17,7 +17,7 @@ var contractCode = 'ipfsconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
 describe(`IPFS Service Test Contract`, () => {
   var testcontract, testcontract2;
-  const code = 'test1';
+  const code = 'test1ipfs';
   const code2 = 'tstbakcomp';
   var eosvram;
   before(done => {
@@ -513,7 +513,27 @@ describe(`IPFS Service Test Contract`, () => {
     })();
   });
 
+  it.skip('Cleanup', done => {
+    (async() => {
+      try {
+        await delaySec(20);
+        await testcontract.verfempty({
+          id: 52343,
+          value: 123,
+          delay_sec: 2
+        }, {
+          authorization: `${code}@active`,
+        });
+        done();
+      }
+      catch (e) {
+        done(e)
+      }
+    })();
+  });
+
   var backup = {};
+
   it.skip('IPFS Save Manifest', done => {
     (async () => {
       try {

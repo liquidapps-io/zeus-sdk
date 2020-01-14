@@ -19,6 +19,48 @@ catch (e) {
 }
 var globalEnv = {};
 
+const sidechains = configData.sidechains;
+// generate nodeos_endpoint in obj
+Object.keys(sidechains).forEach(k => {
+  const port = sidechains[k].nodeos_port ? ':' + sidechains[k].nodeos_port : '';
+  const host = sidechains[k].nodeos_host;
+  const prefix = `http${sidechains[k].nodeos_secured ? 's' : ''}://`
+  sidechains[k].nodeos_endpoint = prefix + host + port;
+})
+function createSidechainModels(data) {
+  const liquidxMappingsDir = path.resolve(__dirname, `./models/liquidx-mappings/`);
+  const localSidechainsDir = path.resolve(__dirname, `./models/local-sidechains/`);
+  let sidechains = data.sidechains;
+  if (!sidechains) { return; }
+  Object.keys(sidechains).forEach(k => {
+    let sidechain = sidechains[k];
+    let mapping = sidechain.mapping;
+    mapping.split(',').forEach(map => {
+      let [m1, m2] = map.split(':');
+      const mapObj = {
+        sidechain_name: sidechain.name,
+        mainnet_account: m1,
+        chain_account: m2
+      }
+      if (!fs.existsSync(liquidxMappingsDir)){
+        fs.mkdirSync(liquidxMappingsDir);
+      }
+      fs.writeFileSync(
+        `${liquidxMappingsDir}/${sidechain.name}.${m1}.json`,
+        JSON.stringify(mapObj, null, 2)
+      )
+    })
+    delete sidechain['mapping'];
+    if (!fs.existsSync(localSidechainsDir)){
+      fs.mkdirSync(localSidechainsDir);
+    }
+    fs.writeFileSync(
+      path.resolve(`${localSidechainsDir}/${sidechain.name}.json`),
+      JSON.stringify(sidechain, null, 2)
+      );
+  })
+}
+
 function parseConfig(data) {
   Object.keys(data).forEach(k => {
     Object.keys(data[k]).forEach(k2 => {
@@ -27,6 +69,7 @@ function parseConfig(data) {
     });
   });
 }
+createSidechainModels(configData);
 parseConfig(configData);
 globalEnv = { ...globalEnv, ...process.env };
 
@@ -97,6 +140,47 @@ const commonEnv = {
   DATABASE_NODE_ENV
 };
 
+const createDSPSidechainServices = (sidechain) => {
+  return [
+    {
+      name: `${sidechain.name}-dapp-services-node`,
+      script: path.join(__dirname, 'services', 'dapp-services-node', 'index.js'),
+      autorestart: true,
+      cwd: __dirname,
+      log_date_format: "YYYY-MM-DDTHH:mm:ss",
+      env: {
+        ...commonEnv,
+        PORT: sidechain.dsp_port,
+        NODEOS_CHAINID: sidechain.chainid,
+        NODEOS_SECURED: sidechain.nodeos_secured,
+        NODEOS_HOST: sidechain.nodeos_host,
+        NODEOS_PORT: sidechain.nodeos_port,
+        DSP_ACCOUNT: sidechain.dsp_account,
+        DSP_PRIVATE_KEY: sidechain.dsp_private_key,
+        LOGFILE_NAME:`${sidechain.name}-dapp-services-node` 
+      }
+    },
+    {
+      name: `${sidechain.name}-demux`,
+      script: path.join(__dirname, 'services', 'demux', 'index.js'),
+      autorestart: true,
+      cwd: __dirname,
+      log_date_format: "YYYY-MM-DDTHH:mm:ss",
+      env: {
+        ...commonEnv,
+        NODEOS_CHAINID: sidechain.chainid,
+        NODEOS_SECURED: sidechain.nodeos_secured,
+        NODEOS_HOST: sidechain.nodeos_host,
+        NODEOS_PORT: sidechain.nodeos_port,
+        NODEOS_WEBSOCKET_PORT: sidechain.nodeos_state_history_port,
+        DEMUX_HEAD_BLOCK: sidechain.demux_head_block,
+        PORT: sidechain.demux_port,
+        LOGFILE_NAME: `${sidechain.name}-demux`
+      }
+    }
+  ] 
+}
+
 const createDSPServiceApp = (name) => ({
   name: `${name}-dapp-service-node`,
   script: path.join(__dirname, 'services', `${name}-dapp-service-node`, 'index.js'),
@@ -110,6 +194,13 @@ const createDSPServiceApp = (name) => ({
 });
 
 const servicesApps = services.map(createDSPServiceApp);
+// map and flatten
+const sidechainServicesApps = Array.prototype.concat.apply(
+  [],
+  Object.keys(sidechains).map(chain => {
+    return createDSPSidechainServices(sidechains[chain])
+  })
+);
 module.exports = {
   force: true,
   apps: [{
@@ -141,6 +232,7 @@ module.exports = {
         LOGFILE_NAME: 'demux' 
       }
     },
-    ...servicesApps
+    ...servicesApps,
+    ...sidechainServicesApps
   ]
 };

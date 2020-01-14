@@ -1,8 +1,8 @@
 var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
 const { getCreateKeys } = require('../../extensions/helpers/key-utils');
-const { emitUsage, eosDSPGateway, paccount, resolveProviderPackage, paccountPermission } = require('../dapp-services-node/common');
+const { emitUsage, eosDSPGateway, getEosForSidechain, paccount, getLinkedAccount, paccountPermission } = require('../dapp-services-node/common');
 const { loadModels } = require("../../extensions/tools/models");
-
+const logger = require('../../extensions/helpers/logger');
 
 // todo: periodically call "usage" for hold and serve
 nodeFactory('readfn', {
@@ -12,26 +12,44 @@ nodeFactory('readfn', {
 
       try {
         const { contract_code, method, payload, sidechain } = body;
-        var gateway = await eosDSPGateway();
-        var contract = await gateway.contract(contract_code);
+        logger.debug("ReadFN Request: %j", body);
+
+        let gateway = await eosDSPGateway();
+        let mainnet_account = contract_code;
+        let loadedExtensions = await loadModels("dapp-services");
+        let service = loadedExtensions.find(a => a.name == "readfn").contract;
+        let provider = paccount;
+        let env = process.env.DSP_PRIVATE_KEY
         let key = {};
-        if (!process.env.DSP_PRIVATE_KEY)
-          key = await getCreateKeys(paccount);
+        if (!env && !sidechain)
+          key = (await getCreateKeys(paccount)).active.privateKey;
 
-        var loadedExtensions = await loadModels("dapp-services");
-        var service = loadedExtensions.find(a => a.name == "readfn").contract;
-
-
+        if(sidechain) {
+          let sidechains = await loadModels('local-sidechains');
+          let sidechainObj = sidechains.find(a => a.name === sidechain);
+          const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechainObj.name && m.mainnet_account === provider);
+          if (!mapEntry)
+            throw new Error('mapping not found')
+          provider = mapEntry.chain_account;
+          mainnet_account = await getLinkedAccount(null, null, contract_code, sidechainObj.name);
+          gateway = await getEosForSidechain(sidechainObj,provider,true);
+          env = process.env[`DSP_PRIVATE_KEY_${sidechainObj.name}`]; 
+          if(!env)
+            key = (await getCreateKeys(provider, null, false, sidechainObj)).active.privateKey; 
+        }
+        let contract = await gateway.contract(contract_code);
+        
         if (method.indexOf("read") !== 0)
           throw new Error("readfn can only invoke actions named 'read*'");
-        await emitUsage(contract_code, service, 1, sidechain, {})
+
+        await emitUsage(mainnet_account, service);
 
         try {
-          await contract[method](payload, {
-            authorization: `${paccount}@${paccountPermission}`,
+          let tx = await contract[method](payload, {
+            authorization: `${provider}@${paccountPermission}`,
             broadcast: true,
             sign: true,
-            keyProvider: [process.env.DSP_PRIVATE_KEY || key.active.privateKey]
+            keyProvider: [env || key]
           });
         }
         catch (expectedError) {

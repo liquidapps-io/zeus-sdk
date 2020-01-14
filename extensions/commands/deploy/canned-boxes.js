@@ -20,7 +20,7 @@ function encrypt(text, password) {
 const isDirectory = source => fs.lstatSync(source).isDirectory();
 const getDirectories = source =>
   fs.readdirSync(source).map(name => path.join(source, name)).filter(isDirectory);
-const getAllBoxes = async (source) => {
+const getAllBoxes = async(source) => {
   var directories = getDirectories(path.resolve(source));
 
   var boxes = directories.filter(dir => path.basename(dir) !== '.git' && fs.existsSync(path.resolve(dir, 'zeus-box.json')));
@@ -31,7 +31,7 @@ const getAllBoxes = async (source) => {
   });
   return boxes;
 };
-const deployBox = async (subdir, encBoxes, boxes, invalidate, type) => {
+const deployBox = async(subdir, encBoxes, boxes, invalidate, type) => {
   var name = path.basename(subdir);
   try {
     var stdout = await execPromise(`${process.env.ZEUS_CMD || 'zeus'} deploy box --moddate --no-update-mapping --type ${type} ${invalidate ? '--invalidate' : '--no-invalidate'}`, {
@@ -47,7 +47,8 @@ const deployBox = async (subdir, encBoxes, boxes, invalidate, type) => {
     }
     encBoxes[name] = target;
     boxes[name] = target;
-  } catch (e) {
+  }
+  catch (e) {
     console.error(`error deploying: ${subdir}`);
     throw e;
   }
@@ -79,7 +80,7 @@ module.exports = {
     }).example('$0 deploy canned-boxes --invalidate --test');
   },
   command: 'canned-boxes',
-  handler: async (args) => {
+  handler: async(args) => {
     var dirs = await getAllBoxes(path.resolve('.', 'boxes/groups'));
 
     var boxes = {};
@@ -112,7 +113,8 @@ module.exports = {
       }
 
       console.log(emojMap.relaxed + 'done.');
-    } catch (e) {
+    }
+    catch (e) {
       console.error(e);
       console.log(emojMap.white_frowning_face + 'canned-boxes deploy failed.');
       throw new Error('failed');

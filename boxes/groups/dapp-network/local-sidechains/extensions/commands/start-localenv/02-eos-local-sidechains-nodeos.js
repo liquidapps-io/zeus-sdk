@@ -31,8 +31,8 @@ var generateNodeos = async(model) => {
     '--delete-all-blocks',
     `--p2p-listen-endpoint 127.0.0.1:${nodeosP2PPort}`,
     '--filter-on=*',
-    `-d ~/.zeus/sidechain/${name}/nodeos/data`,
-    `--config-dir ~/.zeus/sidechain/${name}/nodeos/config`,
+    `-d ~/.zeus/nodeos-${name}/data`,
+    `--config-dir ~/.zeus/nodeos-${name}/config`,
     `--http-server-address=0.0.0.0:${nodeosPort}`,
     '--access-control-allow-origin=*',
     '--contracts-console',
@@ -76,8 +76,14 @@ var generateNodeos = async(model) => {
           "--delete-state-history"
         ]
       }
+            if (e.stdout.trim() >= "v2.0.0") {
+        console.log('Adding 2.0.0 Parameters');
+        nodeosArgs = [...nodeosArgs,
+          '--eos-vm-oc-enable'
+        ]
+      }
     }
-    await execPromise(`nohup nodeos ${nodeosArgs.join(' ')} >> nodeos-${name}.log 2>&1 &`, { unref: true });
+    await execPromise(`nohup nodeos ${nodeosArgs.join(' ')} >> logs/nodeos-${name}.log 2>&1 &`, { unref: true });
   }
   else {
     var nodeos = process.env.DOCKER_NODEOS || 'liquidapps/eosio-plugins:v1.6.1';

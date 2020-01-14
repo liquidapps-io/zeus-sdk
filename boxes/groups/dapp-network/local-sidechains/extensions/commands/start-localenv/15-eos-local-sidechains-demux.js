@@ -10,8 +10,10 @@ module.exports = async(args) => {
         var sidechain = sidechains[i];
         var res = await serviceRun('../run/demux', sidechain.demux_port).handler(args, {
             NODEOS_HOST: 'localhost',
+            NODEOS_PORT: sidechain.nodeos_port,
             NODEOS_WEBSOCKET_PORT: sidechain.nodeos_state_history_port,
-            SIDECHAIN: sidechain.name
+            SIDECHAIN: sidechain.name,
+            LOGFILE_NAME: `${sidechain.name}-demux`
         });
     }
 };
