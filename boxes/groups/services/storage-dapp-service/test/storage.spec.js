@@ -38,8 +38,6 @@ describe(`LiquidStorage Test`, () => {
     })();
   });
 
-  const serviceName = 'storage';
-  var account = code;
   it('Upload File (authenticated)', done => {
     (async() => {
       try {

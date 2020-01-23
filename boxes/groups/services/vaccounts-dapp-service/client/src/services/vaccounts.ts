@@ -127,20 +127,18 @@ private postVirtualTx = ({
 
         const expiry = Math.floor(Date.now() / 1000) + 120; //two minute expiry
         buffer.pushNumberAsUint64(expiry);
-        var nonce =0;
+        let nonce = 0;
         try {
-            var tableRes = await this.ipfs.get_vram_row(
+            const tableRes = await this.ipfs.get_vram_row(
                 contract,
                 contract,
                 "vkey",
                 payload.data.payload.vaccount
             );
             nonce = tableRes.row.nonce;
-            console.log('got nonce', nonce);
         }
         catch (e) {
-            console.log('no nonce');
-            nonce = 0;
+            if (payload.name !== "regaccount") throw e;
         }
 
         buffer.pushNumberAsUint64(nonce);
