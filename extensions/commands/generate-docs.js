@@ -4,7 +4,7 @@ var fs = require('fs');
 var {
   execPromise,
   emojMap
-} = require('../../zeus-cmd/src/helpers/_exec');
+} = require('../../zeus-cmd/lib/helpers/_exec');
 
 const isDirectory = source => fs.lstatSync(source).isDirectory();
 const getDirectories = source =>

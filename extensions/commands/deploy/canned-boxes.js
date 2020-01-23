@@ -4,7 +4,7 @@ var fs = require('fs');
 var {
   execPromise,
   emojMap
-} = require('../../../zeus-cmd/src/helpers/_exec');
+} = require('../../../zeus-cmd/lib/helpers/_exec');
 
 var crypto = require('crypto');
 
@@ -99,9 +99,7 @@ module.exports = {
       await deployBox(path.resolve('./boxes/groups/repos/unbox-extensions'), encBoxes, boxes, args.invalidate, args.type);
       // }
 
-      fs.writeFileSync(path.resolve('./zeus-cmd/src/mapping.js'), `module.exports = ${JSON.stringify(boxes, null, 2)};`);
-
-      if (fs.existsSync(path.resolve('./zeus-cmd/dist/mapping.js'))) { fs.writeFileSync(path.resolve('./zeus-cmd/dist/mapping.js'), `module.exports = ${JSON.stringify(boxes, null, 2)};`); }
+      fs.writeFileSync(path.resolve('./zeus-cmd/lib/mapping.js'), `module.exports = ${JSON.stringify(boxes, null, 2)};`);
 
       if (args.release) {
         var stdout = await release();
