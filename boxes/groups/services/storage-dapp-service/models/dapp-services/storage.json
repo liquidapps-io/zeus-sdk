@@ -31,6 +31,8 @@
                 "permission":"active"
             }
         },
+        "upload_public_vaccount":{
+        },
         "upload_private":{
             "authentication":{
                 "type":"payer",
