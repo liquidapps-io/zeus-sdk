@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
@@ -372,7 +372,7 @@ var deployedHODL;
 
 describe(`AirHODL Tests`, () => {
   it('Create AirHODL and activate with start/end time', done => {
-    (async() => {
+    (async () => {
       try {
         deployedHODL = await deployer.deploy(ctrt, contractCode);
         var hodlkey = await getCreateKeys(contractCode);
@@ -401,7 +401,7 @@ describe(`AirHODL Tests`, () => {
   });
 
   it('Unstake more than staked', done => {
-    (async() => {
+    (async () => {
       try {
         var testContractAccount = 'consumer123';
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
@@ -440,7 +440,7 @@ describe(`AirHODL Tests`, () => {
   });
 
   it('Unstake without staking', done => {
-    (async() => {
+    (async () => {
       try {
         var testContractAccount = 'consumer11';
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
@@ -478,7 +478,7 @@ describe(`AirHODL Tests`, () => {
   });
 
   it('Refund before unstake', done => {
-    (async() => {
+    (async () => {
       try {
         var testContractAccount = 'consumer2';
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
@@ -516,7 +516,7 @@ describe(`AirHODL Tests`, () => {
   });
 
   it('Refund before staking and unstaking', done => {
-    (async() => {
+    (async () => {
       try {
         var testContractAccount = 'consumer3';
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
@@ -554,7 +554,7 @@ describe(`AirHODL Tests`, () => {
   });
 
   it('Grab without being eligible', done => {
-    (async() => {
+    (async () => {
       try {
         var testContractAccount = 'consumer4';
         var { deployedContract } = await deployConsumerContract(testContractAccount);
@@ -576,7 +576,7 @@ describe(`AirHODL Tests`, () => {
   });
 
   it('Staking without being eleigible', done => {
-    (async() => {
+    (async () => {
       try {
         var testContractAccount = 'consumer5';
         var { deployedContract } = await deployConsumerContract(testContractAccount);
@@ -606,7 +606,7 @@ describe(`AirHODL Tests`, () => {
   });
 
   it('Stake without grab', done => {
-    (async() => {
+    (async () => {
       try {
         var testContractAccount = 'consumer13';
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
@@ -635,7 +635,7 @@ describe(`AirHODL Tests`, () => {
   });
 
   it('Stake more than balance', done => {
-    (async() => {
+    (async () => {
       try {
         var testContractAccount = 'consumer14';
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
@@ -673,7 +673,7 @@ describe(`AirHODL Tests`, () => {
   });
 
   it('Stake 50% DAPP 50% DAPPHDL', done => {
-    (async() => {
+    (async () => {
       try {
         var testContractAccount = 'consumer23';
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
@@ -705,7 +705,7 @@ describe(`AirHODL Tests`, () => {
   });
 
   it('Withdraw before unstake', done => {
-    (async() => {
+    (async () => {
       try {
         var testContractAccount = 'consumer21';
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
@@ -743,7 +743,7 @@ describe(`AirHODL Tests`, () => {
   });
 
   it('Withdraw before unstaked', done => {
-    (async() => {
+    (async () => {
       try {
         var testContractAccount = 'consumer22';
         var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
@@ -781,7 +781,7 @@ describe(`AirHODL Tests`, () => {
   });
 
   it('Withdraw before grab', done => {
-    (async() => {
+    (async () => {
       try {
         var testContractAccount = 'consumer12';
         var { deployedContract } = await deployConsumerContract(testContractAccount);

@@ -1,5 +1,5 @@
-require('babel-core/register');
-require('babel-polyfill');
+
+
 const { JsonRpc } = require('dfuse-eoshttp-js');
 const token = process.env.DFUSE_API_KEY;
 const dfuse_endpoint = process.env.DFUSE_ENDPOINT || 'mainnet.eos.dfuse.io';

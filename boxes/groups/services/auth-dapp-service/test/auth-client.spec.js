@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getNetwork, getCreateKeys, getCreateAccount } = require('../extensions/tools/eos/utils');
 var Eos = require('eosjs');
@@ -21,7 +21,7 @@ var authClient = new AuthClient(apiID, code, "aca376f206b8fc25a6ed44dbdc66547c36
 describe.skip(`Auth Test Contract`, () => {
   var dspeos;
   before(done => {
-    (async() => {
+    (async () => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
 
@@ -40,7 +40,7 @@ describe.skip(`Auth Test Contract`, () => {
 
   var account = code;
   it('Authed call - permission - non-existing', done => {
-    (async() => {
+    (async () => {
       try {
         var testUser = "testuse11"
 
@@ -63,7 +63,7 @@ describe.skip(`Auth Test Contract`, () => {
     })();
   });
   it('Authed call - active permission', done => {
-    (async() => {
+    (async () => {
       try {
         var testUser = "testuse11"
         var keys = await getCreateAccount(testUser);
@@ -79,7 +79,7 @@ describe.skip(`Auth Test Contract`, () => {
     })();
   });
   it('Authed call - api permission', done => {
-    (async() => {
+    (async () => {
       try {
         var testUser = "testuse12"
         var keys = await getCreateAccount(testUser);
@@ -124,7 +124,7 @@ describe.skip(`Auth Test Contract`, () => {
     })();
   });
   it('Authed call - api permission - wrong key', done => {
-    (async() => {
+    (async () => {
       try {
         var testUser = "testuse13"
         var keys = await getCreateAccount(testUser);
@@ -174,7 +174,7 @@ describe.skip(`Auth Test Contract`, () => {
     })();
   });
   it('Anonymous call', done => {
-    (async() => {
+    (async () => {
       try {
         var testUser = "............"
         var permission = "api";
@@ -191,7 +191,7 @@ describe.skip(`Auth Test Contract`, () => {
     })();
   });
   it('Anonymous call to authed API', done => {
-    (async() => {
+    (async () => {
       try {
         var permission = "api";
         var testnum = 123;

@@ -1,7 +1,7 @@
-import { assert } from 'chai';
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+const { assert } = require('chai');
+require('mocha');
+
+
 
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
@@ -15,7 +15,7 @@ describe(`${code} Contract`, () => {
   };
 
   it(`${code} - hi`, done => {
-    (async() => {
+    (async () => {
       var helloworldContractInstance = await deployer.deploy(contract, code);
       return helloworldContractInstance.contractInstance.hi({ number: 123 }, _selfopts);
     })().then(() => done(), (err) => done(err));

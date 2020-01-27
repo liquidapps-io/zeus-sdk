@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getNetwork, getCreateKeys, getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
 var Eos = require('eosjs');
@@ -38,7 +38,7 @@ describe(`${contractCode} Contract`, () => {
     var resolver;
     var resolve;
     before(done => {
-        (async() => {
+        (async () => {
             try {
                 var deployedContract = await deployer.deploy(ctrt, code);
                 await genAllocateDAPPTokens(deployedContract, serviceName);
@@ -59,7 +59,7 @@ describe(`${contractCode} Contract`, () => {
     });
 
     it('A Record', done => {
-        (async() => {
+        (async () => {
             try {
                 var owner = getTestAccountName(10);
                 var testAccountKeys = await getCreateAccount(owner);

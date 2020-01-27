@@ -1,6 +1,6 @@
-require("babel-core/register");
-require("babel-polyfill");
-import 'mocha';
+
+
+require('mocha');
 const { assert } = require('chai'); // Using Assert style
 const { getTestContract } = require('../extensions/tools/eos/utils');
 
@@ -14,7 +14,7 @@ describe(`foreign_chain Oracle Service Test`, () => {
   var testcontract;
   const code = 'test1';
   before(done => {
-    (async() => {
+    (async () => {
       try {
 
         var deployedContract = await deployer.deploy(ctrt, code);
@@ -32,7 +32,7 @@ describe(`foreign_chain Oracle Service Test`, () => {
 
   var account = code;
   it('Chain Oracle XIBC - ethereum', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: Buffer.from(`foreign_chain://ethereum/history/0x100/result.transactionsRoot`, 'utf8'),
@@ -50,7 +50,7 @@ describe(`foreign_chain Oracle Service Test`, () => {
     })();
   });
   it.skip('Chain Oracle XIBC - tron', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: Buffer.from(`foreign_chain://tron/block/8422634/block_header.raw_data.txTrieRoot`, 'utf8'),
@@ -68,7 +68,7 @@ describe(`foreign_chain Oracle Service Test`, () => {
     })();
   });
   it('Chain Oracle XIBC - cardano', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: Buffer.from(`foreign_chain://cardano/history/64d0562619b3999920876a99f3f80385e1aed5c78d3a46d2affcd17db01dd361/Right.0.ctbOutputSum.getCoin`, 'utf8'),
@@ -86,7 +86,7 @@ describe(`foreign_chain Oracle Service Test`, () => {
     })();
   });
   it('Chain Oracle XIBC - ripple', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: Buffer.from(`foreign_chain://ripple/balance/rGwUWgN5BEg3QGNY3RX2HfYowjUTZdid3E/0.currency`, 'utf8'),
@@ -104,7 +104,7 @@ describe(`foreign_chain Oracle Service Test`, () => {
     })();
   });
   it('Chain Oracle XIBC - bitcoin', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: Buffer.from(`foreign_chain://bitcoin/block/100/dummy`, 'utf8'),
@@ -122,7 +122,7 @@ describe(`foreign_chain Oracle Service Test`, () => {
     })();
   });
   it('Chain Oracle XIBC - litecoin', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: Buffer.from(`foreign_chain://litecoin/block/100/dummy`, 'utf8'),
@@ -140,7 +140,7 @@ describe(`foreign_chain Oracle Service Test`, () => {
     })();
   });
   it('Chain Oracle XIBC - bitcoin cash', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: Buffer.from(`foreign_chain://bitcoin_cash/block/100/dummy`, 'utf8'),

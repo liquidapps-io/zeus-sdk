@@ -2,7 +2,7 @@
 
  'use strict';
  Object.defineProperty(exports, '__esModule', { value: true });
- require('babel-polyfill');
+ 
  var eosjs_api_1 = require('./eosjs-api');
  exports.Api = eosjs_api_1.default;
  var ApiInterfaces = require('./eosjs-api-interfaces');

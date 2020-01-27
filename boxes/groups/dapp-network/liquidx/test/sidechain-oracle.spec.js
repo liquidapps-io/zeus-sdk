@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork, getCreateAccount } = require('../extensions/tools/eos/utils');
@@ -25,7 +25,7 @@ describe(`LiquidX Sidechain Oracle Service Test Contract`, () => {
   var sidechainName = 'test1';
   var sidechain;
   before(done => {
-    (async() => {
+    (async () => {
       try {
         var sidechains = await loadModels('local-sidechains');
         sidechain = sidechains.find(a => a.name === sidechainName);
@@ -78,7 +78,7 @@ describe(`LiquidX Sidechain Oracle Service Test Contract`, () => {
   });
   var account = sister_code;
   it('sidechain - Random Number', done => {
-    (async() => {
+    (async () => {
       try {
         var id = 100;
         var res = await testcontract.testrnd({

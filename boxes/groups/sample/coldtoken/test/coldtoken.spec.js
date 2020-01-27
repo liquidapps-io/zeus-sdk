@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork } = require('../extensions/tools/eos/utils');
@@ -35,7 +35,7 @@ describe(`${contractCode} Contract`, () => {
     return s;
   };
   before(done => {
-    (async() => {
+    (async () => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
         var deployedContract2 = await deployer.deploy(ctrt, code2);
@@ -55,7 +55,7 @@ describe(`${contractCode} Contract`, () => {
   // console.log("codekey",codekey);
 
   it('transfer', done => {
-    (async() => {
+    (async () => {
       try {
         var symbol = 'AIR';
         var failed = false;
@@ -79,7 +79,7 @@ describe(`${contractCode} Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(3000);        
+        await delay(3000);
         await testtoken.transfer({
           from: code,
           to: code2,
@@ -127,7 +127,7 @@ describe(`${contractCode} Contract`, () => {
   });
 
   it('issue and read', done => {
-    (async() => {
+    (async () => {
       try {
         var symbol = 'AIRU';
 

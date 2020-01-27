@@ -1,6 +1,6 @@
-require("babel-core/register");
-require("babel-polyfill");
-import 'mocha';
+
+
+require('mocha');
 const { assert } = require('chai'); // Using Assert style
 const { getTestContract } = require('../extensions/tools/eos/utils');
 
@@ -14,7 +14,7 @@ describe(`History Oracle Service Test`, () => {
   var testcontract;
   const code = 'test1';
   before(done => {
-    (async() => {
+    (async () => {
       try {
 
         var deployedContract = await deployer.deploy(ctrt, code);
@@ -32,7 +32,7 @@ describe(`History Oracle Service Test`, () => {
 
   var account = code;
   it('Oracle History Get', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: Buffer.from(`self_history://${code}/0/0/0/action_trace.act.data.account`, 'utf8'),

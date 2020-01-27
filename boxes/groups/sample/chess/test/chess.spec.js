@@ -1,6 +1,4 @@
-require("babel-core/register");
-require("babel-polyfill");
-import 'mocha';
+require('mocha');
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getLocalDSPEos, getTestContract } = require('../extensions/tools/eos/utils');
@@ -13,7 +11,7 @@ const { JsonRpc, Api, Serialize } = eosjs2;
 const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig'); // development only
 
 const { getUrl } = require('../extensions/tools/eos/utils');
-import { TextDecoder, TextEncoder } from 'text-encoding';
+const { TextDecoder, TextEncoder } = require('text-encoding');
 
 var url = getUrl(getDefaultArgs());
 const rpc = new JsonRpc(url, { fetch });
@@ -30,18 +28,18 @@ const { BigNumber } = require('bignumber.js');
 function postData(url = ``, data = {}) {
     // Default options are marked with *
     return fetch(url, {
-            method: "POST", // *GET, POST, PUT, DELETE, etc.
-            mode: "cors", // no-cors, cors, *same-origin
-            cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
-            credentials: "same-origin", // include, *same-origin, omit
-            headers: {
-                // "Content-Type": "application/json",
-                // "Content-Type": "application/x-www-form-urlencoded",
-            },
-            redirect: "follow", // manual, *follow, error
-            referrer: "no-referrer", // no-referrer, *client
-            body: JSON.stringify(data), // body data type must match "Content-Type" header
-        })
+        method: "POST", // *GET, POST, PUT, DELETE, etc.
+        mode: "cors", // no-cors, cors, *same-origin
+        cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+        credentials: "same-origin", // include, *same-origin, omit
+        headers: {
+            // "Content-Type": "application/json",
+            // "Content-Type": "application/x-www-form-urlencoded",
+        },
+        redirect: "follow", // manual, *follow, error
+        referrer: "no-referrer", // no-referrer, *client
+        body: JSON.stringify(data), // body data type must match "Content-Type" header
+    })
         .then(response => response.json()); // parses response to JSON
 }
 
@@ -53,7 +51,7 @@ describe(`Chess Contract`, () => {
 
     var endpoint;
     before(done => {
-        (async() => {
+        (async () => {
             try {
 
                 var deployedContract = await deployer.deploy(ctrt, code);
@@ -101,10 +99,10 @@ describe(`Chess Contract`, () => {
         });
     }
     const toBound = (numStr, bytes) =>
-        `${(new Array(bytes*2+1).join('0') + numStr).substring(numStr.length).toUpperCase()}`;
+        `${(new Array(bytes * 2 + 1).join('0') + numStr).substring(numStr.length).toUpperCase()}`;
 
 
-    const runTrx = async({
+    const runTrx = async ({
         nonce = 0,
         contract_code,
         payload,
@@ -176,7 +174,7 @@ describe(`Chess Contract`, () => {
         });
     }
     it('Hello world', done => {
-        (async() => {
+        (async () => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();
                 let privateWif2 = (await PrivateKey.randomKey()).toWif();

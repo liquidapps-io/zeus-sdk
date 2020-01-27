@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork, getCreateAccount } = require('../extensions/tools/eos/utils');
@@ -25,7 +25,7 @@ describe(`LiquidX Sidechain Cron Service Test Contract`, () => {
   var sidechain;
   before(done => {
     (async () => {
-      try {        
+      try {
         var sidechains = await loadModels('local-sidechains');
         sidechain = sidechains.find(a => a.name === sidechainName);
         await getCreateAccount(sister_code, null, false, sidechain);
@@ -77,7 +77,7 @@ describe(`LiquidX Sidechain Cron Service Test Contract`, () => {
 
   var code = sister_code;
   it('Cron test - every 2 seconds', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testschedule({}, {
           authorization: `${code}@active`,

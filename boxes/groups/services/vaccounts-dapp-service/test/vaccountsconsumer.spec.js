@@ -1,6 +1,6 @@
-require("babel-core/register");
-require("babel-polyfill");
-import 'mocha';
+
+
+require('mocha');
 const { assert } = require('chai'); // Using Assert style
 const { getTestContract } = require('../extensions/tools/eos/utils');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
@@ -27,18 +27,18 @@ var ctrt = artifacts.require(`./${contractCode}/`);
 function postData(url = ``, data = {}) {
     // Default options are marked with *
     return fetch(url, {
-            method: "POST", // *GET, POST, PUT, DELETE, etc.
-            mode: "cors", // no-cors, cors, *same-origin
-            cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
-            credentials: "same-origin", // include, *same-origin, omit
-            headers: {
-                // "Content-Type": "application/json",
-                // "Content-Type": "application/x-www-form-urlencoded",
-            },
-            redirect: "follow", // manual, *follow, error
-            referrer: "no-referrer", // no-referrer, *client
-            body: JSON.stringify(data), // body data type must match "Content-Type" header
-        })
+        method: "POST", // *GET, POST, PUT, DELETE, etc.
+        mode: "cors", // no-cors, cors, *same-origin
+        cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+        credentials: "same-origin", // include, *same-origin, omit
+        headers: {
+            // "Content-Type": "application/json",
+            // "Content-Type": "application/x-www-form-urlencoded",
+        },
+        redirect: "follow", // manual, *follow, error
+        referrer: "no-referrer", // no-referrer, *client
+        body: JSON.stringify(data), // body data type must match "Content-Type" header
+    })
         .then(response => response.json()); // parses response to JSON
 }
 
@@ -49,7 +49,7 @@ describe(`vAccounts Service Test Contract`, () => {
 
     var endpoint;
     before(done => {
-        (async() => {
+        (async () => {
             try {
 
                 var deployedContract = await deployer.deploy(ctrt, code);
@@ -103,13 +103,13 @@ describe(`vAccounts Service Test Contract`, () => {
 
 
     it('Hello world', done => {
-        (async() => {
+        (async () => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();
                 const dappClient = await createClient({ httpEndpoint: endpoint, fetch });
                 const vaccClient = await dappClient.service(
-                "vaccounts",
-                code
+                    "vaccounts",
+                    code
                 );
                 await vaccClient.push_liquid_account_transaction(
                     code,
@@ -153,13 +153,13 @@ describe(`vAccounts Service Test Contract`, () => {
         })();
     });
     it('Hello world 2', done => {
-        (async() => {
+        (async () => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();
                 const dappClient = await createClient({ httpEndpoint: endpoint, fetch });
                 const vaccClient = await dappClient.service(
-                "vaccounts",
-                code
+                    "vaccounts",
+                    code
                 );
                 await vaccClient.push_liquid_account_transaction(
                     code,
@@ -192,7 +192,7 @@ describe(`vAccounts Service Test Contract`, () => {
         })();
     });
     it('Wrong sig', done => {
-        (async() => {
+        (async () => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();
                 var res = await postVirtualTx({
@@ -210,13 +210,13 @@ describe(`vAccounts Service Test Contract`, () => {
         })();
     });
     it('Wrong account key', done => {
-        (async() => {
+        (async () => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();
                 const dappClient = await createClient({ httpEndpoint: endpoint, fetch });
                 const vaccClient = await dappClient.service(
-                "vaccounts",
-                "test2v"
+                    "vaccounts",
+                    "test2v"
                 );
                 await vaccClient.push_liquid_account_transaction(
                     "test2v",
@@ -249,7 +249,7 @@ describe(`vAccounts Service Test Contract`, () => {
         })();
     });
     it.skip('Action Fallback', done => {
-        (async() => {
+        (async () => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();
                 const res = await postVirtualTx({

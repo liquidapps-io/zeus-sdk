@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork, getCreateAccount } = require('../extensions/tools/eos/utils');
@@ -33,7 +33,7 @@ describe(`Sign DAPP Service Test Contract`, () => {
   var endpoint;
   var eosvram;
   before(done => {
-    (async() => {
+    (async () => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
 
@@ -66,11 +66,11 @@ describe(`Sign DAPP Service Test Contract`, () => {
   });
 
   it('sends 1 wei from the multisig to a random address', done => {
-    (async() => {
+    (async () => {
       try {
         const prevBalance = (await web3.eth.getBalance(randomEthAddress)).toString();
-        const data = getEthMultisigTxData(randomEthAddress, '1'); 
-        const trx = JSON.stringify({ to: ethMultiSig.address, data});
+        const data = getEthMultisigTxData(randomEthAddress, '1');
+        const trx = JSON.stringify({ to: ethMultiSig.address, data });
         console.log(trx);
         await sendSigRequest('1', ethMultiSig.address, data, '1', 'ethereum', '0', '1', 1);
         // sleep
@@ -86,7 +86,7 @@ describe(`Sign DAPP Service Test Contract`, () => {
   })
 
   it.skip('sign call - single sig', done => {
-    (async() => {
+    (async () => {
       try {
         // generate keys
         // sign 
@@ -98,7 +98,7 @@ describe(`Sign DAPP Service Test Contract`, () => {
     })();
   });
   it.skip('sign call - multi sig', done => {
-    (async() => {
+    (async () => {
       try {
         // generate keys
         // sign 
@@ -110,7 +110,7 @@ describe(`Sign DAPP Service Test Contract`, () => {
     })();
   });
   it.skip('sign call - single sig - post', done => {
-    (async() => {
+    (async () => {
       try {
         // generate keys
         // sign and post
@@ -123,7 +123,7 @@ describe(`Sign DAPP Service Test Contract`, () => {
     })();
   });
   it.skip('sign call - multi sig  - post', done => {
-    (async() => {
+    (async () => {
       try {
         // generate keys
         // sign and post
@@ -141,18 +141,18 @@ describe(`Sign DAPP Service Test Contract`, () => {
 function postData(url = ``, data = {}) {
   // Default options are marked with *
   return fetch(url, {
-      method: 'POST', // *GET, POST, PUT, DELETE, etc.
-      mode: 'cors', // no-cors, cors, *same-origin
-      cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-      credentials: 'same-origin', // include, *same-origin, omit
-      headers: {
-        // "Content-Type": "application/json",
-        // "Content-Type": "application/x-www-form-urlencoded",
-      },
-      redirect: 'follow', // manual, *follow, error
-      referrer: 'no-referrer', // no-referrer, *client
-      body: JSON.stringify(data) // body data type must match "Content-Type" header
-    })
+    method: 'POST', // *GET, POST, PUT, DELETE, etc.
+    mode: 'cors', // no-cors, cors, *same-origin
+    cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+    credentials: 'same-origin', // include, *same-origin, omit
+    headers: {
+      // "Content-Type": "application/json",
+      // "Content-Type": "application/x-www-form-urlencoded",
+    },
+    redirect: 'follow', // manual, *follow, error
+    referrer: 'no-referrer', // no-referrer, *client
+    body: JSON.stringify(data) // body data type must match "Content-Type" header
+  })
     .then(async response => {
       var text = await response.text();
       var json = JSON.parse(text);
@@ -192,7 +192,7 @@ function getEthMultisigTxData(to, value) {
 }
 
 // deploys multisig from accounts[0] with accounts[1] as signer
-async function deployEthMultiSig(signers, numOfSigners = '1'){
+async function deployEthMultiSig(signers, numOfSigners = '1') {
   const multiSigAbi = JSON.parse(fs.readFileSync(path.resolve('./test/eth-build/multisigAbi.json')));
   const multiSigBin = fs.readFileSync(path.resolve('./test/eth-build/multisig.bin'), 'utf8');
 
@@ -219,7 +219,7 @@ async function deployEthMultiSig(signers, numOfSigners = '1'){
     to: deployedContract.address,
     value: '100'
   });
-  return deployedContract; 
+  return deployedContract;
 }
 
 // async function createDspKey(chain, chain_type, account) {

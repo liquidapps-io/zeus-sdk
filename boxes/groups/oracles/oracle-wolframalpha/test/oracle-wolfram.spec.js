@@ -1,6 +1,6 @@
-require("babel-core/register");
-require("babel-polyfill");
-import 'mocha';
+
+
+require('mocha');
 const { assert } = require('chai'); // Using Assert style
 const { getTestContract } = require('../extensions/tools/eos/utils');
 
@@ -14,7 +14,7 @@ describe(`Wolfram Oracle Service Test`, () => {
   var testcontract;
   const code = 'test1';
   before(done => {
-    (async() => {
+    (async () => {
       try {
 
         var deployedContract = await deployer.deploy(ctrt, code);
@@ -32,7 +32,7 @@ describe(`Wolfram Oracle Service Test`, () => {
 
   var account = code;
   it('Facts - What is the average air speed velocity of a laden swallow?', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: Buffer.from(`wolfram_alpha://What is the average air speed velocity of a laden swallow?`, 'utf8'),

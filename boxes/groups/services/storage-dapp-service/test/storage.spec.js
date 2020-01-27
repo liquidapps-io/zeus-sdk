@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getTestContract, getCreateKeys } = require('../extensions/tools/eos/utils');
 const fetch = require('node-fetch');
@@ -23,7 +23,7 @@ describe(`LiquidStorage Test`, () => {
   const code = 'test1';
   var endpoint = "http://localhost:13015";
   before(done => {
-    (async() => {
+    (async () => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
         var deployedContractAuth = await deployer.deploy(ctrta, 'authentikeos');
@@ -39,7 +39,7 @@ describe(`LiquidStorage Test`, () => {
   });
 
   it('Upload File (authenticated)', done => {
-    (async() => {
+    (async () => {
       try {
         const dappClient = await createClient({ httpEndpoint: endpoint, fetch });
         const storageClient = await dappClient.service(
@@ -63,7 +63,7 @@ describe(`LiquidStorage Test`, () => {
   });
 
   it('Upload Archive', done => {
-    (async() => {
+    (async () => {
       try {
 
         const dappClient = await createClient({ httpEndpoint: endpoint, fetch });

@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getTestContract } = require('../extensions/tools/eos/utils');
 const fetch = require('node-fetch');
@@ -16,7 +16,7 @@ describe(`Resource Billing Service Test`, () => {
   const code = 'test1';
   var endpoint = "http://localhost:13015";
   before(done => {
-    (async() => {
+    (async () => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
         await genAllocateDAPPTokens(deployedContract, 'readfn');
@@ -31,7 +31,7 @@ describe(`Resource Billing Service Test`, () => {
 
   var account = code;
   it('Test Read', done => {
-    (async() => {
+    (async () => {
       try {
         assert.equal("", "");
         done();
