@@ -14,6 +14,8 @@ const getFiles = source =>
 
 var cache = {};
 var gitIgnore;
+var optionExternal = false;
+var optionBox = ``
 
 function collectAllFiles(thePath) {
   var subdirs = getDirectories(thePath);
@@ -32,11 +34,22 @@ function buildBoxCache(boxPath) {
   var files = collectAllFiles(boxPath);
   for (var i = 0; i < files.length; i++) {
     var file = files[i];
-    file = file.substr(boxPath.length);
-    cache[file] = boxPath;
+    if(optionExternal && boxPath.endsWith(`/services`)) {
+      file = file.substr(boxPath.length);
+      // need to go one directory deeper for the cache to match unboxed file paths
+      // remove /xxx-dapp-service
+      // file = file.replace(/^\/.*?-dapp-service/, "")
+      var [_, subDir, ...filePaths] = file.split(`/`)
+      if(optionBox && optionBox !== subDir) continue;
+      file = `/${filePaths.join(`/`)}`
+      var filePrefix = `${boxPath}/${subDir}`
+
+      cache[file] = filePrefix;
+    } else {
+      file = file.substr(boxPath.length);
+      cache[file] = boxPath;
+    }
   }
-
-
 }
 
 
@@ -86,10 +99,10 @@ function copyFileSync(source) {
   var lookupFile = source.substr(root.length);
   if ([...gitIgnore, '/contracts/eos/dappservices/dappservices.config.hpp', '/models/boxmaps/50-zeusrepoeos.json', '/package-lock.json', '/package.json', '/nodeos.log', '/zeus-box.json', '/models/boxmaps/00-mapping.json'].indexOf(lookupFile) !== -1)
     return;
-  var targetFile = findInBoxes(lookupFile);
+  var targetFilePrefix = findInBoxes(lookupFile);
   // if target is a directory a new file with the same name will be created
-  if (targetFile) {
-    targetFile = path.join(targetFile, lookupFile);
+  if (targetFilePrefix) {
+    var targetFile = path.join(targetFilePrefix, lookupFile);
     var targetBuf = fs.readFileSync(targetFile);
     var sourceBuf = fs.readFileSync(source);
     if (!sourceBuf.equals(targetBuf)) {
@@ -133,13 +146,25 @@ function copyFolderRecursiveSync(source) {
 module.exports = {
   description: 'sync-builtin-boxes',
   builder: (yargs) => {
-    yargs.example('$0 sync-builtin-boxes /home/user/git/liquidapps');
+    yargs
+    .option('external', {
+      describe: 'Needs to be set when syncing into the *public* LiquidApps github repo',
+      default: false,
+    })
+    .option('box', {
+      describe: 'Which box to sync',
+      default: ``,
+    })
+    .example('$0 sync-builtin-boxes /home/user/git/liquidapps')
+    .example('$0 sync-builtin-boxes ../zeus-sdk/boxes --external --box=storage-dapp-service');
   },
   command: 'sync-builtin-boxes <to>',
 
   handler: async(args) => {
     let stdout;
     try {
+      optionExternal = args.external
+      optionBox = args.box
       var models = await loadModels('dapp-services');
       gitIgnore = models.map(m => `/contracts/eos/dappservices/${m.name}.hpp`);
       gitIgnore = [...gitIgnore, ...models.map(m => `/contracts/eos/${m.name}service/${m.name}service.cpp`)];
