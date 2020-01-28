@@ -160,7 +160,7 @@ describe(`LiquidStorage Test`, () => {
     })();
   });
 
-  it.only("Upload Files as vaccount user", done => {
+  it("Upload Files as vaccount user", done => {
     (async () => {
       try {
         const dappClient = await createClient({
