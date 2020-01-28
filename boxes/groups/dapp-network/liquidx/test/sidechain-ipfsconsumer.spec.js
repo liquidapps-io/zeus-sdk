@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork, getCreateAccount } = require('../extensions/tools/eos/utils');
@@ -25,7 +25,7 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
   var sidechainName = 'test1';
   var sidechain;
   before(done => {
-    (async() => {
+    (async () => {
       try {
         var sidechains = await loadModels('local-sidechains');
         sidechain = sidechains.find(a => a.name === sidechainName);
@@ -91,7 +91,7 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
   var account = sister_code;
   let uri = "ipfs://zb2rhnyodRMHNeY4iaSVXzVhtFmYdWxsvddrhzhWZFUMiZdrd";
   it('sidechain - IPFS Write', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testset({
           data: {
@@ -114,7 +114,7 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
     })();
   });
   it('sidechain - cleanup1', done => {
-    (async() => {
+    (async () => {
       try {
         await delaySec(10);
         await testcontract.verfempty({
@@ -132,7 +132,7 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
     })();
   });
   it('sidechain - IPFS Read', done => {
-    (async() => {
+    (async () => {
       try {
         await delaySec(10);
 
@@ -156,7 +156,7 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
   });
 
   it('sidechain - cleanup2', done => {
-    (async() => {
+    (async () => {
       try {
         await delaySec(10);
         await testcontract.verfempty({

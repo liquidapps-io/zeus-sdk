@@ -81,6 +81,7 @@ const runHook = async (hookName, args, zeusBoxJson, location, opts) => {
   // check for post-install hooks under ./extensions/commands/hook/post-install.js
   var hookFile = path.resolve(`./extensions/commands/hook/${hookName}`);
   if (fs.existsSync(hookFile + '.js')) {
+    console.log(emojMap.comet + `${hookName.green} hook for box: ${args.box.yellow}`);
     await require(hookFile).handler(args, zeusBoxJson, location, opts);
   }
 };

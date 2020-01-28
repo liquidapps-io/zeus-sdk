@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork } = require('../extensions/tools/eos/utils');
@@ -20,7 +20,7 @@ describe(`IPFS Service Test Contract - Old Multi Index`, () => {
   const code = 'test1old';
   var eosvram;
   before(done => {
-    (async() => {
+    (async () => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
         await genAllocateDAPPTokens(deployedContract, 'ipfs');
@@ -50,7 +50,7 @@ describe(`IPFS Service Test Contract - Old Multi Index`, () => {
 
   var account = code;
   it('IPFS Write', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testset({
           data: {
@@ -75,7 +75,7 @@ describe(`IPFS Service Test Contract - Old Multi Index`, () => {
   });
 
   it('IPFS Read', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: 'ipfs://zb2rhnyodRMHNeY4iaSVXzVhtFmYdWxsvddrhzhWZFUMiZdrd',
@@ -96,7 +96,7 @@ describe(`IPFS Service Test Contract - Old Multi Index`, () => {
   });
 
   it('dapp::multi_index Get Available Key', done => {
-    (async() => {
+    (async () => {
       try {
         await testcontract.increment({ somenumber: 1 }, {
           authorization: `${code}@active`,
@@ -156,7 +156,7 @@ describe(`IPFS Service Test Contract - Old Multi Index`, () => {
   });
 
   it('dapp::multi_index Resize Should Fail', done => {
-    (async() => {
+    (async () => {
       try {
 
         let failed = false;
@@ -181,7 +181,7 @@ describe(`IPFS Service Test Contract - Old Multi Index`, () => {
 
 
   it('dapp::multi_index uint64_t Primary Key', done => {
-    (async() => {
+    (async () => {
       try {
 
         await testcontract.testindexa({
@@ -208,7 +208,7 @@ describe(`IPFS Service Test Contract - Old Multi Index`, () => {
   });
 
   it('doesnt overwrite data when buckets collide', done => {
-    (async() => {
+    (async () => {
       try {
 
         await testcontract.testcollide({
@@ -260,7 +260,7 @@ describe(`IPFS Service Test Contract - Old Multi Index`, () => {
         done(e);
       }
       it('dapp::multi_index uint64_t Large Primary Key', done => {
-        (async() => {
+        (async () => {
           try {
 
             await testcontract.testindexa({
@@ -312,7 +312,7 @@ describe(`IPFS Service Test Contract - Old Multi Index`, () => {
   });
 
   it('dapp::multi_index delayed cleanup', done => {
-    (async() => {
+    (async () => {
       try {
 
         await testcontract.testdelay({

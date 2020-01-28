@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork } = require('../extensions/tools/eos/utils');
@@ -35,7 +35,7 @@ describe(`${contractCode} Contract`, () => {
     return s;
   };
   before(done => {
-    (async() => {
+    (async () => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
         var deployedContract2 = await deployer.deploy(ctrt, code2);
@@ -65,7 +65,7 @@ describe(`${contractCode} Contract`, () => {
   });
   // console.log("codekey",codekey);
   it('stub', done => {
-    (async() => {
+    (async () => {
       try {
 
         done();

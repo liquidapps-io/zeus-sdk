@@ -1,6 +1,6 @@
-require("babel-core/register");
-require("babel-polyfill");
-import 'mocha';
+
+
+require('mocha');
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getEosWrapper } = require('../extensions/tools/eos/eos-wrapper');
@@ -14,7 +14,7 @@ const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig'); // developmen
 const { loadModels } = require('../extensions/tools/models');
 
 const { getNetwork, getCreateAccount } = require('../extensions/tools/eos/utils');
-import { TextDecoder, TextEncoder } from 'text-encoding';
+const { TextDecoder, TextEncoder } = require('text-encoding');
 
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
@@ -28,18 +28,18 @@ const { BigNumber } = require('bignumber.js');
 function postData(url = ``, data = {}) {
     // Default options are marked with *
     return fetch(url, {
-            method: "POST", // *GET, POST, PUT, DELETE, etc.
-            mode: "cors", // no-cors, cors, *same-origin
-            cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
-            credentials: "same-origin", // include, *same-origin, omit
-            headers: {
-                // "Content-Type": "application/json",
-                // "Content-Type": "application/x-www-form-urlencoded",
-            },
-            redirect: "follow", // manual, *follow, error
-            referrer: "no-referrer", // no-referrer, *client
-            body: JSON.stringify(data), // body data type must match "Content-Type" header
-        })
+        method: "POST", // *GET, POST, PUT, DELETE, etc.
+        mode: "cors", // no-cors, cors, *same-origin
+        cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+        credentials: "same-origin", // include, *same-origin, omit
+        headers: {
+            // "Content-Type": "application/json",
+            // "Content-Type": "application/x-www-form-urlencoded",
+        },
+        redirect: "follow", // manual, *follow, error
+        referrer: "no-referrer", // no-referrer, *client
+        body: JSON.stringify(data), // body data type must match "Content-Type" header
+    })
         .then(response => response.json()); // parses response to JSON
 }
 
@@ -57,11 +57,11 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
     var sidechainName = 'test1';
     var sidechain;
     before(done => {
-        (async() => {
+        (async () => {
             try {
                 var sidechains = await loadModels('local-sidechains');
                 sidechain = sidechains.find(a => a.name === sidechainName);
-                
+
                 await getCreateAccount(sister_code, null, false, sidechain);
                 await getCreateAccount(mainnet_code, null, false);
                 await getCreateAccount(sister_code2, null, false, sidechain);
@@ -74,27 +74,27 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
                 await genAllocateDAPPTokens({ address: mainnet_code2 }, 'vaccounts', '', 'default');
                 await genAllocateDAPPTokens({ address: mainnet_code }, 'ipfs', '', 'default');
                 await genAllocateDAPPTokens({ address: mainnet_code2 }, 'ipfs', '', 'default');
-                
+
                 await createLiquidXMapping(sidechain.name, mainnet_code, sister_code);
                 await createLiquidXMapping(sidechain.name, mainnet_code2, sister_code2);
 
                 var selectedNetwork = getNetwork(getDefaultArgs(), sidechain);
-                
+
                 endpoint = `http://localhost:${sidechain.dsp_port}`;
-                
+
                 var config = {
-                  expireInSeconds: 120,
-                  sign: true,
-                  chainId: selectedNetwork.chainId,
-                  httpEndpoint: endpoint
+                    expireInSeconds: 120,
+                    sign: true,
+                    chainId: selectedNetwork.chainId,
+                    httpEndpoint: endpoint
                 };
 
                 var keys = await getCreateKeys(sister_code, getDefaultArgs(), false, sidechain);
                 var keys2 = await getCreateKeys(sister_code2, getDefaultArgs(), false, sidechain);
 
-                config.keyProvider = keys.active.privateKey;  
+                config.keyProvider = keys.active.privateKey;
                 eosconsumer = getEosWrapper(config);
-                config.keyProvider = keys2.active.privateKey;  
+                config.keyProvider = keys2.active.privateKey;
                 eosconsumer2 = getEosWrapper(config);
 
                 let info = await eosconsumer.get_info();
@@ -104,25 +104,25 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
                 if (!mapEntry)
                     throw new Error('mapping not found')
                 const dappservicex = mapEntry.chain_account;
-        
+
                 //testcontract = await eosconsumer.contract(account);
                 const dappservicexInstance = await eosconsumer.contract(dappservicex);
                 const dappservicexInstance2 = await eosconsumer2.contract(dappservicex);
                 try {
-                  await dappservicexInstance.adddsp({ owner: sister_code, dsp: 'xprovider1' }, {
-                    authorization: `${sister_code}@active`,
-                  });
-                  await dappservicexInstance.adddsp({ owner: sister_code, dsp: 'xprovider2' }, {
-                    authorization: `${sister_code}@active`,
-                  });
-                  await dappservicexInstance2.adddsp({ owner: sister_code2, dsp: 'xprovider1' }, {
-                    authorization: `${sister_code2}@active`,
-                  });
-                  await dappservicexInstance2.adddsp({ owner: sister_code2, dsp: 'xprovider2' }, {
-                    authorization: `${sister_code2}@active`,
-                  });
+                    await dappservicexInstance.adddsp({ owner: sister_code, dsp: 'xprovider1' }, {
+                        authorization: `${sister_code}@active`,
+                    });
+                    await dappservicexInstance.adddsp({ owner: sister_code, dsp: 'xprovider2' }, {
+                        authorization: `${sister_code}@active`,
+                    });
+                    await dappservicexInstance2.adddsp({ owner: sister_code2, dsp: 'xprovider1' }, {
+                        authorization: `${sister_code2}@active`,
+                    });
+                    await dappservicexInstance2.adddsp({ owner: sister_code2, dsp: 'xprovider2' }, {
+                        authorization: `${sister_code2}@active`,
+                    });
                 }
-                catch (e) {}
+                catch (e) { }
                 let res = await deployedContract.contractInstance.xvinit({
                     chainid: chainId
                 }, {
@@ -156,10 +156,10 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
         });
     }
     const toBound = (numStr, bytes) =>
-        `${(new Array(bytes*2+1).join('0') + numStr).substring(numStr.length).toUpperCase()}`;
+        `${(new Array(bytes * 2 + 1).join('0') + numStr).substring(numStr.length).toUpperCase()}`;
 
 
-    const runTrx = async({
+    const runTrx = async ({
         nonce = 0,
         contract_code,
         payload,
@@ -233,12 +233,12 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
         // and is used as xvexec's payload vector<char>: https://github.com/liquidapps-io/zeus-sdk/blob/4e79122e42eeab50cf633097342b9c1fa00960c6/boxes/groups/services/vaccounts-dapp-service/services/vaccounts-dapp-service-node/index.js#L30
         // eosio::action fields to serialize https://github.com/EOSIO/eosio.cdt/blob/master/libraries/eosiolib/action.hpp#L194-L221
         const actionSerialized =
-        "0000000000000000" + // account_name
-        toName(payload.name) + // action_name
-        // std::vector<permission_level> authorization https://github.com/EOSIO/eosio.cdt/blob/master/libraries/eosiolib/action.hpp#L107-L155
-        "00" +
-        // std::vector<char> data;
-        serializedDataWithLength;
+            "0000000000000000" + // account_name
+            toName(payload.name) + // action_name
+            // std::vector<permission_level> authorization https://github.com/EOSIO/eosio.cdt/blob/master/libraries/eosiolib/action.hpp#L107-L155
+            "00" +
+            // std::vector<char> data;
+            serializedDataWithLength;
 
         const payloadSerialized = header + actionSerialized;
         return await postVirtualTx({
@@ -248,7 +248,7 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
         });
     }
     it('Hello world', done => {
-        (async() => {
+        (async () => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();
                 var res = await runTrx({
@@ -308,7 +308,7 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
         })();
     });
     it('Hello world 2', done => {
-        (async() => {
+        (async () => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();
                 var res = await runTrx({
@@ -353,7 +353,7 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
         })();
     });
     it('Wrong sig', done => {
-        (async() => {
+        (async () => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();
                 var res = await postVirtualTx({
@@ -371,7 +371,7 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
         })();
     });
     it('Wrong account key', done => {
-        (async() => {
+        (async () => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();
                 var res = await runTrx({
@@ -411,7 +411,7 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
         })();
     });
     it.skip('Action Fallback', done => {
-        (async() => {
+        (async () => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();
                 var res = await postVirtualTx({

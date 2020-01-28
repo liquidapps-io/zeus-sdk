@@ -1,6 +1,6 @@
-require("babel-core/register");
-require("babel-polyfill");
-import 'mocha';
+
+
+require('mocha');
 const { assert } = require('chai'); // Using Assert style
 const { getTestContract } = require('../extensions/tools/eos/utils');
 
@@ -14,7 +14,7 @@ describe(`Sister Chain Oracle Service Test`, () => {
   var testcontract;
   const code = 'test1';
   before(done => {
-    (async() => {
+    (async () => {
       try {
 
         var deployedContract = await deployer.deploy(ctrt, code);
@@ -33,7 +33,7 @@ describe(`Sister Chain Oracle Service Test`, () => {
   var account = code;
 
   it('Oracle IBC Block Fetch', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: Buffer.from(`sister_chain_block://mainnet/20000000/transaction_mroot`, 'utf8'),
@@ -51,7 +51,7 @@ describe(`Sister Chain Oracle Service Test`, () => {
     })();
   });
   it.skip('Oracle IBC Block Fetch - telos', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: Buffer.from(`sister_chain_block://telos/20000000/transaction_mroot`, 'utf8'),
@@ -69,7 +69,7 @@ describe(`Sister Chain Oracle Service Test`, () => {
     })();
   });
   it.skip('Oracle IBC Block Fetch - worbli', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: Buffer.from(`sister_chain_block://worbli/10000000/transaction_mroot`, 'utf8'),
@@ -87,7 +87,7 @@ describe(`Sister Chain Oracle Service Test`, () => {
     })();
   });
   it.skip('Oracle IBC Block Fetch - meetone', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: Buffer.from(`sister_chain_block://meetone/3521778/transaction_mroot`, 'utf8'),
@@ -105,7 +105,7 @@ describe(`Sister Chain Oracle Service Test`, () => {
     })();
   });
   it.skip('Oracle IBC Block Fetch - bos', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: Buffer.from(`sister_chain_block://bos/10000000/transaction_mroot`, 'utf8'),
@@ -123,7 +123,7 @@ describe(`Sister Chain Oracle Service Test`, () => {
     })();
   });
   it.skip('Oracle IBC Block Fetch - kylin', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: Buffer.from(`sister_chain_block://kylin/43521778/transaction_mroot`, 'utf8'),

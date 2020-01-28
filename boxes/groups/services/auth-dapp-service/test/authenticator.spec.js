@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork, getCreateAccount } = require('../extensions/tools/eos/utils');
@@ -25,7 +25,7 @@ var authClient = new AuthClient(apiID,
 describe.skip(`Auth DAPP Service Test Contract`, () => {
   var dspeos;
   before(done => {
-    (async() => {
+    (async () => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
 
@@ -44,7 +44,7 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
 
   var account = code;
   it('Authed call - permission - non-existing', done => {
-    (async() => {
+    (async () => {
       try {
         var testUser = "testuse11"
 
@@ -67,7 +67,7 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
     })();
   });
   it('Authed call - active permission', done => {
-    (async() => {
+    (async () => {
       try {
         var testUser = "testuser1"
         var keys = await getCreateAccount(testUser);
@@ -83,7 +83,7 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
     })();
   });
   it('Authed call - api permission', done => {
-    (async() => {
+    (async () => {
       try {
         var testUser = "testuser2"
         var keys = await getCreateAccount(testUser);
@@ -125,7 +125,7 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
     })();
   });
   it('Authed call - api permission - wrong key', done => {
-    (async() => {
+    (async () => {
       try {
         var testUser = "testuser3"
         var keys = await getCreateAccount(testUser);
@@ -172,7 +172,7 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
     })();
   });
   it('Anonymous call', done => {
-    (async() => {
+    (async () => {
       try {
         var testUser = "............"
         var permission = "api";
@@ -189,7 +189,7 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
     })();
   });
   it('Anonymous call to authed API', done => {
-    (async() => {
+    (async () => {
       try {
         var permission = "api";
         var testnum = 123;

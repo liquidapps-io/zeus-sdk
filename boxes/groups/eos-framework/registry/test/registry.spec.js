@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getCreateAccount, getNetwork } = require('../extensions/tools/eos/utils');
@@ -15,7 +15,7 @@ const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services
 var contractCode = 'registry';
 var ctrt = artifacts.require(`./${contractCode}/`);
 
-function postData (url = ``, data = {}) {
+function postData(url = ``, data = {}) {
   // Default options are marked with *
   return fetch(url, {
     method: 'POST', // *GET, POST, PUT, DELETE, etc.

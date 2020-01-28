@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-require('babel-core/register');
-require('babel-polyfill');
+
+
 if (process.env.DAEMONIZE_PROCESS) { require('daemonize-process')(); }
 const path = require('path');
 const fs = require('fs');

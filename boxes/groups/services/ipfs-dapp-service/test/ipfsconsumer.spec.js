@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork } = require('../extensions/tools/eos/utils');
@@ -21,7 +21,7 @@ describe(`IPFS Service Test Contract`, () => {
   const code2 = 'tstbakcomp';
   var eosvram;
   before(done => {
-    (async() => {
+    (async () => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
         var deployedContract2 = await deployer.deploy(ctrt, code2);
@@ -55,7 +55,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
   it('IPFS Write', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testset({
           data: {
@@ -80,7 +80,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
   it('IPFS Read', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: 'ipfs://zb2rhnyodRMHNeY4iaSVXzVhtFmYdWxsvddrhzhWZFUMiZdrd',
@@ -101,7 +101,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
   it('dapp::multi_index Get Available Key', done => {
-    (async() => {
+    (async () => {
       try {
         await testcontract.increment({ somenumber: 1 }, {
           authorization: `${code}@active`,
@@ -161,7 +161,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
   it('dapp::multi_index Resize Should Fail', done => {
-    (async() => {
+    (async () => {
       try {
 
         let failed = false;
@@ -185,7 +185,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
   it('dapp::multi_index uint64_t Primary Key', done => {
-    (async() => {
+    (async () => {
       try {
         await testcontract.testindexa({
           id: 12345
@@ -233,7 +233,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
   it('dapp::multi_index uint128_t Primary Key', done => {
-    (async() => {
+    (async () => {
       try {
 
         let res = await testcontract.testmed({
@@ -270,7 +270,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
   it('dapp::multi_index checksum256 Primary Key', done => {
-    (async() => {
+    (async () => {
       try {
 
         let res = await testcontract.testbig({
@@ -307,7 +307,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
   it('dapp::multi_index checksum256 Get Available Key', done => {
-    (async() => {
+    (async () => {
       try {
 
         let res = await testcontract.testbig({
@@ -336,7 +336,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
   it('doesnt overwrite data when buckets collide', done => {
-    (async() => {
+    (async () => {
       try {
 
         await testcontract.testcollide({
@@ -388,7 +388,7 @@ describe(`IPFS Service Test Contract`, () => {
         done(e);
       }
       it('dapp::multi_index uint64_t Large Primary Key', done => {
-        (async() => {
+        (async () => {
           try {
 
             await testcontract.testindexa({
@@ -440,7 +440,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
   it('dapp::multi_index delayed cleanup', done => {
-    (async() => {
+    (async () => {
       try {
 
         await testcontract.testdelay({
@@ -514,7 +514,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
   it.skip('Cleanup', done => {
-    (async() => {
+    (async () => {
       try {
         await delaySec(20);
         await testcontract.verfempty({
@@ -558,7 +558,7 @@ describe(`IPFS Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        
+
         await testcontract.testclear({}, {
           authorization: `${code}@active`,
           broadcast: true,
@@ -573,13 +573,13 @@ describe(`IPFS Service Test Contract`, () => {
             broadcast: true,
             sign: true
           });
-        } catch(e) {
+        } catch (e) {
           failed = true;
-        }        
+        }
 
-        assert(failed, 'should have failed');        
+        assert(failed, 'should have failed');
         done();
-      } catch (e) {        
+      } catch (e) {
         done(e);
       }
     })();
@@ -602,7 +602,7 @@ describe(`IPFS Service Test Contract`, () => {
         //   shardbuckets
         // }
         let manifest = backup.manifest;
-        let failed = false;      
+        let failed = false;
 
         try {
           await testcontract.testfind({
@@ -612,11 +612,11 @@ describe(`IPFS Service Test Contract`, () => {
             broadcast: true,
             sign: true
           });
-        } catch(e) {
+        } catch (e) {
           failed = true;
-        }  
-        
-        assert(failed, 'should have failed');  
+        }
+
+        assert(failed, 'should have failed');
 
         await testcontract.testman({
           man: manifest
@@ -625,7 +625,7 @@ describe(`IPFS Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        
+
         await testcontract.testfind({
           id: 20
         }, {
@@ -633,7 +633,7 @@ describe(`IPFS Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-              
+
         done();
       } catch (e) {
         done(e);
@@ -642,7 +642,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
   it('IPFS without custom dsp permissions (backwards compatibility)', done => {
-    (async() => {
+    (async () => {
       try {
         // now this needs to be warmed up
         await testcontract2.testget({

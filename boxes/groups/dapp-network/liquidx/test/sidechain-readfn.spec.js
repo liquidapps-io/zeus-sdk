@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork, getCreateAccount } = require('../extensions/tools/eos/utils');
@@ -16,18 +16,18 @@ const { genAllocateDAPPTokens, createLiquidXMapping } = require('../extensions/t
 function postData(url = ``, data = {}) {
   // Default options are marked with *
   return fetch(url, {
-      method: 'POST', // *GET, POST, PUT, DELETE, etc.
-      mode: 'cors', // no-cors, cors, *same-origin
-      cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-      credentials: 'same-origin', // include, *same-origin, omit
-      headers: {
-        // "Content-Type": "application/json",
-        // "Content-Type": "application/x-www-form-urlencoded",
-      },
-      redirect: 'follow', // manual, *follow, error
-      referrer: 'no-referrer', // no-referrer, *client
-      body: JSON.stringify(data) // body data type must match "Content-Type" header
-    })
+    method: 'POST', // *GET, POST, PUT, DELETE, etc.
+    mode: 'cors', // no-cors, cors, *same-origin
+    cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+    credentials: 'same-origin', // include, *same-origin, omit
+    headers: {
+      // "Content-Type": "application/json",
+      // "Content-Type": "application/x-www-form-urlencoded",
+    },
+    redirect: 'follow', // manual, *follow, error
+    referrer: 'no-referrer', // no-referrer, *client
+    body: JSON.stringify(data) // body data type must match "Content-Type" header
+  })
     .then(response => response.json()); // parses response to JSON
 }
 var contractCode = 'readfnxtest';
@@ -41,7 +41,7 @@ describe(`LiquidX Sidechain READFN Service Test Contract`, () => {
   var sidechain;
 
   before(done => {
-    (async() => {
+    (async () => {
       try {
         var sidechains = await loadModels('local-sidechains');
         sidechain = sidechains.find(a => a.name === sidechainName);
@@ -79,7 +79,7 @@ describe(`LiquidX Sidechain READFN Service Test Contract`, () => {
             authorization: `${sister_code}@active`,
           });
         }
-        catch (e) {}
+        catch (e) { }
         done();
       }
       catch (e) {
@@ -99,7 +99,7 @@ describe(`LiquidX Sidechain READFN Service Test Contract`, () => {
     });
   };
   it('Sidechain - Test Read', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await invokeReadFn({ method: "readtest", payload: { testnum: 123 } });
         assert.equal(res.result, "hello-123");

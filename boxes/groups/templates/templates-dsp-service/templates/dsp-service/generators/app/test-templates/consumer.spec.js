@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getNetwork, getCreateKeys } = require('../extensions/tools/eos/utils');
 var Eos = require('eosjs');

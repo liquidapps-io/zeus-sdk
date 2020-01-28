@@ -1,6 +1,6 @@
-require("babel-core/register");
-require("babel-polyfill");
-import 'mocha';
+
+
+require('mocha');
 const { assert } = require('chai'); // Using Assert style
 const { getTestContract } = require('../extensions/tools/eos/utils');
 
@@ -14,7 +14,7 @@ describe(`SQL Oracle Service Test`, () => {
   var testcontract;
   const code = 'test1';
   before(done => {
-    (async() => {
+    (async () => {
       try {
 
         var deployedContract = await deployer.deploy(ctrt, code);
@@ -29,7 +29,7 @@ describe(`SQL Oracle Service Test`, () => {
       }
     })();
   });
-  const run = async(sql, expected) => {
+  const run = async (sql, expected) => {
     return await testcontract.testrnd({
       uri: Buffer.from(`sql://${Buffer.from(sql).toString('base64')}`, 'utf8')
     }, {
@@ -42,7 +42,7 @@ describe(`SQL Oracle Service Test`, () => {
 
   var account = code;
   it('SQL Oracle Const Query', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await run("select 'hello'", "hello");
         done();
@@ -53,7 +53,7 @@ describe(`SQL Oracle Service Test`, () => {
     })();
   });
   it('SQL Oracle CRUD', done => {
-    (async() => {
+    (async () => {
       try {
         await run(`DROP TABLE if exists contacts`);
         await run(`CREATE TABLE contacts (

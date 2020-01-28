@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getCreateAccount, getNetwork } = require('../extensions/tools/eos/utils');
@@ -28,7 +28,7 @@ describe(`${contractCode} Contract`, () => {
   var symbol = 'TEST';
 
   before(done => {
-    (async() => {
+    (async () => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
 
@@ -70,7 +70,7 @@ describe(`${contractCode} Contract`, () => {
   });
 
   it('deepfreeze', done => {
-    (async() => {
+    (async () => {
       try {
         var failed = false;
         // create token
@@ -183,7 +183,7 @@ describe(`${contractCode} Contract`, () => {
   });
 
   it.skip('airdrop', done => {
-    (async() => {
+    (async () => {
       try {
         // create token
         var key = await getCreateKeys(testuser);

@@ -1,4 +1,4 @@
-import "mocha";
+require("mocha");
 require("babel-core/register");
 require("babel-polyfill");
 const fs = require("fs");
@@ -9,7 +9,6 @@ const eosjs2 = require("eosjs");
 const {
   getTestContract,
   getCreateKeys,
-  getUrl
 } = require("../extensions/tools/eos/utils");
 const getDefaultArgs = require("../extensions/helpers/getDefaultArgs");
 const { createClient } = require("../client/dist/src/dapp-client-lib");
@@ -100,9 +99,7 @@ describe(`LiquidStorage Test`, () => {
     })();
   });
 
-  const serviceName = "storage";
-  var account = code;
-  it("Upload File (authenticated)", done => {
+  it('Upload File (authenticated)', done => {
     (async () => {
       try {
         const dappClient = await createClient({
@@ -132,7 +129,7 @@ describe(`LiquidStorage Test`, () => {
     })();
   });
 
-  it("Upload Archive", done => {
+  it('Upload Archive', done => {
     (async () => {
       try {
         const dappClient = await createClient({
