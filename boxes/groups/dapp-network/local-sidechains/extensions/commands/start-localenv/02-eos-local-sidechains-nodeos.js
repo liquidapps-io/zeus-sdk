@@ -1,5 +1,4 @@
 var { execPromise } = require('../../helpers/_exec');
-var sleep = require('sleep-promise');
 var dappservices;
 var path = require('path');
 var fs = require('fs');
@@ -97,6 +96,7 @@ module.exports = async(args) => {
   // load models
   var sidechains = await loadModels('local-sidechains');
   for (var i = 0; i < sidechains.length; i++) {
+    if(sidechains[i].local === false) return;
     var sidechain = sidechains[i];
     await generateNodeos(sidechain);
   }

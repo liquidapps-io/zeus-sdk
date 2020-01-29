@@ -84,6 +84,7 @@ public:
     auto idxKey =
         accountlink::_by_chain_account(chain_name, chain_account);
     auto acctLink = cidx.find(idxKey);
+    check(acctLink != cidx.end(), "account does not exist");
     cidx.erase(acctLink);
   }
 

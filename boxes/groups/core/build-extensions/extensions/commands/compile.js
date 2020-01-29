@@ -11,6 +11,9 @@ module.exports = {
       }).option('chain', {
         describe: 'chain to work on',
         default: 'eos'
+      }).option('sidechain', {
+        describe: 'sidechain name to use for liquidx',
+        default: ''  
       }).option('phase', {
         describe: 'select compile option [dapp-services-eos, npm, eos]',
         default: ''

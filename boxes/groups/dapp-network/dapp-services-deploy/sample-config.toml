@@ -33,31 +33,42 @@ chainid = "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906"
 # if using state_history_plugin: 
 websocket_port = 8887
 
-host_dsp = "localhost"
-host_dsp_port = 3115
-
 [demux]
-backend = "state_history_plugin"
 socket_mode = "sub"
 # head block to sync demux from
 head_block = 35000000
+# demux defaults to first pulling head block from toml file if postgres database is not set
+# after database is set, defaults to databse, to overwrite and default to toml file, pass true
+bypass_database_head_block = false
 
 [ipfs]
 protocol = "http"
 host = "localhost"
 port = 5001
 
+# sidechain section, if no sidechains, leave as [sidechains], can add additional sidechains with [sidechains.newchain] ...
 [sidechains]
   [sidechains.test1]
-    dsp_port = 12346
-    nodeos_secured = false
+    # dsp
+    dsp_port = 3116
+    dsp_account = "test1"
+    dsp_private_key = ""
+    # nodeos
     nodeos_host = "localhost"
-    nodeos_port = 2424
-    nodeos_state_history_port = 12341
-    demux_port = 1232
-    demux_head_block = 50000000
+    nodeos_port = 8888
+    nodeos_secured = false
+    nodeos_chainid = ""
+    nodeos_websocket_port = 8887
+    webhook_dapp_port = 8113
+    # demux
+    demux_webhook_port = 3196
+    demux_socket_mode = "sub"
+    demux_head_block = 1
+    # demux defaults to first pulling head block from toml file if postgres database is not set
+    # after database is set, defaults to databse, to overwrite and default to toml file, pass true
+    demux_bypass_database_head_block = false
+    # sidechain 
+    liquidx_contract = "liquidxxxxxx"
     name = "test1"
-    dsp_account = "<DSP SIDECHAIN ACCOUNT>"
-    dsp_private_key = "<DSP SIDECHAIN PRIVATE KEY>"
-    chainid = "<SIDECHAIN CHAIN ID>"
-    mapping = "dappservices:dappservicex,cronservices:cronservicex,ipfsservice1:ipfsservice2"
+    # the mapping below contains the dappservices:dappservicex, mainnet_dsp:new_chain_dsp, and mainnet_service_contract:new_chain_service_contract mappings
+    mapping = "dappservices:dappservicex,heliosselene:heliosselene,uuddlrlrbass:uuddlrlrbass,cronservices:cronservices,ipfsservice1:ipfsservice1,readfndspsvc:readfndspsvc,logservices1:logservices1,oracleservic:oracleservic,accountless1:accountless1,liquidstorag:liquidstorag,authfndspsvc:authfndspsvc,vcpuservices:vcpuservices"

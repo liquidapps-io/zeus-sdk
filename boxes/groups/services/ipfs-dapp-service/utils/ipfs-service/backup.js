@@ -3,7 +3,7 @@ const { getEosWrapper } = require('../../extensions/tools/eos/eos-wrapper');
 
 var contractAccount = process.env.CONTRACT;
 var tableName = 'accounts'; //TODO: How would we pass in this argument?
-var endpoint = `http${process.env.NODEOS_SECURED == 'true' ? 's' : ''}://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_PORT || '13115'}`;
+var endpoint = `http${process.env.NODEOS_SECURED === 'true' || process.env.NODEOS_SECURED === true ? true : false ? 's' : ''}://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_PORT || '13115'}`;
 var filename;
 
 var eosPrivate;

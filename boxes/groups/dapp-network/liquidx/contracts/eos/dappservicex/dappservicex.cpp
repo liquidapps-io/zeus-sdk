@@ -153,20 +153,24 @@ public:
   }
 
   TABLE lastlog {
-    usage_t usage_report; // owner account on mainnet
+    std::vector<usage_t> usage_reports;
   };
-
-
   typedef eosio::singleton<"lastlog"_n, lastlog> lastlog_t;
 
   [[eosio::action]] void xfail() {
     lastlog_t lastlog_singleton(_self,_self.value);
     if(lastlog_singleton.exists()){
       auto lastlog_inst = lastlog_singleton.get();
-      EMIT_USAGE_REPORT_EVENT(lastlog_inst.usage_report);
+      auto it = lastlog_inst.usage_reports.begin();
+      while(it != lastlog_inst.usage_reports.end()) {
+        EMIT_USAGE_REPORT_EVENT(*it);
+        ++it;
+      }
+      lastlog_singleton.remove();      
     }
     eosio::check( false, "always false assert");
   }
+
  [[eosio::action]] void usage(usage_t usage_report) {
     require_auth(usage_report.service);
     auto payer = usage_report.payer;
@@ -180,14 +184,29 @@ public:
 
     usage_report.success = true;
     auto shoudFail = true; // TODO: detect from transaction
-    if(shoudFail){
+    if(shouldFail()){
       lastlog_t lastlog_singleton(_self,_self.value);
-      lastlog lastlog_inst;
-      lastlog_inst.usage_report = usage_report;
-      lastlog_singleton.set(lastlog_inst, _self);
+      auto lastlog_inst = lastlog_singleton.get_or_default();
+      lastlog_inst.usage_reports.push_back(usage_report);
+      lastlog_singleton.set(lastlog_inst, _self);       
       // append log
     }
     EMIT_USAGE_REPORT_EVENT(usage_report);
+  }
+
+private:
+  bool shouldFail() {
+    auto size = transaction_size();
+    char buf[size];
+    uint32_t read = read_transaction( buf, size );
+    check( size == read, "read_transaction failed");
+    auto tx = unpack<transaction>(buf, size);
+    //check last action
+    auto last = tx.actions.rbegin();
+    if(last != tx.actions.rend()) {
+      if(last->account == name(get_self()) && last->name == "xfail"_n) return true;      
+    }
+    return false;
   }
 };
 

@@ -3,7 +3,7 @@ const eosjs2 = require('eosjs');
 const { TextDecoder, TextEncoder } = require('text-encoding');
 const { Serialize, JsonRpc } = eosjs2;
 const logger = require('../../../extensions/helpers/logger');
-const { eosDSPGateway, paccount, resolveProviderPackage, deserialize, generateABI, nodeosEndpoint } = require('../../dapp-services-node/common');
+const { eosDSPGateway, paccount, resolveProviderPackage, deserialize, generateABI } = require('../../dapp-services-node/common');
 
 const fullabi = (abi) => {
   return {

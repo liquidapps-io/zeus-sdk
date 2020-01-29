@@ -243,7 +243,7 @@ ${commandsImpl.join('\n')}`
 
 }
 
-const generateServiceHppFile = (serviceModel) => {
+const generateServiceHppFile = (serviceModel,sidechain) => {
   var name = serviceModel.name;
   var upperName = name.toUpperCase();
   const serviceContract = getContractAccountFor(serviceModel);
@@ -254,7 +254,7 @@ const generateServiceHppFile = (serviceModel) => {
   var commandsHelpersCodeText = commandNames.map(
     commandName => generateCommandHelperCodeText(name, commandName,
       serviceModel.commands[commandName], serviceContract)).join('\\\n');
-  const mapEntries = (loadModels('liquidx-mappings')).filter(m => m.mainnet_account === serviceContract);
+  const mapEntries = (loadModels('liquidx-mappings')).filter(m => m.mainnet_account === serviceContract && (m.sidechain_name === sidechain || !sidechain));
   const liquidxDefines = mapEntries.map(a => `#define SVC_CONTRACT_NAME_${upperName}_${a.sidechain_name.toUpperCase()} ${a.chain_account}`).join('\n');
   const selectedSideChain = mapEntries.map(a => a.sidechain_name.toUpperCase()).find(a => a);
 
@@ -302,7 +302,7 @@ struct ${name}_svc_helper{
 #endif`;
 };
 
-const compileDappService = async(serviceModel) => {
+const compileDappService = async(serviceModel,sidechain) => {
   var name = serviceModel.name;
   var targetFolder = path.resolve(`./contracts/eos/${name}service`);
   if (!fs.existsSync(targetFolder)) { fs.mkdirSync(targetFolder); }
@@ -324,15 +324,15 @@ const compileDappService = async(serviceModel) => {
 
     }
     fs.writeFileSync(path.resolve(`./contracts/eos/dappservices/${name}.hpp`),
-      await generateServiceHppFile(serviceModel));
+      await generateServiceHppFile(serviceModel,sidechain));
     console.log(emojMap.alembic + `CodeGen Service ${name.green}`);
   }
   catch (e) {
     throw new Error(emojMap.white_frowning_face + `CodeGen Service: ${name.green} Service: ${e}`);
   }
 };
-const generateConfig = async() => {
-  const mapEntries = (loadModels('liquidx-mappings')).filter(m => m.mainnet_account === 'dappservices');
+const generateConfig = async(sidechain) => {
+  const mapEntries = (loadModels('liquidx-mappings')).filter(m => m.mainnet_account === 'dappservices' && (m.sidechain_name === sidechain || !sidechain));
   const liquidxDefines = mapEntries.map(a => `#define DAPPSERVICEX_CONTRACT_${a.sidechain_name.toUpperCase()} "${a.chain_account}"_n`).join('\n');
   const selectedSideChain = mapEntries.map(a => a.sidechain_name.toUpperCase()).find(a => a);
   fs.writeFileSync(path.resolve(`./contracts/eos/dappservices/dappservices.config.hpp`),
@@ -348,7 +348,7 @@ ${liquidxDefines}
 #endif`);
 }
 module.exports = async(args) => {
-
-  await Promise.all((await loadModels('dapp-services')).map(compileDappService));
-  await generateConfig();
+  let sidechain = args.sidechain;
+  await Promise.all((await loadModels('dapp-services')).map(m => compileDappService(m,sidechain)));
+  await generateConfig(sidechain);
 };

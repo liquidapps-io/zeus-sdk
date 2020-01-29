@@ -4,7 +4,7 @@ const artifacts = require('../../tools/eos/artifacts');
 const deployer = require('../../tools/eos/deployer');
 const { getCreateAccount } = require('../../tools/eos/utils');
 const { loadModels } = require('../../tools/models');
-
+const { getCreateKeys } = require('../../helpers/key-utils');
 const { dappServicesContract, testProvidersList } = require('../../tools/eos/dapp-services');
 const servicescontract = dappServicesContract;
 var servicesC = artifacts.require(`./dappservices/`);
@@ -53,11 +53,12 @@ module.exports = async(args) => {
       servicesPorts[`DAPPSERVICE_PORT_${loadedExtension.name.toUpperCase()}`] = loadedExtension.port * (pi + 1);
     }
     var testProvider = testProviders[pi];
-    await getCreateAccount(testProvider);
+    const keys = await getCreateAccount(testProvider);
     await serviceRunner(`/dummy/dapp-services-node.js`, 13015 * (pi + 1)).handler(args, {
       DSP_ACCOUNT: testProvider,
-      NODEOS_HOST_DSP: 13015 * (pi + 1),
+      DSP_GATEWAY_MAINNET_ENDPOINT: `http://localhost:${13015 * (pi + 1)}`,
       WEBHOOK_DAPP_PORT: 8812 * (pi + 1),
+      DSP_PRIVATE_KEY: keys.active.privateKey,
       ...servicesPorts
     });
   }

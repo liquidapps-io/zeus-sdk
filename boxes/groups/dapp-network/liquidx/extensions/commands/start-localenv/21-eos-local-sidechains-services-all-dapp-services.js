@@ -1,11 +1,9 @@
 const artifacts = require('../../tools/eos/artifacts');
 const deployer = require('../../tools/eos/deployer');
-const { getCreateAccount, getEos } = require('../../tools/eos/utils');
+const { getEos } = require('../../tools/eos/utils');
 const { loadModels } = require('../../tools/models');
-const { dappServicesContract, getContractAccountFor, testProvidersList, createLiquidXMapping } = require('../../tools/eos/dapp-services');
+const { getContractAccountFor, testProvidersList, createLiquidXMapping } = require('../../tools/eos/dapp-services');
 
-const servicescontract = dappServicesContract;
-var servicesC = artifacts.require(`./dappservicex/`);
 var generateModel = (commandNames) => {
   var model = {};
   commandNames.forEach(a => {
@@ -53,12 +51,12 @@ async function deployLocalService(serviceModel, provider = 'pprovider1', pi = 0,
   return deployedService;
 }
 
-
 module.exports = async(args) => {
   if (args.creator !== 'eosio') { return; } // only local
   var sidechains = await loadModels('local-sidechains');
   // for each sidechain
   for (var i = 0; i < sidechains.length; i++) {
+    if(sidechains[i].local === false) return;
     var sidechain = sidechains[i];
     var models = await loadModels('dapp-services');
     for (var i = 0; i < models.length; i++) {
@@ -70,6 +68,5 @@ module.exports = async(args) => {
       }
     }
   }
-
-
 };
+
