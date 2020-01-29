@@ -187,7 +187,7 @@ module.exports = async (body, res, model, state) => {
       uri = await saveDirToIPFS(files);
     } else {
       uri = await saveToIPFS(data);
-      length = data.length / 2;
+      length = data.byteLength;
     }
 
     updateLimits({ data, stateDailyLimits, vaccountName });

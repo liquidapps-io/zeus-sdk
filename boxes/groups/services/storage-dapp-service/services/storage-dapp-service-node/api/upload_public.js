@@ -19,8 +19,9 @@ module.exports = async(body, state, model, { account, permission, clientCode }) 
         uri = await saveDirToIPFS(files);
     }
     else {
+        data = Buffer.from(data, `base64`)
         uri = await saveToIPFS(data);
-        length = data.length / 2;
+        length = data.byteLength;
     }
     await emitUsage(contract, getContractAccountFor(model), length, sidechain, { uri })
 
