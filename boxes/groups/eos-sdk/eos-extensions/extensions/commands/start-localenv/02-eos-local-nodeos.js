@@ -78,13 +78,18 @@ module.exports = async(args) => {
         ]
       }
     }
+    // take last 1mb of logs and create new file if log exists
+    if(fs.existsSync(`./logs/nodeos.log`)){
+      console.log('true')
+      await execPromise(`tail -c 1048576 ./logs/nodeos.log > ./logs/nodeos.old && mv ./logs/nodeos.old ./logs/nodeos.log`);
+    }
     try {
       await execPromise(`mkdir -p logs`);
     }
     catch (e) {
 
     }
-    await execPromise(`nohup nodeos ${nodeosArgs.join(' ')} >> logs/nodeos.log 2>&1 &`, { unref: true });
+    await execPromise(`nohup nodeos ${nodeosArgs.join(' ')} >> ./logs/nodeos.log 2>&1 &`, { unref: true });
   }
   else {
     var nodeos = process.env.DOCKER_NODEOS || 'liquidapps/eosio-plugins:v1.6.1';

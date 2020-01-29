@@ -82,7 +82,12 @@ var generateNodeos = async(model) => {
         ]
       }
     }
-    await execPromise(`nohup nodeos ${nodeosArgs.join(' ')} >> logs/nodeos-${name}.log 2>&1 &`, { unref: true });
+    // take last 1mb of logs and create new file if log exists
+    if(fs.existsSync(`./logs/nodeos-${name}.log`)){
+      console.log('true')
+      await execPromise(`tail -c 1048576 ./logs/nodeos-${name}.log > ./logs/nodeos-${name}.old && mv ./logs/nodeos-${name}.old ./logs/nodeos-${name}.log`);
+    }
+    await execPromise(`nohup nodeos ${nodeosArgs.join(' ')} >> ./logs/nodeos-${name}.log 2>&1 &`, { unref: true });
   }
   else {
     var nodeos = process.env.DOCKER_NODEOS || 'liquidapps/eosio-plugins:v1.6.1';
