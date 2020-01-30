@@ -629,6 +629,11 @@ var typesDict = {
   'eosio::asset': 'asset',
   'std::string': 'string',
   'std::vector<char>': 'bytes',
+  'vector<vector<char>>': 'vector<bytes>',
+  'vector<string>': 'string[]',
+  'vector<std::string>': 'string[]',
+  'std::vector<string>': 'string[]',
+  'std::vector<std::string>': 'string[]',
   'vector<char>': 'bytes',
   'symbol_code': 'symbol_code',
   'checksum256': 'checksum256',
@@ -644,10 +649,14 @@ const generateCommandABI = (commandName, commandModel) => {
     'name': commandName,
     'base': '',
     'fields': Object.keys(commandModel.request).map(argName => {
-      return {
-        name: argName,
-        type: convertToAbiType(commandModel.request[argName])
-      };
+      try {
+        return {
+          name: argName,
+          type: convertToAbiType(commandModel.request[argName])
+        };
+      } catch (e) {
+        throw new Error(`error converting to abi type ${commandModel.request[argName]}`)
+      }
     })
   };
 };

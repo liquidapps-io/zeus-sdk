@@ -151,6 +151,20 @@ const readVRAMData = async({
   return result;
 };
 
+const readIPFSData = async({
+  contract,
+  uri,
+  sidechain
+}) => {
+  const service = "ipfsservice1";
+  const endpoint = getEndpointForContract({ payer: contract, service, sidechain });
+  const result = await postData(`${endpoint}/v1/dsp/${service}/get_uri`, { uri });
+  // if (result.error) {
+  //   throw new Error(result.error);
+  // }
+  return result;
+};
+
 const createLiquidXMapping = async(sidechain_name, mainnet_account, chain_account, oneway) => {
   const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechain_name && m.mainnet_account === "dappservices");
   if (!mapEntry)
@@ -173,4 +187,4 @@ const createLiquidXMapping = async(sidechain_name, mainnet_account, chain_accoun
     }, { authorization: `${mainnet_account}@active` });
   }
 }
-module.exports = { genAllocateDAPPTokens, dappServicesContract, getContractAccountFor, readVRAMData, getEndpointForContract, testProvidersList, dappServicesLiquidXContract, createLiquidXMapping };
+module.exports = { genAllocateDAPPTokens, dappServicesContract, getContractAccountFor, readVRAMData, readIPFSData, getEndpointForContract, testProvidersList, dappServicesLiquidXContract, createLiquidXMapping };

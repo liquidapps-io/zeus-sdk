@@ -18,10 +18,12 @@ const delaySec = sec => delay(sec * 1000);
 var contractCode = 'ipfsxtest';
 var ctrt = artifacts.require(`./${contractCode}/`);
 describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
-  var testcontract;
+  var testcontract, testcontract2;
   const mainnet_code = 'testc5';
   const sister_code = 'testc5x';
-  var eosvram;
+  const mainnet_code2 = 'testc51';
+  const sister_code2 = 'testc5x1';
+  var eosvram, eos;
   var sidechainName = 'test1';
   var sidechain;
   before(done => {
@@ -29,11 +31,20 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
       try {
         var sidechains = await loadModels('local-sidechains');
         sidechain = sidechains.find(a => a.name === sidechainName);
+
+        //create first
         await getCreateAccount(sister_code, null, false, sidechain);
         await getCreateAccount(mainnet_code, null, false);
         var deployedContract = await deployer.deploy(ctrt, sister_code, null, sidechain);
         await genAllocateDAPPTokens({ address: mainnet_code }, 'ipfs', '', 'default');
         await createLiquidXMapping(sidechain.name, mainnet_code, sister_code);
+
+        //create second
+        await getCreateAccount(sister_code2, null, false, sidechain);
+        await getCreateAccount(mainnet_code2, null, false);
+        var deployedContract2 = await deployer.deploy(ctrt, sister_code2, null, sidechain);
+        await genAllocateDAPPTokens({ address: mainnet_code2 }, 'ipfs', '', 'default');
+        await createLiquidXMapping(sidechain.name, mainnet_code2, sister_code2);
         // allowdsps
         const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechain.name && m.mainnet_account === 'dappservices');
         if (!mapEntry)
@@ -54,9 +65,8 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
         eosvram = deployedContract.eos;
         config.httpEndpoint = `http://localhost:${sidechain.dsp_port}`;
         eosvram = getEosWrapper(config);
-
         testcontract = await eosvram.contract(account);
-        const dappservicexInstance = await eosvram.contract(dappservicex);
+        let dappservicexInstance = await eosvram.contract(dappservicex);
         try {
           await dappservicexInstance.adddsp({ owner: sister_code, dsp: 'xprovider1' }, {
             authorization: `${sister_code}@active`,
@@ -65,9 +75,25 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
             authorization: `${sister_code}@active`,
           });
         }
-        catch (e) {
+        catch (e) {}
 
+        if (account2) {
+          keys = await getCreateKeys(account2, getDefaultArgs(), false, sidechain);
+          config.keyProvider = keys.active.privateKey;
         }
+        eosvram = getEosWrapper(config);
+        testcontract2 = await eosvram.contract(account2);
+
+        dappservicexInstance = await eosvram.contract(dappservicex);
+        try {
+          await dappservicexInstance.adddsp({ owner: sister_code2, dsp: 'xprovider1' }, {
+            authorization: `${sister_code2}@active`,
+          });
+          await dappservicexInstance.adddsp({ owner: sister_code2, dsp: 'xprovider2' }, {
+            authorization: `${sister_code2}@active`,
+          });
+        }
+        catch (e) {}
 
         done();
       }
@@ -89,6 +115,7 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
     return hash.hex();
   };
   var account = sister_code;
+  var account2 = sister_code2;
   let uri = "ipfs://zb2rhnyodRMHNeY4iaSVXzVhtFmYdWxsvddrhzhWZFUMiZdrd";
   it('sidechain - IPFS Write', done => {
     (async () => {
@@ -118,9 +145,6 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
       try {
         await delaySec(10);
         await testcontract.verfempty({
-          id: 52343,
-          value: 123,
-          delay_sec: 2
         }, {
           authorization: `${sister_code}@active`,
         });
@@ -160,12 +184,50 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
       try {
         await delaySec(10);
         await testcontract.verfempty({
-          id: 52343,
-          value: 123,
-          delay_sec: 2
         }, {
           authorization: `${sister_code}@active`,
         });
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it('sidechain - third party read', done => {
+    (async() => {
+      try {
+        await delaySec(10);
+
+        await testcontract.testindexa({
+          id: 67890
+        }, {
+          authorization: `${sister_code}@active`,
+        });
+
+        await testcontract2.testindexa({
+          id: 77777
+        }, {
+          authorization: `${sister_code2}@active`,
+        });
+
+        await delaySec(10);
+
+        await testcontract2.testremote({
+          remote: sister_code,
+          id: 67890
+        }, {
+          authorization: `${sister_code2}@active`,
+        });
+
+        await testcontract.testremote({
+          remote: sister_code2,
+          id: 77777
+        }, {
+          authorization: `${sister_code}@active`,
+        });
+
         done();
       }
       catch (e) {

@@ -748,12 +748,15 @@ TABLE backup {
 
 template<name::raw TableName, typename PrimKey>
 class sharded_hashtree_t{
+    name     _code;
+    name     _self;
     uint32_t _shards;
-    uint32_t _buckets_per_shard; 
+    uint32_t _buckets_per_shard;    
     uint64_t _scope; 
     uint32_t _cleanup_delay;
     bool _pin_shards;
     bool _pin_buckets;
+    bool _external;
 
 
     public:
@@ -772,7 +775,10 @@ class sharded_hashtree_t{
     
     
     
-    sharded_hashtree_t(uint64_t scope, uint32_t shards = 1024,uint32_t buckets_per_shard = 64, bool pin_shards = false, bool pin_buckets = false, uint32_t cleanup_delay = 0){
+    sharded_hashtree_t(name code, uint64_t scope, uint32_t shards = 1024,uint32_t buckets_per_shard = 64, bool pin_shards = false, bool pin_buckets = false, uint32_t cleanup_delay = 0){
+        _code = code;
+        _self = current_receiver();
+        _external = _code == _self ? false : true;
         _shards = shards;
         _buckets_per_shard = buckets_per_shard;
         _scope = scope;
@@ -853,77 +859,92 @@ class sharded_hashtree_t{
     // add cache for shard data and bucket
     std::vector<char> getBucket(bucket_t<PrimKey>& sb, bool pin = false) const{
         // get pointer from RAM
-        auto _self = current_receiver();
-
-        shardbucket_t _shardbucket_table(_self,_self.value);
+        shardbucket_t _shardbucket_table(_code,_code.value);
         auto shardData = _shardbucket_table.find(sb.shard);
 
-        vconfig_sgt vconfigsgt(_self,name(TableName).value);
+        vconfig_sgt vconfigsgt(_code,name(TableName).value);
         auto config = vconfigsgt.get_or_default();
 
-        vmanifest_sgt vmanifestsgt(_self,name(TableName).value);
-        auto manifest = vmanifestsgt.get_or_default();
-        auto loading = manifest.shardbuckets.find(sb.shard);
-        
-        //lazy load data if manifest exists
-        if(loading != manifest.shardbuckets.end()) {
-            if(shardData == _shardbucket_table.end()){ 
-                //update the pointer for use below 
-                shardData = _shardbucket_table.emplace(_self, [&]( auto& a ) {
-                    // new dataset
-                    a.shard_uri = loading->second;
-                    a.shard = sb.shard;
-                    a.revision = config.revision;
-                });
-            } else {
-                _shardbucket_table.modify(shardData, _self, [&]( auto& a ) {
-                    // modify dataset
-                    a.shard_uri = loading->second;
-                    a.revision = config.revision;
-                });
-            }
+        //we skip manifest handling if this is an external vram table
+        //TODO: load the external manifest version of shard, but do not save the changes
+        if(!_external) {
+            vmanifest_sgt vmanifestsgt(_code,name(TableName).value);
+            auto manifest = vmanifestsgt.get_or_default();
+            auto loading = manifest.shardbuckets.find(sb.shard);
+            
+            //lazy load data if manifest exists
+            if(loading != manifest.shardbuckets.end()) {
+                if(shardData == _shardbucket_table.end()){ 
+                    //update the pointer for use below 
+                    shardData = _shardbucket_table.emplace(_self, [&]( auto& a ) {
+                        // new dataset
+                        a.shard_uri = loading->second;
+                        a.shard = sb.shard;
+                        a.revision = config.revision;
+                    });
+                } else {
+                    _shardbucket_table.modify(shardData, _self, [&]( auto& a ) {
+                        // modify dataset
+                        a.shard_uri = loading->second;
+                        a.revision = config.revision;
+                    });
+                }
 
-            manifest.shardbuckets.erase(loading);
-            vmanifestsgt.set(manifest,_self);
-        }
+                manifest.shardbuckets.erase(loading);
+                vmanifestsgt.set(manifest,_self);
+            }
+        }        
 
         //emplace and return empty if no existing data
         if(shardData == _shardbucket_table.end()){  
-            _shardbucket_table.emplace(_self, [&]( auto& a ) {
-                // new dataset
-                a.shard_uri = makeShardPointer();
-                a.shard = sb.shard;
-                a.revision = config.revision;
-            });
+            if(!_external) { //only emplace our own table
+                _shardbucket_table.emplace(_self, [&]( auto& a ) {
+                    // new dataset
+                    a.shard_uri = makeShardPointer();
+                    a.shard = sb.shard;
+                    a.revision = config.revision;
+                });
+            }
+            
             return emptyentry();
         }
         //modify and return empty if revision change        
         else if(shardData->revision != config.revision){
-            _shardbucket_table.modify(shardData, _self, [&]( auto& a ) {
-                // modify dataset
-                a.shard_uri = makeShardPointer();
-                a.revision = config.revision;
-            });
+            if(!_external) { //only modify our own table
+                _shardbucket_table.modify(shardData, _self, [&]( auto& a ) {
+                    // modify dataset
+                    a.shard_uri = makeShardPointer();
+                    a.revision = config.revision;
+                });
+            }
             return emptyentry();
         }
         else //existing data and no revision change
-        {
-            auto shard_uri = shardData->shard_uri;
-            // get data 
-            auto bucket_data = ipfs_svc_helper::getData<shardbucket_data>(ipfsmultihash_to_uri(shard_uri), _pin_shards && pin, false, _cleanup_delay);
+        {            
+            auto shard_uri = shardData->shard_uri;            
+            #ifdef USE_IPFS_WARMUPROW
+            auto castedKey = primary_to_key<PrimKey>(sb.key);
+            uint8_t keySize = std::max<uint8_t>(sizeof(PrimKey),8);
+            uint8_t index_position = 1;
+            // get data with optimistic loading
+            // other name ideas: getLoadMerkleData, getLoadMerkleProof, getLoadTreeData.
+            // like you're instantiating part of the proof and optimistically loading the rest
+            auto bucket_data = ipfs_svc_helper::getTreeData<shardbucket_data>(ipfsmultihash_to_uri(shard_uri), name(_code), name(TableName), _scope, index_position, castedKey, keySize, _pin_shards && pin, false, _cleanup_delay);
+            #else
+            auto bucket_data = ipfs_svc_helper::getData<shardbucket_data>(ipfsmultihash_to_uri(shard_uri), _pin_shards && pin, false, _cleanup_delay, name(_code));
+            #endif
             auto bucket_uri = bucket_data.values[sb.bucket];
-            auto bucket_raw_data = ipfs_svc_helper::getRawData(ipfsmultihash_to_uri(bucket_uri), _pin_buckets && pin, false, _cleanup_delay);
+            auto bucket_raw_data = ipfs_svc_helper::getRawData(ipfsmultihash_to_uri(bucket_uri), _pin_buckets && pin, false, _cleanup_delay, name(_code));
             // read and return data
             return bucket_raw_data;
-            
         }
     }
     
     void setBucket(bucket_t<PrimKey>& sb, std::vector<char> data){
         //getBucket is always called before setBucket so we don't
         //need to place any revision logic here
-
-        shardbucket_t _shardbucket_table(current_receiver(),current_receiver().value);
+        eosio::check(!_external, "cannot modify objects in vram of another contract");
+        shardbucket_t _shardbucket_table(_self,_self.value);
         auto shardData = _shardbucket_table.find(sb.shard);
         eosio::check(shardData != _shardbucket_table.end(), "shard not found");
         auto shard_uri = shardData->shard_uri;
@@ -1012,13 +1033,13 @@ struct b_const_iterator : public std::iterator<std::bidirectional_iterator_tag, 
          const T& operator*()const { 
              auto iter = (*_inner);
              auto ipfsHash = iter.get();
-             T& obj = ipfs_svc_helper::getData<T>(ipfsmultihash_to_uri(ipfsHash), false, false, _cleanup_delay);
+             T& obj = ipfs_svc_helper::getData<T>(ipfsmultihash_to_uri(ipfsHash), false, false, _cleanup_delay, name(_code));
              return obj;
          }
          const T* operator->()const { 
              auto iter =  (*_inner);
              auto ipfsHash = iter.get();
-             return new T(ipfs_svc_helper::getData<T>(ipfsmultihash_to_uri(ipfsHash), false, false, _cleanup_delay));
+             return new T(ipfs_svc_helper::getData<T>(ipfsmultihash_to_uri(ipfsHash), false, false, _cleanup_delay, name(_code)));
          }
 
          b_const_iterator operator++(int) {
@@ -1140,7 +1161,7 @@ typedef h_const_iterator const_iterator;
             // auto itm = std::make_unique<item>( this, [&]( auto& i ) {
                 T val;
                 // get from ipfs (c)
-                auto rawData = ipfs_svc_helper::getRawData(ipfsmultihash_to_uri(*c), false, false, _cleanup_delay);
+                auto rawData = ipfs_svc_helper::getRawData(ipfsmultihash_to_uri(*c), false, false, _cleanup_delay, name(_code));
                 char * buffer = rawData.data();
                 auto size = rawData.size();
                 datastream<const char*> ds( (char*)buffer, uint32_t(size) );
@@ -1182,7 +1203,7 @@ typedef h_const_iterator const_iterator;
 
  public:
       advanced_multi_index( name code, uint64_t scope, uint32_t shards = 1024,uint32_t buckets_per_shard = 64, bool pin_shards = false, bool pin_buckets = false, uint32_t cleanup_delay = 0)
-      :_code(code),_scope(scope),primary_hashtree(_scope, shards, buckets_per_shard, pin_shards, pin_buckets,cleanup_delay),_cleanup_delay(cleanup_delay)
+      :_code(code),_scope(scope),primary_hashtree(_code, _scope, shards, buckets_per_shard, pin_shards, pin_buckets,cleanup_delay),_cleanup_delay(cleanup_delay)
       {
       }
 
@@ -1210,6 +1231,7 @@ typedef h_const_iterator const_iterator;
 
             auto pk = obj.primary_key();
             //populate/update the config singleton
+            //this will fail automatically for an external contract
             vconfig_sgt vconfigsgt(_code,name(TableName).value);
             auto config = vconfigsgt.get_or_default();
             auto incrpk = increment256(primary_to_key<PrimKey>(pk));

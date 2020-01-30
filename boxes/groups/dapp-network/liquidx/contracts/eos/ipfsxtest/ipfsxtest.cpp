@@ -1,4 +1,5 @@
 #define LIQUIDX
+#define USE_ADVANCED_IPFS
 
 #include "../dappservices/ipfs.hpp"
 #include "../dappservices/multi_index.hpp"
@@ -22,11 +23,7 @@ CONTRACT_START()
      std::vector<char>             field2;
      uint64_t                      field3;
   };
-  TABLE vconfig {
-    uint64_t next_available_key;
-    uint32_t shards;
-    uint32_t buckets_per_shard;
-  };
+
   TABLE testindex_shardbucket {
       std::vector<char> shard_uri;
       uint64_t shard;
@@ -39,14 +36,17 @@ CONTRACT_START()
   typedef dapp::multi_index<"test1"_n, testindex> testindex1_t;
   typedef eosio::multi_index<".test1"_n, testindex> testindex1_t_v_abi;
   typedef eosio::multi_index<"test1"_n, testindex_shardbucket> testindex1_t_abi;
-  typedef eosio::multi_index<".vconfig"_n, vconfig> vconfig_t_abi;
-
 
   [[eosio::action]] void testindexa(uint64_t id) {
     testindex_t testset(_self,_self.value);
     testset.emplace(_self, [&]( auto& a ){
       a.id = id;
     });
+  }
+
+  [[eosio::action]] void testremote(name remote, uint64_t id) {
+    testindex_t testset(remote,remote.value);
+    auto const& data = testset.get(id,"data not found");
   }
 
   [[eosio::action]] void testcollide(uint64_t id, uint64_t value) {
@@ -99,9 +99,9 @@ CONTRACT_START()
     eosio::check(getRawData(uri, false, true).size() == 0, "wrong size");
   }
 
-  [[eosio::action]] void verfempty(uint64_t id, uint64_t value, uint32_t delay_sec) {
+  [[eosio::action]] void verfempty() {
     ipfsentries_t entries(_self,_self.value);
     eosio::check(entries.begin() == entries.end(),"must be empty");
 
   }
-CONTRACT_END((testset)(testget)(testempty)(increment)(testindexa)(testresize)(testdelay)(xdcommit)(testcollide)(verfempty))
+CONTRACT_END((testset)(testget)(testempty)(increment)(testindexa)(testremote)(testresize)(testdelay)(xdcommit)(testcollide)(verfempty))

@@ -33,26 +33,13 @@ CONTRACT_START()
      uint64_t                      field1;
      std::vector<char>             field2;
      uint64_t                      field3;
-  };
-  TABLE vconfig {
-    checksum256 next_available_key;
-    uint32_t shards;
-    uint32_t buckets_per_shard;
-  };
+  };  
   TABLE testindex_shardbucket {
       std::vector<char> shard_uri;
       uint64_t shard;
       uint64_t primary_key() const { return shard; }
   };
 
-  //to help the abigen
-  TABLE manifest {
-      checksum256 next_available_key;
-      uint32_t shards;
-      uint32_t buckets_per_shard;
-      //<shard,shard_uri>
-      std::map<uint64_t,std::vector<char>> shardbuckets;
-  };
   typedef dapp::advanced_multi_index<"test2"_n, bigentry, checksum256> testindex_big_t;   
   typedef dapp::advanced_multi_index<"test3"_n, medentry, uint128_t> testindex_med_t;   
 
@@ -68,8 +55,6 @@ CONTRACT_START()
   typedef dapp::multi_index<"test1"_n, testindex> testindex1_t;
   typedef eosio::multi_index<".test1"_n, testindex> testindex1_t_v_abi;
   typedef eosio::multi_index<"test1"_n, testindex_shardbucket> testindex1_t_abi;
-  typedef eosio::multi_index<".vconfig"_n, vconfig> vconfig_t_abi;
-  typedef eosio::multi_index<".vmanifest"_n, manifest> vmanifest_t_abi;
 
   [[eosio::action]] void testbig(checksum256 id, uint64_t value) {
     testindex_big_t testset(_self,_self.value);
@@ -112,12 +97,19 @@ CONTRACT_START()
     testindex_t testset(_self,_self.value);
     testset.load_manifest(man,"Test");
   }
-  [[eosio::action]] void testindex(uint64_t id) {
+  [[eosio::action]] void testindex(uint64_t id, uint64_t sometestnumber) {
     testindex_t testset(_self,_self.value);
     testset.emplace(_self, [&]( auto& a ){
       a.id = id;
+      a.sometestnumber = sometestnumber;
     });
   }
+
+  [[eosio::action]] void testremote(name remote, uint64_t id) {
+    testindex_t testset(remote,remote.value);
+    auto const& data = testset.get(id,"data not found");
+  }
+
   [[eosio::action]] void testindexa(uint64_t id) {
     testindex_t testset(_self,_self.value);
     testset.emplace(_self, [&]( auto& a ){
@@ -153,7 +145,7 @@ CONTRACT_START()
       });
   }
 
-  [[eosio::action]] void verfempty(uint64_t id, uint64_t value, uint32_t delay_sec) {
+  [[eosio::action]] void verfempty() {
     ipfsentries_t entries(_self,_self.value);
     eosio::check(entries.begin() == entries.end(),"must be empty");
 
@@ -189,4 +181,5 @@ CONTRACT_END(
   (testbig)(checkbig)
   (testmed)(checkmed)
   (verfempty)
+  (testremote)
   )
