@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork } = require('../extensions/tools/eos/utils');
@@ -55,9 +55,11 @@ describe(`Services Test Contract`, () => {
             field2: 'hello-world-' + new Date().getTime().toString(),
             field3: 312
           }
-        }, { authorization: `${code}@active`,
+        }, {
+          authorization: `${code}@active`,
           broadcast: true,
-          sign: true });
+          sign: true
+        });
         var eventResp = JSON.parse(res.processed.action_traces[0].console.split('\n')[1]);
         assert.equal(eventResp.etype, 'service_request', 'wrong etype');
         assert.equal(eventResp.provider, '', 'wrong provider');
@@ -77,9 +79,11 @@ describe(`Services Test Contract`, () => {
             field2: 'hello-world-' + new Date().getTime().toString(),
             field3: 312
           }
-        }, { authorization: `${code}@active`,
+        }, {
+          authorization: `${code}@active`,
           broadcast: true,
-          sign: true });
+          sign: true
+        });
         done();
       } catch (e) {
         done(e);
@@ -95,9 +99,11 @@ describe(`Services Test Contract`, () => {
             field2: 'foo-bar-' + new Date().getTime().toString(),
             field3: 6233
           }
-        }, { authorization: `${code}@active`,
+        }, {
+          authorization: `${code}@active`,
           broadcast: true,
-          sign: true });
+          sign: true
+        });
         done();
       } catch (e) {
         done(e);
@@ -113,9 +119,11 @@ describe(`Services Test Contract`, () => {
             field2: 'foo-bar-' + new Date().getTime().toString(),
             field3: 6233
           }
-        }, { authorization: `${code}@active`,
+        }, {
+          authorization: `${code}@active`,
           broadcast: true,
-          sign: true });
+          sign: true
+        });
         done();
       } catch (e) {
         done(e);
@@ -131,9 +139,11 @@ describe(`Services Test Contract`, () => {
             field2: 'foo-bar-' + new Date().getTime().toString(),
             field3: 6233
           }
-        }, { authorization: `${code}@active`,
+        }, {
+          authorization: `${code}@active`,
           broadcast: true,
-          sign: true });
+          sign: true
+        });
         done();
       } catch (e) {
         done(e);
@@ -149,9 +159,11 @@ describe(`Services Test Contract`, () => {
             field2: 'foo-bar-' + new Date().getTime().toString(),
             field3: 6233
           }
-        }, { authorization: `${code}@active`,
+        }, {
+          authorization: `${code}@active`,
           broadcast: true,
-          sign: true });
+          sign: true
+        });
         done();
       } catch (e) {
         done(e);
@@ -168,9 +180,11 @@ describe(`Services Test Contract`, () => {
             field2: 'foo-bar-' + new Date().getTime().toString(),
             field3: 6233
           }
-        }, { authorization: `${code}@active`,
+        }, {
+          authorization: `${code}@active`,
           broadcast: true,
-          sign: true });
+          sign: true
+        });
         done();
       } catch (e) {
         done(e);
@@ -187,9 +201,11 @@ describe(`Services Test Contract`, () => {
             field2: 'foo-bar-' + new Date().getTime().toString(),
             field3: 6233
           }
-        }, { authorization: `${code}@active`,
+        }, {
+          authorization: `${code}@active`,
           broadcast: true,
-          sign: true });
+          sign: true
+        });
         done();
       } catch (e) {
         done(e);
@@ -206,9 +222,11 @@ describe(`Services Test Contract`, () => {
             field2: 'foo-bar-' + new Date().getTime().toString(),
             field3: 6233
           }
-        }, { authorization: `${code}@active`,
+        }, {
+          authorization: `${code}@active`,
           broadcast: true,
-          sign: true });
+          sign: true
+        });
         done();
       } catch (e) {
         done(e);
@@ -224,9 +242,11 @@ describe(`Services Test Contract`, () => {
             field2: 'foo-bar-' + new Date().getTime().toString(),
             field3: 6233
           }
-        }, { authorization: `${code}@active`,
+        }, {
+          authorization: `${code}@active`,
           broadcast: true,
-          sign: true });
+          sign: true
+        });
         done();
       } catch (e) {
         done(e);
@@ -242,9 +262,11 @@ describe(`Services Test Contract`, () => {
             field2: 'foo-bar-' + new Date().getTime().toString(),
             field3: 6233
           }
-        }, { authorization: `${code}@active`,
+        }, {
+          authorization: `${code}@active`,
           broadcast: true,
-          sign: true });
+          sign: true
+        });
         done();
       } catch (e) {
         done(e);
@@ -260,9 +282,11 @@ describe(`Services Test Contract`, () => {
             field2: 'bar-bar-' + new Date().getTime().toString(),
             field3: 222
           }
-        }, { authorization: `${code}@active`,
+        }, {
+          authorization: `${code}@active`,
           broadcast: true,
-          sign: true });
+          sign: true
+        });
         done();
       } catch (e) {
         done(e);
@@ -278,9 +302,11 @@ describe(`Services Test Contract`, () => {
             field2: 'foo-foo-' + new Date().getTime().toString(),
             field3: 2222
           }
-        }, { authorization: `${code}@active`,
+        }, {
+          authorization: `${code}@active`,
           broadcast: true,
-          sign: true });
+          sign: true
+        });
         done();
       } catch (e) {
         done(e);

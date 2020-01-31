@@ -1,4 +1,4 @@
-const { eosDSPGateway, paccount, resolveProviderPackage, deserialize, generateABI } = require('../../services/dapp-services-node/common');
+const { eosDSPEndpoint, paccount, resolveProviderPackage, deserialize, generateABI } = require('../../services/dapp-services-node/common');
 const { loadModels } = require("../../extensions/tools/models");
 var sha256 = require('js-sha256').sha256;
 const ecc = require('eosjs-ecc')
@@ -49,7 +49,7 @@ class AuthClient {
 
   async validateSignature(trx, pk, signature) {
     // const eos = Eos({ defaults: true })
-    const { structs, types } = eosDSPGateway.fc
+    const { structs, types } = eosDSPEndpoint.fc
     var Transaction = structs.transaction;
     // const writeApi = WriteApi(Network, network, config, structs.transaction)
     // const txObject = Transaction.fromObject(trx.transaction.transaction)
@@ -77,7 +77,7 @@ class AuthClient {
         "name": "current_provider",
         "type": "name"
       });
-      await eosDSPGateway.contract(contract);
+      await eosDSPEndpoint.contract(contract);
     }
 
     var hexData = actionData;
@@ -126,7 +126,7 @@ class AuthClient {
     }
     try {
       // post transaction
-      var res = await eosDSPGateway.pushSignedTransaction(trx);
+      var res = await eosDSPEndpoint.pushSignedTransaction(trx);
       // handle audited transactions (non failing)
       // validate auth from transaction result
     }
@@ -181,7 +181,7 @@ class AuthClient {
 
   async validate({ req, trx, payload, allowClientSide }, callback) {
     trx.serializedTransaction = Object.values(trx.serializedTransaction);
-    var parsedTrx = await eosDSPGateway.deserializeTransactionWithActions(trx.serializedTransaction);
+    var parsedTrx = await eosDSPEndpoint.deserializeTransactionWithActions(trx.serializedTransaction);
     var actions = parsedTrx.actions;
     var action = actions[0];
     var authorization = action.authorization[0];
@@ -252,7 +252,7 @@ class AuthClient {
       sign: true,
       keyProvider: [keys.active.privateKey]
     };
-    var theContract = await eosDSPGateway.contract(contract);
+    var theContract = await eosDSPEndpoint.contract(contract);
 
     if (account == "............") {
       // fake

@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { execPromise } = require('../extensions/helpers/_exec');
 const os = require('os');
@@ -29,7 +29,7 @@ describe('encrypted-key utility test', () => {
         const keys = await execPromise(`zeus key export eosio --encrypted=true --network=zeus-test --password=lalala`);
         assert.equal(keys.trim(), expectedKeys.trim(), 'unexpected result from exported keys');
         done();
-      } catch(e) {
+      } catch (e) {
         done(e);
       }
     })();
@@ -41,7 +41,7 @@ describe('encrypted-key utility test', () => {
       try {
         await execPromise(`zeus key import eosio --owner-private-key ${privateKey} --encrypted=true --network=zeus-test --password=lalala`);
         await execPromise(`zeus key export eosio --encrypted=true --network=zeus-test --password=wrongpassword`);
-      } catch(e) {
+      } catch (e) {
         pass = true;
       }
       assert.equal(pass, true, 'should have failed with wrong password');
@@ -55,7 +55,7 @@ describe('encrypted-key utility test', () => {
       await execPromise(`zeus key import eosio --owner-private-key ${privateKey} --encrypted=true --network=zeus-test --password=lalala`);
       try {
         await execPromise(`zeus key import eosio --owner-private-key ${privateKey} --encrypted=true --network=zeus-test --password=lalala`);
-      } catch(e) {
+      } catch (e) {
         pass = true;
       }
       assert.equal(pass, true, 'should have thrown an error when trying to overwrite encrypted keys');
@@ -70,7 +70,7 @@ describe('encrypted-key utility test', () => {
         const keys = await execPromise(`zeus key export eosio --encrypted=true --network=zeus-test --password=lalala`);
         assert.equal(keys.trim(), expectedKeys.trim(), 'unexpected result from exported keys');
         done();
-      } catch(e) {
+      } catch (e) {
         done(e);
       }
     })();

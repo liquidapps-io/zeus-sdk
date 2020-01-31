@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork } = require('../extensions/tools/eos/utils');
@@ -14,18 +14,18 @@ const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services
 function postData(url = ``, data = {}) {
   // Default options are marked with *
   return fetch(url, {
-      method: 'POST', // *GET, POST, PUT, DELETE, etc.
-      mode: 'cors', // no-cors, cors, *same-origin
-      cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-      credentials: 'same-origin', // include, *same-origin, omit
-      headers: {
-        // "Content-Type": "application/json",
-        // "Content-Type": "application/x-www-form-urlencoded",
-      },
-      redirect: 'follow', // manual, *follow, error
-      referrer: 'no-referrer', // no-referrer, *client
-      body: JSON.stringify(data) // body data type must match "Content-Type" header
-    })
+    method: 'POST', // *GET, POST, PUT, DELETE, etc.
+    mode: 'cors', // no-cors, cors, *same-origin
+    cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+    credentials: 'same-origin', // include, *same-origin, omit
+    headers: {
+      // "Content-Type": "application/json",
+      // "Content-Type": "application/x-www-form-urlencoded",
+    },
+    redirect: 'follow', // manual, *follow, error
+    referrer: 'no-referrer', // no-referrer, *client
+    body: JSON.stringify(data) // body data type must match "Content-Type" header
+  })
     .then(response => response.json()); // parses response to JSON
 }
 var contractCode = 'readfnconsumer';
@@ -36,7 +36,7 @@ describe(`History Service Test Contract`, () => {
   var endpoint = "http://localhost:13015";
 
   before(done => {
-    (async() => {
+    (async () => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
         await genAllocateDAPPTokens(deployedContract, 'readfn');
@@ -62,7 +62,7 @@ describe(`History Service Test Contract`, () => {
   };
   var account = code;
   it('Test Read', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await invokeReadFn({ method: "readtest", payload: { testnum: 123 } });
         assert.equal(res.result, "hello-123");

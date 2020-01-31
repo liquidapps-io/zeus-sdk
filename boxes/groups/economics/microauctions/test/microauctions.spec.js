@@ -1,7 +1,7 @@
-import { assert } from 'chai';
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+const { assert } = require('chai');
+require('mocha');
+
+
 
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
@@ -13,7 +13,7 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 var args = getDefaultArgs();
 var systemToken = (args.creator !== 'eosio') ? 'EOS' : 'SYS';
 
-async function genAllocateEOSTokens (account) {
+async function genAllocateEOSTokens(account) {
   const keys = await getCreateAccount(account, args);
   const { creator } = args;
   var eos = await getEos(creator, args);

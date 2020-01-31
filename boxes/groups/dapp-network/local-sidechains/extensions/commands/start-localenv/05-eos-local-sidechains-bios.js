@@ -8,6 +8,7 @@ module.exports = async(gargs) => {
   var sidechains = await loadModels('local-sidechains');
   // for each sidechain
   for (var i = 0; i < sidechains.length; i++) {
+    if(sidechains[i].local === false) return;
     var sidechain = sidechains[i];
     var args = { ...gargs, sidechain: sidechain }
 
@@ -21,7 +22,7 @@ module.exports = async(gargs) => {
         await uploadSystemContract(args, 'eosio', 'eosio.bios', sidechain);
       }
       catch (e) {
-        await sleep(500);
+        await sleep(5000);
       }
     }
 

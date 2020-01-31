@@ -23,6 +23,7 @@ export default class VRAMService extends DSPServiceClient {
      * @param {number} [options.index_position=1]
      * @param {boolean} [options.json]
      * @param {string} [options.key_type]
+     * @param {number} [options.key_size]
      * @param {string} [options.lower_bound]
      * @param {string} [options.upper_bound]
      * @param {string} [options.table_key]
@@ -67,6 +68,7 @@ export default class VRAMService extends DSPServiceClient {
             index_position?: number,
             json?: boolean,
             key_type?: string,
+            key_size?: number,
             lower_bound?: string,
             upper_bound?: string,
             table_key?: string,
@@ -80,6 +82,7 @@ export default class VRAMService extends DSPServiceClient {
         const index_position = options.index_position || 1;
         const limit = options.limit || 10;
         const key_type = options.key_type || "";
+        const key_size = options.key_size || 64;
         const table_key = options.table_key || "";
         const lower_bound = options.lower_bound || "";
         const upper_bound = options.upper_bound || "";
@@ -92,7 +95,8 @@ export default class VRAMService extends DSPServiceClient {
             key: primary_key,
             json,
             index_position,
-            key_type,
+            keytype: key_type,
+            keysize: key_size,
             table_key,
             lower_bound,
             upper_bound,

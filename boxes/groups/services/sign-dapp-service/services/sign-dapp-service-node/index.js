@@ -1,5 +1,4 @@
 var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
-const { eosDSPGateway, paccount, resolveProviderPackage, deserialize, generateABI, nodeosEndpoint } = require('../dapp-services-node/common');
 const { loadModels } = require("../../extensions/tools/models");
 var sha256 = require('js-sha256').sha256;
 const ecc = require('eosjs-ecc');
@@ -223,17 +222,6 @@ const numberToHex = (number) => {
 
 const getStoragePath = (chain, account) =>
   `${os.homedir()}/keys/${chain}/${account}.json`;
-
-function getEos(privateKey, chainId) {
-  const config = {
-    expireInSeconds: 120,
-    sign: true,
-    chainId,
-    keyProvider: privateKey,
-    httpEndpoint: nodeosEndpoint
-  };
-  return new Eos(config);
-}
 
 const resolveTrxData = (trxMeta) => {
   return JSON.parse(trxMeta);

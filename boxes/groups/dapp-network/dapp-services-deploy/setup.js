@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-require('babel-core/register');
-require('babel-polyfill');
+
+
 var pm2 = require('pm2');
 var command = process.argv[2];
 switch (command) {
@@ -42,5 +42,5 @@ switch (command) {
     break;
   default:
     throw new Error('unknown');
-        // code
+  // code
 }

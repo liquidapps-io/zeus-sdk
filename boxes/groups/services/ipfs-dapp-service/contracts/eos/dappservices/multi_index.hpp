@@ -1,26 +1,24 @@
 #pragma once
-#include "plisttree.hpp"
-#define SUBLIST_SIZE 128
+
+#include "advanced_multi_index.hpp"
+
+#ifdef USE_ADVANCED_IPFS
+namespace dapp {
+    
+    using namespace eosio;
+    using namespace std;
 
 
-#include <vector>
-#include <tuple>
-#include <boost/hana.hpp>
-#include <functional>
-#include <utility>
-#include <type_traits>
-#include <iterator>
-#include <limits>
-#include <algorithm>
-#include <memory>
-#include <cmath>
-#include <eosio/action.hpp>
-#include <eosio/name.hpp>
-#include <eosio/serialize.hpp>
-#include <eosio/datastream.hpp>
-#include <eosio/crypto.hpp>
-#include <eosio/singleton.hpp>
-
+template <name::raw TableName,typename T, typename... Indices>
+class multi_index : public advanced_multi_index<TableName,T,uint64_t,Indices...>{
+    public:
+    multi_index( name code, uint64_t scope, uint32_t shards = 1024,uint32_t buckets_per_shard = 64, bool pin_shards = false, bool pin_buckets = false, uint32_t cleanup_delay = 0)
+      : advanced_multi_index<TableName,T,uint64_t,Indices...>(code, scope, shards, buckets_per_shard, pin_shards, pin_buckets, cleanup_delay)
+      {                    
+      }
+};
+}
+#else
 namespace dapp {
     
     using namespace eosio;
@@ -1149,3 +1147,4 @@ typedef h_const_iterator const_iterator;
       }    
 };
 }
+#endif

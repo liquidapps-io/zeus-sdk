@@ -1,6 +1,6 @@
-require("babel-core/register");
-require("babel-polyfill");
-import 'mocha';
+
+
+require('mocha');
 const { assert } = require('chai'); // Using Assert style
 const { getTestContract } = require('../extensions/tools/eos/utils');
 
@@ -14,7 +14,7 @@ describe(`Web Oracle Service Test`, () => {
   var testcontract;
   const code = 'test1';
   before(done => {
-    (async() => {
+    (async () => {
       try {
 
         var deployedContract = await deployer.deploy(ctrt, code);
@@ -32,7 +32,7 @@ describe(`Web Oracle Service Test`, () => {
 
   var account = code;
   it.skip('Oracle HTTPS Get', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: Buffer.from("https://ipfs.io/ipfs/Qmaisz6NMhDB51cCvNWa1GMS7LU1pAxdF4Ld6Ft9kZEP2a", 'utf8'),
@@ -52,7 +52,7 @@ describe(`Web Oracle Service Test`, () => {
 
 
   it.skip('Oracle HTTPS+JSON Get', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: Buffer.from("https+json://name/api.github.com/users/tmuskal", 'utf8'),
@@ -71,7 +71,7 @@ describe(`Web Oracle Service Test`, () => {
   });
 
   it('Oracle HTTPS+POST+JSON', done => {
-    (async() => {
+    (async () => {
       try {
         const body = Buffer.from('{"block_num_or_id":"36568000"}').toString('base64')
         const res = await testcontract.testget({

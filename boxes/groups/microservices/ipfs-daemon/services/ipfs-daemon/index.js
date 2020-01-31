@@ -3,8 +3,8 @@
 if (process.env.DAEMONIZE_PROCESS) { require('daemonize-process')(); }
 const kill = require('kill-port');
 
-require('babel-core/register');
-require('babel-polyfill');
+
+
 const { promisify } = require('util');
 const fs = require('fs');
 const IPFSFactory = require('ipfsd-ctl');

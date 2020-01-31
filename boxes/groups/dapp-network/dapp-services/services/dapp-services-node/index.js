@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-require('babel-core/register');
-require('babel-polyfill');
+
+
 if (process.env.DAEMONIZE_PROCESS) { require('daemonize-process')(); }
 const logger = require('../../extensions/helpers/logger');
-const { genNode, genApp, paccount, processFn, forwardEvent, resolveProviderData, resolveProvider, resolveProviderPackage } = require('./common');
+const { genNode, genApp, paccount, processFn, forwardEvent, resolveProviderData, resolveProvider, resolveProviderPackage, getLinkedAccount } = require('./common');
 const dal = require('./dal/dal');
 const { loadModels } = require('../../extensions/tools/models');
 
@@ -12,8 +12,9 @@ const actionHandlers = {
   'service_request': async(act, simulated) => {
     let { service, provider, sidechain, meta } = act.event;
     if (!sidechain && meta && meta.sidechain) {
-      sidechain = sidechainsDict[meta.sidechain];
+      sidechain = sidechainsDict[meta.sidechain.name];
     }
+    logger.debug(`service_request to: ${service}`)
 
     var payer = act.event.payer ? act.event.payer : act.receiver;
     let isReplay = act.replay;
@@ -24,6 +25,8 @@ const actionHandlers = {
       provider = await resolveProvider(payer, service, provider, sidechain);
     }
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider, sidechain);
+    if (sidechain)
+      service = await getLinkedAccount(null, null, service, sidechain.name, true);
     var providerData = await resolveProviderData(service, provider, packageid, sidechain);
     if (!providerData) { throw new Error('provider data not found'); }
     if (!act.exception && paccount !== provider)
@@ -33,7 +36,7 @@ const actionHandlers = {
       const account = act.account;
       let key = `${meta.txId}.${act.event.action}.${account}.${meta.eventNum}`;
       if (meta && meta.sidechain)
-        key = `${meta.sidechain}.${key}`;
+        key = `${meta.sidechain.name}.${key}`;
       while (true) {
         var serviceRequest = await dal.createServiceRequest(key);
 
@@ -60,7 +63,9 @@ const actionHandlers = {
       // TODO: if not synced, aggregate and dispatch pending requests when syncd.
       // todo: send events in recovery mode.
     }
-    return await forwardEvent(act, providerData.endpoint, act.exception);
+    logger.debug(`forwarding to: ${providerData.endpoint}`);
+    act.sidechain = sidechain;
+    return await forwardEvent(act, providerData.endpoint, act.exception && !act.event.broadcasted);
 
 
   },
@@ -69,7 +74,7 @@ const actionHandlers = {
     let { meta, service, provider, sidechain } = act.event;
 
     if (!sidechain && meta && meta.sidechain) {
-      sidechain = sidechainsDict[meta.sidechain];
+      sidechain = sidechainsDict[meta.sidechain.name];
     }
     if (provider !== paccount)
       return;
@@ -77,7 +82,6 @@ const actionHandlers = {
     const { cbevent, blockNum } = meta;
     if (cbevent && cbevent.request_id) {
       const key = cbevent.request_id;
-      // logger.debug(`got service response (signal) :\nkey: ${key} value: ${blockNum} - ${JSON.stringify(act.event)}`);
       // if the service_request is simulated, this shouldn't update anything.
       while (true) {
         var serviceRequest = await dal.createServiceRequest(key);
@@ -99,22 +103,27 @@ const actionHandlers = {
         break;
       }
     }
+    if (sidechain)
+      service = await getLinkedAccount(null, null, service, sidechain.name, true);
     var providerData = await resolveProviderData(service, provider, packageid, sidechain);
     if (!providerData) { throw new Error('provider data not found'); }
+    act.sidechain = sidechain;
     return await forwardEvent(act, providerData.endpoint);
   },
   'usage_report': async(act, simulated) => {
     if (simulated) { return; }
     let { service, provider, sidechain, meta } = act.event;
     if (!sidechain && meta && meta.sidechain) {
-      sidechain = sidechainsDict[meta.sidechain];
+      sidechain = sidechainsDict[meta.sidechain.name];
     }
+    if (sidechain)
+      return;
+
     if (provider !== paccount)
       return;
     const { cbevent, blockNum } = meta;
     if (cbevent && cbevent.request_id) {
       const key = cbevent.request_id;
-      // logger.info(`got usage report:\nkey: ${key} value: ${blockNum}`);
       // if the service_request is simulated, this shouldn't update anything.
       while (true) {
         var serviceRequest = await dal.createServiceRequest(key);
@@ -137,8 +146,11 @@ const actionHandlers = {
       }
     }
     var packageid = act.event.package;
+    if (sidechain)
+      service = await getLinkedAccount(null, null, service, sidechain.name, true);
     var providerData = await resolveProviderData(service, provider, packageid, sidechain);
     if (!providerData) { throw new Error('provider data not found'); }
+    act.sidechain = sidechain;
     return await forwardEvent(act, providerData.endpoint);
   }
 };
@@ -146,16 +158,18 @@ const actionHandlers = {
 var sidechainsDict = {};
 
 async function genAllNodes() {
-  await genNode(actionHandlers, process.env.PORT || 3115, 'services');
-  var sidechains = await loadModels('local-sidechains');
-  for (var i = 0; i < sidechains.length; i++) {
-    var sidechain = sidechains[i];
-    sidechainsDict[sidechain.name] = sidechain;
-    await genNode(actionHandlers, sidechain.dsp_port, 'services', undefined, undefined, sidechain);
+  const sidechains = await loadModels('local-sidechains');
+  sidechains.forEach(sc => sidechainsDict[sc.name] = sc);
+  const scName = process.env.SIDECHAIN;
+  // if sidechain gateway (identified by ^)
+  if(scName) {
+      const sidechain = sidechains.find(sc => sc.name === scName);
+      if (!sidechain) throw new Error(`could not find sidechain ${scName} under models/local-sidechains`);
+      await genNode(actionHandlers, process.env.PORT || 3116, 'services', undefined, undefined, sidechain);
+  } else {
+    await genNode(actionHandlers, process.env.PORT || 3115, 'services');
   }
-
 }
-
 genAllNodes();
 
 const bootTime = Date.now();

@@ -7,18 +7,20 @@
   "commands": {
     "Test": "zeus test"
   },
-  "install":{
-    "npm":{
+  "install": {
+    "npm": {
       "mocha": true,
       "mocha-junit-and-console-reporter": true,
       "chai": true
     },
-    "npm-scripts":{
-      "test-ci": "mocha --require babel-core/register --require=dotenv/config --require babel-polyfill --exit --timeout 1000000 --reporter mocha-junit-and-console-reporter --reporter-options mochaFile=./test-reports/junit.xml --color",
-      "test": "mocha --require babel-core/register --require=dotenv/config --require babel-polyfill --exit --timeout 1000000 --color"
+    "npm-scripts": {
+      "test-ci": "mocha --require=dotenv/config --exit --timeout 1000000 --reporter mocha-junit-and-console-reporter --reporter-options mochaFile=./test-reports/junit.xml --color",
+      "test": "mocha --require=dotenv/config --exit --timeout 1000000 --color"
     }
   },
-  "hooks": {
-  },
-  "dependencies":["seed-tests", "hooks-npm"]
+  "hooks": {},
+  "dependencies": [
+    "seed-tests",
+    "hooks-npm"
+  ]
 }

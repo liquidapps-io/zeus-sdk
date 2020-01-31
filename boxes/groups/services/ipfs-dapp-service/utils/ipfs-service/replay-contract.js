@@ -1,5 +1,5 @@
-require('babel-core/register');
-require('babel-polyfill');
+
+
 const { JsonRpc } = require('dfuse-eoshttp-js');
 const token = process.env.DFUSE_API_KEY;
 const dfuse_endpoint = process.env.DFUSE_ENDPOINT || 'mainnet.eos.dfuse.io';
@@ -8,7 +8,7 @@ const blockCount = process.env.BLOCK_COUNT_PER_QUERY || 1000000;
 let rpc = new JsonRpc(`https://${dfuse_endpoint}`, { fetch, token });
 
 const contractAccount = process.env.CONTRACT;
-const endpoint = `http${process.env.NODEOS_SECURED == 'true' ? 's' : ''}://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_PORT || '13115'}`;
+const endpoint = `http${process.env.NODEOS_SECURED === 'true' || process.env.NODEOS_SECURED === true ? true : false ? 's' : ''}://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_PORT || '13115'}`;
 const url = `${endpoint}/event`;
 const { Serialize } = require('eosjs');
 const { TextDecoder, TextEncoder } = require('text-encoding');

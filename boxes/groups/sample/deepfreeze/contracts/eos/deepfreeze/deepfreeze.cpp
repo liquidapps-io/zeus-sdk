@@ -12,14 +12,13 @@ CONTRACT_START()
          extended_asset balance;
          uint64_t primary_key()const { return balance.contract.value; }
       };
-      
-      typedef dapp::multi_index<"vaccounts"_n, account> cold_accounts_t;
-      typedef eosio::multi_index<".vaccounts"_n, account> cold_accounts_t_v_abi;
       TABLE shardbucket {
           std::vector<char> shard_uri;
           uint64_t shard;
           uint64_t primary_key() const { return shard; }
       };
+      typedef dapp::multi_index<"vaccounts"_n, account> cold_accounts_t;
+      typedef eosio::multi_index<".vaccounts"_n, account> cold_accounts_t_v_abi;
       typedef eosio::multi_index<"vaccounts"_n, shardbucket> cold_accounts_t_abi;
       
       

@@ -17,7 +17,17 @@ using namespace std;
 #include <boost/preprocessor/seq/for_each_i.hpp>
 #include <boost/preprocessor/seq/push_back.hpp>
 #include <eosio/singleton.hpp>
-
+#ifndef USAGE_DEFINED
+#define USAGE_DEFINED
+struct usage_t {
+  asset quantity;
+  name provider;
+  name payer;
+  name service;
+  name package;
+  bool success = false;
+};
+#endif
 #define EMIT_USAGE_REPORT_EVENT(usageResult)                                   \
   START_EVENT("usage_report", "1.4")                                           \
   EVENTKV("payer", (usageResult).payer)                                        \
@@ -71,10 +81,9 @@ public:
   TABLE accountlink {
     name mainnet_owner; // mainnet account, for both consumers and DSPs
   };
-  typedef eosio::singleton<"accountlinks"_n, accountlink> accountlinks;
+  typedef eosio::singleton<"accountlink"_n, accountlink> accountlinks;
   TABLE setting {
-    name chain_name;
-    bool is_sister_chain;
+    name chain_name; // owner account on mainnet
   };
   typedef eosio::singleton<"settings"_n, setting> settings;
   [[eosio::action]] void setlink(name owner, name mainnet_owner) {
@@ -85,12 +94,11 @@ public:
     accountlink_table.set(link, owner);
   }
 
-  [[eosio::action]] void init(name chain_name, bool is_sister_chain) {
+  [[eosio::action]] void init(name chain_name) {
     require_auth(_self);
     settings settings_table(_self, _self.value);
     setting new_settings;
     new_settings.chain_name = chain_name;
-    new_settings.is_sister_chain = is_sister_chain;
     settings_table.set(new_settings, _self);
   }
   // allow mainnet DSP
@@ -98,7 +106,7 @@ public:
     require_auth(owner);
     dsps dsptable(_self, owner.value);
     auto res = dsptable.find(dsp.value);
-    eosio::check(res != dsptable.end(), "dsp already in table");
+    eosio::check(res == dsptable.end(), "dsp already in table");
     dsptable.emplace(owner, [&](auto &a){
       a.allowed_dsp = dsp;
     });
@@ -109,7 +117,7 @@ public:
     require_auth(owner);
     dsps dsptable(_self, owner.value);
     auto res = dsptable.find(dsp.value);
-    eosio::check(res == dsptable.end(), "dsp not in table");
+    eosio::check(res != dsptable.end(), "dsp not in table");
     dsptable.erase(res);
   }
 
@@ -126,7 +134,13 @@ public:
 
     dsps dsptable(_self, get_first_receiver().value);
     auto res = dsptable.find(provider.value);
-    // eosio::check( res != dsptable.end(), "dsp not allowed");
+    eosio::check( res != dsptable.end(), "dsp not allowed");
+
+    auto payer = get_first_receiver();
+    eosio::action(permission_level{_self, "active"_n},
+      service, "xsignalx"_n, std::make_tuple(service, action, provider, package, signalRawData, _self, payer))
+      .send();
+    require_recipient(provider);
 
     EMIT_SIGNAL_SVC_EVENT(name(get_first_receiver()), service, action, provider, package,
                           encodedData.c_str());
@@ -138,15 +152,69 @@ public:
     EMIT_CALLBACK_SVC_EVENT(provider, request_id, meta.c_str());
   }
 
+  TABLE lastlog {
+    std::vector<usage_t> usage_reports;
+  };
+  typedef eosio::singleton<"lastlog"_n, lastlog> lastlog_t;
 
+  [[eosio::action]] void xfail() {
+    lastlog_t lastlog_singleton(_self,_self.value);
+    if(lastlog_singleton.exists()){
+      auto lastlog_inst = lastlog_singleton.get();
+      auto it = lastlog_inst.usage_reports.begin();
+      while(it != lastlog_inst.usage_reports.end()) {
+        EMIT_USAGE_REPORT_EVENT(*it);
+        ++it;
+      }
+      lastlog_singleton.remove();      
+    }
+    eosio::check( false, "always false assert");
+  }
 
+ [[eosio::action]] void usage(usage_t usage_report) {
+    require_auth(usage_report.service);
+    auto payer = usage_report.payer;
+    auto service = usage_report.service;
+    auto provider = usage_report.provider;
+    auto quantity = usage_report.quantity;
+    auto package = usage_report.package;
+    require_recipient(provider);
+    require_recipient(service);
+    require_recipient(payer);
+
+    usage_report.success = true;
+    auto shoudFail = true; // TODO: detect from transaction
+    if(shouldFail()){
+      lastlog_t lastlog_singleton(_self,_self.value);
+      auto lastlog_inst = lastlog_singleton.get_or_default();
+      lastlog_inst.usage_reports.push_back(usage_report);
+      lastlog_singleton.set(lastlog_inst, _self);       
+      // append log
+    }
+    EMIT_USAGE_REPORT_EVENT(usage_report);
+  }
+
+private:
+  bool shouldFail() {
+    auto size = transaction_size();
+    char buf[size];
+    uint32_t read = read_transaction( buf, size );
+    check( size == read, "read_transaction failed");
+    auto tx = unpack<transaction>(buf, size);
+    //check last action
+    auto last = tx.actions.rbegin();
+    if(last != tx.actions.rend()) {
+      if(last->account == name(get_self()) && last->name == "xfail"_n) return true;      
+    }
+    return false;
+  }
 };
 
 extern "C" {
 void apply(uint64_t receiver, uint64_t code, uint64_t action) {
   if (code == receiver) {
     switch (action) {
-      EOSIO_DISPATCH_HELPER(dappservicex, (setlink)(xcallback)(adddsp)(rmvdsp)(init))
+      EOSIO_DISPATCH_HELPER(dappservicex, (setlink)(xcallback)(adddsp)(rmvdsp)(init)(xfail)(usage))
     }
   } else {
     switch (action) { EOSIO_DISPATCH_HELPER(dappservicex, (xsignal)) }

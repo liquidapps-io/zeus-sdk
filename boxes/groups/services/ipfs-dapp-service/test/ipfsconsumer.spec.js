@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork } = require('../extensions/tools/eos/utils');
@@ -16,30 +16,44 @@ const delaySec = sec => delay(sec * 1000);
 var contractCode = 'ipfsconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
 describe(`IPFS Service Test Contract`, () => {
-  var testcontract;
-  const code = 'test1';
+  var testcontract, testcontract2, testcontract3;
+  const code = 'test1ipfs';
+  const code2 = 'tstbakcomp';
+  const code3 = 'test2ipfs';
   var eosvram;
   before(done => {
-    (async() => {
+    (async () => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
+        var deployedContract2 = await deployer.deploy(ctrt, code2);
+        var deployedContract3 = await deployer.deploy(ctrt, code3);
         await genAllocateDAPPTokens(deployedContract, 'ipfs');
+        await genAllocateDAPPTokens(deployedContract2, 'ipfs', '', 'default', null, false);
+        await genAllocateDAPPTokens(deployedContract3, 'ipfs');
         // create token
         var selectedNetwork = getNetwork(getDefaultArgs());
         var config = {
           expireInSeconds: 120,
           sign: true,
-          chainId: selectedNetwork.chainId
+          chainId: selectedNetwork.chainId,
+          httpEndpoint: 'http://localhost:13015'
         };
-        if (account) {
-          var keys = await getCreateKeys(account);
-          config.keyProvider = keys.active.privateKey;
-        }
-        eosvram = deployedContract.eos;
-        config.httpEndpoint = 'http://localhost:13015';
-        eosvram = getEosWrapper(config);
 
+        var keysTest1 = await getCreateKeys(code);
+        config.keyProvider = keysTest1.active.privateKey;
+        eosvram = getEosWrapper(config);
         testcontract = await eosvram.contract(code);
+
+        var keysTest2 = await getCreateKeys(code2);
+        config.keyProvider = keysTest2.active.privateKey;
+        eosvram = getEosWrapper(config);
+        testcontract2 = await eosvram.contract(code2);
+
+        var keysTest3 = await getCreateKeys(code3);
+        config.keyProvider = keysTest3.active.privateKey;
+        eosvram = getEosWrapper(config);
+        testcontract3 = await eosvram.contract(code3);
+
         done();
       }
       catch (e) {
@@ -48,9 +62,8 @@ describe(`IPFS Service Test Contract`, () => {
     })();
   });
 
-  var account = code;
   it('IPFS Write', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testset({
           data: {
@@ -74,8 +87,25 @@ describe(`IPFS Service Test Contract`, () => {
     })();
   });
 
+  // important no vram actions done before this test
+  it('Cleanup', done => {
+    (async () => {
+      try {
+        await delaySec(15);
+        await testcontract.verfempty({
+        }, {
+          authorization: `${code}@active`,
+        });
+        done();
+      }
+      catch (e) {
+        done(e)
+      }
+    })();
+  });
+
   it('IPFS Read', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.testget({
           uri: 'ipfs://zb2rhnyodRMHNeY4iaSVXzVhtFmYdWxsvddrhzhWZFUMiZdrd',
@@ -96,7 +126,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
   it('dapp::multi_index Get Available Key', done => {
-    (async() => {
+    (async () => {
       try {
         await testcontract.increment({ somenumber: 1 }, {
           authorization: `${code}@active`,
@@ -144,7 +174,7 @@ describe(`IPFS Service Test Contract`, () => {
         });
         next_key = table.rows[0].next_available_key;
 
-        assert.equal(next_key, 556, 'wrong key');
+        assert.equal(next_key, '000000000000000000000000000000000000000000000000000000000000022c', 'wrong key');
 
 
         done();
@@ -156,7 +186,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
   it('dapp::multi_index Resize Should Fail', done => {
-    (async() => {
+    (async () => {
       try {
 
         let failed = false;
@@ -179,13 +209,23 @@ describe(`IPFS Service Test Contract`, () => {
     })();
   });
 
-
   it('dapp::multi_index uint64_t Primary Key', done => {
-    (async() => {
+    (async () => {
       try {
-
         await testcontract.testindexa({
           id: 12345
+        }, {
+          authorization: `${code}@active`,
+        });
+
+        await testcontract.testfind({
+          id: 12345
+        }, {
+          authorization: `${code}@active`,
+        });
+
+        await testcontract.testfind({
+          id: 0
         }, {
           authorization: `${code}@active`,
         });
@@ -199,16 +239,129 @@ describe(`IPFS Service Test Contract`, () => {
         });
         assert(tableRes.row.id == 12345, "wrong uint64_t");
 
+        tableRes = await readVRAMData({
+          contract: code,
+          key: 0,
+          table: "test",
+          scope: code,
+          keytype: 'number'
+        });
+        assert(tableRes.row.id == 0, "wrong uint64_t");
+
         done();
       }
       catch (e) {
+        console.log(JSON.stringify(e.json));
+        done(e);
+      }
+    })();
+  });
+
+  it('dapp::multi_index uint128_t Primary Key', done => {
+    (async () => {
+      try {
+
+        let res = await testcontract.testmed({
+          id: 12345,
+          value: 45678
+        }, {
+          authorization: `${code}@active`,
+        });
+
+        res = await testcontract.checkmed({
+          id: 12345,
+          value: 45678
+        }, {
+          authorization: `${code}@active`,
+        });
+
+        var tableRes = await readVRAMData({
+          contract: code,
+          key: 12345,
+          table: "test3",
+          scope: code,
+          keytype: 'number',
+          keysize: 128
+        });
+        assert(tableRes.row.id == 12345, "wrong uint128_t");
+
+        done();
+      }
+      catch (e) {
+        console.log(JSON.stringify(e.json));
+        done(e);
+      }
+    })();
+  });
+
+  it('dapp::multi_index checksum256 Primary Key', done => {
+    (async () => {
+      try {
+
+        let res = await testcontract.testbig({
+          id: '0000000000000000000000000000000000000000000000000000000000003039',
+          value: 45678
+        }, {
+          authorization: `${code}@active`,
+        });
+
+        res = await testcontract.checkbig({
+          id: '0000000000000000000000000000000000000000000000000000000000003039',
+          value: 45678
+        }, {
+          authorization: `${code}@active`,
+        });
+
+        var tableRes = await readVRAMData({
+          contract: code,
+          key: '0000000000000000000000000000000000000000000000000000000000003039',
+          table: "test2",
+          scope: code,
+          keytype: 'hex',
+          keysize: 256
+        });
+        assert(tableRes.row.id == '0000000000000000000000000000000000000000000000000000000000003039', "wrong checksum256");
+
+        done();
+      }
+      catch (e) {
+        console.log(JSON.stringify(e.json));
+        done(e);
+      }
+    })();
+  });
+
+  it('dapp::multi_index checksum256 Get Available Key', done => {
+    (async () => {
+      try {
+
+        let res = await testcontract.testbig({
+          id: '00000000000000000000000000000000ffffffffffffffffffffffffffffffff',
+          value: 45678
+        }, {
+          authorization: `${code}@active`,
+        });
+
+        let table = await eosvram.getTableRows({
+          code: code,
+          scope: 'test2',
+          table: '.vconfig',
+          json: true,
+        });
+        let next_key = table.rows[0].next_available_key;
+        assert.equal(next_key, '0000000000000000000000000000000100000000000000000000000000000000', 'wrong key');
+
+        done();
+      }
+      catch (e) {
+        console.log(JSON.stringify(e.json));
         done(e);
       }
     })();
   });
 
   it('doesnt overwrite data when buckets collide', done => {
-    (async() => {
+    (async () => {
       try {
 
         await testcontract.testcollide({
@@ -260,7 +413,7 @@ describe(`IPFS Service Test Contract`, () => {
         done(e);
       }
       it('dapp::multi_index uint64_t Large Primary Key', done => {
-        (async() => {
+        (async () => {
           try {
 
             await testcontract.testindexa({
@@ -312,7 +465,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
   it('dapp::multi_index delayed cleanup', done => {
-    (async() => {
+    (async () => {
       try {
 
         await testcontract.testdelay({
@@ -377,6 +530,180 @@ describe(`IPFS Service Test Contract`, () => {
           keytype: 'number'
         });
         assert(tableRes.row.sometestnumber == 127, "wrong uint64_t");
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  var backup = {};
+
+  it.skip('IPFS Save Manifest', done => {
+    (async () => {
+      try {
+        //backup = await generateBackup(code,"test");            
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it('IPFS Clear', done => {
+    (async () => {
+      try {
+
+        let failed = false;
+
+        await testcontract.testfind({
+          id: 20
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        await testcontract.testclear({}, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        try {
+          await testcontract.testfind({
+            id: 20
+          }, {
+            authorization: `${code}@active`,
+            broadcast: true,
+            sign: true
+          });
+        } catch (e) {
+          failed = true;
+        }
+
+        assert(failed, 'should have failed');
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it.skip('IPFS Load Manifest', done => {
+    (async () => {
+      try {
+        // let shardbuckets = pastbuckets.map((data) => {
+        //   return {
+        //     key: data.shard,
+        //     value: data.shard_uri
+        //   }
+        // })
+
+        // let manifest = {
+        //   next_available_key: 556,
+        //   shards: 1024,
+        //   buckets_per_shard: 64,
+        //   shardbuckets
+        // }
+        let manifest = backup.manifest;
+        let failed = false;
+
+        try {
+          await testcontract.testfind({
+            id: 20
+          }, {
+            authorization: `${code}@active`,
+            broadcast: true,
+            sign: true
+          });
+        } catch (e) {
+          failed = true;
+        }
+
+        assert(failed, 'should have failed');
+
+        await testcontract.testman({
+          man: manifest
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        await testcontract.testfind({
+          id: 20
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        done();
+      } catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it('IPFS without custom dsp permissions (backwards compatibility)', done => {
+    (async () => {
+      try {
+        // now this needs to be warmed up
+        await testcontract2.testget({
+          uri: 'ipfs://zb2rhnyodRMHNeY4iaSVXzVhtFmYdWxsvddrhzhWZFUMiZdrd',
+          expectedfield: 123
+        }, {
+          authorization: `${code2}@active`,
+        });
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it('IPFS Read Third Party', done => {
+    (async() => {
+      try {
+        await testcontract.testindexa({
+          id: 67890
+        }, {
+          authorization: `${code}@active`,
+        });
+
+        await delaySec(10);
+
+        await testcontract3.testremote({
+          remote: code,
+          id: 67890
+        }, {
+          authorization: `${code3}@active`,
+        });
+
+        await testcontract3.testindexa({
+          id: 77777
+        }, {
+          authorization: `${code3}@active`,
+        });
+
+        await testcontract3.testfind({
+          id: 77777
+        }, {
+          authorization: `${code3}@active`,
+        });
+
+        await delaySec(10);
+
+        await testcontract.testremote({
+          remote: code3,
+          id: 77777
+        }, {
+          authorization: `${code}@active`,
+        });
+
         done();
       }
       catch (e) {

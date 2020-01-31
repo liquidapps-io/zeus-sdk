@@ -1,38 +1,41 @@
 var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
-const { getCreateKeys } = require('../../extensions/helpers/key-utils');
-const { eosDSPGateway, paccount, resolveProviderPackage, paccountPermission } = require('../dapp-services-node/common');
+const { eosDSPGateway, paccount, resolveProviderPackage, pushTransaction, getLinkedAccount, getEosForSidechain, emitUsage } = require('../dapp-services-node/common');
+const { dappServicesContract, dappServicesLiquidXContract, getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
 const { loadModels } = require("../../extensions/tools/models");
-const { dappServicesContract, getContractAccountFor } = require("../../extensions/tools/eos/dapp-services")
 const logger = require('../../extensions/helpers/logger');
 
 nodeFactory('vaccounts', {
     api: {
         push_action: async({ body }, res) => {
-
-            const { contract_code, public_key, payload, signature } = body;
-            logger.info(`Received vaccount push_action request: account ${contract_code}, public key ${public_key}`);
-            var contract = await eosDSPGateway.contract(contract_code);
-            let key = {};
-            if (!process.env.DSP_PRIVATE_KEY)
-                key = await getCreateKeys(paccount);
-
+            const { contract_code, public_key, payload, signature, sidechain } = body;
+            logger.info(`Received vaccount push_action request: account ${contract_code}, public key ${public_key}`);           
+            var gateway = await eosDSPGateway();
             var loadedExtensions = await loadModels("dapp-services");
             var service = loadedExtensions.find(a => a.name == "vaccounts").contract;
-
-            var resolvedPackages = await resolveProviderPackage(contract_code, service, paccount);
-
+            var provider = paccount;
+            var mainnet_account = contract_code;
+            var dapp = dappServicesContract;
+            if(sidechain) {
+                const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechain.name && m.mainnet_account === provider);
+                if (!mapEntry)
+                  throw new Error('mapping not found')
+                provider = mapEntry.chain_account;
+                mainnet_account = await getLinkedAccount(null, null, contract_code, sidechain.name);
+                gateway = await getEosForSidechain(sidechain,provider,true);
+                dapp = await getLinkedAccount(null, null, dappServicesContract, sidechain.name);
+            }
+            var resolvedPackages = await resolveProviderPackage(mainnet_account, service, paccount);     
+            let data = {
+                current_provider: provider,
+                pubkey: public_key,
+                "package": resolvedPackages,
+                payload: payload,
+                sig: signature
+            };
             try {
-
-                var result = await contract.xvexec({
-                    current_provider: paccount,
-                    pubkey: public_key,
-                    "package": resolvedPackages,
-                    payload: payload,
-                    sig: signature
-                }, {
-                    authorization: `${paccount}@${paccountPermission}`,
-                    keyProvider: [process.env.DSP_PRIVATE_KEY ? process.env.DSP_PRIVATE_KEY : key.active.privateKey]
-                });
+                let result = await pushTransaction(gateway,dapp,contract_code,provider,"xvexec",data);
+                logger.debug("Signed tx: %s", JSON.stringify(result));
+                if(sidechain) await emitUsage(mainnet_account, service);
                 res.send(JSON.stringify({ result }));
             }
             catch (e) {

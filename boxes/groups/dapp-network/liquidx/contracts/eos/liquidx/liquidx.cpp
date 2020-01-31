@@ -35,10 +35,37 @@ public:
     }
     uint64_t primary_key()const { return id; }
   };
-  typedef eosio::multi_index<"accountlinks"_n, accountlink,
+
+
+  struct chain_metadata_t {
+    bool is_public;
+    bool is_single_node;
+    std::string dappservices_contract;
+    std::string chain_id;
+    std::string type; // EOSIO/...
+    std::vector<std::string> endpoints;
+    std::vector<std::string> p2p_seeds;
+    std::string chain_json_uri;
+  };
+
+  TABLE chainentry {
+    chain_metadata_t chain_meta;
+  };
+
+  typedef eosio::multi_index<"accountlink"_n, accountlink,
         indexed_by<"bychain"_n,
                  const_mem_fun<accountlink, uint128_t,
                                &accountlink::by_chain_account>>> accountlinks;
+
+  typedef eosio::singleton<"chainentry"_n, chainentry> chainentries;
+
+  [[eosio::action]] void setchain(name chain_name, chain_metadata_t chain_meta) {
+    require_auth(chain_name);
+    chainentries chainentries_table(_self, chain_name.value);
+    chainentry new_chain;
+    new_chain.chain_meta = chain_meta;
+    chainentries_table.set(new_chain, chain_name);
+  }
 
   [[eosio::action]] void addaccount(name owner, name chain_account, name chain_name) {
     require_auth(owner);
@@ -57,6 +84,7 @@ public:
     auto idxKey =
         accountlink::_by_chain_account(chain_name, chain_account);
     auto acctLink = cidx.find(idxKey);
+    check(acctLink != cidx.end(), "account does not exist");
     cidx.erase(acctLink);
   }
 

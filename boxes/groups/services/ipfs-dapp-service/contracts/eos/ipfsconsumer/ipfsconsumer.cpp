@@ -1,3 +1,4 @@
+#define USE_ADVANCED_IPFS
 #include "../dappservices/ipfs.hpp"
 #include "../dappservices/multi_index.hpp"
 
@@ -5,9 +6,9 @@
   XSIGNAL_DAPPSERVICE_ACTION \
   IPFS_DAPPSERVICE_ACTIONS
 #define DAPPSERVICE_ACTIONS_COMMANDS() \
-  IPFS_SVC_COMMANDS() 
+  IPFS_SVC_COMMANDS()
 
-#define CONTRACT_NAME() ipfsconsumer 
+#define CONTRACT_NAME() ipfsconsumer
 
 CONTRACT_START()
   TABLE testindex {
@@ -15,31 +16,100 @@ CONTRACT_START()
     uint64_t sometestnumber;
     uint64_t primary_key()const {return id;}
   };
+
+  TABLE bigentry {
+    checksum256 id;
+    uint64_t sometestnumber;
+    checksum256 primary_key()const {return id;}
+  };
+
+  TABLE medentry {
+    uint128_t id;
+    uint64_t sometestnumber;
+    uint128_t primary_key()const {return id;}
+  };
+
   TABLE testentry {  
      uint64_t                      field1;
      std::vector<char>             field2;
      uint64_t                      field3;
   };  
-  TABLE vconfig {
-    uint64_t next_available_key;
-    uint32_t shards;
-    uint32_t buckets_per_shard;
-  };
   TABLE testindex_shardbucket {
       std::vector<char> shard_uri;
       uint64_t shard;
       uint64_t primary_key() const { return shard; }
   };
-      
+
+  typedef dapp::advanced_multi_index<"test2"_n, bigentry, checksum256> testindex_big_t;   
+  typedef dapp::advanced_multi_index<"test3"_n, medentry, uint128_t> testindex_med_t;   
+
+  typedef eosio::multi_index<".test2"_n, bigentry> testindex_bt_v_abi;
+  typedef eosio::multi_index<"test2"_n, testindex_shardbucket> testindex_bt_abi;
+
+  typedef eosio::multi_index<".test3"_n, medentry> testindex_mt_v_abi;
+  typedef eosio::multi_index<"test3"_n, testindex_shardbucket> testindex_mt_abi;
+
   typedef dapp::multi_index<"test"_n, testindex> testindex_t;
   typedef eosio::multi_index<".test"_n, testindex> testindex_t_v_abi;
   typedef eosio::multi_index<"test"_n, testindex_shardbucket> testindex_t_abi;
   typedef dapp::multi_index<"test1"_n, testindex> testindex1_t;
   typedef eosio::multi_index<".test1"_n, testindex> testindex1_t_v_abi;
   typedef eosio::multi_index<"test1"_n, testindex_shardbucket> testindex1_t_abi;
-  typedef eosio::multi_index<".vconfig"_n, vconfig> vconfig_t_abi;
 
-  
+  [[eosio::action]] void testbig(checksum256 id, uint64_t value) {
+    testindex_big_t testset(_self,_self.value);
+    testset.emplace(_self, [&]( auto& a ){
+      a.id = id;
+      a.sometestnumber = value;
+    });
+  }
+
+  [[eosio::action]] void checkbig(checksum256 id, uint64_t value) {
+    testindex_big_t testset(_self,_self.value);
+    auto const& data = testset.get(id,"data not found");
+    check(data.sometestnumber == value, "value does not match");
+  }
+
+  [[eosio::action]] void testmed(uint128_t id, uint64_t value) {
+    testindex_med_t testset(_self,_self.value);
+    testset.emplace(_self, [&]( auto& a ){
+      a.id = id;
+      a.sometestnumber = value;
+    });
+  }
+
+  [[eosio::action]] void checkmed(uint128_t id, uint64_t value) {
+    testindex_med_t testset(_self,_self.value);
+    auto const& data = testset.get(id,"data not found");
+    check(data.sometestnumber == value, "value does not match");
+  }
+
+
+  [[eosio::action]] void testfind(uint64_t id) {
+    testindex_t testset(_self,_self.value);
+    auto const& data = testset.get(id,"data not found");
+  }
+  [[eosio::action]] void testclear() {
+    testindex_t testset(_self,_self.value);
+    testset.clear();
+  }
+  [[eosio::action]] void testman(dapp::manifest man) {
+    testindex_t testset(_self,_self.value);
+    testset.load_manifest(man,"Test");
+  }
+  [[eosio::action]] void testindex(uint64_t id, uint64_t sometestnumber) {
+    testindex_t testset(_self,_self.value);
+    testset.emplace(_self, [&]( auto& a ){
+      a.id = id;
+      a.sometestnumber = sometestnumber;
+    });
+  }
+
+  [[eosio::action]] void testremote(name remote, uint64_t id) {
+    testindex_t testset(remote,remote.value);
+    auto const& data = testset.get(id,"data not found");
+  }
+
   [[eosio::action]] void testindexa(uint64_t id) {
     testindex_t testset(_self,_self.value);
     testset.emplace(_self, [&]( auto& a ){
@@ -75,6 +145,12 @@ CONTRACT_START()
       });
   }
 
+  [[eosio::action]] void verfempty() {
+    ipfsentries_t entries(_self,_self.value);
+    eosio::check(entries.begin() == entries.end(),"must be empty");
+
+  }
+
   [[eosio::action]] void increment(uint32_t somenumber) {
     testindex_t testset(_self,_self.value);
     testset.emplace(_self, [&]( auto& a ){
@@ -95,5 +171,15 @@ CONTRACT_START()
   }
  [[eosio::action]] void testempty(std::string uri) {
     eosio::check(getRawData(uri, false, true).size() == 0, "wrong size");
-  }  
-CONTRACT_END((testset)(testget)(testempty)(increment)(testindexa)(testresize)(testdelay)(xdcommit)(testcollide))
+  }
+
+CONTRACT_END(
+  (testset)(testget)(testempty)(increment)
+  (testindex)(testindexa)(testresize)(testclear)
+  (testfind)(testdelay)(xdcommit)(testman)
+  (testcollide)
+  (testbig)(checkbig)
+  (testmed)(checkmed)
+  (verfempty)
+  (testremote)
+  )

@@ -36,7 +36,7 @@ const saveToIPFS = async(data) => {
     const uri = converToUri("01551220" + hash);
 
 
-    const filesAdded = await ipfs.files.add(bufData, { 'raw-leaves': true, 'cid-version': 1 });
+    const filesAdded = await ipfs.files.add(bufData, { 'raw-leaves': true, 'cid-version': 1, 'cid-base': 'base58btc' });
     var theHash = filesAdded[0].hash;
     const resUri = `ipfs://${theHash}`;
     if (resUri != uri)

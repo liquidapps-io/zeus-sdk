@@ -6,7 +6,7 @@ var AuthClient = require('../../extensions/tools/auth-client');
 var permissionCode = "identify";
 var permissionCodes = [permissionCode];
 
-var authClient = new AuthClient(apiID, "authenticato");
+var authClient = new AuthClient(apiID, "authentikeos");
 nodeFactory('auth', {
   api: {
     get_code: async({ req, body }, res) => {

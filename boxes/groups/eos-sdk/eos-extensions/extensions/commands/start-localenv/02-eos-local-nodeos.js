@@ -13,7 +13,7 @@ module.exports = async(args) => {
 
   // add logging.json if doesnt exist
   await addLoggingConfig();
-  
+
   var nodeosArgs = [
     '-e',
     '-p eosio',
@@ -74,11 +74,22 @@ module.exports = async(args) => {
       if (e.stdout.trim() >= "v2.0.0") {
         console.log('Adding 2.0.0 Parameters');
         nodeosArgs = [...nodeosArgs,
-        '--eos-vm-oc-enable'
+          '--eos-vm-oc-enable'
         ]
       }
     }
-    await execPromise(`nohup nodeos ${nodeosArgs.join(' ')} >> nodeos.log 2>&1 &`, { unref: true });
+    // take last 1mb of logs and create new file if log exists
+    if(fs.existsSync(`./logs/nodeos.log`)){
+      console.log('true')
+      await execPromise(`tail -c 1048576 ./logs/nodeos.log > ./logs/nodeos.old && mv ./logs/nodeos.old ./logs/nodeos.log`);
+    }
+    try {
+      await execPromise(`mkdir -p logs`);
+    }
+    catch (e) {
+
+    }
+    await execPromise(`nohup nodeos ${nodeosArgs.join(' ')} >> ./logs/nodeos.log 2>&1 &`, { unref: true });
   }
   else {
     var nodeos = process.env.DOCKER_NODEOS || 'liquidapps/eosio-plugins:v1.6.1';
@@ -102,7 +113,7 @@ const killIfRunning = async(status) => {
   catch (e) {}
 };
 
-const addLoggingConfig = async () => {
+const addLoggingConfig = async() => {
   const configPath = `${os.homedir()}/.zeus/nodeos/config/`;
   const loggingJsonPath = `${configPath}/logging.json`;
   if (!fs.existsSync(configPath))
@@ -113,14 +124,12 @@ const addLoggingConfig = async () => {
 
 const loggingJson = {
   "includes": [],
-  "appenders": [
-    {
+  "appenders": [{
       "name": "consoleout",
       "type": "console",
       "args": {
         "stream": "std_out",
-        "level_colors": [
-          {
+        "level_colors": [{
             "level": "debug",
             "color": "green"
           },
@@ -146,8 +155,7 @@ const loggingJson = {
       "enabled": true
     }
   ],
-  "loggers": [
-    {
+  "loggers": [{
       "name": "default",
       "level": "debug",
       "enabled": true,

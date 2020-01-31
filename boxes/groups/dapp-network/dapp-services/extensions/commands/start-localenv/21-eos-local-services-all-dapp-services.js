@@ -16,20 +16,19 @@ var generateModel = (commandNames) => {
   return model;
 };
 
-async function deployLocalService(serviceModel, provider = 'pprovider1', pi = 0) {
+async function deployLocalService(serviceModel, provider = 'pprovider1', gatewayPort) {
   var eos = await getEos(provider);
   var contractInstance = await eos.contract(servicescontract)
   var serviceName = serviceModel.name;
   var serviceContract = getContractAccountFor(serviceModel);
   var package_id = provider === 'pprovider1' ? 'default' : 'foobar';
-  var svcPort = serviceModel.port * (pi + 1);
   // reg provider packages
   await contractInstance.regpkg({
     newpackage: {
       id: 0,
       provider,
       enabled: false,
-      api_endpoint: `http://localhost:${svcPort}`,
+      api_endpoint: `http://localhost:${gatewayPort}`,
       package_json_uri: '',
       service: serviceContract,
       package_id,
@@ -41,18 +40,8 @@ async function deployLocalService(serviceModel, provider = 'pprovider1', pi = 0)
   }, {
     authorization: `${provider}@active`,
   });
-  // await contractInstance.enablepkg({
-  //         package_id:"default",
-  //         service: serviceContract,
-  //         provider,
-  // }, {
-  //     authorization: `${provider}@active`,
-  // });
-
-  // reg provider and model model
   var serviceC = artifacts.require(`./${serviceName}service/`);
   var deployedService = await deployer.deploy(serviceC, serviceContract);
-
   var contractServiceInstance = await eos.contract(serviceContract)
   await contractServiceInstance.regprovider({
     provider,
@@ -63,7 +52,6 @@ async function deployLocalService(serviceModel, provider = 'pprovider1', pi = 0)
   }, {
     authorization: `${provider}@active`,
   });
-
   return deployedService;
 }
 
@@ -72,6 +60,7 @@ var serviceRunner = require('../../helpers/service-runner');
 module.exports = async(args) => {
   if (args.creator !== 'eosio') { return; } // only local
   var models = await loadModels('dapp-services');
+  const gatewayPort = args.gatewayPort || '13015';
   var deployedServices = await deployer.deploy(servicesC, servicescontract);
   for (var i = 0; i < models.length; i++) {
     var serviceModel = models[i];
@@ -80,11 +69,13 @@ module.exports = async(args) => {
       var testProvider = testProviders[pi];
       var key = await getCreateAccount(testProvider);
       await serviceRunner(`/dummy/${serviceModel.name}-dapp-service-node.js`, serviceModel.port * (pi + 1)).handler(args, {
+        DSP_PRIVATE_KEY: key.active.privateKey,
+        DSP_GATEWAY_MAINNET_ENDPOINT: `http://localhost:${13015 * (pi + 1)}`, // mainnet gateway
         DSP_ACCOUNT: testProvider,
         SVC_PORT: serviceModel.port * (pi + 1),
-        NODEOS_HOST_DSP_PORT: 13015 * (pi + 1),
+        DSP_PORT: 13015 * (pi + 1),
       });
-      await deployLocalService(serviceModel, testProvider, pi);
+      await deployLocalService(serviceModel, testProvider, gatewayPort * (pi + 1));
     }
   }
 };

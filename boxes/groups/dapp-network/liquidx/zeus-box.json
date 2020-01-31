@@ -6,8 +6,13 @@
   "install":{
     "contracts":{
       "dappservicex": true,
-      "liquidx": true
+      "liquidx": true,
+      "ipfsxtest":true,
+      "orcxtest":true,
+      "readfnxtest": true,
+      "vaccountsx": true,
+      "cronxtest": true
     }
   },
-  "dependencies":["local-sidechains","ipfs-dapp-service" ]
+  "dependencies":["local-sidechains","all-dapp-services" ]
 }

@@ -1,29 +1,40 @@
 #!/usr/bin/env node
 
-require('babel-core/register');
-require('babel-polyfill');
+
+
 if (process.env.DAEMONIZE_PROCESS) { require('daemonize-process')(); }
 const path = require('path');
 const fs = require('fs');
 const logger = require('../../extensions/helpers/logger');
 const { loadModels } = require('../../extensions/tools/models');
-const { getCreateKeys } = require('../../extensions/helpers/key-utils');
 const { dappServicesContract, getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
-const { getEosWrapper } = require('../../extensions/tools/eos/eos-wrapper');
-const { deserialize, generateABI, genNode, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission, emitUsage, detectXCallback } = require('./common');
+const { deserialize, generateABI, genNode, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission, emitUsage, detectXCallback, getTableRowsSec, getLinkedAccount, parseEvents, pushTransaction, getEosForSidechain, eosMainnet } = require('./common');
 
+var sidechainsDict = {};
 
 const actionHandlers = {
   'service_request': async(act, simulated, serviceName, handlers) => {
     let isReplay = act.replay;
-    let { service, payer, provider, action, data, broadcasted } = act.event;
+    let { service, payer, provider, action, data, broadcasted, sidechain, meta } = act.event;
 
+    if (!sidechain && meta && meta.sidechain) {
+      sidechain = sidechainsDict[meta.sidechain.name];
+    }
+    logger.info(`service_request ${provider} ${service} ${payer} ${sidechain ? sidechain.name:""}`)
     var handler = handlers[action];
     var models = await loadModels('dapp-services');
-    var model = models.find(m => m.contract == service);
+    var serviceContractForLookup = service;
+    if (sidechain) {
+      serviceContractForLookup = await getLinkedAccount(null, null, service, sidechain.name, true);
+    }
+    var model = models.find(m => m.contract == serviceContractForLookup);
+    if (sidechain) {
+      // get sidechain contract if sidechain exists
+      service = await getContractAccountFor(model, sidechain);
+    }
     if (isReplay && provider == '') {
       provider = paccount;
-      if (!(getContractAccountFor(model) == service && handler)) { return; }
+      if (!(getContractAccountFor(model, sidechain) == service && handler)) { return; }
       await handleRequest(handler, act, packageid, serviceName, handlers.abi);
       return;
     }
@@ -35,35 +46,27 @@ const actionHandlers = {
       //this is a broadcast action - spam all relevant DSPs in parallel
       //including ourselves
       act.event.broadcasted = true;
-      let providers = await getProviders(payer, service, false);
+      let providers = await resolveProviderPackage(payer, service, false, sidechain, true);
+      logger.debug(`providers: ${JSON.stringify(providers)}`)
       await Promise.all(providers.map(async(prov) => {
-        let packageid = await resolveProviderPackage(payer, service, prov.provider);
-        let providerData = await resolveProviderData(service, prov.provider, packageid);
-        if (!providerData) return;
-        await forwardEvent(act, providerData.endpoint, false);
+        await forwardEvent(act, prov.data.endpoint, false);
       }));
-      logger.debug(`retry after broadcast ${action} to ${providers.length} providers`);
-
       return 'retry';
     }
-
-    provider = await resolveProvider(payer, service, provider);
-
-    var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider);
+    provider = await resolveProvider(payer, service, provider, sidechain);
+    var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider, sidechain);
     if (provider !== paccount) {
-      var providerData = await resolveProviderData(service, provider, packageid);
+      var providerData = await resolveProviderData(service, provider, packageid, sidechain);
       if (!providerData) { return; }
       return await forwardEvent(act, providerData.endpoint, act.exception);
     }
-
     if (!simulated) {
-      if (!(getContractAccountFor(model) == service && handler)) { return; }
+      if (!(getContractAccountFor(model, sidechain) == service && handler)) { return; }
       await handleRequest(handler, act, packageid, model.name, handlers.abi);
       return;
     }
     if (!act.exception) { return; }
-    if (getContractAccountFor(model) == service && handler) {
-
+    if (getContractAccountFor(model, sidechain) == service && handler) {
       await handleRequest(handler, act, packageid, model.name, handlers.abi);
       logger.debug(`retry after handle ${action}`);
       return 'retry';
@@ -72,6 +75,11 @@ const actionHandlers = {
   'service_signal': async(act, simulated, serviceName, handlers) => {
     if (simulated) { return; }
     let { action, data } = act.event;
+    let { sidechain, meta } = act.event;
+
+    if (!sidechain && meta && meta.sidechain) {
+      sidechain = sidechainsDict[meta.sidechain.name];
+    }
     var typeName = `sig_${action}`;
     var handler = handlers[typeName];
     var sigData = deserialize(handlers.abi, data, typeName);
@@ -81,13 +89,19 @@ const actionHandlers = {
       // console.log('unhandled signal', act);
       return;
     }
+    logger.debug(`service_signal handler`)
     await handler(sigData);
   },
   'usage_report': async(act, simulated, serviceName, handlers) => {
     if (simulated) { return; }
     var handler = handlers[`_usage`];
+    let { sidechain, meta } = act.event;
+    if (!sidechain && meta && meta.sidechain) {
+      sidechain = sidechainsDict[meta.sidechain.name];
+    }
     // todo: handle quota and verify sig and usage for each xaction
     if (handler) {
+      logger.debug(`usage_report handler`)
       await handler(act.event);
     }
     else {
@@ -95,134 +109,136 @@ const actionHandlers = {
     }
   }
 };
-const getLinkedAccount = async(eosSideChain, eosMain, account, sidechainName, isSisterChain) => {
-  if (!isSisterChain)
-    return account;
 
-  // TODO: resolve mapping if sidechain is sister chain (not same permissions)
-  // eosSideChain get linkedaccount
-  // eosMain get linkedaccount for sidechain_name
-  throw new Error('not implemented yet');
-}
 let enableXCallback = null;
+
+const extractUsageQuantity = async(e) => {
+  const details = e.json.error.details;
+
+  const jsons = details[details.length - 1].message.split(': ', 2)[1].split('\n').filter(a => a.trim() != '');
+  if (!jsons.length) {
+    throw new Error('usage event not found');
+  }
+  const events = (await parseEvents(jsons.join('\n'))).filter(e => e.etype === 'usage_report');
+
+  if (!events.length)
+    throw new Error('usage event not found');
+  var usage_report_event = events[0];
+  return { usageQuantity: usage_report_event.quantity, service: usage_report_event.service, provider: usage_report_event.provider, payer: usage_report_event.payer };
+}
+
 const handleRequest = async(handler, act, packageid, serviceName, abi) => {
-  var { sidechain, event } = act;
+  let { sidechain, event } = act;
   let { service, payer, provider, action, data } = event;
   const metadata = act.event.meta;
   data = deserialize(abi, data, action);
   if (!data) { return; }
   if (!sidechain && metadata && metadata.sidechain) {
-    var models = await loadModels('local-sidechains');
-    sidechain = models.find(m => m.name == metadata.sidechain);
+    const models = await loadModels('local-sidechains');
+    sidechain = models.find(m => m.name == metadata.sidechain.name);
   }
-
+  let sidechain_provider_on_mainnet = paccount;
   act.event.current_provider = paccount;
   act.event.packageid = packageid;
-  const account = act.account;
+  const eosMain = await eosMainnet();
+  let eosSideChain = eosMain;
+  if (sidechain) {    
+    const models = await loadModels('liquidx-mappings');    
+    let mapEntry; 
+    models.forEach(m => {
+      if(m.sidechain_name === sidechain.name && m.mainnet_account === paccount){
+        mapEntry = m;
+      }
+    })
+    if (!mapEntry)
+      throw new Error('mapping not found')
 
+    sidechain_provider_on_mainnet = mapEntry.chain_account;
+    act.event.current_provider = sidechain_provider_on_mainnet;
+    eosSideChain = await getEosForSidechain(sidechain, sidechain_provider_on_mainnet);
+  }
+  const account = act.account || payer;
   // for provisioning
-
-  var eosSideChain = await getEosWrapper({
-    expireInSeconds: 120,
-    sign: true,
-    broadcast: true,
-    blocksBehind: 10,
-    httpEndpoint: sidechain ? sidechain.nodeos_endpoint : `http${process.env.NODEOS_SECURED === 'true' || false ? 's':''}://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_PORT || 8888}`,
-    keyProvider: process.env.DSP_PRIVATE_KEY || (await getCreateKeys(paccount, null, false, sidechain)).active.privateKey
-  });
-
   var requestId = "";
   var meta = {};
   if (metadata) {
     // is async
     requestId = `${metadata.txId}.${act.event.action}.${account}.${metadata.eventNum}`;
     if (metadata.sidechain)
-      requestId = `${metadata.sidechain}.${requestId}`;
+      requestId = `${metadata.sidechain.name}.${requestId}`;
   }
-
-
 
   let responses = await handler(act, data);
   if (!responses) { return; }
   if (!Array.isArray(responses)) // needs conversion from a normal object
     responses = respond(act.event, packageid, responses);
 
-
-
-  let sidechain_provider = paccount;
+  let mainnet_account = account;
+  let service_on_mainnet = service;
+  let dappServicesSisterContract = dappServicesContract;
   if (sidechain) {
-    const eosMain = await getEosWrapper({
-      chainId: process.env.NODEOS_CHAINID, // 32 byte (64 char) hex string
-      expireInSeconds: 120,
-      sign: true,
-      broadcast: true,
-      blocksBehind: 10,
-      httpEndpoint: `http${process.env.NODEOS_SECURED === 'true' || false ? 's':''}://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_PORT || 8888}`,
-      keyProvider: process.env.DSP_PRIVATE_KEY || (await getCreateKeys(paccount)).active.privateKey
-    });
-    const mainnet_account = await getLinkedAccount(eosSideChain, eosMain, account, sidechain.name, sidechain.is_sister_chain);
-    sidechain_provider = await getLinkedAccount(eosSideChain, eosMain, paccount, sidechain.name, sidechain.is_sister_chain);
-    await emitUsage(mainnet_account, service, 1, sidechain, meta, requestId);
+    logger.info(`getting mappings for ${sidechain.name} ${dappServicesSisterContract} ${service} ${account} ${sidechain_provider_on_mainnet} ${dappServicesContract} ${payer}`);
+    mainnet_account = await getLinkedAccount(eosSideChain, eosMain, account, sidechain.name);
+    service_on_mainnet = await getLinkedAccount(eosSideChain, eosMain, service, sidechain.name, true);
+    dappServicesSisterContract = await getLinkedAccount(eosSideChain, eosMain, 'dappservices', sidechain.name);
   }
+  
   await Promise.all(responses.map(async(response) => {
-
-
-    var actions = [];
     if (enableXCallback === null) {
-      enableXCallback = await detectXCallback(eosSideChain);
+      enableXCallback = await detectXCallback(eosSideChain, dappServicesSisterContract);
     }
+    if (enableXCallback) {
+      let e = await pushTransaction(
+        eosSideChain,
+        dappServicesSisterContract,
+        payer,
+        sidechain_provider_on_mainnet,
+        response.action,
+        response.payload,
+        requestId,
+        meta,
+        true
+      );
 
+      logger.debug("CONFIRMING USAGE:\n%j", e);
 
-
-    if (enableXCallback === true) {
-      actions.push({
-        account: dappServicesContract,
-        name: "xcallback",
-        authorization: [{
-          actor: paccount,
-          permission: paccountPermission,
-        }],
-        data: {
-          provider: sidechain_provider,
-          request_id: requestId,
-          meta: JSON.stringify(meta)
-        },
-      });
+      // verify transaction emits usage
+      const usage_report = await extractUsageQuantity(e);
+      if (usage_report.service !== service) {
+        logger.warn(`wrong service ${usage_report.service} ${service}`);
+      }
+      if (usage_report.provider !== act.event.current_provider) {
+        logger.warn(`wrong provider ${usage_report.provider} ${act.event.current_provider}`);
+      }
+      if (usage_report.payer !== payer) {
+        logger.warn(`wrong payer ${usage_report.payer} ${payer}`);
+      }
+      if (sidechain)
+        await emitUsage(mainnet_account, service_on_mainnet, usage_report.usageQuantity, meta, requestId); // verify quota on provisioning chain    
     }
-    actions.push({
-      account: payer,
-      name: response.action,
-      authorization: [{
-        actor: sidechain_provider,
-        permission: paccountPermission,
-      }],
-      data: response.payload,
-    });
-
 
     try {
-      let tx = await eosSideChain.transact({
-        actions
-      }, {
-        expireSeconds: 120,
-        sign: true,
-        broadcast: true,
-        blocksBehind: 10
-      });
+      let tx = await pushTransaction(
+        eosSideChain,
+        dappServicesSisterContract,
+        payer,
+        sidechain_provider_on_mainnet,
+        response.action,
+        response.payload,
+        requestId,
+        meta,
+        false
+      );
       logger.debug("REQUEST\n%j\nRESPONSE: [%s]\n%j", act, tx.transaction_id, response);
-
-
-    }
-    catch (e) {
+    } catch(e) {
       if (e.json)
         e.error = e.json.error;
-
       logger.warn("REQUEST\n%j\nRESPONSE: [FAILED]\n%j", act, e);
       if (e.toString().indexOf('duplicate') == -1) {
         console.log(`response error, could not call contract callback for ${response.action}`, e);
         throw e;
       }
-    }
+    }    
     // dispatch on chain response - call response.action with params with paccount permissions
   }));
 };
@@ -247,6 +263,11 @@ const nodeFactory = async(serviceName, handlers) => {
   var models = await loadModels('dapp-services');
   var model = models.find(m => m.name == serviceName);
   logger.info(`nodeFactory starting ${serviceName}`);
+  var sidechains = await loadModels('local-sidechains');
+  for (var i = 0; i < sidechains.length; i++) {
+    var sidechain = sidechains[i];
+    sidechainsDict[sidechain.name] = sidechain;
+  }
   return genNode(actionHandlers, process.env.SVC_PORT || model.port, serviceName, handlers, await generateABI(model));
 };
 

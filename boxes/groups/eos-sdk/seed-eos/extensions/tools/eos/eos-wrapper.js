@@ -17,6 +17,7 @@ function getEosWrapper(config) {
     const api = new Api({ rpc, signatureProvider, textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
 
     api.getTableRows = (payload) => rpc.get_table_rows(payload);
+    api.rpc = rpc;
     api.get_info = (payload) => rpc.get_info(payload);
 
     api.contract = (async(config, account) => {

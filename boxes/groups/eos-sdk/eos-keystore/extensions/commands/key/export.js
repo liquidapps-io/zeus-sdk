@@ -12,28 +12,44 @@ module.exports = {
       .option('encrypted', {
         describe: 'exports encrypted key',
         type: 'boolean',
+        alias: 'e',
         default: false
       })
       .option('storage-path', {
         describe: 'path to where the key is stored',
         type: 'string',
+        alias: 's',
         default: `${home}/.zeus/networks`
       })
       .option('network', {
         describe: 'network',
         type: 'string',
+        alias: 'n',
         default: 'development'
       })
       .option('password', {
         describe: 'password to decrypt the keypair',
+        alias: 'p',
         type: 'string'
       })
-      .example('zeus key export eosio')
+      .option('vaccount', {
+        describe: 'vaccount or not',
+        type: 'boolean',
+        alias: 'v',
+        default: false
+      })
+      .example(`$0 key export eosio`)
+      .example(`$0 key export eosio --encrypted=true`)
+      .example(`$0 key export eosio --encrypted=true --password=password`)
+      .example(`$0 key export vaccountname --vaccount=true`)
+      .example(`$0 key export vaccountname --vaccount=true --encrypted=true`)
+      .example(`$0 key export vaccountname --vaccount=true  --encrypted=true --password=password`)
   },
   command: `${cmd} <account>`,
   handler: async (args) => {
     try {
-      const keyDir = args.encrypted ? 'encrypted-accounts' : 'accounts';
+      const vaccountPrefix = args.vaccount ? 'v' : '' ;
+      const keyDir = args.encrypted ? `encrypted-${vaccountPrefix}accounts` : `${vaccountPrefix}accounts`;
       const fullPath = `${args['storage-path']}/${args.network}/${keyDir}`;
       const accountPath = `${fullPath}/${args.account}.json`;
       let keys;

@@ -5,6 +5,7 @@
 #include <eosio/eosio.hpp>
 #include <eosio/transaction.hpp>
 #include <eosio/crypto.hpp>
+#include <eosio/binary_extension.hpp>
 using std::vector;
 using ipfsmultihash_t = std::vector<char>; 
 
@@ -86,6 +87,7 @@ static std::string data_to_uri(std::vector<char> data) {
 TABLE ipfsentry {  
    uint64_t                      id; 
    std::vector<char>             data; 
+   binary_extension<bool>        pending_commit;
    uint64_t primary_key()const { return id; }  
    checksum256 hash_key()const { return uri_to_key256(data_to_uri(data)); }  
 };  
@@ -94,10 +96,96 @@ typedef eosio::multi_index<"ipfsentry"_n, ipfsentry,
       const_mem_fun<ipfsentry, checksum256, 
                                &ipfsentry::hash_key> 
                 >> ipfsentries_t; 
+
+#ifdef USE_ADVANCED_IPFS
+#define IPFS_DAPPSERVICE_TABLES \
+TABLE vmanifest { \
+checksum256 next_available_key; \
+uint32_t shards; \
+uint32_t buckets_per_shard; \
+std::map<uint64_t,std::vector<char>> shardbuckets; \
+}; \
+typedef eosio::multi_index<".vmanifest"_n, vmanifest> vmanifest_t_abi; \
+TABLE vconfig { \
+checksum256 next_available_key; \
+uint32_t shards; \
+uint32_t buckets_per_shard; \
+uint32_t revision; \
+};\
+typedef eosio::multi_index<".vconfig"_n, vconfig> vconfig_t_abi;
+#else
+#define IPFS_DAPPSERVICE_TABLES \
+TABLE vconfig { \
+uint64_t next_available_key; \
+uint32_t shards; \
+uint32_t buckets_per_shard; \
+};\
+typedef eosio::multi_index<".vconfig"_n, vconfig> vconfig_t_abi;
+#endif
+
+#ifdef USE_IPFS_WARMUPROW
+#define IPFS_DAPPSERVICE_WARMUPROW_ACTIONS \
+static std::vector<char> getRawTreeData(std::string uri, name code, name table, uint64_t scope, uint8_t index_position, checksum256 castedKey, uint8_t keySize, bool pin = false, bool skip_commit = false, uint32_t delay_sec = 0){  \
+    auto _self = name(current_receiver()); \
+    ipfsentries_t entries(_self, _self.value);  \
+    auto cidx = entries.get_index<"byhash"_n>(); \
+    auto key =  uri_to_key256(uri); \
+    auto existing = cidx.find(key); \
+    if(existing == cidx.end()) {  \
+        if(_self != code) {\
+            ipfsentries_t r_entries(code, code.value);  \
+            auto r_cidx = r_entries.get_index<"byhash"_n>(); \
+            auto r_existing = r_cidx.find(key); \
+            if(r_existing != r_cidx.end()) return r_existing->data;\
+        }\
+        svc_ipfs_warmuprow(uri, code, table, scope, index_position, castedKey, keySize); \
+    } else if(skip_commit){ \
+        cidx.erase(existing); \
+    }\
+    else if(!pin)\
+        defer_commit(existing->data, short_hash(key), delay_sec); \
+    return existing->data;  \
+}  \
+template<typename T>  \
+static T getTreeData(std::string uri, name code, name table, uint64_t scope, uint8_t index_position, checksum256 castedKey, uint8_t keySize, bool pin = false, bool skip_commit = false, uint32_t delay_sec = 0){  \
+    return eosio::unpack<T>(getRawTreeData(uri, code, table, scope, index_position, castedKey, keySize, pin, skip_commit, delay_sec)); \
+}  \
+SVC_RESP_IPFS(warmuprow)(uint32_t size, std::vector<std::string> uris, std::vector<std::vector<char>> data, name current_provider){ \
+    auto _self = name(current_receiver()); \
+    ipfsentries_t entries(_self, _self.value);  \
+    for (auto i = 0; i < data.size(); i++) { \
+        auto currentData = data[i]; \
+        auto currentUri = data_to_uri(currentData); \
+        eosio::check(currentUri == uris[i], "wrong uri"); \
+        auto cidx = entries.get_index<"byhash"_n>(); \
+        auto existing = cidx.find(uri_to_key256(currentUri)); \
+        if(existing != cidx.end()) continue; \
+        entries.emplace(DAPP_RAM_PAYER, [&]( auto& a ) {  \
+                    a.id = entries.available_primary_key();  \
+                    a.data = currentData;  \
+        }); \
+    } \
+} \
+SVC_RESP_IPFS(cleanuprow)(uint32_t size, std::vector<std::string> uris, name current_provider){ \
+    auto _self = name(current_receiver()); \
+    ipfsentries_t entries(_self, _self.value);  \
+    auto cidx = entries.get_index<"byhash"_n>(); \
+    for (auto i = 0; i < uris.size(); i++) { \
+        auto uri = uris[i]; \
+        auto existing = cidx.find(uri_to_key256(uri)); \
+        if(existing != cidx.end()) cidx.erase(existing); \
+    } \
+}
+#else
+#define IPFS_DAPPSERVICE_WARMUPROW_ACTIONS
+#endif
+                
 #define IPFS_DAPPSERVICE_ACTIONS_MORE() \
+IPFS_DAPPSERVICE_TABLES \
 TABLE ipfsentry {  \
    uint64_t                      id; \
    std::vector<char>             data; \
+   binary_extension<bool>        pending_commit;\
    uint64_t primary_key()const { return id; }  \
    checksum256 hash_key()const { return uri_to_key256(data_to_uri(data)); }  \
 };  \
@@ -123,19 +211,28 @@ static void defer_commit(std::vector<char> data, uint64_t key, uint32_t delay_se
     cancel_deferred(key); \
     tx.send(key, _self); \
 } \
-static std::vector<char> getRawData(std::string uri, bool pin = false, bool skip_commit = false, uint32_t delay_sec = 0){  \
+static std::vector<char> getRawData(std::string uri, bool pin = false, bool skip_commit = false, uint32_t delay_sec = 0, name code = current_receiver()){  \
     auto _self = name(current_receiver()); \
     ipfsentries_t entries(_self, _self.value);  \
     auto cidx = entries.get_index<"byhash"_n>(); \
     auto key =  uri_to_key256(uri); \
     auto existing = cidx.find(key); \
-    if(existing == cidx.end())  \
-        svc_ipfs_warmup(uri); \
-    else if(skip_commit){ \
+    if(existing == cidx.end()) {\
+        if(_self != code) {\
+            ipfsentries_t r_entries(code, code.value);  \
+            auto r_cidx = r_entries.get_index<"byhash"_n>(); \
+            auto r_existing = r_cidx.find(key); \
+            if(r_existing != r_cidx.end()) return r_existing->data;\
+        }\
+        svc_ipfs_warmup(uri,code); \
+    } else if(skip_commit){ \
         cidx.erase(existing); \
-    }\
-    else if(!pin)\
+    } else if(!pin && !existing->pending_commit.value_or()) {\
+        entries.modify(*existing, eosio::same_payer, [&]( auto& a ) {  \
+            a.pending_commit.emplace(true); \
+        }); \
         defer_commit(existing->data, short_hash(key), delay_sec); \
+    }\
     return existing->data;  \
 }  \
 static std::string setRawData(std::vector<char> data, bool pin = false, uint32_t delay_sec = 0){  \
@@ -146,25 +243,32 @@ static std::string setRawData(std::vector<char> data, bool pin = false, uint32_t
     auto key = uri_to_key256(currentUri); \
     auto existing = cidx.find(key); \
     uint64_t id = 0;  \
+    bool pending_commit = false; \
     if(existing == cidx.end()){  \
         entries.emplace(_self, [&]( auto& a ) {  \
                     a.id = entries.available_primary_key();  \
                     id = a.id; \
+                    a.pending_commit.emplace(!pin); \
                     a.data = data;  \
         }); \
-    } else \
+    } else {\
         id = existing->id;\
-    if(!pin) defer_commit(data, short_hash(key), delay_sec); \
+        pending_commit = existing->pending_commit.has_value() ? existing->pending_commit.value() : false;\
+    } \
+    if(!pin && !pending_commit) {\
+        defer_commit(data, short_hash(key), delay_sec); \
+    }\
     return currentUri; \
 }\
 template<typename T>  \
-static T getData(std::string uri, bool pin = false, bool skip_commit = false, uint32_t delay_sec = 0){  \
-    return eosio::unpack<T>(getRawData(uri, pin, skip_commit, delay_sec)); \
+static T getData(std::string uri, bool pin = false, bool skip_commit = false, uint32_t delay_sec = 0, name code = current_receiver()){  \
+    return eosio::unpack<T>(getRawData(uri, pin, skip_commit, delay_sec, code)); \
 }  \
 template<typename T>  \
 static std::string setData(T  obj, bool pin = false, uint32_t delay_sec = 0){  \
     return setRawData(eosio::pack<T>(obj), pin, delay_sec);  \
 }   \
+IPFS_DAPPSERVICE_WARMUPROW_ACTIONS \
 SVC_RESP_IPFS(warmup)(uint32_t size,std::string uri,std::vector<char> data, name current_provider){ \
     auto _self = name(current_receiver()); \
     ipfsentries_t entries(_self, _self.value);  \
@@ -176,6 +280,7 @@ SVC_RESP_IPFS(warmup)(uint32_t size,std::string uri,std::vector<char> data, name
     entries.emplace(DAPP_RAM_PAYER, [&]( auto& a ) {  \
                 a.id = entries.available_primary_key();  \
                 a.data = data;  \
+                a.pending_commit.emplace(false);\
     }); \
 } \
 SVC_RESP_IPFS(cleanup)(uint32_t size, std::string uri, name current_provider){ \

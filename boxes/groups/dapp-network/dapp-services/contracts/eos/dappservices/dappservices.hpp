@@ -1,6 +1,7 @@
 #pragma once
 
 #include <eosio/action.hpp>
+#include <eosio/transaction.hpp>
 #include <eosio/asset.hpp>
 #include <eosio/contract.hpp>
 #include <eosio/dispatcher.hpp>
@@ -39,6 +40,7 @@ extern "C" {
 #define STR(x) XSTR(x)
 #define IDENT(x) x
 #define EMPTYSEQ ()
+
 
 #define EMIT_REQUEST_SVC_EVENT(payer, service, action, provider,             \
                                encodedData)                                    \
@@ -139,7 +141,7 @@ extern "C" {
                    action_args, service_contract)                                                \
   SIGNAL_T(aname, signal_fields, service_contract)                                               \
   REQUEST_T(aname, fail_val, request_fields, service_contract)                                   \
-  static void signal_svc(name service, name provider,name package,                        \
+  static void signal_svc(name service, name provider,name package,             \
                          SIGNAL_NAME(aname) signalData) {                      \
     name actionName = TONAME(aname);                                           \
     std::vector<char> raw = eosio::pack<SIGNAL_NAME(aname)>(signalData);       \
@@ -239,7 +241,7 @@ struct usage_t {
   if (action == TONAME(signal)) {                                              \
     _xsignal_provider<SIGNAL_NAME(signal)>(                                    \
         action, provider,package,                                              \
-        eosio::unpack<SIGNAL_NAME(signal)>(signalRawData));                    \
+        eosio::unpack<SIGNAL_NAME(signal)>(signalRawData), dappserviceContract, payer);                    \
     return;                                                                    \
   }
 
@@ -387,6 +389,8 @@ typedef eosio::multi_index<
                                >
       accountexts_t;
 
+
+
 std::vector<name> getProvidersForAccount(name account, name service) {
   // get from service account
   accountexts_t accountexts(DAPPSERVICES_CONTRACT, DAPPSERVICES_SYMBOL.code().raw());
@@ -403,24 +407,25 @@ std::vector<name> getProvidersForAccount(name account, name service) {
   return result;
 }
 
-
-void dispatchUsage(usage_t usage_report) {
+void dispatchUsage(usage_t usage_report, name servicesContract) {
   action(permission_level{name(current_receiver()), "active"_n},
-         DAPPSERVICES_CONTRACT, "usage"_n, std::make_tuple(usage_report))
+         servicesContract, "usage"_n, std::make_tuple(usage_report))
       .send();
 }
 
 
 #define DAPPSERVICE_PROVIDER_ACTIONS                                               \
   template <typename T>                                                        \
-  void _xsignal_provider(name actionName, name provider,name package, T signalData) {       \
-    auto payer = get_first_receiver();  \
+  void _xsignal_provider(name actionName, name provider,name package, T signalData, name servicesContract, name payer) {       \
     std::vector<name> providers;                                               \
     if (provider != ""_n)                                                      \
       providers.push_back(provider);                                           \
     else                                                                       \
       providers = getProvidersForAccount(payer, name(current_receiver()));     \
-    require_auth(payer);                                                       \
+    if(servicesContract == DAPPSERVICES_CONTRACT)                             \
+      require_auth(payer);                                                       \
+    else                                                                        \
+      require_auth(servicesContract);                                                       \
     auto currentProvider = provider;                                            \
       providermodels_t providermodels(_self, currentProvider.value);           \
       auto providerModel = providermodels.find(package.value);      \
@@ -431,7 +436,7 @@ void dispatchUsage(usage_t usage_report) {
       usageResult.payer = payer;                                               \
       usageResult.package = package;                                               \
       usageResult.service = name(current_receiver());                        \
-      dispatchUsage(usageResult);                                              \
+      dispatchUsage(usageResult, servicesContract);                                              \
   }
 
 #define DAPPSERVICE_PROVIDER_BASIC_ACTIONS                                       \
@@ -450,7 +455,7 @@ void dispatchUsage(usage_t usage_report) {
   extern "C" {                                                                 \
   void apply(uint64_t receiver, uint64_t code, uint64_t action) { \
     if (code == receiver) {                                                    \
-      switch (action) { EOSIO_DISPATCH_HELPER(contract, (regprovider)) }       \
+      switch (action) { EOSIO_DISPATCH_HELPER(contract, (regprovider)(ACTION_NAME(signalx))) }       \
     } else                                                                     \
       switch (action) {                                                        \
         EOSIO_DISPATCH_HELPER(contract, (ACTION_NAME(signal)))                 \

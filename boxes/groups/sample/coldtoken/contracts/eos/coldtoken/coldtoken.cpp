@@ -3,9 +3,6 @@
  *  @copyright defined in eos/LICENSE.txt
  */
  
- 
-// DSP pays for RAM needed for the cache table (default is _self)
-#define DAPP_RAM_PAYER current_provider
 #include "coldtoken.hpp"
 
 using namespace eosio;

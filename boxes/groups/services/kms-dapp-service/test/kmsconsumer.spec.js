@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getNetwork, getCreateKeys, getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
 var Eos = require('eosjs');
@@ -34,7 +34,7 @@ describe(`KMS Service Contract`, () => {
     const code = 'testkms';
     var account = code;
     before(done => {
-        (async() => {
+        (async () => {
             try {
                 var deployedContract = await deployer.deploy(ctrt, code);
                 await genAllocateDAPPTokens(deployedContract, serviceName);
@@ -51,7 +51,7 @@ describe(`KMS Service Contract`, () => {
     });
 
     it('kms set secret', done => {
-        (async() => {
+        (async () => {
             try {
                 done();
             }

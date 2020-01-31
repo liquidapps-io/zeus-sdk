@@ -13,27 +13,43 @@ module.exports = {
       .option('encrypted', {
         describe: 'Encrypt the account keys with a password',
         type: 'boolean',
+        alias: 'e',
         default: false
       })
       .option('storage-path', {
         describe: 'path to the wallet which will store the key',
         type: 'string',
+        alias: 's',
         default: `${home}/.zeus/networks`
       })
       .option('network', {
         describe: 'network',
         type: 'string',
+        alias: 'n',
         default: 'development'
       })
       .option('password', {
         describe: 'password to encrypt the keys with',
+        alias: 'p',
         type: 'string'
       })
-      .example(`$0 key import eosio --owner-private-key 5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3 --active-private-key 5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3`)
+      .option('vaccount', {
+        describe: 'vaccount or not',
+        type: 'boolean',
+        alias: 'v',
+        default: false
+      })
+      .example(`$0 key import eosio --owner-private-key 5KQwr... --active-private-key 5KQwr...`)
+      .example(`$0 key import eosio --owner-private-key 5KQwr... --active-private-key 5KQwr... --encrypted=true`)
+      .example(`$0 key import eosio --owner-private-key 5KQwr... --active-private-key 5KQwr... --encrypted=true --password=password`)
+      .example(`$0 key import vaccount --vaccount=true --owner-private-key 5KQwr... --active-private-key 5KQwr...`)
+      .example(`$0 key import vaccount --vaccount=true --owner-private-key 5KQwr... --active-private-key 5KQwr... --encrypted=true`)
+      .example(`$0 key import vaccount --vaccount=true --owner-private-key 5KQwr... --active-private-key 5KQwr... --encrypted=true --password=password`)
   },
   command: `import <account>`,
   handler: async (args) => {
-    const keyDir = args.encrypted ? 'encrypted-accounts' : 'accounts';
+    const vaccountPrefix = args.vaccount ? 'v' : '' ;
+    const keyDir = args.encrypted ? `encrypted-${vaccountPrefix}accounts` : `${vaccountPrefix}accounts`;
     const fullPath = `${args['storage-path']}/${args.network}/${keyDir}`;
     const accountPath = `${fullPath}/${args.account}.json`;
     

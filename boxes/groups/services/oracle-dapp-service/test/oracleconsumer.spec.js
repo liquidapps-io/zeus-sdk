@@ -1,6 +1,6 @@
-require("babel-core/register");
-require("babel-polyfill");
-import 'mocha';
+
+
+require('mocha');
 const { assert } = require('chai'); // Using Assert style
 const { getTestContract } = require('../extensions/tools/eos/utils');
 
@@ -14,7 +14,7 @@ describe(`Oracle Service Test Contract`, () => {
   var testcontract;
   const code = 'test1';
   before(done => {
-    (async() => {
+    (async () => {
       try {
 
         var deployedContract = await deployer.deploy(ctrt, code);

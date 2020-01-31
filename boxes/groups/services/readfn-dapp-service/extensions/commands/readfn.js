@@ -31,7 +31,7 @@ module.exports = {
   handler: async(args) => {
     var models = await loadModels('dapp-services');
     var service = models.find(a => a.name == 'readfn').contract;
-    const { contract, method, payload, endpoint } = args;
+    const { contract, method, payload, endpoint, sidechain } = args;
     const result = await postData(`${endpoint}/v1/dsp/${service}/read`, { contract_code: contract, method, payload: JSON.parse(payload) });
     console.log(JSON.stringify(result));
   }

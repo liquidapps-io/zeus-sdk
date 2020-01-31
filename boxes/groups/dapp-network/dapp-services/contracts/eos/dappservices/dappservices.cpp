@@ -253,7 +253,8 @@ public:
     auto existing = cidx.find(idxKey);
     eosio::check(existing == cidx.end(), "already exists");
 
-    eosio::check(newpackage.quota.symbol == DAPPSERVICES_QUOTA_SYMBOL, "wrong symbol");
+    eosio::check(newpackage.quota.symbol == DAPPSERVICES_QUOTA_SYMBOL, "wrong symbol (QUOTA) or precision (.0000)");
+    eosio::check(newpackage.min_stake_quantity.symbol == DAPPSERVICES_SYMBOL, "wrong symbol (DAPP) or precision (.0000)");
 
     packages.emplace(newpackage.provider, [&](package &r) {
       // start disabled.
@@ -461,6 +462,7 @@ public:
 
  [[eosio::action]] void xsignal(name service, name action, name provider, name package,
                  std::vector<char> signalRawData) {
+    authorizeUsage(provider);
     require_auth(get_first_receiver());
     string str(signalRawData.begin(), signalRawData.end());
     auto encodedData = fc::base64_encode(str);
@@ -696,7 +698,13 @@ public:
     require_recipient(provider);
     require_recipient(service);
     require_recipient(payer);
-
+    if(shouldFail()){
+      lastlog_t lastlog_singleton(_self,_self.value);
+      auto lastlog_inst = lastlog_singleton.get_or_default();
+      lastlog_inst.usage_reports.push_back(usage_report);
+      lastlog_singleton.set(lastlog_inst, _self);       
+      // append log
+    }
     usage_report.success = usequota(payer, provider, service, quantity);
     EMIT_USAGE_REPORT_EVENT(usage_report);
   }
@@ -738,6 +746,26 @@ public:
     action(permission_level{_self, "active"_n}, _self, "transfer"_n,
            std::make_tuple(_self, provider, rewardAsset, std::string("rewards")))
         .send();
+  }
+
+
+  TABLE lastlog {
+    std::vector<usage_t> usage_reports; // owner account on mainnet
+  };
+  typedef eosio::singleton<"lastlog"_n, lastlog> lastlog_t;
+
+  [[eosio::action]] void xfail() {
+    lastlog_t lastlog_singleton(_self,_self.value);
+    if(lastlog_singleton.exists()){
+      auto lastlog_inst = lastlog_singleton.get();
+      auto it = lastlog_inst.usage_reports.begin();
+      while(it != lastlog_inst.usage_reports.end()) {
+        EMIT_USAGE_REPORT_EVENT(*it);
+        ++it;
+      }
+      lastlog_singleton.remove();      
+    }
+    eosio::check( false, "always false assert");
   }
 
 private:
@@ -1178,6 +1206,46 @@ private:
     }
   }
 
+  void authorizeUsage( name provider ) {
+    auto size = transaction_size();
+    char buf[size];
+    uint32_t read = read_transaction( buf, size );
+    check( size == read, "read_transaction failed");
+    auto tx = unpack<transaction>(buf, size);
+    //check last action, and then first ation
+    auto last = tx.actions.rbegin();
+    if(last != tx.actions.rend()) {
+      if(last->account == DAPPSERVICES_CONTRACT && last->name == "xcallback"_n) {
+        auto auth = last->authorization.begin();
+        check(auth != last->authorization.end(), "xcallback has no permissions"); //this should never happen        
+        if(auth->actor == provider) return; //we assume xcallback will have a single permission
+      }
+    }
+    auto first = tx.actions.begin();
+    if(first != tx.actions.end()) {
+      if(first->account == DAPPSERVICES_CONTRACT && first->name == "xcallback"_n) {
+        auto auth = first->authorization.begin();
+        check(auth != first->authorization.end(), "xcallback has no permissions"); //this should never happen        
+        if(auth->actor == provider) return; //we assume xcallback will have a single permission
+      }
+    }
+    check(false, "provider has not authorized themselves with xcallback");
+  }
+
+  bool shouldFail() {
+    auto size = transaction_size();
+    char buf[size];
+    uint32_t read = read_transaction( buf, size );
+    check( size == read, "read_transaction failed");
+    auto tx = unpack<transaction>(buf, size);
+    //check last action, and then first ation
+    auto last = tx.actions.rbegin();
+    if(last != tx.actions.rend()) {
+      if(last->account == DAPPSERVICES_CONTRACT && last->name == "xfail"_n) return true;      
+    }
+    return false;
+  }
+
   bool usequota(name payer, name provider, name service, asset quantity) {
     refillPackage(payer, provider, service);
     return sub_quota(payer, service, provider, quantity);
@@ -1202,7 +1270,7 @@ void apply(uint64_t receiver, uint64_t code, uint64_t action) {
                         (staketo)(unstaketo)(refundto)(refreceipt)
                         (claimrewards)(create)(issue)(transfer)
                         (open)(close)(retire)(preselectpkg)(retirestake)(xcallback)
-                        (selectpkg)(regpkg)(closeprv)(modifypkg)(disablepkg)(enablepkg)(usagex))
+                        (selectpkg)(regpkg)(closeprv)(modifypkg)(disablepkg)(enablepkg)(usagex)(xfail))
     }
   } else {
     switch (action) { EOSIO_DISPATCH_HELPER(dappservices, (xsignal)) }

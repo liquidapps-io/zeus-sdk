@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork, getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
@@ -101,6 +101,7 @@ async function selectPackage({ deployedContract, serviceName = 'ipfs', provider 
   var contract = deployedContract.address;
   var eos = await getEos(contract);
   let servicesTokenContract = await eos.contract(dappServicesContract);
+  let systemContract = await eos.contract('eosio');
   await servicesTokenContract.selectpkg({
     owner: contract,
     provider,
@@ -109,6 +110,31 @@ async function selectPackage({ deployedContract, serviceName = 'ipfs', provider 
   }, {
     authorization: `${contract}@active`,
   });
+  await systemContract.updateauth({
+    account: contract,
+    permission: 'dsp',
+    parent: 'active',
+    auth: {
+      threshold: 1,
+      keys: [],
+      accounts: [{
+        permission: { actor: provider, permission: 'active' },
+        weight: 1,
+      }],
+      waits: []
+    }
+  }, { authorization: `${contract}@active` });
+  try {
+    var commandNames = Object.keys(model.commands);
+    await Promise.all(commandNames.map(async (command) => {
+      await systemContract.linkauth({
+        account: contract,
+        code: contract,
+        type: `x${command}`,
+        requirement: 'dsp'
+      }, { authorization: `${contract}@active` });
+    }));
+  } catch (e) { }
 }
 
 async function preSelectPackage({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1', selectedPackage = 'default', delegators = [], depth = 0 }) {
@@ -116,7 +142,7 @@ async function preSelectPackage({ deployedContract, serviceName = 'ipfs', provid
   var service = model.contract;
   let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
   var contract = deployedContract.address;
-  if(depth == 0) {
+  if (depth == 0) {
     await servicesTokenContract.retirestake({
       owner: contract,
       provider,
@@ -141,7 +167,7 @@ async function preSelectPackage({ deployedContract, serviceName = 'ipfs', provid
       sign: true
     });
   }
-  
+
 }
 
 async function stake({ deployedContract, serviceName = 'ipfs', provider = 'pprovider1', amount = '500.0000' }) {
@@ -290,7 +316,7 @@ async function deployConsumerContract(code) {
 
 
 describe(`DAPP Services Provider & Packages Tests`, () => {
-  const invokeService = async(code, testcontract) => {
+  const invokeService = async (code, testcontract) => {
     var keys = await getCreateKeys(code);
     var res = await testcontract.testempty({
       uri: 'ipfs://zb2rhmy65F3REf8SZp7De11gxtECBGgUKaLdiDj7MCGCHxbDW',
@@ -305,7 +331,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
   };
 
   it('Simple package and action', done => {
-    (async() => {
+    (async () => {
       try {
         var selectedPackage = 'test124';
         var testContractAccount = 'consumer2';
@@ -338,7 +364,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
   });
 
   it('Simple package and unstake', done => {
-    (async() => {
+    (async () => {
       try {
         var selectedPackage = 'test1231';
         var testContractAccount = 'consumer5';
@@ -363,7 +389,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
     })();
   });
   it('Simple package and double unstake', done => {
-    (async() => {
+    (async () => {
       try {
         var selectedPackage = 'test121';
         var testContractAccount = 'consumer3';
@@ -395,7 +421,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
     })();
   });
   it('Simple package and double unstake too much', done => {
-    (async() => {
+    (async () => {
       try {
         var selectedPackage = 'test111';
         var testContractAccount = 'consumer4';
@@ -423,7 +449,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
     })();
   });
   it('Simple package and unstake third party', done => {
-    (async() => {
+    (async () => {
       try {
         var selectedPackage = 'third123';
         var testContractPayer = 'dappairhodl1';
@@ -455,7 +481,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
     })();
   });
   it('Simple package and transfer stake third party', done => {
-    (async() => {
+    (async () => {
       try {
         var selectedPackage = 'third111';
         var testContractPayer = 'transfer1';
@@ -487,7 +513,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
     })();
   });
   it('Simple package and stake third party - refund on package change', done => {
-    (async() => {
+    (async () => {
       try {
         var selectedPackage = 'third315';
         var nextPackage = 'third325';
@@ -502,8 +528,8 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         await deployServicePackage({ package_id: nextPackage, package_period });
         await selectPackage({ deployedContract, selectedPackage });
         await staketo({ deployedPayer, deployedContract, selectedPackage });
-        await staketo({ deployedPayer:deployedPayer2, deployedContract, selectedPackage });
-        
+        await staketo({ deployedPayer: deployedPayer2, deployedContract, selectedPackage });
+
         await invokeService(testContractAccount, testcontract);
 
         var failed = false;
@@ -515,11 +541,11 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         }
         assert(failed, 'should have failed for thid party stakes');
 
-        
+
         //await preSelectPackage({ deployedContract, selectedPackage, delegators: [testContractPayer,testContractPayer2] });
-        await preSelectPackage({ deployedContract, selectedPackage, depth: 2 });        
+        await preSelectPackage({ deployedContract, selectedPackage, depth: 2 });
         await selectPackage({ deployedContract, selectedPackage: nextPackage });
-        await delaySec(package_period*2);
+        await delaySec(package_period * 2);
         failed = false;
         try {
           await invokeService(testContractAccount, testcontract);
@@ -530,7 +556,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         assert(failed, 'should have failed for no stake');
 
         await staketo({ deployedPayer, deployedContract, selectedPackage: nextPackage });
-        await staketo({ deployedPayer:deployedPayer2, deployedContract, selectedPackage: nextPackage });
+        await staketo({ deployedPayer: deployedPayer2, deployedContract, selectedPackage: nextPackage });
         await invokeService(testContractAccount, testcontract);
 
         failed = false;
@@ -541,9 +567,9 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
           failed = true;
         }
         assert(failed, 'should have failed for thid party stakes');
-        await preSelectPackage({ deployedContract, selectedPackage: nextPackage, delegators: [testContractPayer,testContractPayer2] });
+        await preSelectPackage({ deployedContract, selectedPackage: nextPackage, delegators: [testContractPayer, testContractPayer2] });
         await selectPackage({ deployedContract, selectedPackage });
-        await delaySec(package_period*2);
+        await delaySec(package_period * 2);
 
         failed = false;
         try {
@@ -561,7 +587,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
     })();
   });
   it('Third party preSelectPackage more than depth', done => {
-    (async() => {
+    (async () => {
       try {
         var selectedPackage = 'thirdparty1';
         var nextPackage = 'thirdparty2';
@@ -577,14 +603,14 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         await selectPackage({ deployedContract, selectedPackage });
         // stake to 2 packages
         await staketo({ deployedPayer, deployedContract, selectedPackage });
-        await staketo({ deployedPayer:deployedPayer2, deployedContract, selectedPackage });
-        
+        await staketo({ deployedPayer: deployedPayer2, deployedContract, selectedPackage });
+
         await invokeService(testContractAccount, testcontract);
 
         var failed = true;
         try {
           // try to preSelectPackage for 3 packages (depth)
-          await preSelectPackage({ deployedContract, selectedPackage, depth: 3 });   
+          await preSelectPackage({ deployedContract, selectedPackage, depth: 3 });
         }
         catch (e) {
           failed = false;
@@ -599,7 +625,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
     })();
   });
   it('Third party retireStake more than delegators staked', done => {
-    (async() => {
+    (async () => {
       try {
         var selectedPackage = 'thirdpart1';
         var nextPackage = 'thirdpart2';
@@ -614,10 +640,10 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         await deployServicePackage({ package_id: nextPackage, package_period });
         await selectPackage({ deployedContract, selectedPackage });
         await staketo({ deployedPayer, deployedContract, selectedPackage });
-        await staketo({ deployedPayer:deployedPayer2, deployedContract, selectedPackage });
-        
+        await staketo({ deployedPayer: deployedPayer2, deployedContract, selectedPackage });
+
         await invokeService(testContractAccount, testcontract);
-        await preSelectPackage({ deployedContract, selectedPackage, delegators: [testContractPayer,testContractPayer2,"randomdelega"] });
+        await preSelectPackage({ deployedContract, selectedPackage, delegators: [testContractPayer, testContractPayer2, "randomdelega"] });
 
         var failed = true;
         try {
@@ -635,7 +661,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
     })();
   });
   it('Third party test select new package with different provider/service pair', done => {
-    (async() => {
+    (async () => {
       try {
         var selectedPackage = 'thirdpar11';
         var nextPackage = 'thirdpar22';
@@ -660,7 +686,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
           failed = false;
         }
         assert(failed, 'should have succeeded because selecting different provider/service pair, no need to clear third party stakes');
-        await staketo({ serviceName: 'log', deployedPayer:deployedPayer2, deployedContract, selectedPackage, provider: 'pprovider2' });
+        await staketo({ serviceName: 'log', deployedPayer: deployedPayer2, deployedContract, selectedPackage, provider: 'pprovider2' });
         done();
       }
       catch (e) {
@@ -669,7 +695,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
     })();
   });
   it('not enough stake', done => {
-    (async() => {
+    (async () => {
       try {
         var selectedPackage = 'test1111';
         var testContractAccount = 'con14';
@@ -694,7 +720,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
     })();
   });
   it('test rewards', done => {
-    (async() => {
+    (async () => {
       try {
         var selectedPackage = 'test2222';
         var testContractAccount = 'con25';
@@ -796,6 +822,34 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         assert(balance4 > balance3, 'balance should have increased');
         assert(reward == 0, 'reward should be 0')
 
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  it('Wrong token symbol precision (4,QUOTA / 4,DAPP) when registering service package', done => {
+    (async () => {
+      try {
+        var selectedPackage = 'test136';
+        var package_period = 5;
+        var failed = false;
+        try {
+          await deployServicePackage({ package_id: selectedPackage, package_period, min_stake_quantity: "1 DAPP" });
+        }
+        catch (e) {
+          failed = true;
+        }
+        assert(failed, 'should have failed, DAPP token requires 4 decimals of precision (wrong: 1 DAPP -> right: 1.0000 DAPP');
+        failed = false;
+        try {
+          await deployServicePackage({ package_id: selectedPackage, package_period, quota: "1 QUOTA" });
+        }
+        catch (e) {
+          failed = true;
+        }
+        assert(failed, 'should have failed, QUOTA token requires 4 decimals of precision (wrong: 1 QUOTA -> right: 1.0000 QUOTA');
         done();
       }
       catch (e) {

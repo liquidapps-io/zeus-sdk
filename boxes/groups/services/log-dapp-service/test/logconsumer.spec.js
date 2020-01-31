@@ -1,6 +1,6 @@
-import 'mocha';
-require('babel-core/register');
-require('babel-polyfill');
+require('mocha');
+
+
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork } = require('../extensions/tools/eos/utils');
@@ -17,7 +17,7 @@ describe(`Log Service Test Contract`, () => {
   var testcontract;
   const code = 'test2';
   before(done => {
-    (async() => {
+    (async () => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
         await genAllocateDAPPTokens(deployedContract, 'log');
@@ -35,7 +35,7 @@ describe(`Log Service Test Contract`, () => {
 
   var account = code;
   it('Log event', done => {
-    (async() => {
+    (async () => {
       try {
         var res = await testcontract.test({
           num: 123

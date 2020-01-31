@@ -103,9 +103,6 @@ struct regaccount_action { \
   EOSLIB_SERIALIZE( regaccount_action, (vaccount) ) \
 }; \
 [[eosio::action]] void regaccount(regaccount_action payload) { \
-    print("setting key for:");\
-    print(payload.vaccount);\
-    print("\n");\
    setKey(payload.vaccount, get_current_public_key()); \
 } \
 [[eosio::action]] void xvinit(eosio::checksum256 chainid) { \

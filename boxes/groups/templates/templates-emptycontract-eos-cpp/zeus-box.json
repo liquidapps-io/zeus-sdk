@@ -9,7 +9,6 @@
   "dependencies":[
     "hooks-npm",
     "mocha","seed-eos", "seed-migrations", "hooks-cpp-contracts","eos-common",
-    "all-dapp-services",
     "seed-models","templates-extensions"
   ],
   "install":{

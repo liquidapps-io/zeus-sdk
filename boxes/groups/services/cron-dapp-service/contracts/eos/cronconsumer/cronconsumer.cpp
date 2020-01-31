@@ -15,6 +15,7 @@ CONTRACT_START()
   };
 
   typedef eosio::singleton<"stat"_n, stat> stats_def;
+  typedef eosio::multi_index<"stat"_n, stat> stats_def_abi;
   bool timer_callback(name timer, std::vector<char> payload, uint32_t seconds){
 
     stats_def statstable(_self, _self.value);
@@ -29,7 +30,7 @@ CONTRACT_START()
     statstable.set(newstats, _self);
 
     // reschedule
-    return (newstats.counter < 10);
+    return (newstats.counter < 100);
   }
  [[eosio::action]] void testschedule() {
     std::vector<char> payload;

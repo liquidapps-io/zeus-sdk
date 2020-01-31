@@ -51,7 +51,8 @@ function getUrl(args, sidechain) {
         return sidechain.nodeos_endpoint;
     }
     if (args.NODEOS_SECURED && args.NODEOS_HOST && args.NODEOS_PORT) {
-        return `http${args.NODEOS_SECURED === 'true' ? 's' : ''}://${args.NODEOS_HOST}:${args.NODEOS_PORT}`;
+        const NODEOS_SECURED = args.NODEOS_SECURED === 'true' || args.NODEOS_SECURED === true ? true : false;
+        return `http${NODEOS_SECURED ? 's' : ''}://${args.NODEOS_HOST}:${args.NODEOS_PORT}`;
     }
     const selectedNetwork = getNetwork(args, sidechain);
     return `http${selectedNetwork.secured ? 's' : ''}://${selectedNetwork.host}:${selectedNetwork.port}`;

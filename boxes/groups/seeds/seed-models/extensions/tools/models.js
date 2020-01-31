@@ -8,7 +8,7 @@ const isFile = source => !lstatSync(source).isDirectory();
 const getFiles = (source, ext) =>
   readdirSync(source).map(name => join(source, name)).filter(isFile).filter(a => a.endsWith(ext)).sort();
 
-const loadModels = async(name) => {
+const loadModels = (name) => {
   if (!fs.existsSync(path.resolve(`./models/${name}`))) {
     return [];
   }
