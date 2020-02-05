@@ -4,7 +4,7 @@
     "zeus-box.json"
   ],
   "commands": {
-    "Run framework tests": "zeus test"
+    "Run framework tests": "zeus test -c"
   },
   "dependencies":[
     "all-dapp-services",

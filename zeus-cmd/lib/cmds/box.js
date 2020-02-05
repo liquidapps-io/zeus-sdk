@@ -24,7 +24,7 @@ module.exports = {
                 "commands": {
                     "Compile contracts": "zeus compile",
                     "Migrate contracts": "zeus migrate",
-                    "Test contracts": "zeus test"
+                    "Test contracts": "zeus test -c"
                 },
                 "hooks": {
                     "post-unpack": "echo hello",
