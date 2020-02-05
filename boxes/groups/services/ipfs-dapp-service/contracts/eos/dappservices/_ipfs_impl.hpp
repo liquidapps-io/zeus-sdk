@@ -224,7 +224,7 @@ static std::vector<char> getRawData(std::string uri, bool pin = false, bool skip
             auto r_existing = r_cidx.find(key); \
             if(r_existing != r_cidx.end()) return r_existing->data;\
         }\
-        svc_ipfs_warmup(uri,code); \
+        svc_ipfs_warmup(uri); \
     } else if(skip_commit){ \
         cidx.erase(existing); \
     } else if(!pin && !existing->pending_commit.value_or()) {\

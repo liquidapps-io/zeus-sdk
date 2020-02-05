@@ -88,7 +88,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
   // important no vram actions done before this test
-  it('Cleanup', done => {
+  it.skip('Cleanup', done => {
     (async () => {
       try {
         await delaySec(15);
