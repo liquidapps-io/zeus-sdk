@@ -20,7 +20,8 @@
     },
     "npm":{
       "node-fetch": true,
-      "eosjs-ecc": true
+      "eosjs-ecc": true,
+      "isomorphic-fetch": true
     }
   },
   "hooks": {

@@ -2,7 +2,7 @@ const { createClient } = require('../../../client/dist/src/dapp-client-lib');
 const { PrivateKey } = require('eosjs-ecc');
 const { execPromise, emojMap } = require('../../helpers/_exec');
 const safe = require('../../helpers/safe');
-import fetch from 'isomorphic-fetch';
+const fetch = require('isomorphic-fetch');
 const os = require('os');;
 const fs = require('fs');
 const home = os.homedir();
