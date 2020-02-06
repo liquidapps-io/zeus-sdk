@@ -1,12 +1,21 @@
-var path = require('path');
-var os = require('os');
-var fs = require('fs');
-var { execPromise, emojMap } = require('../helpers/_exec');
-var temp = require('temp');
+const path = require('path');
+const os = require('os');
+const fs = require('fs');
+const { execPromise, emojMap } = require('../helpers/_exec');
+const mapping = require('../helpers/_mapping');
+const temp = require('temp');
 
 const { promisify } = require('util');
 const mkdir = promisify(temp.mkdir); // (A)
 temp.track();
+
+// Setup process exit/crash handler to always cleanup temp
+/*const cleanup = function () {
+  //console.log('cleaning up');
+  temp.cleanupSync();
+};
+['exit', 'SIGINT', 'uncaughtException'].map(sig => process.on(sig, cleanup));*/
+
 const isDirectory = source => fs.lstatSync(source).isDirectory();
 const getDirectories = source =>
   fs.readdirSync(source).map(name => path.join(source, name)).filter(isDirectory);
@@ -34,7 +43,6 @@ function copyFileSync(source, target, simulate, newIgnoreList, rootPath) {
     fs.chmodSync(targetFile, stats.mode);
   }
 }
-var mapping = require('../mapping');
 
 function copyFolderRecursiveSync(source, target, simulate, ignoreList, newIgnoreList, rootPath) {
   var files = [];
@@ -90,7 +98,11 @@ const handler = async (args, globalCopyList = []) => {
   var boxName = args.box;
   // var repo = boxName.split('/')[0];
   // var repo = boxName.split('/')[1];
-  if (mapping[boxName]) { boxName = mapping[boxName]; }
+  if (mapping.boxInBothMappings(args.storagePath, boxName)) {
+    console.log("WARNING:", boxName, "found in both local and builtin mapping. Unboxing using local mapping. If you wish to revert to builtin mapping, use zeus box remove", boxName);
+  }
+  const boxes = mapping.getCombined(args.storagePath);
+  if (boxes[boxName]) { boxName = boxes[boxName]; }
   var extractPath = await mkdir('zeus');
   let stdout;
   var inputPath;
