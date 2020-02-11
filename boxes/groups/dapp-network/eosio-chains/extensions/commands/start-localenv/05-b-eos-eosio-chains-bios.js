@@ -5,7 +5,7 @@ var sleep = require('sleep-promise');
 
 module.exports = async(gargs) => {
   if (gargs.creator !== 'eosio') { return; } // only local
-  var sidechains = await loadModels('local-sidechains');
+  var sidechains = await loadModels('eosio-chains');
   // for each sidechain
   for (var i = 0; i < sidechains.length; i++) {
     if(sidechains[i].local === false) return;

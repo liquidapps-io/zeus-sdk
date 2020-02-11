@@ -5,7 +5,7 @@ const serviceRunner = require('../../helpers/service-runner');
 module.exports = async(args) => {
     if (args.creator !== 'eosio') { return; } // only local
     // for each sidechain
-    var sidechains = await loadModels('local-sidechains');
+    var sidechains = await loadModels('eosio-chains');
     for (var i = 0; i < sidechains.length; i++) {
         var sidechain = sidechains[i];
         if(sidechains[i].local === false) return;

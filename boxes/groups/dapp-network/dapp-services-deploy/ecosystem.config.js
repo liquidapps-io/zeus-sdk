@@ -29,7 +29,7 @@ Object.keys(sidechains).forEach(k => {
 })
 function createSidechainModels(data) {
   const liquidxMappingsDir = path.resolve(__dirname, `./models/liquidx-mappings/`);
-  const localSidechainsDir = path.resolve(__dirname, `./models/local-sidechains/`);
+  const localSidechainsDir = path.resolve(__dirname, `./models/eosio-chains/`);
   let sidechains = data.sidechains;
   if (!sidechains) { return; }
   Object.keys(sidechains).forEach(k => {

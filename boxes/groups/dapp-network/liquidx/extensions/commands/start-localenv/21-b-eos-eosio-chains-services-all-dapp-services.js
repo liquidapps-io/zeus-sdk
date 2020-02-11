@@ -53,7 +53,7 @@ async function deployLocalService(serviceModel, provider = 'pprovider1', pi = 0,
 
 module.exports = async(args) => {
   if (args.creator !== 'eosio') { return; } // only local
-  var sidechains = await loadModels('local-sidechains');
+  var sidechains = await loadModels('eosio-chains');
   // for each sidechain
   for (var i = 0; i < sidechains.length; i++) {
     if(sidechains[i].local === false) return;

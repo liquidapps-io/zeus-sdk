@@ -570,7 +570,7 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi, sidechai
 
         var sidechainName = req.headers['sidechain'];
         logger.debug(`sidechain: ${sidechainName}`);
-        const sidechains = await loadModels('local-sidechains');
+        const sidechains = await loadModels('eosio-chains');
         currentSidechain = sidechains.find(s => s.Name = sidechainName);
       }
       body.sidechain = currentSidechain;
@@ -697,9 +697,9 @@ const getLinkedAccount = async(eosSideChain, eosMain, account, sidechainName, sk
       throw new Error('chain not registered on provisioning chain');
     return res.rows[0].chain_meta.dappservices_contract;
   }
-  // if no sidechain object provided, retrieve from /models/local-sidechains
+  // if no sidechain object provided, retrieve from /models/eosio-chains
   if (!eosSideChain) {
-    var models = await loadModels('local-sidechains');
+    var models = await loadModels('eosio-chains');
     const sidechain = models.find(m => m.name == sidechainName);
     eosSideChain = await getEosForSidechain(sidechain);
   }

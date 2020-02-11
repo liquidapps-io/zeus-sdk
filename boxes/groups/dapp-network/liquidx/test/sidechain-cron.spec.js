@@ -25,8 +25,8 @@ describe(`LiquidX Sidechain Cron Service Test Contract`, () => {
   var sidechain;
   before(done => {
     (async () => {
-      try {
-        var sidechains = await loadModels('local-sidechains');
+      try {        
+        var sidechains = await loadModels('eosio-chains');
         sidechain = sidechains.find(a => a.name === sidechainName);
         await getCreateAccount(sister_code, null, false, sidechain);
         await getCreateAccount(mainnet_code, null, false);

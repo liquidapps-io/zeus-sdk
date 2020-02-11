@@ -170,7 +170,7 @@ const createLiquidXMapping = async(sidechain_name, mainnet_account, chain_accoun
   if (!mapEntry)
     throw new Error('mapping not found')
   const dappservicex = mapEntry.chain_account;
-  var sidechain = (await loadModels('local-sidechains')).find(m => m.name == sidechain_name);
+  var sidechain = (await loadModels('eosio-chains')).find(m => m.name == sidechain_name);
   const eos = await getEos(chain_account, null, sidechain);
   let sisterChainDappServices = await eos.contract(dappservicex);
   await sisterChainDappServices.setlink({

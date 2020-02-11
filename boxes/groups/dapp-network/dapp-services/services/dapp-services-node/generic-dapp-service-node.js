@@ -134,7 +134,7 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
   data = deserialize(abi, data, action);
   if (!data) { return; }
   if (!sidechain && metadata && metadata.sidechain) {
-    const models = await loadModels('local-sidechains');
+    const models = await loadModels('eosio-chains');
     sidechain = models.find(m => m.name == metadata.sidechain.name);
   }
   let sidechain_provider_on_mainnet = paccount;
@@ -263,7 +263,7 @@ const nodeFactory = async(serviceName, handlers) => {
   var models = await loadModels('dapp-services');
   var model = models.find(m => m.name == serviceName);
   logger.info(`nodeFactory starting ${serviceName}`);
-  var sidechains = await loadModels('local-sidechains');
+  var sidechains = await loadModels('eosio-chains');
   for (var i = 0; i < sidechains.length; i++) {
     var sidechain = sidechains[i];
     sidechainsDict[sidechain.name] = sidechain;

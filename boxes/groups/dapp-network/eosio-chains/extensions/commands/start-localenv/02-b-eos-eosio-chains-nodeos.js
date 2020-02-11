@@ -99,7 +99,7 @@ var generateNodeos = async(model) => {
 module.exports = async(args) => {
   if (args.creator !== 'eosio') { return; } // only local
   // load models
-  var sidechains = await loadModels('local-sidechains');
+  var sidechains = await loadModels('eosio-chains');
   for (var i = 0; i < sidechains.length; i++) {
     if(sidechains[i].local === false) return;
     var sidechain = sidechains[i];

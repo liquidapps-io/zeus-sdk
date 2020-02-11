@@ -25,7 +25,7 @@ nodeFactory('readfn', {
           key = (await getCreateKeys(paccount)).active.privateKey;
 
         if(sidechain) {
-          let sidechains = await loadModels('local-sidechains');
+          let sidechains = await loadModels('eosio-chains');
           let sidechainObj = sidechains.find(a => a.name === sidechain);
           const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechainObj.name && m.mainnet_account === provider);
           if (!mapEntry)

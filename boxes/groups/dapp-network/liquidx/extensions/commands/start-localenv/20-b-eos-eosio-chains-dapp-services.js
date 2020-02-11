@@ -53,7 +53,7 @@ module.exports = async(args) => {
   if (args.creator !== 'eosio') { return; } // only local
   var testProviders = testProvidersList;
 
-  var sidechains = await loadModels('local-sidechains');
+  var sidechains = await loadModels('eosio-chains');
   // for each sidechain
   for (var i = 0; i < sidechains.length; i++) {
     if(sidechains[i].local === false) return;

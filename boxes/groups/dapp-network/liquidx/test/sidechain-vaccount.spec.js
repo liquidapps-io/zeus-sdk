@@ -59,7 +59,7 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
     before(done => {
         (async () => {
             try {
-                var sidechains = await loadModels('local-sidechains');
+                var sidechains = await loadModels('eosio-chains');
                 sidechain = sidechains.find(a => a.name === sidechainName);
 
                 await getCreateAccount(sister_code, null, false, sidechain);

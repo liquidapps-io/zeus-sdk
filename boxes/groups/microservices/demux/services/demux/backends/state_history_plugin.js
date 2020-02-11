@@ -33,7 +33,7 @@ const loadEvents = async() => {
   if (!capturedEvents) {
     capturedEvents = {};
     let capturedEventsModels = await loadModels('captured-events');
-    let sidechains = await loadModels('local-sidechains');
+    let sidechains = await loadModels('eosio-chains');
     if (sidechainName) {
       sidechain = sidechains.find(a => a.name === sidechainName);
     }
