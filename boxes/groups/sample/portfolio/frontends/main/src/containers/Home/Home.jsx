@@ -85,6 +85,11 @@ class Home extends Component {
       this.setState({ loginError: `Please provide a username / password` }); 
       return;
     }
+    const namingIssue = await validateEosLiquidAccount(this.state.form.username);
+    if(namingIssue !== 'none'){
+      this.setState({ loginError: namingIssue });
+      return;
+    }
     event.preventDefault();
     const { form } = this.state;
     this.setState({ isSigningIn: true });
@@ -114,7 +119,7 @@ class Home extends Component {
     }
     await ApiService.fetchAccounts(form.username, this);
     await this.fetchData(this.state.btcAddressArr, this.state.ethAddressArr, this.state.eosAddressArr);
-    this.setState({ isSigningIn: false, isLoggedIn: true, loginError: validateEosLiquidAccount(this.state.form.username), displayLogin: false });
+    this.setState({ isSigningIn: false, isLoggedIn: true, displayLogin: false });
   }
 
   logout = () => {
