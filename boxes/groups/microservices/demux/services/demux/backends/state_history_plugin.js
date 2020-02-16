@@ -420,16 +420,20 @@ connect();
 async function getStartingBlockNumber() {
   if(process.env.DEMUX_BYPASS_DATABASE_HEAD_BLOCK === 'true' || process.env.DEMUX_BYPASS_DATABASE_HEAD_BLOCK === true ? false : true) {
     const settings = await dal.getSettings();
-    if(sidechainName)
-      if (settings && settings.data && settings.data[sidechainName] && settings.data[sidechainName].last_processed_block)
+    if(sidechainName) {
+      if (settings && settings.data && settings.data[sidechainName] && settings.data[sidechainName].last_processed_block) {
         return settings.data[sidechainName].last_processed_block;
-    else
-      if (settings && settings.data && settings.data.last_processed_block)
+      }
+    } else {
+      if (settings && settings.data && settings.data.last_processed_block) {
         return settings.data.last_processed_block;
+      }
+    }
   }
 
-  if (process.env.DEMUX_HEAD_BLOCK)
+  if (process.env.DEMUX_HEAD_BLOCK) {
     return process.env.DEMUX_HEAD_BLOCK;
+  }
 
   return process.env.DAPPSERVICES_GENESIS_BLOCK || 1;
 }
