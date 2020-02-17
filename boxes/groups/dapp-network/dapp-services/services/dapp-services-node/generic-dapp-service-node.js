@@ -24,6 +24,7 @@ const actionHandlers = {
     var handler = handlers[action];
     var models = await loadModels('dapp-services');
     var serviceContractForLookup = service;
+    var thisService = models.find(m => m.name == serviceName).contract;
     if (sidechain) {
       serviceContractForLookup = await getLinkedAccount(null, null, service, sidechain.name, true);
     }
@@ -31,6 +32,7 @@ const actionHandlers = {
     if (sidechain) {
       // get sidechain contract if sidechain exists
       service = await getContractAccountFor(model, sidechain);
+      thisService = await getContractAccountFor(models.find(m => m.name == serviceName), sidechain);
     }
     if (isReplay && provider == '') {
       provider = paccount;
@@ -55,7 +57,9 @@ const actionHandlers = {
     }
     provider = await resolveProvider(payer, service, provider, sidechain);
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider, sidechain);
-    if (provider !== paccount) {
+    if (provider !== paccount || service !== thisService) {
+      if(service !== thisService) 
+        logger.warn("WARNING - Service Mixup: %s requested inside %s, forwarding event.", service, thisService);
       var providerData = await resolveProviderData(service, provider, packageid, sidechain);
       if (!providerData) { return; }
       return await forwardEvent(act, providerData.endpoint, act.exception);
