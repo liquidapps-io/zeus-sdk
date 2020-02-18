@@ -143,7 +143,7 @@ const hashData256 = (data) => {
 
 async function getIpfsData(uri) {
   let hash = uri.toString('hex').slice(8);
-  let matchHash = hash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('').match(/.{32}/g).reverse().join('').match(/.{2}/g).reverse().join('');
+  let matchHash = hash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('');
 
   const payload = {
     'json': true,

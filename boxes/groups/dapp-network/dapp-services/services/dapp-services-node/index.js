@@ -177,7 +177,13 @@ let inRecoveryMode = false;
 const appWebHookListener = genApp();
 appWebHookListener.post('/', async(req, res) => {
   req.body.replay = inRecoveryMode;
-  await processFn(actionHandlers, req.body);
+  try {
+    await processFn(actionHandlers, req.body);
+  } catch (e) {
+    logger.error(`gateway error processing demux hook: ${JSON.stringify(e)}`);
+    res.send(JSON.stringify(`gateway error processing webhook`));
+    return;
+  }
   res.send(JSON.stringify('ok'));
 });
 

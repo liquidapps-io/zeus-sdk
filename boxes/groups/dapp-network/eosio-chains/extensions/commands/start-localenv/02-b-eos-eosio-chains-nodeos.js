@@ -37,7 +37,11 @@ var generateNodeos = async(model) => {
     '--contracts-console',
     '--max-transaction-time=150000',
     '--http-validate-host=false',
-    '--verbose-http-errors'
+    '--http-max-response-time-ms=9999999',
+    '--verbose-http-errors',
+    '--trace-history-debug-mode',
+    '--delete-state-history',
+    '--wasm-runtime=wabt'
   ];
   var ports = [
     `-p ${nodeosPort}:${nodeosPort}`,
@@ -65,27 +69,11 @@ var generateNodeos = async(model) => {
   await killIfRunning(nodeosPort);
   if (!process.env.DOCKER_NODEOS && which.sync('nodeos', { nothrow: true })) {
     try {
-      await execPromise(`nodeos --version`, {});
+      const res = await execPromise(`nodeos --version`, {});
+      if (res < "v2.0.0") throw new Error();
     }
     catch (e) {
-      if (e.stdout.trim() >= "v1.8.0") {
-        console.log('Adding 1.8.0 Parameters');
-        nodeosArgs = [...nodeosArgs,
-          '--trace-history-debug-mode',
-          "--delete-state-history"
-        ]
-      }
-            if (e.stdout.trim() >= "v2.0.0") {
-        console.log('Adding 2.0.0 Parameters');
-        nodeosArgs = [...nodeosArgs,
-          '--eos-vm-oc-enable'
-        ]
-      }
-    }
-    // take last 1mb of logs and create new file if log exists
-    if(fs.existsSync(`./logs/nodeos-${name}.log`)){
-      console.log('true')
-      await execPromise(`tail -c 1048576 ./logs/nodeos-${name}.log > ./logs/nodeos-${name}.old && mv ./logs/nodeos-${name}.old ./logs/nodeos-${name}.log`);
+      throw new Error('Nodeos versions < 2.0.0 not supported. See https://github.com/EOSIO/eos/releases');
     }
     await execPromise(`nohup nodeos ${nodeosArgs.join(' ')} >> ./logs/nodeos-${name}.log 2>&1 &`, { unref: true });
   }

@@ -393,6 +393,7 @@ describe(`IPFS Service Test Contract`, () => {
         });
         let shardUri2 = shardTable.rows[0].shard_uri;
         assert(shardUri1 !== shardUri2, "data didn't get written to same shard");
+        await delaySec(3);
         await testcontract.testcollide({
           id: 12345,
           value: 12345

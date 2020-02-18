@@ -11,6 +11,7 @@ module.exports = async (args) => {
             NODEOS_PORT: 8888,
             WEBHOOK_DAPP_PORT: 8812 * (pi + 1),
             NODEOS_WEBSOCKET_PORT: 8889,
+            DSP_ACCOUNT: testProvider
         });
     }
 };

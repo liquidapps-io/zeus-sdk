@@ -8,7 +8,7 @@ function getEosWrapper(config) {
         expireSeconds: 120,
         sign: true,
         broadcast: true,
-        blocksBehind: 10
+        blocksBehind: 3
     }
     const rpc = new JsonRpc(config.httpEndpoint, { fetch });
     if (config.keyProvider && !Array.isArray(config.keyProvider))

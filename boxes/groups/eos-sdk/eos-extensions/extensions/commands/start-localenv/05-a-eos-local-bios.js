@@ -9,9 +9,11 @@ module.exports = async(args) => {
   var systemToken = (args.creator !== 'eosio') ? 'EOS' : 'SYS';
 
   var tries = 20;
+  await sleep(3000);
   while (tries--) {
     try {
       await uploadSystemContract(args, 'eosio', 'eosio.bios');
+      break;
     }
     catch (e) {
       await sleep(500);

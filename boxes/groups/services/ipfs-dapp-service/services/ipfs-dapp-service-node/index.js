@@ -25,7 +25,7 @@ const rpc = new JsonRpc(url, { fetch });
 const cacheMB = 256;
 const cacheHours = 12;
 const cacheMinutes = 60 * cacheHours;
-const ipfsTimeoutSeconds = process.env.IPFS_TIMEOUT_SECONDS || 15;
+const ipfsTimeoutSeconds = process.env.IPFS_TIMEOUT_SECONDS || 5;
 const ipfsTimeout = ipfsTimeoutSeconds * 1000;
 var LRU = require("lru-cache"),
   options = {
@@ -95,8 +95,7 @@ const converToUri = (hash) => {
 const readPointer = async(hashWithPrefix, contract, sidechain) => {
   var hash = hashWithPrefix.toString('hex').slice(8);
   var matchHash = hash;
-  matchHash = matchHash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('').match(/.{32}/g).reverse().join('').match(/.{2}/g).reverse().join('');
-
+  matchHash = matchHash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('');
 
   const payload = {
     'json': true,
@@ -496,7 +495,7 @@ nodeFactory('ipfs', {
     logger.debug(`cleanup ${uri}`);
     return {
       size: 0,
-      uricd 
+      uri 
     };
   },
   warmuprow: async({ event, rollback }, { uri, code, table, scope, index_position, key, keysize }) => {

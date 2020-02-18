@@ -21,7 +21,7 @@ async function createClient(config: {
     expireSeconds: 60,
     sign: true,
     broadcast: true,
-    blocksBehind: 10
+    blocksBehind: 3
   }
 
   config = {...defaults, ...config};
