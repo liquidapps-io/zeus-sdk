@@ -15,7 +15,6 @@
     ],
   "install":{
     "contracts":{
-      "vaccountsservice": true,
       "vaccountsconsumer": true
     },
     "npm":{

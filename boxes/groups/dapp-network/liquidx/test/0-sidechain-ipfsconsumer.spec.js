@@ -3,10 +3,12 @@ require('mocha');
 
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getNetwork, getCreateAccount } = require('../extensions/tools/eos/utils');
+const { getNetwork, getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
 const { getEosWrapper } = require('../extensions/tools/eos/eos-wrapper');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 const { loadModels } = require('../extensions/tools/models');
+const { getTableRowsSec } = require('../services/dapp-services-node/common');
+const { dappServicesContract } = require('../extensions/tools/eos/dapp-services');
 var sha256 = require('js-sha256').sha256;
 
 const artifacts = require('../extensions/tools/eos/artifacts');
@@ -26,9 +28,25 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
   var eosvram, eos;
   var sidechainName = 'test1';
   var sidechain;
+
+  const invokeService = async (code, testcontract) => {
+    try {
+      var res = await testcontract.testempty({
+        uri: 'ipfs://zb2rhmy65F3REf8SZp7De11gxtECBGgUKaLdiDj7MCGCHxbDW',
+      }, {
+        authorization: `${code}@active`
+      });
+      console.log(res);
+    } catch(e) {
+      console.log(JSON.stringify(e));
+    }
+    
+  };
+
   before(done => {
     (async () => {
       try {
+        eos = await getEos();
         var sidechains = await loadModels('eosio-chains');
         sidechain = sidechains.find(a => a.name === sidechainName);
 
@@ -51,19 +69,28 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
           throw new Error('mapping not found')
         const dappservicex = mapEntry.chain_account;
 
-        // create token
         var selectedNetwork = getNetwork(getDefaultArgs(), sidechain);
         var config = {
           expireInSeconds: 120,
           sign: true,
-          chainId: selectedNetwork.chainId
+          chainId: selectedNetwork.chainId,
+          httpEndpoint: `http://localhost:${sidechain.dsp_port}`
         };
+
+        let provkey = await getCreateKeys("xprovider1", getDefaultArgs(), false, sidechain);
+        let proveos = getEosWrapper({...config,keyProvider: provkey.active.privateKey});
+        let dappx = await proveos.contract(dappservicex);
+        await dappx.pricepkg({ provider: 'xprovider1', package_id: "default", action:"warmup", cost: 5 }, {
+          authorization: `xprovider1@active`
+        });
+        await dappx.pricepkg({ provider: 'xprovider1', package_id: "default", action:"commit", cost: 5 }, {
+          authorization: `xprovider1@active`
+        });
+
         if (account) {
           var keys = await getCreateKeys(account, getDefaultArgs(), false, sidechain);
           config.keyProvider = keys.active.privateKey;
         }
-        eosvram = deployedContract.eos;
-        config.httpEndpoint = `http://localhost:${sidechain.dsp_port}`;
         eosvram = getEosWrapper(config);
         testcontract = await eosvram.contract(account);
         let dappservicexInstance = await eosvram.contract(dappservicex);
@@ -73,7 +100,7 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
           });
           await dappservicexInstance.adddsp({ owner: sister_code, dsp: 'xprovider2' }, {
             authorization: `${sister_code}@active`,
-          });
+          });          
         }
         catch (e) {}
 
@@ -117,6 +144,37 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
   var account = sister_code;
   var account2 = sister_code2;
   let uri = "ipfs://zb2rhnyodRMHNeY4iaSVXzVhtFmYdWxsvddrhzhWZFUMiZdrd";
+  it('Custom action quota pricing', done => {
+    (async () => {
+      try {
+        // await setcost("ipfs","pprovider1",selectedPackage,"warmup",5);
+        // await setcost("ipfs","pprovider1",selectedPackage,"commit",5);
+
+        //FIRST
+        await invokeService(sister_code, testcontract);    
+        let table = await getTableRowsSec(eos.rpc, dappServicesContract, "accountext", "DAPP", [null, mainnet_code, "ipfsservice1", "pprovider1"], 1, 'sha256', 2);
+        let first = Number(table[0].quota.replace(" QUOTA",""));
+
+        //SECOND
+        await invokeService(sister_code, testcontract);
+        table = await getTableRowsSec(eos.rpc, dappServicesContract, "accountext", "DAPP", [null, mainnet_code, "ipfsservice1", "pprovider1"], 1, 'sha256', 2);
+        let second = Number(table[0].quota.replace(" QUOTA",""));
+        assert(second <= (first - 0.0005),"quota must decrease by 5");
+
+        //THIRD
+        await invokeService(sister_code, testcontract);
+        table = await getTableRowsSec(eos.rpc, dappServicesContract, "accountext", "DAPP", [null, mainnet_code, "ipfsservice1", "pprovider1"], 1, 'sha256', 2);
+        let third = Number(table[0].quota.replace(" QUOTA",""));
+        assert(third <= (second - 0.0005),"quota must decrease by 5");
+        
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
   it('sidechain - IPFS Write', done => {
     (async () => {
       try {
@@ -148,6 +206,7 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
         }, {
           authorization: `${sister_code}@active`,
         });
+        
         done();
       }
       catch (e) {

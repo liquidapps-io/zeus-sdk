@@ -15,8 +15,6 @@
       "tar-stream": true,
       "stream-buffers": true
     },
-    "contracts":{
-      "storageservice": true
-    }
+    "contracts":{}
   }
 }

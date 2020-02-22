@@ -6,20 +6,10 @@ const { dappServicesContract, getContractAccountFor, testProvidersList } = requi
 
 const servicescontract = dappServicesContract;
 var servicesC = artifacts.require(`./dappservices/`);
-var generateModel = (commandNames) => {
-  var model = {};
-  commandNames.forEach(a => {
-    model[`${a}_model_field`] = {
-      cost_per_action: 1
-    };
-  });
-  return model;
-};
 
 async function deployLocalService(serviceModel, provider = 'pprovider1', gatewayPort) {
   var eos = await getEos(provider);
   var contractInstance = await eos.contract(servicescontract)
-  var serviceName = serviceModel.name;
   var serviceContract = getContractAccountFor(serviceModel);
   var package_id = provider === 'pprovider1' ? 'default' : 'foobar';
   // reg provider packages
@@ -40,19 +30,9 @@ async function deployLocalService(serviceModel, provider = 'pprovider1', gateway
   }, {
     authorization: `${provider}@active`,
   });
-  var serviceC = artifacts.require(`./${serviceName}service/`);
-  var deployedService = await deployer.deploy(serviceC, serviceContract);
-  var contractServiceInstance = await eos.contract(serviceContract)
-  await contractServiceInstance.regprovider({
-    provider,
-    model: {
-      package_id,
-      model: generateModel(Object.keys(serviceModel.commands))
-    }
-  }, {
-    authorization: `${provider}@active`,
-  });
-  return deployedService;
+
+  //create the service contract accounts, but don't load them with code
+  await getCreateAccount(serviceContract);
 }
 
 var serviceRunner = require('../../helpers/service-runner');

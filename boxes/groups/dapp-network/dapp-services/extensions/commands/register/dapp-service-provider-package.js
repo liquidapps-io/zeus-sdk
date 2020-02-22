@@ -1,15 +1,7 @@
 const { emojMap, execPromise } = require('../../helpers/_exec');
 var { loadModels } = require('../../tools/models');
 var { getEos } = require('../../tools/eos/utils');
-var generateModel = (commandNames, cost_per_action = 1) => {
-  var model = {};
-  commandNames.forEach(a => {
-    model[`${a}_model_field`] = {
-      cost_per_action
-    };
-  });
-  return model;
-};
+
 var cmd = 'dapp-service-provider-package';
 module.exports = {
   description: 'register a new DAPP service provider package',
@@ -81,44 +73,6 @@ module.exports = {
         sign: true,
         keyProvider: [key]
       });
-
-      contractInstance = await eos.contract(serviceContract);
-      await contractInstance.regprovider({
-        provider: args['provider'],
-        model: {
-          package_id: args['package-id'],
-          model: generateModel(Object.keys(serviceModel.commands), args['price-per-action'])
-        }
-      }, {
-        authorization: `${args['provider']}@active`,
-        broadcast: true,
-        sign: true,
-        keyProvider: [key]
-      });
-
-      // if sidechains arg, regprovider to allow the correct billing of packages on a sidechain
-      if(args['sidechains'].length) {
-        console.log(emojMap.zap + `registering package:${args['package-id']} on sidechain`);
-        const sidechains = JSON.parse(args['sidechains'])
-        sidechains.forEach(async el => {
-          const sidechain = { nodeos_endpoint: el.nodeos_endpoint };
-          eos = await getEos(el.sidechain_provider, args, sidechain);
-          contractInstance = await eos.contract(el.service_contract);
-          await contractInstance.regprovider({
-            provider: el.sidechain_provider,
-            model: {
-              package_id: args['package-id'],
-              model: generateModel(Object.keys(serviceModel.commands), args['price-per-action'])
-            }
-          }, {
-            authorization: `${el.sidechain_provider}@active`,
-            broadcast: true,
-            sign: true,
-            keyProvider: el.active_key
-          });
-          console.log(emojMap.ok + `sidechain package: ${args['package-id']} registered successfully for dsp: ${el.sidechain_provider} with service contract: ${el.service_contract}`);
-        })
-      }
     }
     catch (e) {
       console.log(emojMap.white_frowning_face + 'failed', e);

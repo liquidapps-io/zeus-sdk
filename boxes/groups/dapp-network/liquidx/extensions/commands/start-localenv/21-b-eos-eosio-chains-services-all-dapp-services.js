@@ -1,21 +1,10 @@
 const artifacts = require('../../tools/eos/artifacts');
 const deployer = require('../../tools/eos/deployer');
-const { getEos } = require('../../tools/eos/utils');
+const { getEos, getCreateAccount } = require('../../tools/eos/utils');
 const { loadModels } = require('../../tools/models');
-const { getContractAccountFor, testProvidersList, createLiquidXMapping } = require('../../tools/eos/dapp-services');
+const { getContractAccountFor, testProvidersList, createLiquidXMapping, dappServicesLiquidXContract } = require('../../tools/eos/dapp-services');
 
-var generateModel = (commandNames) => {
-  var model = {};
-  commandNames.forEach(a => {
-    model[`${a}_model_field`] = {
-      cost_per_action: 1
-    };
-  });
-  return model;
-};
-
-async function deployLocalService(serviceModel, provider = 'pprovider1', pi = 0, sidechain) {
-  var serviceName = serviceModel.name;
+async function deployLocalService(serviceModel, provider = 'pprovider1', pi = 0, sidechain) {  
   const liquidXMaps = loadModels('liquidx-mappings');
   const mapEntrySvc = liquidXMaps.find(m => m.sidechain_name === sidechain.name && m.mainnet_account === serviceModel.contract);
   if (!mapEntrySvc) {
@@ -32,23 +21,9 @@ async function deployLocalService(serviceModel, provider = 'pprovider1', pi = 0,
   }
     
   var serviceContract = getContractAccountFor(serviceModel, sidechain);
-  var serviceC = artifacts.require(`./${serviceName}service/`);
-  var deployedService = await deployer.deploy(serviceC, serviceContract, null, sidechain);
-  var package_id = provider === 'pprovider1' ? 'default' : 'foobar';
-
-  var eos = await getEos(mapEntry.chain_account, null, sidechain);
-  var contractServiceInstance = await eos.contract(serviceContract);
-  await contractServiceInstance.regprovider({
-    provider: mapEntry.chain_account,
-    model: {
-      package_id,
-      model: generateModel(Object.keys(serviceModel.commands))
-    }
-  }, {
-    authorization: `${mapEntry.chain_account}@active`,
-  });
+  await getCreateAccount(serviceContract, null, null, sidechain);
+  console.log("Linking ",mapEntrySvc.chain_account," to ", mapEntrySvc.mainnet_account);
   await createLiquidXMapping(sidechain.name, mapEntrySvc.mainnet_account, mapEntrySvc.chain_account, false);
-  return deployedService;
 }
 
 module.exports = async(args) => {
@@ -61,11 +36,7 @@ module.exports = async(args) => {
     var models = await loadModels('dapp-services');
     for (var i = 0; i < models.length; i++) {
       var serviceModel = models[i];
-      var testProviders = testProvidersList;
-      for (var pi = 0; pi < testProviders.length; pi++) {
-        var testProvider = testProviders[pi];
-        await deployLocalService(serviceModel, testProvider, pi, sidechain);
-      }
+      await deployLocalService(serviceModel, "pprovider1", 0, sidechain);
     }
   }
 };
