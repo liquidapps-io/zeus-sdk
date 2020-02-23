@@ -14,7 +14,7 @@ module.exports = {
   handler: async (args) => {
     await execScripts(path.resolve(__dirname, './lint'), (script) => {
       console.log('running linter', path.basename(script));
-      return args;
+      return [args];
     }, args);
   }
 };

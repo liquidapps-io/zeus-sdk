@@ -60,12 +60,12 @@ module.exports = {
     try {
       await execScripts(path.resolve(__dirname, './migrate'), (script) => {
         console.log(emojMap.cloud + 'Migrator', path.basename(script).green);
-        return args;
+        return [args];
       }, args);
 
       await execScripts(path.resolve('./migrations'), (script) => {
         console.log(emojMap.cloud + 'Migration', path.basename(script).cyan);
-        return args;
+        return [args];
       }, args);
     }
     catch (e) {
