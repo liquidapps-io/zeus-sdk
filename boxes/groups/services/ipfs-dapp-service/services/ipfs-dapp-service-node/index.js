@@ -462,7 +462,7 @@ nodeFactory('ipfs', {
       size: data.length / 2
     };
   },
-  warmup: async({ event, rollback }, { uri, code }) => {
+  warmup: async({ event, rollback }, { uri }) => {
     if (rollback) {
       // rollback warmup
       event.action = 'cleanup';
@@ -473,7 +473,35 @@ nodeFactory('ipfs', {
       };
     }
     else {
-      logger.info(`WARMUP: getting uri for account ${event.payer} : ${code || event.payer} - ${uri}`);
+      logger.info(`WARMUP: getting uri for account ${event.payer} : ${uri}`);
+      let data;
+      try {
+        data = await readFromIPFS(uri);
+      } catch(e) {
+        //if code exists (backwards compatability) use it, 
+        //otherwise check all providers that payer has staked to
+        data = await readRemoteIPFS(event.payer, uri, event.sidechain);
+      }
+      logger.info(`Got warmup data for uri ${uri}`);
+      return {
+        uri,
+        data: data,
+        size: data.length
+      };
+    }
+  },
+  warmupcode: async({ event, rollback }, { uri, code }) => {
+    if (rollback) {
+      // rollback warmup
+      event.action = 'cleanup';
+      logger.info(`cleanup after failed transaction ${uri}`);
+      return {
+        size: 0,
+        uri
+      };
+    }
+    else {
+      logger.info(`WARMUP CODE: getting uri for account ${event.payer} : ${code || event.payer} - ${uri}`);
       let data;
       try {
         data = await readFromIPFS(uri);

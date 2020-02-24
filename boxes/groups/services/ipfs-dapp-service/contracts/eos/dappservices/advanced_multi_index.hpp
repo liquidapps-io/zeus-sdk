@@ -921,18 +921,14 @@ class sharded_hashtree_t{
         }
         else //existing data and no revision change
         {            
-            auto shard_uri = shardData->shard_uri;            
-            #ifdef USE_IPFS_WARMUPROW
+            auto shard_uri = shardData->shard_uri;    
             auto castedKey = primary_to_key<PrimKey>(sb.key);
             uint8_t keySize = std::max<uint8_t>(sizeof(PrimKey),8);
             uint8_t index_position = 1;
             // get data with optimistic loading
             // other name ideas: getLoadMerkleData, getLoadMerkleProof, getLoadTreeData.
             // like you're instantiating part of the proof and optimistically loading the rest
-            auto bucket_data = ipfs_svc_helper::getTreeData<shardbucket_data>(ipfsmultihash_to_uri(shard_uri), name(_code), name(TableName), _scope, index_position, castedKey, keySize, _pin_shards && pin, false, _cleanup_delay);
-            #else
-            auto bucket_data = ipfs_svc_helper::getData<shardbucket_data>(ipfsmultihash_to_uri(shard_uri), _pin_shards && pin, false, _cleanup_delay, name(_code));
-            #endif
+            auto bucket_data = ipfs_svc_helper::getTreeData<shardbucket_data>(ipfsmultihash_to_uri(shard_uri), name(_code), name(TableName), _scope, index_position, castedKey, keySize, _pin_shards && pin, false, _cleanup_delay);            
             auto bucket_uri = bucket_data.values[sb.bucket];
             auto bucket_raw_data = ipfs_svc_helper::getRawData(ipfsmultihash_to_uri(bucket_uri), _pin_buckets && pin, false, _cleanup_delay, name(_code));
             // read and return data
