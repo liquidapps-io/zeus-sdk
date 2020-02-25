@@ -108,7 +108,7 @@ const IPFS_PORT = globalEnv.IPFS_PORT || 5001;
 const IPFS_PROTOCOL = globalEnv.IPFS_PROTOCOL || 'http';
 const NODEOS_CHAINID = globalEnv.NODEOS_CHAINID || 'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906';
 const NODEOS_WEBSOCKET_PORT = globalEnv.NODEOS_WEBSOCKET_PORT || 8887;
-const DAPPSERVICES_LIQUIDX_CONTRACT = globalEnv.DAPPSERVICES_LIQUIDX_CONTRACT || 'liquidxxxxxx';
+const DAPPSERVICES_LIQUIDX_CONTRACT = globalEnv.DAPPSERVICES_LIQUIDX_CONTRACT || 'liquidx.dsp';
 
 // Assert .env
 if (['state_history_plugin'].indexOf(DEMUX_BACKEND) === -1) throw new Error("DEMUX_BACKEND must be 'state_history_plugin'");
