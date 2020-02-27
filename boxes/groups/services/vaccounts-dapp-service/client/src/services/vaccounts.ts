@@ -4,9 +4,8 @@ const {toBound} = common;
 import * as liquidaccount from "../types/dsp/liquid-account";
 const serviceContract = "accountless1";
 export const V1_DSP_PUSH_LIQUIDACCOUNT_ACTION = `/v1/dsp/${serviceContract}/push_action`;
-const Long = require('long');
 const ecc = require( "eosjs-ecc" );
-import { Api, JsonRpc,Serialize } from 'eosjs';
+import { Serialize } from 'eosjs';
 
 const { PrivateKey } = ecc;
 const { BigNumber } = require( "bignumber.js" );
@@ -14,7 +13,6 @@ const endpoints = require( "../types/endpoints" );
 const { encodeName } = require( "../dapp-common" );
 const { TextDecoder, TextEncoder } = require( "text-encoding" );
 
-import { JsSignatureProvider } from 'eosjs/dist/eosjs-jssig';
 
 export default class LiquidAccountsService extends DSPServiceClient {
     private ipfs:any;
@@ -80,66 +78,34 @@ export default class LiquidAccountsService extends DSPServiceClient {
             time_to_live?: number,
         } = {},
     )  => {
-        const time_to_live = options.time_to_live || 3600;
-        return await this.push_liquid_account_transaction_logic( contract, private_key, action, payload, time_to_live );
+        const { 
+            public_key, payload: serPayload, signature
+        } = await this.sign_liquid_account_transaction( contract, private_key, action, payload, options);
+        return this.post_liquid_account_transaction(
+            contract,
+            public_key,
+            signature,
+            serPayload
+        ); 
     }
     
-private push_liquid_account_transaction_logic = async ( contract: string, private_key: string, action: string, payload: liquidaccount.Payload, time_to_live: number ) => {
-        const wif = ( await PrivateKey.fromString( private_key ) ).toWif();
-        return await this.runTrx(
-            contract,
-            wif,
-            {
-                name: action,
-                data: {
-                    payload,
-                },
-            },
-            time_to_live,
-        );
-    }
-private postVirtualTx = ({
-        contract,
-        wif,
-        payload
-    }) => {
-        var signature = ecc.sign(Buffer.from(payload, 'hex'), wif);
-        const public_key = PrivateKey.fromString(wif).toPublic().toString()
-        return this.post(V1_DSP_PUSH_LIQUIDACCOUNT_ACTION, {
-            contract_code:contract,
-            public_key,
-            payload,
-            signature
-        },{ contract });
-    }
-
-    private runTrx = async(
-        contract,
-        wif,
-        payload,
-        time_to_live= 120
-    ) => {
-
+    public sign_liquid_account_transaction = async (
+        contract: string,
+        private_key: string,
+        action: string,
+        payload: liquidaccount.Payload,
+        options: {
+            time_to_live?: number,
+        } = {},
+    )  => {
         let buffer = new Serialize.SerialBuffer({
             textDecoder: new TextDecoder(),
             textEncoder: new TextEncoder()
         });
-
-        const expiry = Math.floor(Date.now() / 1000) + 120; //two minute expiry
+        const { time_to_live } = options;
+        const expiry = Math.floor(Date.now() / 1000) + Number(time_to_live || 120); //two minute expiry
         buffer.pushNumberAsUint64(expiry);
-        let nonce = 0;
-        try {
-            const tableRes = await this.ipfs.get_vram_row(
-                contract,
-                contract,
-                "vkey",
-                payload.data.payload.vaccount
-            );
-            nonce = tableRes.row.nonce;
-        }
-        catch (e) {
-            if (payload.name !== "regaccount") throw e;
-        }
+        const nonce = await this.get_nonce(contract, payload.vaccount, action);
 
         buffer.pushNumberAsUint64(nonce);
         const infoRes: any = await this.get( endpoints.V1_GET_INFO );
@@ -151,9 +117,9 @@ private postVirtualTx = ({
 
         const response = await this.api.serializeActions([{
             account: contract,
-            name: payload.name,
+            name: action,
             authorization: [],
-            data: payload.data
+            data: { payload }
         }]);
         const toName = (name) => {
             var res = new BigNumber(encodeName(name, true));
@@ -170,17 +136,52 @@ private postVirtualTx = ({
         // eosio::action fields to serialize https://github.com/EOSIO/eosio.cdt/blob/master/libraries/eosiolib/action.hpp#L194-L221
         const actionSerialized =
         "0000000000000000" + // account_name
-        toName(payload.name) + // action_name
+        toName(action) + // action_name
         // std::vector<permission_level> authorization https://github.com/EOSIO/eosio.cdt/blob/master/libraries/eosiolib/action.hpp#L107-L155
         "00" +
         // std::vector<char> data;
         serializedDataWithLength;
 
         const payloadSerialized = header + actionSerialized;
-        return await this.postVirtualTx({
-            contract,
-            wif,
-            payload: payloadSerialized
-        });
+        const wif = ( await PrivateKey.fromString( private_key ) ).toWif();
+        const signature = ecc.sign(Buffer.from(payloadSerialized, 'hex'), wif);
+        const public_key = PrivateKey.fromString(wif).toPublic().toString()
+        return { 
+            contract_code: contract,
+            public_key,
+            payload: payloadSerialized,
+            signature
+        }
+    }
+
+    public post_liquid_account_transaction = async (
+        contract: string,
+        public_key: string,
+        signature: string,
+        payload: any
+    )  => {
+        return this.post(V1_DSP_PUSH_LIQUIDACCOUNT_ACTION, {
+            contract_code: contract,
+            public_key,
+            payload,
+            signature
+        },{ contract });
+    }
+
+    private get_nonce = async (contract, vaccount, actionName) => {
+        let nonce = 0;
+        try {
+            const tableRes = await this.ipfs.get_vram_row(
+                contract,
+                contract,
+                "vkey",
+                vaccount
+            );
+            nonce = tableRes.row.nonce;
+        }
+        catch (e) {
+            if (actionName !== "regaccount") throw e;
+        }
+        return nonce;
     }
 }
