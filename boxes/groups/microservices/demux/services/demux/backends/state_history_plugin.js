@@ -110,9 +110,7 @@ const handlers = {
         if (!curr[method]) { curr = curr['*']; }
         else { curr = curr[method]; }
         if (curr) {
-          if (process.env.WEBHOOK_DAPP_PORT) {
-            url = `http://localhost:${process.env.WEBHOOK_DAPP_PORT}`;
-          }
+          const url = `http://localhost:${process.env.WEBHOOK_DAPP_PORT || 8112}`;
           event.meta = {
             txId: txid,
             blockNum: blockInfo.number,

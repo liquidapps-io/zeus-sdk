@@ -259,6 +259,7 @@ module.exports = {
         DEMUX_BACKEND,
         DEMUX_HEAD_BLOCK,
         DEMUX_BYPASS_DATABASE_HEAD_BLOCK,
+        WEBHOOK_DAPP_PORT,
         PORT: WEBHOOK_DEMUX_PORT,
         LOGFILE_NAME: 'demux' 
       }
