@@ -534,14 +534,16 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi, sidechai
     var uri = req.originalUrl;
     logger.debug("received request: %s\t[%s] - %s", uri, req.ip, sidechain ? sidechain.name : "main");
 
-    var isServiceRequest = uri.indexOf('/event') == 0;
-    var isServiceAPIRequest = uri.indexOf('/v1/dsp/') == 0;
+    var isServiceRequest = uri.indexOf('/event') === 0;
+    var isServiceAPIRequest = uri.indexOf('/v1/dsp/') === 0;
+    var isPushTransaction = uri.indexOf('/v1/chain/push_transaction') === 0 || uri.indexOf('/v1/chain/send_transaction') === 0;
     var uriParts = uri.split('/');
     if (uri === '/v1/dsp/version')
       return res.send(pjson.version); // send response to contain the version
 
-    if (uri != '/v1/chain/push_transaction' && !isServiceRequest && !isServiceAPIRequest)
+    if (!isPushTransaction && !isServiceRequest && !isServiceAPIRequest) {
       return proxy.web(req, res, { target: sidechain ? sidechain.nodeos_endpoint : nodeosMainnetEndpoint });
+    }
 
     if (isServiceAPIRequest && serviceName === 'services') {
       if (uriParts.length < 5) return notFound(res, 'bad endpoint format');
