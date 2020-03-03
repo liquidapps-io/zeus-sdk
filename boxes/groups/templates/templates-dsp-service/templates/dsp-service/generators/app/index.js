@@ -53,17 +53,6 @@ ExternalProject_Add(
    TEST_COMMAND ""
    INSTALL_COMMAND ""
    BUILD_ALWAYS 1
-)\n
-ExternalProject_Add(
-   ${name}service
-   SOURCE_DIR ${name}service
-   BINARY_DIR ${name}service
-   CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=\${EOSIO_CDT_ROOT}/lib/cmake/eosio.cdt/EosioWasmToolchain.cmake
-   UPDATE_COMMAND ""
-   PATCH_COMMAND ""
-   TEST_COMMAND ""
-   INSTALL_COMMAND ""
-   BUILD_ALWAYS 1
 )\n`;
         fs.writeFileSync(this.destinationPath('', 'contracts/eos/CMakeLists.txt'), originalContent.concat(toAppendContent));
     }

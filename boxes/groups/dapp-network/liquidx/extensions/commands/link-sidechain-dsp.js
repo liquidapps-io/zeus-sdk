@@ -12,7 +12,7 @@ module.exports = {
     },
     command: 'link-sidechain-dsp <sidechain> <sister-code> <dsp>',
     handler: async (args) => {
-        var sidechains = await loadModels('local-sidechains');
+        var sidechains = await loadModels('eosio-chains');
         var sidechain = sidechains.find(a => a.name === args.sidechain);
 
         const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechain.name && m.mainnet_account === 'dappservices');

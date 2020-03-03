@@ -3,6 +3,7 @@ import classes from './Home.module.scss';
 import Header from 'components/Header/Header';
 import AddAccount from 'components/Home/AddAccount/AddAccount';
 import AccountData from 'components/Home/AccountData/AccountData';
+import Disclaimer from 'components/Home/Disclaimer/Disclaimer';
 import Footer from 'components/Footer/Footer';
 import fetchAllData from 'lib/FetchBlockchainData/fetchAllData';
 import validateBtc from 'lib/ValidateAddress/validateBtc';
@@ -29,7 +30,7 @@ const initialState = {
   addAccountErr: '',
   isAddingAccount: false,
   // bitcoin
-  // btcAddressArr: ['1N75aWck3TFPorTvSgdzLUttY8uddqTAFZ', '1N75aWck3TFPorTvSgdzLUttY8uddqTAFZ'],
+  // btcAddressArr: ['1N75aWck3TFPorTvSgdzLUttY8uddqTAFZ'],
   btcAddressArr: [],
   btcPrice: '',
   btcBalanceArr: [],
@@ -49,7 +50,7 @@ const initialState = {
   ethTotalBalance: 0,
   ethTotalTokenBalance: 0,
   // eos
-  // eosAddressArr: ['natdeveloper', 'dappservices'],
+  // eosAddressArr: ['dappairhodl1', 'dappservices'],
   eosAddressArr: [],
   eosPrice: '',
   eosBalanceArr: [],
@@ -64,10 +65,6 @@ class Home extends Component {
   constructor(props) {
     super(props);
     this.state = initialState;
-  }
-
-  UNSAFE_componentWillMount() {
-    fetchAllData(this.state.btcAddressArr, this.state.ethAddressArr, this.state.eosAddressArr, this);
   }
 
   componentDidMount() {
@@ -86,6 +83,11 @@ class Home extends Component {
   login = async(event) => {
     if(!this.state.form.username || !this.state.form.pass) {
       this.setState({ loginError: `Please provide a username / password` }); 
+      return;
+    }
+    const namingIssue = await validateEosLiquidAccount(this.state.form.username);
+    if(namingIssue !== 'none'){
+      this.setState({ loginError: namingIssue });
       return;
     }
     event.preventDefault();
@@ -117,7 +119,7 @@ class Home extends Component {
     }
     await ApiService.fetchAccounts(form.username, this);
     await this.fetchData(this.state.btcAddressArr, this.state.ethAddressArr, this.state.eosAddressArr);
-    this.setState({ isSigningIn: false, isLoggedIn: true, loginError: validateEosLiquidAccount(this.state.form.username), displayLogin: false });
+    this.setState({ isSigningIn: false, isLoggedIn: true, displayLogin: false });
   }
 
   logout = () => {
@@ -256,6 +258,7 @@ class Home extends Component {
           eosTotalBalance={this.state.eosTotalBalance}
           eosTotalTokenBalance={this.state.eosTotalTokenBalance}
         />
+        <Disclaimer/>
         <Footer/>
       </div>
     );

@@ -8,16 +8,16 @@ let networks = {
         secured: false
     },
     'jungle': {
-        chainId: '',
-        host: '127.0.0.1',
-        port: 8888,
-        secured: false
+        chainId: 'e70aaab8997e1dfce58fbfac80cbbb8fecec7b99cf982a9444273cbc64c41473',
+        host: 'api.jungle.alohaeos.com',
+        port: 443,
+        secured: true
     },
     'kylin': {
         chainId: '5fff1dae8dc8e2fc4d5b23b2c7665c97f9e9d8edf2b6485a86ba311c25639191',
-        host: 'api.kylin.eosbeijing.one',
-        port: 80,
-        secured: false
+        host: 'kylin.eos.dfuse.io',
+        port: 443,
+        secured: true
     },
     'mainnet': {
         chainId: 'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906',
@@ -51,7 +51,8 @@ function getUrl(args, sidechain) {
         return sidechain.nodeos_endpoint;
     }
     if (args.NODEOS_SECURED && args.NODEOS_HOST && args.NODEOS_PORT) {
-        return `http${args.NODEOS_SECURED === 'true' ? 's' : ''}://${args.NODEOS_HOST}:${args.NODEOS_PORT}`;
+        const NODEOS_SECURED = args.NODEOS_SECURED === 'true' || args.NODEOS_SECURED === true ? true : false;
+        return `http${NODEOS_SECURED ? 's' : ''}://${args.NODEOS_HOST}:${args.NODEOS_PORT}`;
     }
     const selectedNetwork = getNetwork(args, sidechain);
     return `http${selectedNetwork.secured ? 's' : ''}://${selectedNetwork.host}:${selectedNetwork.port}`;

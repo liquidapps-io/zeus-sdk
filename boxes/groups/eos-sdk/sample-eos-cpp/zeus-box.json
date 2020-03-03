@@ -6,7 +6,7 @@
   "commands": {
     "Compile contracts": "zeus compile",
     "Migrate contracts": "zeus migrate",
-    "Test all": "zeus test"
+    "Test all": "zeus test -c"
   },
   "install":{
     "contracts":{

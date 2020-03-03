@@ -1,0 +1,6 @@
+{
+  "ignore": [
+    "README.md",
+    "zeus-box.json"
+  ]
+}

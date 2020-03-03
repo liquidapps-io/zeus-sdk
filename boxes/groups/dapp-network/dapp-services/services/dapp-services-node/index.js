@@ -25,10 +25,8 @@ const actionHandlers = {
       provider = await resolveProvider(payer, service, provider, sidechain);
     }
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider, sidechain);
-    if (sidechain) {
-      const sidechainName = sidechain.name;
-      service = await getLinkedAccount(null, null, service, sidechainName, true);
-    }
+    if (sidechain)
+      service = await getLinkedAccount(null, null, service, sidechain.name, true);
     var providerData = await resolveProviderData(service, provider, packageid, sidechain);
     if (!providerData) { throw new Error('provider data not found'); }
     if (!act.exception && paccount !== provider)
@@ -65,9 +63,9 @@ const actionHandlers = {
       // TODO: if not synced, aggregate and dispatch pending requests when syncd.
       // todo: send events in recovery mode.
     }
-    logger.debug(`forwarding to: ${providerData.endpoint}`)
+    logger.debug(`forwarding to: ${providerData.endpoint}`);
     act.sidechain = sidechain;
-    return await forwardEvent(act, providerData.endpoint, act.exception);
+    return await forwardEvent(act, providerData.endpoint, act.exception && !act.event.broadcasted);
 
 
   },
@@ -84,7 +82,6 @@ const actionHandlers = {
     const { cbevent, blockNum } = meta;
     if (cbevent && cbevent.request_id) {
       const key = cbevent.request_id;
-      // logger.debug(`got service response (signal) :\nkey: ${key} value: ${blockNum} - ${JSON.stringify(act.event)}`);
       // if the service_request is simulated, this shouldn't update anything.
       while (true) {
         var serviceRequest = await dal.createServiceRequest(key);
@@ -106,12 +103,8 @@ const actionHandlers = {
         break;
       }
     }
-    if (sidechain) {
-      const sidechainName = sidechain.name;
-
-      service = await getLinkedAccount(null, null, service, sidechainName, true);
-
-    }
+    if (sidechain)
+      service = await getLinkedAccount(null, null, service, sidechain.name, true);
     var providerData = await resolveProviderData(service, provider, packageid, sidechain);
     if (!providerData) { throw new Error('provider data not found'); }
     act.sidechain = sidechain;
@@ -131,7 +124,6 @@ const actionHandlers = {
     const { cbevent, blockNum } = meta;
     if (cbevent && cbevent.request_id) {
       const key = cbevent.request_id;
-      // logger.info(`got usage report:\nkey: ${key} value: ${blockNum}`);
       // if the service_request is simulated, this shouldn't update anything.
       while (true) {
         var serviceRequest = await dal.createServiceRequest(key);
@@ -154,12 +146,8 @@ const actionHandlers = {
       }
     }
     var packageid = act.event.package;
-    if (sidechain) {
-      const sidechainName = sidechain.name;
-
-      service = await getLinkedAccount(null, null, service, sidechainName, true);
-
-    }
+    if (sidechain)
+      service = await getLinkedAccount(null, null, service, sidechain.name, true);
     var providerData = await resolveProviderData(service, provider, packageid, sidechain);
     if (!providerData) { throw new Error('provider data not found'); }
     act.sidechain = sidechain;
@@ -170,16 +158,18 @@ const actionHandlers = {
 var sidechainsDict = {};
 
 async function genAllNodes() {
-  await genNode(actionHandlers, process.env.PORT || 3115, 'services');
-  var sidechains = await loadModels('local-sidechains');
-  for (var i = 0; i < sidechains.length; i++) {
-    var sidechain = sidechains[i];
-    sidechainsDict[sidechain.name] = sidechain;
-    await genNode(actionHandlers, sidechain.dsp_port, 'services', undefined, undefined, sidechain);
+  const sidechains = await loadModels('eosio-chains');
+  sidechains.forEach(sc => sidechainsDict[sc.name] = sc);
+  const scName = process.env.SIDECHAIN;
+  // if sidechain gateway (identified by ^)
+  if(scName) {
+      const sidechain = sidechains.find(sc => sc.name === scName);
+      if (!sidechain) throw new Error(`could not find sidechain ${scName} under models/eosio-chains`);
+      await genNode(actionHandlers, process.env.PORT || 3116, 'services', undefined, undefined, sidechain);
+  } else {
+    await genNode(actionHandlers, process.env.PORT || 3115, 'services');
   }
-
 }
-
 genAllNodes();
 
 const bootTime = Date.now();
@@ -187,7 +177,13 @@ let inRecoveryMode = false;
 const appWebHookListener = genApp();
 appWebHookListener.post('/', async(req, res) => {
   req.body.replay = inRecoveryMode;
-  await processFn(actionHandlers, req.body);
+  try {
+    await processFn(actionHandlers, req.body);
+  } catch (e) {
+    logger.error(`gateway error processing demux hook: ${JSON.stringify(e)}`);
+    res.send(JSON.stringify(`gateway error processing webhook`));
+    return;
+  }
   res.send(JSON.stringify('ok'));
 });
 

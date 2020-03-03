@@ -8,7 +8,7 @@ https://github.com/liquidapps-io/zeus-cmd
 ```
 zeus unbox microauctions
 cd microauctions
-zeus test
+zeus test -c
 ```
 
 [Screencast](https://asciinema.org/a/KqSY4y4c5CynllEGMLe3FEtG9)

@@ -19,7 +19,7 @@ module.exports = async(body, state, model, { account, permission, clientCode }) 
         uri = await saveDirToIPFS(files);
     }
     else {
-        data = Buffer.from(data, `base64`)
+        data = Buffer.from(data, `base64`);
         uri = await saveToIPFS(data);
         length = data.byteLength;
     }

@@ -1,6 +1,6 @@
 const { getCreateKeys } = require('../../../extensions/helpers/key-utils');
 const { loadModels } = require('../../../extensions/tools/models');
-const { deserialize, eosDSPGateway, generateABI, genNode, eosPrivate, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission } = require('../../dapp-services-node/common');
+const { deserialize, eosDSPGateway, generateABI, genNode, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission } = require('../../dapp-services-node/common');
 const logger = require('../../../extensions/helpers/logger');
 const loader = require("assemblyscript/lib/loader");
 const fs = require('fs');

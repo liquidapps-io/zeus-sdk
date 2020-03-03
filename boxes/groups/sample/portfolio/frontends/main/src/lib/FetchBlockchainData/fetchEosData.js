@@ -16,6 +16,7 @@ const addBalance = (res) => {
 }
 
 const fetchEosTokenData = async (balanceArr, thisObject) => {
+  totalTokenBalance = 0;
   const tokenBalanceArr = [...balanceArr]; let eosTokenApiUrl = '';
   for (let i = 0; i < balanceArr.length; i++) {
     eosTokenApiUrl = `${thisObject.state.eosTokenPrefixApiUrl}${balanceArr[i].address}${thisObject.state.eosTokenSuffixApiUrl}`;

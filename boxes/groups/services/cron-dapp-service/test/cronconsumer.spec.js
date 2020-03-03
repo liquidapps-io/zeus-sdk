@@ -16,7 +16,7 @@ var contractCode = 'cronconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
 describe(`Cron Service Test Contract`, () => {
   var testcontract;
-  const code = 'test1';
+  const code = 'test12312a';
   var dspeos;
   before(done => {
     (async () => {
@@ -44,7 +44,7 @@ describe(`Cron Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(15000);
+        await delay(35000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': code,
@@ -53,7 +53,7 @@ describe(`Cron Service Test Contract`, () => {
           'limit': 100
         });
         var first = res.rows[0].counter;
-        await delay(4500);
+        await delay(10000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': code,
@@ -63,7 +63,7 @@ describe(`Cron Service Test Contract`, () => {
         });
         var second = res.rows[0].counter;
         assert.ok(second > first, 'counter did not increase');
-        await delay(4500);
+        await delay(10000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': code,

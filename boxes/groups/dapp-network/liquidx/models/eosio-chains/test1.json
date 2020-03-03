@@ -1,0 +1,13 @@
+{
+    "dsp_port":13016,
+    "webhook_dapp_port": 8813,
+    "nodeos_host":"localhost",
+    "nodeos_port":2424,
+    "secured":false,
+    "nodeos_state_history_port":12341,
+    "nodeos_p2p_port":12451,
+    "nodeos_endpoint":"http://localhost:2424",
+    "demux_port":1232,
+    "name":"test1",
+    "local":true
+}

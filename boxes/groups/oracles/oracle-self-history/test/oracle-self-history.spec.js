@@ -12,7 +12,7 @@ var contractCode = 'oracleconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
 describe(`History Oracle Service Test`, () => {
   var testcontract;
-  const code = 'test1';
+  const code = 'testselfhis';
   before(done => {
     (async () => {
       try {

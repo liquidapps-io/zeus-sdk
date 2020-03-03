@@ -9,13 +9,15 @@ const { loadModels } = require('../../../extensions/tools/models');
 const { getAbis, getAbiAbi } = require('./state_history_abi');
 const logger = require('../../../extensions/helpers/logger');
 const dal = require('../../dapp-services-node/dal/dal');
+// currently the entire sidechain config is in the metadata, including the private key, not sure if this is just local, but doesn't need to be there anyways
 const sidechainName = process.env.SIDECHAIN;
 const nodeosWebsocketPort = process.env.NODEOS_WEBSOCKET_PORT || '8889';
 const nodeosHost = process.env.NODEOS_HOST || 'localhost';
 const nodeosRpcPort = process.env.NODEOS_PORT || '8888';
 const nodeosUrl =
-  `http${process.env.NODEOS_SECURED === 'true' ? 's' : ''}://${nodeosHost}:${nodeosRpcPort}`;
+  `http${process.env.NODEOS_SECURED === 'true' || process.env.NODEOS_SECURED === true ? true : false ? 's' : ''}://${nodeosHost}:${nodeosRpcPort}`;
 const serviceResponseTimeout = parseInt(process.env.SERVICE_RESPONSE_TIMEOUT || 10000);
+const maxPendingMessages = parseInt(process.env.MAX_PENDING_MESSAGES || 1000);
 
 let abis = getAbis();
 let abiabi = getAbiAbi();
@@ -32,7 +34,7 @@ const loadEvents = async() => {
   if (!capturedEvents) {
     capturedEvents = {};
     let capturedEventsModels = await loadModels('captured-events');
-    let sidechains = await loadModels('local-sidechains');
+    let sidechains = await loadModels('eosio-chains');
     if (sidechainName) {
       sidechain = sidechains.find(a => a.name === sidechainName);
     }
@@ -108,44 +110,37 @@ const handlers = {
         if (!curr[method]) { curr = curr['*']; }
         else { curr = curr[method]; }
         if (curr) {
-          const proms = curr.map(async url => {
-            if (process.env.WEBHOOKS_HOST) {
-              url = url.replace('http://localhost:', process.env.WEBHOOKS_HOST);
-            }
-            event.meta = {
-              txId: txid,
-              blockNum: blockInfo.number,
-              timestamp: blockInfo.timestamp,
-              blockId: blockInfo.id,
-              sidechain,
-              eventNum,
-              cbevent
-            }
-            const r = await fetch(url, {
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              method: 'POST',
-              body: JSON.stringify({
-                receiver: account,
-                method,
-                account: code,
-                data: actData,
-                event
-              })
-            });
-
-            const resText = await r.text();
-            //logger.debug(`resText ${resText}`);
-            return eventNum;
-            // call webhook
-          })
-          await Promise.race([
-            Promise.all(proms),
+          const url = `http://localhost:${process.env.WEBHOOK_DAPP_PORT || 8112}`;
+          event.meta = {
+            txId: txid,
+            blockNum: blockInfo.number,
+            timestamp: blockInfo.timestamp,
+            blockId: blockInfo.id,
+            sidechain,
+            eventNum,
+            cbevent
+          }
+          const promRes = fetch(url, {
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            method: 'POST',
+            body: JSON.stringify({
+              receiver: account,
+              method,
+              account: code,
+              data: actData,
+              event
+            })
+          });
+          // call webhook
+          const r = await Promise.race([
+            promRes,
             new Promise((resolve, reject) => {
               setTimeout(() => reject('service response timeout for event', JSON.stringify(event)), serviceResponseTimeout);
             })
           ])
+          const resText = await r.text();
           logger.debug(`fired hooks: ${account} ${method} ${JSON.stringify(event, null, 2)} ${code}`);
         }
         return eventNum;
@@ -303,7 +298,10 @@ async function messageHandler(data) {
     }
     if (current_block - last_processed >= 10000) {
       last_processed = current_block;
-      await dal.updateSettings({ last_processed_block: current_block });
+      const newSettings = {};
+      if (sidechainName) { newSettings[sidechainName] = { last_processed_block: current_block } }
+      else { newSettings.last_processed_block = current_block };
+      await dal.updateSettings(newSettings);
       logger.info("Updated database with current block: %s", current_block);
     }
 
@@ -348,6 +346,10 @@ let ws, abi;
 let expectingABI = true;
 let heartBeat = Math.floor(Date.now() / 1000);
 const connect = () => {
+  if (pending.length > maxPendingMessages) {
+    logger.warn(``);
+    setTimeout(connect, 15000);
+  }
   ws = new WebSocket(`ws://${nodeosHost}:${nodeosWebsocketPort}`, {
     perMessageDeflate: false
   });
@@ -356,14 +358,17 @@ const connect = () => {
     logger.info('ws connected');
   });
   ws.on('error', function() {
-      logger.warn('ws error');
+    logger.warn('ws error');
   });
   ws.on('close', function() {
-      setTimeout(connect, 1000); //hardcoded interval
+    setTimeout(connect, 1000); //hardcoded interval
   });
   ws.on('message', async function incoming(data) {
     //start pushing messages after we received the ABI
     if (!expectingABI) {
+      if (pending.length > maxPendingMessages) {
+        logger.warn(``);
+      }
       pending.push(data);
       let currTime = Math.floor(Date.now() / 1000);
       if ((currTime - heartBeat) >= 15) { //heartbeat every 15 seconds
@@ -413,15 +418,29 @@ const connect = () => {
 }
 connect();
 
-async function getStartingBlockNumber() {
+async function setDatabaseBlockNumber() {
+}
+
+async function getDatabaseBlockNumber() {
   const settings = await dal.getSettings();
-  if (settings && settings.data && settings.data.last_processed_block) {
-    return settings.data.last_processed_block;
+  if(sidechainName) {
+    if (settings && settings.data && settings.data[sidechainName] && settings.data[sidechainName].last_processed_block)
+      return settings.data[sidechainName].last_processed_block;
+  }
+  else {
+    if (settings && settings.data && settings.data.last_processed_block)
+      return settings.data.last_processed_block;
+  }
+}
+
+async function getStartingBlockNumber() {
+  if(process.env.DEMUX_BYPASS_DATABASE_HEAD_BLOCK === 'true' || process.env.DEMUX_BYPASS_DATABASE_HEAD_BLOCK === true ? false : true) {
+    const res = await getDatabaseBlockNumber();
+    if (res) return res;
   }
 
-  if (process.env.DEMUX_HEAD_BLOCK) {
+  if (process.env.DEMUX_HEAD_BLOCK)
     return process.env.DEMUX_HEAD_BLOCK;
-  }
 
   return process.env.DAPPSERVICES_GENESIS_BLOCK || 1;
 }

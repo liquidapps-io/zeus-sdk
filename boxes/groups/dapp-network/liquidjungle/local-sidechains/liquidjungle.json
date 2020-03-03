@@ -1,0 +1,13 @@
+{
+    "dsp_port":3116,
+    "webhook_dapp_port": 8813,
+    "nodeos_host":"34.203.242.110",
+    "nodeos_port":8888,
+    "secured":false,
+    "nodeos_state_history_port":8887,
+    "nodeos_p2p_port":9876,
+    "nodeos_endpoint":"http://34.203.242.110:8888",
+    "demux_port":3196,
+    "name":"liquidjungle",
+    "local":false
+}

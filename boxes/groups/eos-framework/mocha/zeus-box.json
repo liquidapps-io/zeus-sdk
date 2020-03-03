@@ -5,7 +5,7 @@
     "zeus-config.js"
   ],
   "commands": {
-    "Test": "zeus test"
+    "Test": "zeus test -c"
   },
   "install": {
     "npm": {

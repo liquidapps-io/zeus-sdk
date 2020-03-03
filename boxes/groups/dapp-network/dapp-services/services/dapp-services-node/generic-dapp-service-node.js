@@ -8,7 +8,7 @@ const fs = require('fs');
 const logger = require('../../extensions/helpers/logger');
 const { loadModels } = require('../../extensions/tools/models');
 const { dappServicesContract, getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
-const { deserialize, generateABI, genNode, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission, emitUsage, detectXCallback, getTableRowsSec, getLinkedAccount, parseEvents, pushTransaction, eosPrivate, getEosForSidechain } = require('./common');
+const { deserialize, generateABI, genNode, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission, emitUsage, detectXCallback, getTableRowsSec, getLinkedAccount, parseEvents, pushTransaction, getEosForSidechain, eosMainnet } = require('./common');
 
 var sidechainsDict = {};
 
@@ -24,11 +24,16 @@ const actionHandlers = {
     var handler = handlers[action];
     var models = await loadModels('dapp-services');
     var serviceContractForLookup = service;
+    var thisService = models.find(m => m.name == serviceName).contract;
     if (sidechain) {
-      const sidechainName = sidechain.name;
-      serviceContractForLookup = await getLinkedAccount(null, null, service, sidechainName, true);
+      serviceContractForLookup = await getLinkedAccount(null, null, service, sidechain.name, true);
     }
     var model = models.find(m => m.contract == serviceContractForLookup);
+    if (sidechain) {
+      // get sidechain contract if sidechain exists
+      service = await getContractAccountFor(model, sidechain);
+      thisService = await getContractAccountFor(models.find(m => m.name == serviceName), sidechain);
+    }
     if (isReplay && provider == '') {
       provider = paccount;
       if (!(getContractAccountFor(model, sidechain) == service && handler)) { return; }
@@ -44,23 +49,21 @@ const actionHandlers = {
       //including ourselves
       act.event.broadcasted = true;
       let providers = await resolveProviderPackage(payer, service, false, sidechain, true);
+      logger.debug(`providers: ${JSON.stringify(providers)}`)
       await Promise.all(providers.map(async(prov) => {
         await forwardEvent(act, prov.data.endpoint, false);
       }));
-      logger.debug(`retry after broadcast ${action} to ${providers.length} providers`);
-
       return 'retry';
     }
-
     provider = await resolveProvider(payer, service, provider, sidechain);
-
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider, sidechain);
-    if (provider !== paccount) {
+    if (provider !== paccount || service !== thisService) {
+      if(service !== thisService) 
+        logger.warn("WARNING - Service Mixup: %s requested inside %s, forwarding event.", service, thisService);
       var providerData = await resolveProviderData(service, provider, packageid, sidechain);
       if (!providerData) { return; }
       return await forwardEvent(act, providerData.endpoint, act.exception);
     }
-
     if (!simulated) {
       if (!(getContractAccountFor(model, sidechain) == service && handler)) { return; }
       await handleRequest(handler, act, packageid, model.name, handlers.abi);
@@ -68,7 +71,6 @@ const actionHandlers = {
     }
     if (!act.exception) { return; }
     if (getContractAccountFor(model, sidechain) == service && handler) {
-
       await handleRequest(handler, act, packageid, model.name, handlers.abi);
       logger.debug(`retry after handle ${action}`);
       return 'retry';
@@ -91,6 +93,7 @@ const actionHandlers = {
       // console.log('unhandled signal', act);
       return;
     }
+    logger.debug(`service_signal handler`)
     await handler(sigData);
   },
   'usage_report': async(act, simulated, serviceName, handlers) => {
@@ -102,6 +105,7 @@ const actionHandlers = {
     }
     // todo: handle quota and verify sig and usage for each xaction
     if (handler) {
+      logger.debug(`usage_report handler`)
       await handler(act.event);
     }
     else {
@@ -134,16 +138,22 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
   data = deserialize(abi, data, action);
   if (!data) { return; }
   if (!sidechain && metadata && metadata.sidechain) {
-    const models = await loadModels('local-sidechains');
+    const models = await loadModels('eosio-chains');
     sidechain = models.find(m => m.name == metadata.sidechain.name);
   }
   let sidechain_provider_on_mainnet = paccount;
   act.event.current_provider = paccount;
   act.event.packageid = packageid;
-  const eosMain = await eosPrivate();
+  const eosMain = await eosMainnet();
   let eosSideChain = eosMain;
   if (sidechain) {    
-    const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechain.name && m.mainnet_account === paccount);
+    const models = await loadModels('liquidx-mappings');    
+    let mapEntry; 
+    models.forEach(m => {
+      if(m.sidechain_name === sidechain.name && m.mainnet_account === paccount){
+        mapEntry = m;
+      }
+    })
     if (!mapEntry)
       throw new Error('mapping not found')
 
@@ -171,7 +181,7 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
   let service_on_mainnet = service;
   let dappServicesSisterContract = dappServicesContract;
   if (sidechain) {
-    logger.debug(`getting mappings for ${sidechain.name} ${dappServicesSisterContract} ${service} ${account} ${sidechain_provider_on_mainnet} ${dappServicesContract} ${payer}`);
+    logger.info(`getting mappings for ${sidechain.name} ${dappServicesSisterContract} ${service} ${account} ${sidechain_provider_on_mainnet} ${dappServicesContract} ${payer}`);
     mainnet_account = await getLinkedAccount(eosSideChain, eosMain, account, sidechain.name);
     service_on_mainnet = await getLinkedAccount(eosSideChain, eosMain, service, sidechain.name, true);
     dappServicesSisterContract = await getLinkedAccount(eosSideChain, eosMain, 'dappservices', sidechain.name);
@@ -257,7 +267,7 @@ const nodeFactory = async(serviceName, handlers) => {
   var models = await loadModels('dapp-services');
   var model = models.find(m => m.name == serviceName);
   logger.info(`nodeFactory starting ${serviceName}`);
-  var sidechains = await loadModels('local-sidechains');
+  var sidechains = await loadModels('eosio-chains');
   for (var i = 0; i < sidechains.length; i++) {
     var sidechain = sidechains[i];
     sidechainsDict[sidechain.name] = sidechain;

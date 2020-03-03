@@ -12,7 +12,6 @@
     "oracle-web","oracle-self-history","oracle-random","oracle-sister-chain"],
   "install":{
     "contracts":{
-      "oracleservice": true,
       "oracleconsumer": true
     },
     "npm":{

@@ -8,5 +8,5 @@ https://github.com/liquidapps-io/zeus-cmd
 ```
 zeus unbox deepfreeze
 cd deepfreeze
-zeus test
+zeus test -c
 ```

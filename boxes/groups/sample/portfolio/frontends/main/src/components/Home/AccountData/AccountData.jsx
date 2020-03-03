@@ -4,7 +4,7 @@ import classes from './AccountData.module.scss';
 const accountData = (props) => {
   return (
     <div className={classes.container}>
-      <div className={classes.title}>Account Data</div>
+      <div className={classes.title}>Account Data<span className={classes.asterik}>*</span></div>
       <div className={classes.dataBox}>
         <div className={classes.subDataBox}>
           <div className={classes.dataTitle}>Total BTC Value</div>

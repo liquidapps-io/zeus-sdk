@@ -33,31 +33,44 @@ chainid = "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906"
 # if using state_history_plugin: 
 websocket_port = 8887
 
-host_dsp = "localhost"
-host_dsp_port = 3115
-
 [demux]
-backend = "state_history_plugin"
 socket_mode = "sub"
 # head block to sync demux from
 head_block = 35000000
+# demux defaults to first pulling head block from toml file if postgres database is not set
+# after database is set, defaults to databse, to overwrite and default to toml file, pass true
+bypass_database_head_block = false
 
 [ipfs]
 protocol = "http"
 host = "localhost"
 port = 5001
 
+# sidechain section, if no sidechains, leave as [sidechains], can add additional sidechains with [sidechains.newchain] ...
 [sidechains]
   [sidechains.test1]
-    dsp_port = 12346
-    nodeos_secured = false
-    nodeos_host = "localhost"
-    nodeos_port = 2424
-    nodeos_state_history_port = 12341
-    demux_port = 1232
-    demux_head_block = 50000000
-    name = "test1"
-    dsp_account = "<DSP SIDECHAIN ACCOUNT>"
-    dsp_private_key = "<DSP SIDECHAIN PRIVATE KEY>"
-    chainid = "<SIDECHAIN CHAIN ID>"
-    mapping = "dappservices:dappservicex,cronservices:cronservicex,ipfsservice1:ipfsservice2"
+    # dsp
+    dsp_port = 3116 # dsp port to run new chain's services on, this is the port developers will push to, must be unique per new chain
+    dsp_account = "test1" # DSP Account on new chain
+    dsp_private_key = "" # DSP active private key on new chain
+    # nodeos
+    nodeos_host = "localhost" # nodeos host running new chain
+    nodeos_port = 8888 # nodeos host port
+    nodeos_secured = false # nodeos secured bool (true: https, false: http)
+    nodeos_chainid = "" # chainid of new chain
+    nodeos_websocket_port = 8887 # nodeos websocket port, can be same per nodeos instance
+    webhook_dapp_port = 8113 # nodeos webhook port, must be unique per chain
+    # demux
+    demux_webhook_port = 3196 # port demux runs on, must be unique per new chain
+    demux_socket_mode = "sub"
+    demux_head_block = 1
+    # demux defaults to first pulling head block from toml file if postgres database is not set
+    # after database is set, defaults to database, to overwrite and default to toml file, pass true
+    demux_bypass_database_head_block = false
+    # sidechain 
+    liquidx_contract = "liquidx.dsp" # liquidx contract on the EOS mainnet
+    name = "test1" # CHAIN_NAME - contract on the EOS mainnet that registered the new chain
+    # the mapping below contains the dappservices:dappservicex and mainnet DSP account to the new chain's DSP account mapping
+    mapping = "dappservices:dappservicex,heliosselene:heliosselene"
+  # [sidechains.ANOTHER_CHAIN_NAME]
+    # ...

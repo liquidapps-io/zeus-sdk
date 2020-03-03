@@ -8,6 +8,7 @@ namespace dapp {
     using namespace eosio;
     using namespace std;
 
+
 template <name::raw TableName,typename T, typename... Indices>
 class multi_index : public advanced_multi_index<TableName,T,uint64_t,Indices...>{
     public:

@@ -29,19 +29,19 @@ export IPFS_HOST=localhost
 # zeus unbox helloworld -c --test
 zeus unbox framework-tests -c 
 cd framework-tests
-zeus test
+zeus test -c
 cd ..
 
 # zeus unbox microauctions -c 
 # cd microauctions
-# zeus test
+# zeus test -c
 # cd ..
 
 # zeus unbox dapp-sample -c --test
 # zeus unbox sample-eos-assemblyscript -c --test
 # zeus unbox helloworld -c 
 # cd helloworld
-# zeus test
+# zeus test -c
 # zeus create contract-deployment helloworld helloworld1
 # zeus migrate
 # sudo rm -rf $THEDIR

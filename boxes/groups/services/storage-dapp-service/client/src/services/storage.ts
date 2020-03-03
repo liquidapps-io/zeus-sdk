@@ -1,6 +1,6 @@
-import * as ecc from "eosjs-ecc"
-import {DSPServiceClient} from '../dsp-service-client';
-import {hashData256} from '../dapp-common';
+const ecc = require('eosjs-ecc');
+const { DSPServiceClient } = require('../dsp-service-client');
+const { hashData256 } = require('../dapp-common');
 
 const serviceContract = "liquidstorag"
 

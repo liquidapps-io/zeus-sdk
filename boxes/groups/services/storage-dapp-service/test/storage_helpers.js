@@ -1,4 +1,4 @@
-import { TextDecoder, TextEncoder } from "text-encoding";
+const { TextDecoder, TextEncoder } = require("text-encoding");
 const { BigNumber } = require("bignumber.js");
 const getDefaultArgs = require("../extensions/helpers/getDefaultArgs");
 const fetch = require("node-fetch");

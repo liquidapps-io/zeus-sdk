@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ARCH=$( uname )
-NODEOS_VERSION=1.8.9
+NODEOS_VERSION=2.0.2
 if [ "$ARCH" == "Darwin" ] ; then
     OS_NAME=MacOSX
     OS_VER=$(sw_vers -productVersion)

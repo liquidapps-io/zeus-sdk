@@ -4,6 +4,7 @@ require('mocha');
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = require('../extensions/helpers/key-utils');
 const { getNetwork, getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
+const { getTableRowsSec } = require('../services/dapp-services-node/common');
 const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 
 const artifacts = require('../extensions/tools/eos/artifacts');
@@ -66,21 +67,8 @@ async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccou
     authorization: `${provider}@active`,
   });
 
-  // reg provider and model model
-  var serviceC = artifacts.require(`./${serviceName}service/`);
-  var deployedService = await deployer.deploy(serviceC, serviceContract);
-  contractInstance = await eos.contract(serviceContract);
-  await contractInstance.regprovider({
-    provider,
-    model: {
-      package_id,
-      model: generateModel(Object.keys(serviceModel.commands))
-    }
-  }, {
-    authorization: `${provider}@active`,
-  });
-
-  return deployedService;
+  // create service account
+  await getCreateAccount(serviceContract);  
 }
 
 async function allocateDAPPTokens(deployedContract, quantity = '1000.0000 DAPP') {
@@ -283,6 +271,27 @@ async function refundto({ deployedPayer, deployedContract, serviceName = 'ipfs',
   }
   catch (e) {
 
+  }
+}
+
+async function setcost(serviceName = 'ipfs', provider = 'pprovider1', package_id, action, cost) {
+  var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
+  var service = model.contract;
+  var eos = await getEos(provider);
+  let servicesTokenContract = await eos.contract(dappServicesContract);
+  try {
+    await servicesTokenContract.pricepkg({
+      provider,
+      package_id,
+      service,      
+      action,
+      cost
+    }, {
+      authorization: `${provider}@active`,
+    });
+  }
+  catch (e) {
+    console.log(JSON.stringify(e));
   }
 }
 
@@ -850,6 +859,46 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
           failed = true;
         }
         assert(failed, 'should have failed, QUOTA token requires 4 decimals of precision (wrong: 1 QUOTA -> right: 1.0000 QUOTA');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();    
+  });
+
+  
+  it('Custom action quota pricing', done => {
+    (async () => {
+      try {
+        var eos = await getEos(dappServicesContract);
+        var selectedPackage = 'testpay123';
+        var testContractAccount = 'testpay123';
+        var package_period = 720;
+        var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
+        await deployServicePackage({ package_id: selectedPackage, package_period });
+        await selectPackage({ deployedContract, selectedPackage });
+        await stake({ deployedContract, selectedPackage });
+        await setcost("ipfs","pprovider1",selectedPackage,"warmup",5);
+        await setcost("ipfs","pprovider1",selectedPackage,"commit",5);
+
+        //FIRST
+        await invokeService(testContractAccount, testcontract);    
+        let table = await getTableRowsSec(eos.rpc, dappServicesContract, "accountext", "DAPP", [null, testContractAccount, "ipfsservice1", "pprovider1"], 1, 'sha256', 2);
+        let first = Number(table[0].quota.replace(" QUOTA",""));
+
+        //SECOND
+        await invokeService(testContractAccount, testcontract);
+        table = await getTableRowsSec(eos.rpc, dappServicesContract, "accountext", "DAPP", [null, testContractAccount, "ipfsservice1", "pprovider1"], 1, 'sha256', 2);
+        let second = Number(table[0].quota.replace(" QUOTA",""));
+        assert(second <= (first - 0.0005),"quota must decrease by 5");
+
+        //THIRD
+        await invokeService(testContractAccount, testcontract);
+        table = await getTableRowsSec(eos.rpc, dappServicesContract, "accountext", "DAPP", [null, testContractAccount, "ipfsservice1", "pprovider1"], 1, 'sha256', 2);
+        let third = Number(table[0].quota.replace(" QUOTA",""));
+        assert(third <= (second - 0.0005),"quota must decrease by 5");
+        
         done();
       }
       catch (e) {

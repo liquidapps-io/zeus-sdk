@@ -35,6 +35,7 @@ extern "C" {
 }
 #define DAPPSERVICES_SYMBOL symbol(symbol_code("DAPP"), 4)
 #define DAPPSERVICES_QUOTA_SYMBOL symbol(symbol_code("QUOTA"), 4)
+#define DAPPSERVICES_QUOTA_COST 1
 #define EXPAND(...) __VA_ARGS__
 #define XSTR(x) #x
 #define STR(x) XSTR(x)
@@ -163,20 +164,6 @@ extern "C" {
   }                                                                            \
   SVC_ACTION_METHOD(aname, action_args)
 
-#define typeName(TYPE) #TYPE
-
-#ifndef USAGE_DEFINED
-#define USAGE_DEFINED
-struct usage_t {
-  asset quantity;
-  name provider;
-  name payer;
-  name service;
-  name package;
-  bool success = false;
-};
-#endif
-
 #define XSIGNAL_DAPPSERVICE_ACTION \
     SVC_ACTION_METHOD_NOC(signal,((name)(service))((name)(action))((name)(provider))((name)(package))((std::vector<char>)(signalRawData))){ \
         require_recipient(DAPPSERVICES_CONTRACT);  \
@@ -187,17 +174,6 @@ struct usage_t {
 
 #define BUILD_ACTIONS_SVC_HELPER(contract, names)                              \
   BOOST_PP_SEQ_FOR_EACH(_CONVERT_TO_ACTION_NAME, contract, names)
-#define STANDARD_USAGE_MODEL(signal)                                           \
-  MODEL_START(signal) {                                                        \
-    uint64_t cost_per_action;                                                  \
-    usage_t calc_usage(name payer, name currentProvider,                       \
-                       SIGNAL_NAME(signal) signalData) {                       \
-      asset quantity;                                                          \
-      quantity.amount = cost_per_action;                                       \
-      quantity.symbol = DAPPSERVICES_QUOTA_SYMBOL;                                     \
-      MODEL_RESULT(quantity);                                                  \
-    }                                                                          \
-  };
 
 #define EOSIO_DISPATCH_SVC_TRX(contract, methods)    \
   extern "C" {                                                                 \
@@ -230,21 +206,6 @@ struct usage_t {
     eosio_exit(0);                                                             \
   }                                                                            \
   }
-
-
-
-
-
-
-
-#define HANDLECASE_SIGNAL_TYPE(signal)                                         \
-  if (action == TONAME(signal)) {                                              \
-    _xsignal_provider<SIGNAL_NAME(signal)>(                                    \
-        action, provider,package,                                              \
-        eosio::unpack<SIGNAL_NAME(signal)>(signalRawData), dappserviceContract, payer);                    \
-    return;                                                                    \
-  }
-
 
   TABLE account {
     asset balance;
@@ -406,87 +367,6 @@ std::vector<name> getProvidersForAccount(name account, name service) {
   }
   return result;
 }
-
-void dispatchUsage(usage_t usage_report, name servicesContract) {
-  action(permission_level{name(current_receiver()), "active"_n},
-         servicesContract, "usage"_n, std::make_tuple(usage_report))
-      .send();
-}
-
-
-#define DAPPSERVICE_PROVIDER_ACTIONS                                               \
-  template <typename T>                                                        \
-  void _xsignal_provider(name actionName, name provider,name package, T signalData, name servicesContract, name payer) {       \
-    std::vector<name> providers;                                               \
-    if (provider != ""_n)                                                      \
-      providers.push_back(provider);                                           \
-    else                                                                       \
-      providers = getProvidersForAccount(payer, name(current_receiver()));     \
-    if(servicesContract == DAPPSERVICES_CONTRACT)                             \
-      require_auth(payer);                                                       \
-    else                                                                        \
-      require_auth(servicesContract);                                                       \
-    auto currentProvider = provider;                                            \
-      providermodels_t providermodels(_self, currentProvider.value);           \
-      auto providerModel = providermodels.find(package.value);      \
-      eosio::check (providerModel != providermodels.end(), "package not found");\
-      auto model = providerModel->model;                                        \
-      auto usageResult = model.calc_usage(payer, currentProvider, signalData); \
-      usageResult.provider = currentProvider;                                  \
-      usageResult.payer = payer;                                               \
-      usageResult.package = package;                                               \
-      usageResult.service = name(current_receiver());                        \
-      dispatchUsage(usageResult, servicesContract);                                              \
-  }
-
-#define DAPPSERVICE_PROVIDER_BASIC_ACTIONS                                       \
- [[eosio::action]] void regprovider(name provider, providermdl model) {                       \
-    require_auth(provider);                                                    \
-    providermodels_t providermodels(_self, provider.value);                    \
-    auto providerModel = providermodels.find(model.package_id.value);                       \
-    eosio::check(providerModel == providermodels.end(), "already exists");\
-    providermodels.emplace(provider, [&](auto &s) {\
-          s.model = model.model;\
-          s.package_id = model.package_id;\
-    });\
-  }
-
-#define EOSIO_DISPATCH_SVC_PROVIDER(contract)                                  \
-  extern "C" {                                                                 \
-  void apply(uint64_t receiver, uint64_t code, uint64_t action) { \
-    if (code == receiver) {                                                    \
-      switch (action) { EOSIO_DISPATCH_HELPER(contract, (regprovider)(ACTION_NAME(signalx))) }       \
-    } else                                                                     \
-      switch (action) {                                                        \
-        EOSIO_DISPATCH_HELPER(contract, (ACTION_NAME(signal)))                 \
-      }                                                                        \
-    eosio_exit(0);                                                             \
-  }                                                                            \
-  }
-
-#define HANDLE_MODEL_SIGNAL_FIELD(signal)                                      \
-  signal##_model_t signal##_model_field;                                       \
-  usage_t calc_usage(name payer, name provider,                                \
-                     SIGNAL_NAME(signal) signalData) {                         \
-    return signal##_model_field.calc_usage(payer, provider, signalData);       \
-  }
-
-#define MODEL_RESULT(quantity)                                                 \
-  {                                                                            \
-    usage_t usage_result;                                                      \
-    usage_result.quantity = quantity;                                          \
-    return usage_result;                                                       \
-  }                                                                            \
-  while (0)
-
-#define MODEL_START(signal) struct signal##_model_t
-
-#define HANDLE_MODEL_SIGNAL_FIELD2(signal)                                      \
-  signal##_model_t signal##_model_field;
-#define STANDARD_USAGE_MODEL2(signal)                                           \
-  MODEL_START(signal) {                                                        \
-    uint64_t cost_per_action;                                                  \
-  };
 
 #define CONTRACT_START() \
 CONTRACT CONTRACT_NAME() : public eosio::contract { \

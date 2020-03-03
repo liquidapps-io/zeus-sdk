@@ -20,15 +20,15 @@ nodeFactory('oracle', {
     const tapos = payloadParts[partIdx++];
     const proto = payloadParts[partIdx++];
     const address = payloadParts[partIdx++];
-    const handler = handlers[proto];
+    let handler = handlers[proto];
     logger.debug(`req ${trxId} ${tapos} ${proto} ${address}`);
     try {
       if (!handler) {
 
-        const newHandler = require(`./protocols/${proto}`);
-        if (!newHandler)
+        handler = require(`./protocols/${proto}`);
+        if (!handler)
           throw new Error(`unsupported protocol ${proto}`);
-        handlers[proto] = newHandler;
+        handlers[proto] = handler;
       }
       let data = await handler({ proto, address, sidechain, contract: payer });
       return {

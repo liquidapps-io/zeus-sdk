@@ -153,7 +153,7 @@ const foreignChains = {
   },
   'ethereum': {
     'endpoints': [
-      'https://mainnet.infura.io'
+      'https://main-rpc.linkpool.io/'
       // process.env.ETHEREUM_JSONRPC_API || `http://localhost:....`
     ],
     'block_number': async({ parts, address, endpoint }) => {

@@ -1,0 +1,35 @@
+@import 'src/App.module.scss';
+
+.container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding-top: 25px;
+    padding-bottom: 25px;
+    @include mobile {
+      margin-left: 25px;
+      margin-right: 25px;
+    }
+    @include tablet {
+      margin-left: 25px;
+      margin-right: 25px;
+    }
+}
+
+.disclaimer {
+  margin-left: 10px;
+  margin-right: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.disclaimerText {
+  font-family: Rajdhani, sans-serif;
+  color: $color-grey;
+  font-size: 12px;
+}
+
+.disclaimerText:hover {
+  color: $color-dark-blue;
+}

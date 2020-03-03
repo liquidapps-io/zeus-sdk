@@ -5,7 +5,7 @@ const BN = require('bignumber.js')
 const bs58 = require('bs58')
 const IPFS = require('ipfs-api');
 const ipfs = new IPFS({ host: process.env.IPFS_HOST || 'localhost', port: process.env.IPFS_PORT || 5001, protocol: process.env.IPFS_PROTOCOL || 'http' });
-const ipfsTimeout = 2000;
+const ipfsTimeout = parseInt(process.env.IPFS_TIMEOUT || 10000);
 
 const EMPTY_BUCKET_URI = '01551220E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855';
 

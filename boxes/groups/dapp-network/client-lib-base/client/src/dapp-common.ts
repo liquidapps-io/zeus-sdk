@@ -1,5 +1,5 @@
-import Long from 'long';
-import {sha256} from "js-sha256";
+const Long = require('long');
+const { sha256 } = require("js-sha256");
 
 export function encodeName(name: string, littleEndian = true) {
     const charmap = '.12345abcdefghijklmnopqrstuvwxyz'

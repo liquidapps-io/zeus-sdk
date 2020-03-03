@@ -1,15 +1,7 @@
 const { emojMap, execPromise } = require('../../helpers/_exec');
 var { loadModels } = require('../../tools/models');
 var { getEos } = require('../../tools/eos/utils');
-var generateModel = (commandNames, cost_per_action = 1) => {
-  var model = {};
-  commandNames.forEach(a => {
-    model[`${a}_model_field`] = {
-      cost_per_action
-    };
-  });
-  return model;
-};
+
 var cmd = 'dapp-service-provider-package';
 module.exports = {
   description: 'register a new DAPP service provider package',
@@ -45,6 +37,9 @@ module.exports = {
     }).option('network', {
       describe: 'network to work on',
       default: 'development'
+    }).option('sidechains', {
+      describe: `sidechains to regprovider on --sidechains ['{sidechain_provider:"dspnameeeeee",service_contract:"ipfservice2",nodeos_endpoint:"https://api.jungle.alohaeos.com:443",active_key:""}','{ ... another sidechain object }']`,
+      default: []
     }).demandOption(['key', 'api-endpoint', 'package-json-uri']);
   },
   command: `${cmd} <service> <provider> <package-id>`,
@@ -78,25 +73,11 @@ module.exports = {
         sign: true,
         keyProvider: [key]
       });
-
-      contractInstance = await eos.contract(serviceContract);
-      await contractInstance.regprovider({
-        provider: args['provider'],
-        model: {
-          package_id: args['package-id'],
-          model: generateModel(Object.keys(serviceModel.commands), args['price-per-action'])
-        }
-      }, {
-        authorization: `${args['provider']}@active`,
-        broadcast: true,
-        sign: true,
-        keyProvider: [key]
-      });
     }
     catch (e) {
       console.log(emojMap.white_frowning_face + 'failed', e);
       return;
     }
-    console.log(emojMap.ok + `package:${args['package-id']} registered successfully`);
+    console.log(emojMap.ok + `package: ${args['package-id']} registered successfully for dsp: ${args['provider']} with service contract: ${serviceContract}`);
   }
 };

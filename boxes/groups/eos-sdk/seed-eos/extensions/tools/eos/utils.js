@@ -60,7 +60,7 @@ async function createAccount(wallet, creator, account, args = getDefaultArgs(), 
     expireSeconds: 30,
     sign: true,
     broadcast: true,
-    blocksBehind: 10
+    blocksBehind: 3
   });
   newKeys.account = account;
   return newKeys;
@@ -211,7 +211,7 @@ const uploadContract = async(args, name, contract, sidechain) => {
   catch (e) {
     var eobj = e.json;
 
-    if (eobj.code == 500 && eobj.error.name == 'set_exact_code') {
+    if (eobj && eobj.code == 500 && eobj.error.name == 'set_exact_code') {
 
     }
     else {

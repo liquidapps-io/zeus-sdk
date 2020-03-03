@@ -1,6 +1,4 @@
 require("mocha");
-require("babel-core/register");
-require("babel-polyfill");
 const fs = require("fs");
 const { assert } = require("chai"); // Using Assert style
 const fetch = require("node-fetch");

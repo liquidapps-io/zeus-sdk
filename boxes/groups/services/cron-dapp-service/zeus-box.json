@@ -10,7 +10,6 @@
     "hooks-cpp-contracts"],
   "install":{
     "contracts":{
-      "cronservice": true,
       "cronconsumer": true
     },
     "npm":{

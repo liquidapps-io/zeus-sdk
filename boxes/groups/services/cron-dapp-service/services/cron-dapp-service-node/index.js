@@ -13,13 +13,12 @@ nodeFactory('cron', {
     const { payer, packageid, current_provider, meta } = event;
     const { sidechain } = meta;
     logger.debug("Received event: %j", event);
-    logger.info(`setting timer ${payer} ${timer}`);
+    logger.info(`setting timer ${payer} ${timer} for ${seconds} seconds from now`);
     const timerId = timers[`${payer}_${timer}`];
     if (timerId) {
       clearTimeout(timerId);
     }
     if (seconds == 0) return;
-    logger.info(`firing timer ${payer} ${timer}`);
 
     var fn = (async(n) => {
       delete timers[`${payer}_${timer}`];
@@ -39,6 +38,7 @@ nodeFactory('cron', {
         seconds
       };
       try {        
+        logger.info(`firing timer ${payer} ${timer}`);
         await pushTransaction(eosMain,dapp,payer,current_provider, "xschedule", data);
         if(sidechain) {
           let loadedExtensions = await loadModels("dapp-services");

@@ -16,17 +16,20 @@ const delaySec = sec => delay(sec * 1000);
 var contractCode = 'ipfsconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
 describe(`IPFS Service Test Contract`, () => {
-  var testcontract, testcontract2;
+  var testcontract, testcontract2, testcontract3;
   const code = 'test1ipfs';
   const code2 = 'tstbakcomp';
+  const code3 = 'test2ipfs';
   var eosvram;
   before(done => {
     (async () => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
         var deployedContract2 = await deployer.deploy(ctrt, code2);
+        var deployedContract3 = await deployer.deploy(ctrt, code3);
         await genAllocateDAPPTokens(deployedContract, 'ipfs');
         await genAllocateDAPPTokens(deployedContract2, 'ipfs', '', 'default', null, false);
+        await genAllocateDAPPTokens(deployedContract3, 'ipfs');
         // create token
         var selectedNetwork = getNetwork(getDefaultArgs());
         var config = {
@@ -45,6 +48,11 @@ describe(`IPFS Service Test Contract`, () => {
         config.keyProvider = keysTest2.active.privateKey;
         eosvram = getEosWrapper(config);
         testcontract2 = await eosvram.contract(code2);
+
+        var keysTest3 = await getCreateKeys(code3);
+        config.keyProvider = keysTest3.active.privateKey;
+        eosvram = getEosWrapper(config);
+        testcontract3 = await eosvram.contract(code3);
 
         done();
       }
@@ -75,6 +83,23 @@ describe(`IPFS Service Test Contract`, () => {
       }
       catch (e) {
         done(e);
+      }
+    })();
+  });
+
+  // important no vram actions done before this test
+  it.skip('Cleanup', done => {
+    (async () => {
+      try {
+        await delaySec(15);
+        await testcontract.verfempty({
+        }, {
+          authorization: `${code}@active`,
+        });
+        done();
+      }
+      catch (e) {
+        done(e)
       }
     })();
   });
@@ -368,6 +393,7 @@ describe(`IPFS Service Test Contract`, () => {
         });
         let shardUri2 = shardTable.rows[0].shard_uri;
         assert(shardUri1 !== shardUri2, "data didn't get written to same shard");
+        await delaySec(3);
         await testcontract.testcollide({
           id: 12345,
           value: 12345
@@ -513,25 +539,6 @@ describe(`IPFS Service Test Contract`, () => {
     })();
   });
 
-  it.skip('Cleanup', done => {
-    (async () => {
-      try {
-        await delaySec(20);
-        await testcontract.verfempty({
-          id: 52343,
-          value: 123,
-          delay_sec: 2
-        }, {
-          authorization: `${code}@active`,
-        });
-        done();
-      }
-      catch (e) {
-        done(e)
-      }
-    })();
-  });
-
   var backup = {};
 
   it.skip('IPFS Save Manifest', done => {
@@ -651,6 +658,53 @@ describe(`IPFS Service Test Contract`, () => {
         }, {
           authorization: `${code2}@active`,
         });
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it('IPFS Read Third Party', done => {
+    (async() => {
+      try {
+        await testcontract.testindexa({
+          id: 67890
+        }, {
+          authorization: `${code}@active`,
+        });
+
+        await delaySec(10);
+
+        await testcontract3.testremote({
+          remote: code,
+          id: 67890
+        }, {
+          authorization: `${code3}@active`,
+        });
+
+        await testcontract3.testindexa({
+          id: 77777
+        }, {
+          authorization: `${code3}@active`,
+        });
+
+        await testcontract3.testfind({
+          id: 77777
+        }, {
+          authorization: `${code3}@active`,
+        });
+
+        await delaySec(10);
+
+        await testcontract.testremote({
+          remote: code3,
+          id: 77777
+        }, {
+          authorization: `${code}@active`,
+        });
+
         done();
       }
       catch (e) {
