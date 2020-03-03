@@ -20,6 +20,16 @@ export default class LiquidStorageService extends DSPServiceClient {
         return await this.auth.invokeAuthedCall({ apiID, payload: { data: buffer.toString('base64'), contract: this.contract }, service: serviceContract, account:this.contract, permission, key, action: "upload_public"});
     }
 
+    public upload_public_archive = async (
+        buffer: any,
+        key: any,
+        permission:string = "uploader",
+        format:string = `tar`,
+        apiID?:string
+    )  => {
+        return await this.auth.invokeAuthedCall({ apiID, payload: { archive: { format, data: buffer.toString('base64') }, contract: this.contract }, service: serviceContract, account:this.contract, permission, key, action: "upload_public"});
+    }
+
     public upload_public_file_from_vaccount = async (
         buffer: Buffer,
         vaccount: {

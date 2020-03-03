@@ -34,6 +34,34 @@ var ctrtAuth = artifacts.require(`./${authContractCode}/`);
 const vAccount1 = `vaccount1`;
 const vAccount2 = `vaccount2`;
 
+const getIpfsFileAsBuffer = async (ipfsUriOrHash) => {
+  const ipfsHash = ipfsUriOrHash.replace(/^ipfs:\/\//, "");
+  const ipfsGatewayUri = `http://localhost:8080/ipfs/${ipfsHash}`
+  const response = await fetch(ipfsGatewayUri, {
+    method: "GET", // *GET, POST, PUT, DELETE, etc.
+    mode: "cors", // no-cors, cors, *same-origin
+    credentials: "same-origin", // include, *same-origin, omit
+    headers: {
+      // "Content-Type": "application/json",
+      // "Content-Type": "application/x-www-form-urlencoded",
+    },
+    redirect: "follow", // manual, *follow, error
+    referrer: "no-referrer" // no-referrer, *client
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Could not fetch file "${this.getIpfsHash(ipfsUri).slice(
+        0,
+        16
+      )}..." from IPFS. ${response.statusText}`
+    );
+  }
+
+  const buffer = await response.arrayBuffer();
+  return Buffer.from(buffer);
+}
+
 describe(`LiquidStorage Test`, () => {
   var testcontract;
   const code = "test1";
@@ -143,14 +171,20 @@ describe(`LiquidStorage Test`, () => {
         const permission = "active";
         const path = "test/utils/YourTarBall.tar";
         const content = fs.readFileSync(path);
-        const result = await storageClient.upload_public_file(
+        const result = await storageClient.upload_public_archive(
           content,
           key,
           permission
         );
         assert.equal(
           result.uri,
-          "ipfs://zb2rhZ1hCjtUCo69LncPZ4HzXVUVR5ULQkGTMJGcT8raD33Fu"
+          "ipfs://QmYS55iqu1zwxszW5ywEmT5w6m6VKjYwa9G9Xka8Uv4j9s"
+        );
+
+        const fileContent = await getIpfsFileAsBuffer(`QmYS55iqu1zwxszW5ywEmT5w6m6VKjYwa9G9Xka8Uv4j9s/my-stream-test.txt`)
+        assert.equal(
+          fileContent.toString(`utf8`),
+          "hello world"
         );
         done();
       } catch (e) {
