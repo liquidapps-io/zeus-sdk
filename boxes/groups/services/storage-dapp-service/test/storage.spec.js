@@ -3,7 +3,7 @@ const fs = require("fs");
 const { assert } = require("chai"); // Using Assert style
 const fetch = require("node-fetch");
 const ecc = require("eosjs-ecc");
-const eosjs2 = require("eosjs");
+const { JsonRpc } = require("eosjs");
 const {
   getTestContract,
   getCreateKeys,
@@ -15,13 +15,13 @@ const deployer = require("../extensions/tools/eos/deployer");
 const {
   genAllocateDAPPTokens
 } = require("../extensions/tools/eos/dapp-services");
-const initHelpers = require("./storage_helpers");
 
 //dappclient requirement
 global.fetch = fetch;
 // // getUrl(getDefaultArgs()); returns :8888, but we want DSP node
 var endpoint = "http://localhost:13015";
-const { runTrx, rpc } = initHelpers({ endpoint });
+
+const rpc = new JsonRpc(endpoint, { fetch });
 
 const contractCode = "storageconsumer";
 const authContractCode = "authenticator";
@@ -64,12 +64,14 @@ describe(`LiquidStorage Test`, () => {
   var testcontract;
   const code = "test1";
   let privateKeyWif;
+  let dappClient;
 
-  const regVAccount = name =>
-    runTrx({
-      contract_code: code,
-      wif: privateKeyWif,
-      payload: {
+  const regVAccount = async name => {
+    const vaccountClient = await dappClient.service("vaccounts", code);
+    return vaccountClient.runTrx(
+      code,
+      privateKeyWif,
+      {
         name: "regaccount",
         data: {
           payload: {
@@ -77,11 +79,16 @@ describe(`LiquidStorage Test`, () => {
           }
         }
       }
-    });
+    );
+  }
 
   before(done => {
     (async () => {
       try {
+        dappClient = await createClient({
+          httpEndpoint: endpoint,
+          fetch,
+        });
         var deployedStorage = await deployer.deploy(ctrtStorage, code);
         var deployedAuth = await deployer.deploy(ctrtAuth, "authentikeos");
 
@@ -115,7 +122,9 @@ describe(`LiquidStorage Test`, () => {
           await regVAccount(vAccount2);
         } catch (_err) {
           // ignore vaccount already exists error
-          console.warn(_err.message);
+          if(!/already exists/ig.test(_err.message)) {
+            throw _err;
+          }
         }
 
         done();
@@ -128,10 +137,6 @@ describe(`LiquidStorage Test`, () => {
   it('Upload File (authenticated)', done => {
     (async () => {
       try {
-        const dappClient = await createClient({
-          httpEndpoint: endpoint,
-          fetch
-        });
         const storageClient = await dappClient.service("storage", code);
         //var authClient = new AuthClient(apiID, 'authentikeos', null, endpoint);
         const keys = await getCreateKeys(code);
