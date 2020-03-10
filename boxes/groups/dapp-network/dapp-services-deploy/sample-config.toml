@@ -35,10 +35,12 @@ websocket_port = 8887
 
 [demux]
 socket_mode = "sub"
-# head block to sync demux from
-head_block = 35000000
+# a head block may be specified to sync demux from a specific block, the bypass_database_head_block must be set to true for this
+# if bypass_database_head_block is set to true and the head_block is commented out, the head block from the chain will automatically be used
+# head_block = 35000000
+
 # demux defaults to first pulling head block from toml file if postgres database is not set
-# after database is set, defaults to databse, to overwrite and default to toml file, pass true
+# after database is set, defaults to databse, to overwrite and default to toml file or the current head block, pass true
 bypass_database_head_block = false
 
 [ipfs]
@@ -63,7 +65,7 @@ port = 5001
     # demux
     demux_webhook_port = 3196 # port demux runs on, must be unique per new chain
     demux_socket_mode = "sub"
-    demux_head_block = 1
+    # demux_head_block = 1
     # demux defaults to first pulling head block from toml file if postgres database is not set
     # after database is set, defaults to database, to overwrite and default to toml file, pass true
     demux_bypass_database_head_block = false

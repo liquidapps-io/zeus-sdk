@@ -44,7 +44,7 @@ describe(`Cron Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(35000);
+        await delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': code,
@@ -53,7 +53,7 @@ describe(`Cron Service Test Contract`, () => {
           'limit': 100
         });
         var first = res.rows[0].counter;
-        await delay(10000);
+        await delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': code,
@@ -63,7 +63,7 @@ describe(`Cron Service Test Contract`, () => {
         });
         var second = res.rows[0].counter;
         assert.ok(second > first, 'counter did not increase');
-        await delay(10000);
+        await delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': code,
