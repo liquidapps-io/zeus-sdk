@@ -157,6 +157,8 @@ module.exports = async (body, res, model, state) => {
     contract
   } = body;
   try {
+    if (archive) throw new Error(`vaccount archive uploads not yet supported`);
+
     data = Buffer.from(data, `base64`);
     hashSignature = ecc.Signature.fromString(hashSignature);
     const vaccountPublicKey = await getVAccountPublicKey({
@@ -176,19 +178,8 @@ module.exports = async (body, res, model, state) => {
     checkLimits({ data, contractLimits, stateDailyLimits, vaccountName });
 
     let uri;
-    var length = 0;
-    if (archive) {
-      // unpack
-      var archiveData = archive.data;
-      var format = archive.format || "tar";
-      // upload files
-      var files = await unpack(Buffer.from(archiveData, "hex"), format);
-      length = archiveData.length / 2;
-      uri = await saveDirToIPFS(files);
-    } else {
-      uri = await saveToIPFS(data);
-      length = data.byteLength;
-    }
+    var length = data.byteLength;
+    uri = await saveToIPFS(data);
 
     updateLimits({ data, stateDailyLimits, vaccountName });
     await emitUsage(contract, getContractAccountFor(model), length, sidechain, {

@@ -11,11 +11,11 @@ module.exports = async(body, state, model, { account, permission, clientCode }) 
     var length = 0;
     if (archive) {
         // unpack
-        var archiveData = archive.data;
+        var archiveData = Buffer.from(archive.data, `base64`);
         var format = archive.format || 'tar';
         // upload files
-        var files = await unpack(Buffer.from(archiveData, 'hex'), format);
-        length = archiveData.length / 2;
+        var files = await unpack(archiveData, format);
+        length = archiveData.byteLength;
         uri = await saveDirToIPFS(files);
     }
     else {

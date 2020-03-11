@@ -3,7 +3,7 @@ const fs = require("fs");
 const { assert } = require("chai"); // Using Assert style
 const fetch = require("node-fetch");
 const ecc = require("eosjs-ecc");
-const eosjs2 = require("eosjs");
+const { JsonRpc } = require("eosjs");
 const {
   getTestContract,
   getCreateKeys,
@@ -15,13 +15,13 @@ const deployer = require("../extensions/tools/eos/deployer");
 const {
   genAllocateDAPPTokens
 } = require("../extensions/tools/eos/dapp-services");
-const initHelpers = require("./storage_helpers");
 
 //dappclient requirement
 global.fetch = fetch;
 // // getUrl(getDefaultArgs()); returns :8888, but we want DSP node
 var endpoint = "http://localhost:13015";
-const { runTrx, rpc } = initHelpers({ endpoint });
+
+const rpc = new JsonRpc(endpoint, { fetch });
 
 const contractCode = "storageconsumer";
 const authContractCode = "authenticator";
@@ -32,28 +32,59 @@ var ctrtAuth = artifacts.require(`./${authContractCode}/`);
 const vAccount1 = `vaccount1`;
 const vAccount2 = `vaccount2`;
 
+const getIpfsFileAsBuffer = async (ipfsUriOrHash) => {
+  const ipfsHash = ipfsUriOrHash.replace(/^ipfs:\/\//, "");
+  const ipfsGatewayUri = `http://localhost:8080/ipfs/${ipfsHash}`
+  const response = await fetch(ipfsGatewayUri, {
+    method: "GET", // *GET, POST, PUT, DELETE, etc.
+    mode: "cors", // no-cors, cors, *same-origin
+    credentials: "same-origin", // include, *same-origin, omit
+    headers: {
+      // "Content-Type": "application/json",
+      // "Content-Type": "application/x-www-form-urlencoded",
+    },
+    redirect: "follow", // manual, *follow, error
+    referrer: "no-referrer" // no-referrer, *client
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Could not fetch file "${this.getIpfsHash(ipfsUri).slice(
+        0,
+        16
+      )}..." from IPFS. ${response.statusText}`
+    );
+  }
+
+  const buffer = await response.arrayBuffer();
+  return Buffer.from(buffer);
+}
+
 describe(`LiquidStorage Test`, () => {
   var testcontract;
   const code = "test1";
   let privateKeyWif;
+  let dappClient;
 
-  const regVAccount = name =>
-    runTrx({
-      contract_code: code,
-      wif: privateKeyWif,
-      payload: {
-        name: "regaccount",
-        data: {
-          payload: {
-            vaccount: name
-          }
-        }
+  const regVAccount = async name => {
+    const vaccountClient = await dappClient.service("vaccounts", code);
+    return vaccountClient.push_liquid_account_transaction(
+      code,
+      privateKeyWif,
+      "regaccount",
+      {
+        vaccount: name
       }
-    });
+    );
+  }
 
   before(done => {
     (async () => {
       try {
+        dappClient = await createClient({
+          httpEndpoint: endpoint,
+          fetch,
+        });
         var deployedStorage = await deployer.deploy(ctrtStorage, code);
         var deployedAuth = await deployer.deploy(ctrtAuth, "authentikeos");
 
@@ -87,7 +118,9 @@ describe(`LiquidStorage Test`, () => {
           await regVAccount(vAccount2);
         } catch (_err) {
           // ignore vaccount already exists error
-          console.warn(_err.message);
+          if(!/already exists/ig.test(_err.message)) {
+            throw _err;
+          }
         }
 
         done();
@@ -100,10 +133,6 @@ describe(`LiquidStorage Test`, () => {
   it('Upload File (authenticated)', done => {
     (async () => {
       try {
-        const dappClient = await createClient({
-          httpEndpoint: endpoint,
-          fetch
-        });
         const storageClient = await dappClient.service("storage", code);
         //var authClient = new AuthClient(apiID, 'authentikeos', null, endpoint);
         const keys = await getCreateKeys(code);
@@ -141,14 +170,20 @@ describe(`LiquidStorage Test`, () => {
         const permission = "active";
         const path = "test/utils/YourTarBall.tar";
         const content = fs.readFileSync(path);
-        const result = await storageClient.upload_public_file(
+        const result = await storageClient.upload_public_archive(
           content,
           key,
           permission
         );
         assert.equal(
           result.uri,
-          "ipfs://zb2rhZ1hCjtUCo69LncPZ4HzXVUVR5ULQkGTMJGcT8raD33Fu"
+          "ipfs://QmYS55iqu1zwxszW5ywEmT5w6m6VKjYwa9G9Xka8Uv4j9s"
+        );
+
+        const fileContent = await getIpfsFileAsBuffer(`QmYS55iqu1zwxszW5ywEmT5w6m6VKjYwa9G9Xka8Uv4j9s/my-stream-test.txt`)
+        assert.equal(
+          fileContent.toString(`utf8`),
+          "hello world"
         );
         done();
       } catch (e) {
