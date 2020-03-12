@@ -154,8 +154,9 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
         mapEntry = m;
       }
     })
-    if (!mapEntry)
+    if (!mapEntry) {
       throw new Error('mapping not found')
+    }
 
     sidechain_provider_on_mainnet = mapEntry.chain_account;
     act.event.current_provider = sidechain_provider_on_mainnet;

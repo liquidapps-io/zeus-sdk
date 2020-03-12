@@ -3,9 +3,9 @@ const getDefaultArgs = require('../../helpers/getDefaultArgs');
 const { getEos } = require('./utils');
 const { loadModels } = require('../models');
 const fetch = require('node-fetch');
-
+const logger = require('../../helpers/logger');
 const dappServicesContract = process.env.DAPPSERVICES_CONTRACT || 'dappservices';
-const dappServicesLiquidXContract = process.env.DAPPSERVICES_LIQUIDX_CONTRACT || 'liquidx';
+const dappServicesLiquidXContract = process.env.DSP_LIQUIDX_CONTRACT || 'liquidx';
 const testProvidersList = ['pprovider1', 'pprovider2'];
 
 // return service account name given a service model, if sidechain, return sidechain service account

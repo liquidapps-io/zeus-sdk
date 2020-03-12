@@ -70,7 +70,6 @@ port = 5001
     # after database is set, defaults to database, to overwrite and default to toml file, pass true
     demux_bypass_database_head_block = false
     # sidechain 
-    liquidx_contract = "liquidx.dsp" # liquidx contract on the EOS mainnet
     name = "test1" # CHAIN_NAME - contract on the EOS mainnet that registered the new chain
     # the mapping below contains the dappservices:dappservicex and mainnet DSP account to the new chain's DSP account mapping
     mapping = "dappservices:dappservicex,heliosselene:heliosselene"

@@ -108,7 +108,7 @@ const IPFS_PORT = globalEnv.IPFS_PORT || 5001;
 const IPFS_PROTOCOL = globalEnv.IPFS_PROTOCOL || 'http';
 const NODEOS_CHAINID = globalEnv.NODEOS_CHAINID || 'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906';
 const NODEOS_WEBSOCKET_PORT = globalEnv.NODEOS_WEBSOCKET_PORT || 8887;
-const DAPPSERVICES_LIQUIDX_CONTRACT = globalEnv.DAPPSERVICES_LIQUIDX_CONTRACT || 'liquidx.dsp';
+const DSP_LIQUIDX_CONTRACT = globalEnv.DSP_LIQUIDX_CONTRACT || 'liquidx.dsp';
 
 // Assert .env
 if (['state_history_plugin'].indexOf(DEMUX_BACKEND) === -1) throw new Error("DEMUX_BACKEND must be 'state_history_plugin'");
@@ -151,12 +151,11 @@ let commonEnv = {
   DSP_CONSUMER_PAYS,
   DATABASE_URL,
   DATABASE_NODE_ENV,
-  DAPPSERVICES_LIQUIDX_CONTRACT
+  DSP_LIQUIDX_CONTRACT
 };
 
 const createDSPSidechainServices = (sidechain) => {
   // Assert .env
-  if (!sidechain.liquidx_contract) throw new Error("sidechain liquidx_contract required");
   if (!sidechain.dsp_account) throw new Error("sidechain dsp_account required");
   if (!sidechain.nodeos_chainid) throw new Error("sidechain nodeos_chainid required");
   if (!sidechain.name) throw new Error("sidechain name required");
@@ -184,7 +183,6 @@ const createDSPSidechainServices = (sidechain) => {
         ...commonEnv,
         ...sidechainCommonEnv,
         PORT: sidechain.dsp_port || 3116,
-        DAPPSERVICES_LIQUIDX_CONTRACT: sidechain.liquidx_contract,
         LOGFILE_NAME:`${sidechain.name}-dapp-services-node`
       }
     },
