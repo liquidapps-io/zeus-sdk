@@ -8,18 +8,17 @@ async function deployLocalService(serviceModel, provider = 'pprovider1', pi = 0,
   const liquidXMaps = loadModels('liquidx-mappings');
   const mapEntrySvc = liquidXMaps.find(m => m.sidechain_name === sidechain.name && m.mainnet_account === serviceModel.contract);
   if (!mapEntrySvc) {
-    //throw new Error(`missing mapping for service ${serviceModel.contract} sidechain: ${sidechain.name}`);
     console.log(`missing mapping for service ${serviceModel.contract} sidechain: ${sidechain.name}`);
     return;
   }
     
   const mapEntry = liquidXMaps.find(m => m.sidechain_name === sidechain.name && m.mainnet_account === provider);
   if (!mapEntry) {
-    //throw new Error(`missing mapping for service ${provider} sidechain: ${sidechain.name}`);
-    console.log(`missing mapping for service ${provider} sidechain: ${sidechain.name}`);
+    console.log(`missing mapping for provider ${provider} sidechain: ${sidechain.name}`);
     return;
   }
     
+  //we don't require these accounts to exist on the sidechain
   var serviceContract = getContractAccountFor(serviceModel, sidechain);
   await getCreateAccount(serviceContract, null, null, sidechain);
   console.log("Linking ",mapEntrySvc.chain_account," to ", mapEntrySvc.mainnet_account);

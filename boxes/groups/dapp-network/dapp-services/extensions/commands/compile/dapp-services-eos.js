@@ -94,9 +94,17 @@ const generateServiceHppFile = (serviceModel,sidechain) => {
   var commandsHelpersCodeText = commandNames.map(
     commandName => generateCommandHelperCodeText(name, commandName,
       serviceModel.commands[commandName], serviceContract)).join('\\\n');
-  const mapEntries = (loadModels('liquidx-mappings')).filter(m => m.mainnet_account === serviceContract && (m.sidechain_name === sidechain || !sidechain));
-  const liquidxDefines = mapEntries.map(a => `#define SVC_CONTRACT_NAME_${upperName}_${a.sidechain_name.toUpperCase()} ${a.chain_account}`).join('\n');
-  const selectedSideChain = mapEntries.map(a => a.sidechain_name.toUpperCase()).find(a => a);
+  let mapEntries = (loadModels('liquidx-mappings')).filter(m => m.mainnet_account === serviceContract && (m.sidechain_name === sidechain || !sidechain));
+  let liquidxDefines;
+  let selectedSideChain;
+  if (mapEntries.length > 0) {
+    liquidxDefines = mapEntries.map(a => `#define SVC_CONTRACT_NAME_${upperName}_${a.sidechain_name.toUpperCase()} ${a.chain_account}`).join('\n');
+    selectedSideChain = mapEntries.map(a => a.sidechain_name.toUpperCase()).find(a => a);
+  } else {
+    mapEntries = loadModels('eosio-chains');
+    liquidxDefines = mapEntries.map(a => `#define SVC_CONTRACT_NAME_${upperName}_${a.name.toUpperCase()} ${serviceContract}`).join('\n');
+    selectedSideChain = mapEntries.map(a => a.name.toUpperCase()).find(a => a);
+  }
 
   return `#pragma once
 #include "../dappservices/dappservices.hpp"\n

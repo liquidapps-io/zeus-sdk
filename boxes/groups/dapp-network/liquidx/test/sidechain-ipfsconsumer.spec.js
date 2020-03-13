@@ -36,7 +36,6 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
       }, {
         authorization: `${code}@active`
       });
-      console.log(res);
     } catch(e) {
       console.log(JSON.stringify(e));
     }

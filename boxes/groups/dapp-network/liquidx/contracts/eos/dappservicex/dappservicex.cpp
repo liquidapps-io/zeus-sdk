@@ -190,8 +190,6 @@ public:
     eosio::check( res != dsptable.end(), "dsp not allowed");
 
     require_recipient(provider);
-    require_recipient(service);
-
     calculateUsage(service,action,provider,package,signalRawData);
     EMIT_SIGNAL_SVC_EVENT(name(get_first_receiver()), service, action, provider, package,
                           encodedData.c_str());

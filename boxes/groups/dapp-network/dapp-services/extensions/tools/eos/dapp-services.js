@@ -13,9 +13,8 @@ const testProvidersList = ['pprovider1', 'pprovider2'];
 function getContractAccountFor(model, sidechain = null) {
   if (sidechain) {
     const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechain.name && m.mainnet_account === model.contract);
-    if (!mapEntry)
-      throw new Error('mapping not found')
-    return mapEntry.chain_account;
+    if (mapEntry)
+      return mapEntry.chain_account;
   }
   var envName = process.env[`DAPPSERVICES_CONTRACT_${model.name.toUpperCase()}`];
   return envName || model.contract;

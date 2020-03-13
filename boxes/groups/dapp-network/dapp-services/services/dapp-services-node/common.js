@@ -574,9 +574,9 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi, sidechai
       if (req.headers['sidechain'] && serviceName !== 'services') {
 
         var sidechainName = req.headers['sidechain'];
-        logger.debug(`sidechain: ${sidechainName}`);
+        logger.info(`sidechain: ${sidechainName}`);
         const sidechains = await loadModels('eosio-chains');
-        currentSidechain = sidechains.find(s => s.Name = sidechainName);
+        currentSidechain = sidechains.find(s => s.name == sidechainName);
       }
       body.sidechain = currentSidechain;
       return processRequestWithBody(req, res, body, actionHandlers, serviceName, handlers);
@@ -712,12 +712,21 @@ const getLinkedAccount = async(eosSideChain, eosMain, account, sidechainName, sk
   const dappServicesSisterContract = await getLinkedAccount(eosSideChain, eosMain, 'dappservices', sidechainName);
   // returns account link map from side chain's dappservicex given a side chain account name
   const mainnetAccountList = await getTableRowsSec(eosSideChain.rpc, dappServicesSisterContract, 'accountlink', account, []);
-  if (!mainnetAccountList.length)
-    throw new Error(`no DSP link to mainnet account ${account}`);
-  const mainnetAccount = mainnetAccountList[0].mainnet_owner;
+  
+  let contract;
+  if (!mainnetAccountList.length) {
+    let services = await loadModels('dapp-services');
+    let model = services.find(a => getContractAccountFor(a) == account);
+    if(!model)
+      throw new Error(`no DSP link to mainnet account ${account}`);
+    else
+      contract = getContractAccountFor(model);
+  }
+    
+  const mainnetAccount = contract || mainnetAccountList[0].mainnet_owner;
 
   // if one way mapped (service), skipVerification = true, only check sidechain -> mainnet mapping with dappservicex contract
-  if (skipVerification)
+  if (skipVerification || contract)
     return mainnetAccount;
 
   // if !skipVerification (payer), check two way mapping via mainnet's liquidx contract' accountlink table
