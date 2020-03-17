@@ -50,7 +50,7 @@ describe(`${contractCode} Contract`, () => {
         })();
     });
 
-    it('Commom denom', done => {
+    it.skip('Commom denom', done => {
         (async () => {
             try {
                 var owner = getTestAccountName(10);
@@ -72,7 +72,7 @@ describe(`${contractCode} Contract`, () => {
         })();
     });
 
-    it('Commom denom - long', done => {
+    it.skip('Commom denom - long', done => {
         (async () => {
             try {
                 var owner = getTestAccountName(10);
