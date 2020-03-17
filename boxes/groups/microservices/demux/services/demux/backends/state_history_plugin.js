@@ -376,8 +376,9 @@ const connect = () => {
     //start pushing messages after we received the ABI
     if (!expectingABI) {
       const desData = deserializeStateHisData(data);
+      // received incomplete message, ignore
+      if (!desData[1].this_block) return;
       pending.push(desData);
-      //logger.info(JSON.stringify(desData));
       last_received_block = desData[1].this_block.block_num;
       let currTime = Math.floor(Date.now() / 1000);
       if ((currTime - heartBeat) >= 15) { //heartbeat every 15 seconds
