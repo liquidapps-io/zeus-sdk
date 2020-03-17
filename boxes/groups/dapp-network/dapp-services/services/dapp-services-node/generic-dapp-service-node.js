@@ -125,8 +125,10 @@ const extractUsageQuantity = async(e) => {
   }
   const events = (await parseEvents(jsons.join('\n'))).filter(e => e.etype === 'usage_report');
 
-  if (!events.length)
+  if (!events.length) {
+    logger.warn(`is verbose-http-errors = true enabled in the nodeos config.ini?`);
     throw new Error('usage event not found');
+  }
   var usage_report_event = events[0];
   return { usageQuantity: usage_report_event.quantity, service: usage_report_event.service, provider: usage_report_event.provider, payer: usage_report_event.payer };
 }
