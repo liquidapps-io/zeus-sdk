@@ -142,4 +142,5 @@ module.exports = {
   saveToIPFS,
   saveDirToIPFS,
   hashData256,
+  readFromIPFS
 }

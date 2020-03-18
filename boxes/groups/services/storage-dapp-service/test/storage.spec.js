@@ -8,7 +8,6 @@ const {
   getTestContract,
   getCreateKeys,
 } = require("../extensions/tools/eos/utils");
-const getDefaultArgs = require("../extensions/helpers/getDefaultArgs");
 const { createClient } = require("../client/dist/src/dapp-client-lib");
 const artifacts = require("../extensions/tools/eos/artifacts");
 const deployer = require("../extensions/tools/eos/deployer");
@@ -18,7 +17,6 @@ const {
 
 //dappclient requirement
 global.fetch = fetch;
-// // getUrl(getDefaultArgs()); returns :8888, but we want DSP node
 var endpoint = "http://localhost:13015";
 
 const rpc = new JsonRpc(endpoint, { fetch });
@@ -155,6 +153,42 @@ describe(`LiquidStorage Test`, () => {
       }
     })();
   });
+
+  it('Upload File and read', done => {
+    (async () => {
+      try {
+        const dappClient = await createClient({
+          httpEndpoint: endpoint,
+          fetch
+        });
+        const storageClient = await dappClient.service("storage", code);
+        //var authClient = new AuthClient(apiID, 'authentikeos', null, endpoint);
+        const keys = await getCreateKeys(code);
+        const key = keys.active.privateKey;
+        const data = Buffer.from("test1234read", "utf8");
+        const permission = "active";
+        const result = await storageClient.upload_public_file(
+          data,
+          key,
+          permission
+        );
+        const res = await fetch('http://localhost:13015/v1/dsp/liquidstorag/get_uri', {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify({ uri: result.uri })
+        });
+        const resJson = await res.json();
+        assert.equal(
+          Buffer.from(resJson.data, 'base64').toString(),
+          'test1234read'
+        );
+        done();
+      } catch (e) {
+        console.log(e);
+        done(e);
+      }
+    })();
+  })
 
   it('Upload Archive', done => {
     (async () => {

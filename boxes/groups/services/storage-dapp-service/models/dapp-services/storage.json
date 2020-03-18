@@ -53,7 +53,7 @@
                 "permission":"active"
             }
         },
-        "ipfshttpgw":{
+        "get_uri":{
 
         }
     }
