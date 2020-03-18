@@ -4,7 +4,7 @@
     "zeus-box.json"
   ],
   "commands": {
-    "Test": "zeus test"
+    "Test": "zeus test -c"
   },
   "dependencies":["ipfs-dapp-service"],
   "install":{

@@ -12,7 +12,6 @@
     "hooks-cpp-contracts"],
   "install":{
     "contracts":{
-      "ipfsservice": true,
       "ipfsconsumer": true,
       "oldipfscons": true
     },

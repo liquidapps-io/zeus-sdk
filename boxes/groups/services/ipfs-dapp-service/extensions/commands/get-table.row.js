@@ -26,14 +26,16 @@ function postData (url = ``, data = {}) {
     .then(response => response.json()); // parses response to JSON
 }
 module.exports = {
-  description: 'fetches a row from a dapp::multi_index table',
+  description: 'fetches a row from a dapp::multi_index table \nkey type (optional): name, number, hex \nkey size (optional): 64 (uint64_t), 128 (uint128_t), 256 (uint256_t, eosio::checksum256)',
   builder: (yargs) => {
     yargs.option('endpoint', {
       describe: 'network to work on',
       default: 'http://localhost:13015'
-    }).example(`$0 ${cmd} mycontract mytable myscope mykey mykeytype mykeysize`);
+    })
+    .example(`$0 ${cmd} mycontract mytable myscope mykey mykeytype mykeysize`)
+    .example(`$0 ${cmd} zeus get-table-row portfoliojng users portfoliojng micheck12 name 64 --endpoint https://jungle-dsp-2.liquidapps.io/`);
   },
-  command: `${cmd} <contract> <table> <scope> <key> <keytype> <keysize>`,
+  command: `${cmd} <contract> <table> <scope> <key> [keytype] [keysize]`,
   handler: async (args) => {
     var models = await loadModels('dapp-services');
     var service = models.find(a => a.name == 'ipfs').contract;

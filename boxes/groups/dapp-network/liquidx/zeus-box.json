@@ -14,5 +14,5 @@
       "cronxtest": true
     }
   },
-  "dependencies":["local-sidechains","all-dapp-services" ]
+  "dependencies":["eosio-chains","all-dapp-services" ]
 }

@@ -29,7 +29,7 @@ Object.keys(sidechains).forEach(k => {
 })
 function createSidechainModels(data) {
   const liquidxMappingsDir = path.resolve(__dirname, `./models/liquidx-mappings/`);
-  const localSidechainsDir = path.resolve(__dirname, `./models/local-sidechains/`);
+  const localSidechainsDir = path.resolve(__dirname, `./models/eosio-chains/`);
   let sidechains = data.sidechains;
   if (!sidechains) { return; }
   Object.keys(sidechains).forEach(k => {
@@ -96,19 +96,21 @@ const IPFS_HOST = globalEnv.IPFS_HOST || 'localhost';
 const NODEOS_HOST = globalEnv.NODEOS_HOST || 'localhost';
 const NODEOS_PORT = globalEnv.NODEOS_PORT || 8888;
 const NODEOS_SECURED = globalEnv.NODEOS_SECURED || false;
+const NODEOS_LATEST = globalEnv.NODEOS_LATEST || true;
 
 // Optional .env
 const WEBHOOK_DAPP_PORT = globalEnv.WEBHOOK_DAPP_PORT || 8812;
 const DEMUX_BACKEND = globalEnv.DEMUX_BACKEND || 'state_history_plugin';
 const DEMUX_HEAD_BLOCK = globalEnv.DEMUX_HEAD_BLOCK || 0;
 const DEMUX_BYPASS_DATABASE_HEAD_BLOCK = globalEnv.DEMUX_BYPASS_DATABASE_HEAD_BLOCK || false;
+const DEMUX_MAX_PENDING_MESSAGES = globalEnv.DEMUX_MAX_PENDING_MESSAGES || 5000;
 const WEBHOOK_DEMUX_PORT = globalEnv.WEBHOOK_DEMUX_PORT || 3195;
 const SOCKET_MODE = globalEnv.DEMUX_SOCKET_MODE || 'sub';
 const IPFS_PORT = globalEnv.IPFS_PORT || 5001;
 const IPFS_PROTOCOL = globalEnv.IPFS_PROTOCOL || 'http';
 const NODEOS_CHAINID = globalEnv.NODEOS_CHAINID || 'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906';
 const NODEOS_WEBSOCKET_PORT = globalEnv.NODEOS_WEBSOCKET_PORT || 8887;
-const DAPPSERVICES_LIQUIDX_CONTRACT = globalEnv.DAPPSERVICES_LIQUIDX_CONTRACT || 'liquidxxxxxx';
+const DSP_LIQUIDX_CONTRACT = globalEnv.DSP_LIQUIDX_CONTRACT || 'liquidx.dsp';
 
 // Assert .env
 if (['state_history_plugin'].indexOf(DEMUX_BACKEND) === -1) throw new Error("DEMUX_BACKEND must be 'state_history_plugin'");
@@ -141,6 +143,7 @@ let commonEnv = {
   NODEOS_HOST,
   NODEOS_PORT,
   NODEOS_SECURED,
+  NODEOS_LATEST,
   IPFS_HOST,
   IPFS_PORT,
   IPFS_PROTOCOL,
@@ -151,15 +154,15 @@ let commonEnv = {
   DSP_CONSUMER_PAYS,
   DATABASE_URL,
   DATABASE_NODE_ENV,
-  DAPPSERVICES_LIQUIDX_CONTRACT
+  DSP_LIQUIDX_CONTRACT
 };
 
 const createDSPSidechainServices = (sidechain) => {
   // Assert .env
-  if (!sidechain.liquidx_contract) throw new Error("sidechain liquidx_contract required");
-  if (!sidechain.dsp_account) throw new Error("sidechain dsp_account required");
-  if (!sidechain.nodeos_chainid) throw new Error("sidechain nodeos_chainid required");
-  if (!sidechain.name) throw new Error("sidechain name required");
+  const reqFields = ['dsp_account', 'nodeos_chainid', 'name'];
+  for (const field of reqFields) {
+    if (!sidechain[field]) throw new Error(`sidechain ${field} required`);
+  }
   commonEnv = {
     ...commonEnv,
     [`DSP_PRIVATE_KEY_${sidechain.name.toUpperCase()}`]: sidechain.dsp_private_key
@@ -168,6 +171,7 @@ const createDSPSidechainServices = (sidechain) => {
     NODEOS_HOST: sidechain.nodeos_host || 'localhost',
     NODEOS_PORT: sidechain.nodeos_port || 8888,
     NODEOS_SECURED: sidechain.nodeos_secured || false,
+    NODEOS_LATEST: sidechain.nodeos_latest || true,
     NODEOS_CHAINID: sidechain.nodeos_chainid,
     DSP_PORT: sidechain.dsp_port || 3116,
     WEBHOOK_DAPP_PORT: sidechain.webhook_dapp_port || 8813,
@@ -184,7 +188,6 @@ const createDSPSidechainServices = (sidechain) => {
         ...commonEnv,
         ...sidechainCommonEnv,
         PORT: sidechain.dsp_port || 3116,
-        DAPPSERVICES_LIQUIDX_CONTRACT: sidechain.liquidx_contract,
         LOGFILE_NAME:`${sidechain.name}-dapp-services-node`
       }
     },
@@ -202,6 +205,7 @@ const createDSPSidechainServices = (sidechain) => {
         DEMUX_BACKEND: sidechain.demux_backend || 'state_history_plugin',
         DEMUX_HEAD_BLOCK: sidechain.demux_head_block || 1,
         DEMUX_BYPASS_DATABASE_HEAD_BLOCK: sidechain.demux_bypass_database_head_block || false,
+        DEMUX_MAX_PENDING_MESSAGES: sidechain.demux_max_pending_messages || 5000,
         SOCKET_MODE: sidechain.demux_socket_mode || 'sub',
         LOGFILE_NAME: `${sidechain.name}-demux`
       }
@@ -259,6 +263,8 @@ module.exports = {
         DEMUX_BACKEND,
         DEMUX_HEAD_BLOCK,
         DEMUX_BYPASS_DATABASE_HEAD_BLOCK,
+        DEMUX_MAX_PENDING_MESSAGES,
+        WEBHOOK_DAPP_PORT,
         PORT: WEBHOOK_DEMUX_PORT,
         LOGFILE_NAME: 'demux' 
       }

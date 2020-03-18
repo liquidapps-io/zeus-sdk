@@ -9,14 +9,17 @@
     "seed-utils",
     "mocha",
     "hooks-cpp-contracts",
-    "auth-dapp-service"],
+    "auth-dapp-service",
+    "ipfs-dapp-service",
+    "vaccounts-dapp-service"
+  ],
   "install":{
     "npm":{
       "tar-stream": true,
       "stream-buffers": true
     },
     "contracts":{
-      "storageservice": true
+      "storageconsumer": true
     }
   }
 }

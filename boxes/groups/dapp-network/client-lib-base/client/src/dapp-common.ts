@@ -1,4 +1,5 @@
-import Long from 'long';
+const Long = require('long');
+const { sha256 } = require("js-sha256");
 
 export function encodeName(name: string, littleEndian = true) {
     const charmap = '.12345abcdefghijklmnopqrstuvwxyz'
@@ -88,3 +89,9 @@ export function getTableBoundsForName(name: string, asLittleEndianHex = true) {
         upper_bound: upperBound,
     };
 }
+
+export function hashData256(data) {
+    var hash = sha256.create();
+    hash.update(data);
+    return hash.hex();
+};

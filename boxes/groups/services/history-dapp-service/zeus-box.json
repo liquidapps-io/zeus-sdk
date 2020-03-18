@@ -10,8 +10,6 @@
     "mocha",
     "hooks-cpp-contracts"],
   "install":{
-    "contracts":{
-      "historyservice": true
-    }
+    "contracts":{}
   }
 }

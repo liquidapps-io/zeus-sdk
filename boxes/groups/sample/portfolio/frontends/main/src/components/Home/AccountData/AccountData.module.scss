@@ -13,17 +13,12 @@
       margin-right: 25px;
       padding-left: 25px;
       padding-right: 25px;
-      margin-bottom: 70px;
     }
     @include tablet {
-    margin-left: 25px;
-    margin-right: 25px;
-    padding-left: 25px;
-    padding-right: 25px;
-      margin-bottom: 70px;
-    }
-    @include desktop {
-      margin-bottom: 90px;
+        margin-left: 25px;
+        margin-right: 25px;
+        padding-left: 25px;
+        padding-right: 25px;
     }
 }
   
@@ -107,4 +102,8 @@
     @include tablet {
         padding-top: 15px;
     }
+}
+
+.asterik{
+    color:white;
 }

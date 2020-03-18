@@ -158,13 +158,13 @@ const actionHandlers = {
 var sidechainsDict = {};
 
 async function genAllNodes() {
-  const sidechains = await loadModels('local-sidechains');
+  const sidechains = await loadModels('eosio-chains');
   sidechains.forEach(sc => sidechainsDict[sc.name] = sc);
   const scName = process.env.SIDECHAIN;
   // if sidechain gateway (identified by ^)
   if(scName) {
       const sidechain = sidechains.find(sc => sc.name === scName);
-      if (!sidechain) throw new Error(`could not find sidechain ${scName} under models/local-sidechains`);
+      if (!sidechain) throw new Error(`could not find sidechain ${scName} under models/eosio-chains`);
       await genNode(actionHandlers, process.env.PORT || 3116, 'services', undefined, undefined, sidechain);
   } else {
     await genNode(actionHandlers, process.env.PORT || 3115, 'services');
@@ -177,7 +177,13 @@ let inRecoveryMode = false;
 const appWebHookListener = genApp();
 appWebHookListener.post('/', async(req, res) => {
   req.body.replay = inRecoveryMode;
-  await processFn(actionHandlers, req.body);
+  try {
+    await processFn(actionHandlers, req.body);
+  } catch (e) {
+    logger.error(`gateway error processing demux hook: ${JSON.stringify(e)}`);
+    res.send(JSON.stringify(`gateway error processing webhook`));
+    return;
+  }
   res.send(JSON.stringify('ok'));
 });
 

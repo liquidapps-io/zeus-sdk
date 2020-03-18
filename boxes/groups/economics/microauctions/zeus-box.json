@@ -4,7 +4,7 @@
     "zeus-box.json"
   ],
   "commands": {
-    "Test": "zeus test"
+    "Test": "zeus test -c"
   },
   "dependencies":["seed-eos", "events", "token", "mocha", "eos-common",  "hooks-cpp-contracts","eos-detective-reports"],
   "install":{

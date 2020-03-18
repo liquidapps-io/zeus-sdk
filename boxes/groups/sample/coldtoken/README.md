@@ -8,7 +8,7 @@ https://github.com/liquidapps-io/zeus-cmd
 ```
 zeus unbox coldtoken
 cd coldtoken
-zeus test
+zeus test -c
 ```
 
 # [Demo](https://asciinema.org/a/lWBaTBB5k4ZfW8RUM4kOVUbey)

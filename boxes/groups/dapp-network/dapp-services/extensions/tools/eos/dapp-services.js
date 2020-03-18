@@ -3,9 +3,9 @@ const getDefaultArgs = require('../../helpers/getDefaultArgs');
 const { getEos } = require('./utils');
 const { loadModels } = require('../models');
 const fetch = require('node-fetch');
-
+const logger = require('../../helpers/logger');
 const dappServicesContract = process.env.DAPPSERVICES_CONTRACT || 'dappservices';
-const dappServicesLiquidXContract = process.env.DAPPSERVICES_LIQUIDX_CONTRACT || 'liquidx';
+const dappServicesLiquidXContract = process.env.DSP_LIQUIDX_CONTRACT || 'liquidx';
 const testProvidersList = ['pprovider1', 'pprovider2'];
 
 // return service account name given a service model, if sidechain, return sidechain service account
@@ -13,9 +13,8 @@ const testProvidersList = ['pprovider1', 'pprovider2'];
 function getContractAccountFor(model, sidechain = null) {
   if (sidechain) {
     const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechain.name && m.mainnet_account === model.contract);
-    if (!mapEntry)
-      throw new Error('mapping not found')
-    return mapEntry.chain_account;
+    if (mapEntry)
+      return mapEntry.chain_account;
   }
   var envName = process.env[`DAPPSERVICES_CONTRACT_${model.name.toUpperCase()}`];
   return envName || model.contract;
@@ -170,7 +169,7 @@ const createLiquidXMapping = async(sidechain_name, mainnet_account, chain_accoun
   if (!mapEntry)
     throw new Error('mapping not found')
   const dappservicex = mapEntry.chain_account;
-  var sidechain = (await loadModels('local-sidechains')).find(m => m.name == sidechain_name);
+  var sidechain = (await loadModels('eosio-chains')).find(m => m.name == sidechain_name);
   const eos = await getEos(chain_account, null, sidechain);
   let sisterChainDappServices = await eos.contract(dappservicex);
   await sisterChainDappServices.setlink({

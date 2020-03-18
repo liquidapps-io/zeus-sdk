@@ -1,4 +1,5 @@
 #pragma once
+
 #include <string>
 #include <vector>
 #include <eosio/eosio.hpp>
@@ -20,7 +21,6 @@
 #define VACCOUNTS_SHARD_PINNING false
 #endif
 
-
 #define VACCOUNTS_DAPPSERVICE_SKIP_HELPER true
 #define VACCOUNTS_DAPPSERVICE_SERVICE_MORE \
   void execute_vaccounts_action(action act){\
@@ -37,31 +37,46 @@ struct dummy_wrapper {
       T payload;
 };
 
-#define VACCOUNTS_DAPPSERVICE_ACTIONS_MORE() \
-eosio::public_key _pubkey;\
-uint64_t _nonce;\
-bool _verified = false; \
-eosio::public_key get_current_public_key(){ \
-    return _pubkey; \
-} \
-void required_key(const eosio::public_key& pubkey){ \
-    eosio::check(_pubkey == pubkey, "wrong public key"); \
-} \
-struct unpacked_payload { \
-  uint64_t expiry; \
-  uint64_t nonce; \
-  eosio::checksum256 chainid; \
-  eosio::action action; \
+#ifdef VACCOUNTS_SUBSCRIBER
+#define VACCOUNTS_DAPPSERVICE_LOGIC \
+eosio::signature _sig;\
+std::vector<char> _payload;\
+TABLE vhost { \
+  eosio::name host; \
 }; \
-unpacked_payload unpack_payload(std::vector<char> payload) { \
-  eosio::check(payload.size() > 48, "header is required");\
-  auto unpacked = eosio::unpack<unpacked_payload>( payload.data(), payload.size() ); \
-  return unpacked; \
+typedef eosio::singleton<"vhost"_n, vhost> vhost_t; \
+[[eosio::action]] void xvinit(eosio::name host) { \
+    require_auth(_self); \
+    print("setting remote vaccount host:",host,"\n");\
+    vhost_t vhost_table(_self,_self.value);\
+    auto vhost = vhost_table.get_or_default();\
+    vhost.host = host;\
+    vhost_table.set(vhost,_self);\
 } \
-void verify_chain(eosio::checksum256 chainid, uint64_t expiry) { \
-  eosio::check(chainid == getChain(),"invalid chain id"); \
-  eosio::check(current_time_point().sec_since_epoch() <= expiry, "transaction has expired"); \
+void unpack_exec_action(eosio::action res){ \
+    execute_vaccounts_action(res);  \
 } \
+void require_vaccount(name vaccount){ \
+    if(_verified == vaccount) return;\
+    vhost_t vhost_table(_self,_self.value);\
+    eosio::check(vhost_table.exists(), "remote vaccounts host has not been set"); \
+    auto vhost = vhost_table.get();\
+    action(permission_level{_self, "active"_n},\
+          vhost.host, "xvauth"_n, std::make_tuple(_payload,_sig,_pubkey,vaccount))\
+    .send();\
+    _verified = vaccount;\
+} \
+SVC_RESP_VACCOUNTS(vexec)(std::vector<char> payload, eosio::signature sig, eosio::public_key pubkey, name current_provider){ \
+    verify_signature(payload, sig, pubkey); \
+    auto unpacked = unpack_payload(payload); \
+    _nonce = unpacked.nonce; \
+    _pubkey = pubkey;\
+    _payload = payload;\
+    _sig = sig;\
+    unpack_exec_action(unpacked.action); \
+}
+#else
+#define VACCOUNTS_DAPPSERVICE_LOGIC \
 void unpack_exec_action(eosio::action res){ \
     switch(res.name.value){ \
       case name("regaccount").value: \
@@ -72,14 +87,10 @@ void unpack_exec_action(eosio::action res){ \
         break; \
     } \
 } \
-SVC_RESP_VACCOUNTS(vexec)(std::vector<char> payload, eosio::signature sig, eosio::public_key pubkey, name current_provider){ \
-    verify_signature(payload, sig, pubkey); \
-    auto unpacked = unpack_payload(payload); \
-    verify_chain(unpacked.chainid, unpacked.expiry); \
-    _nonce = unpacked.nonce; \
-    _pubkey = pubkey;\
-    unpack_exec_action(unpacked.action); \
-} \
+void require_vaccount(name vaccount){ \
+    auto pkey = handleNonce(vaccount); \
+    required_key(pkey); \
+}\
 TABLE vchain { \
   eosio::checksum256 chainid; \
 }; \
@@ -107,15 +118,17 @@ struct regaccount_action { \
 } \
 [[eosio::action]] void xvinit(eosio::checksum256 chainid) { \
     require_auth(_self); \
-    print("setting chainid:");\
-    print(chainid);\
-    print("\n");\
-   setChain(chainid); \
+    print("setting chainid:",chainid,"\n");\
+    setChain(chainid); \
 } \
-void require_vaccount(name vaccount){ \
-    auto pkey = handleNonce(vaccount); \
-    required_key(pkey); \
-} \
+[[eosio::action]] void xvauth(std::vector<char> payload, eosio::signature sig, eosio::public_key pubkey, eosio::name vaccount) {\
+    verify_signature(payload, sig, pubkey); \
+    auto unpacked = unpack_payload(payload); \
+    verify_chain(unpacked.chainid, unpacked.expiry); \
+    _nonce = unpacked.nonce; \
+    _pubkey = pubkey;\
+    require_vaccount(vaccount); \
+}\
 void setKey(name vaccount, eosio::public_key pubkey){ \
     vkeys_t vkeys_table(_self, _self.value, 1024, 64, VACCOUNTS_SHARD_PINNING, false, VACCOUNTS_DELAYED_CLEANUP); \
     auto existing = vkeys_table.find(vaccount.value); \
@@ -139,7 +152,7 @@ eosio::public_key getKey(name vaccount){ \
     return existing->pubkey; \
 } \
 eosio::public_key handleNonce(name vaccount){ \
-    if(_verified) { return getKey(vaccount); } \
+    if(_verified == vaccount) { return getKey(vaccount); } \
     vkeys_t vkeys_table(_self, _self.value, 1024, 64, VACCOUNTS_SHARD_PINNING, false, VACCOUNTS_DELAYED_CLEANUP); \
     auto existing = vkeys_table.find(vaccount.value); \
     eosio::check(existing != vkeys_table.end(),"vaccount not found"); \
@@ -147,14 +160,51 @@ eosio::public_key handleNonce(name vaccount){ \
     vkeys_table.modify(existing,_self,[&]( auto& v ){ \
       v.nonce++; \
     }); \
-    _verified = true;\
+    _verified = vaccount;\
     return existing->pubkey; \
+} \
+void required_key(const eosio::public_key& pubkey){ \
+    eosio::check(_pubkey == pubkey, "wrong public key"); \
+} \
+void verify_chain(eosio::checksum256 chainid, uint64_t expiry) { \
+  eosio::check(chainid == getChain(),"invalid chain id"); \
+  eosio::check(current_time_point().sec_since_epoch() <= expiry, "transaction has expired"); \
 } \
 eosio::checksum256 getChain(){ \
     vchain_t vchain_table(_self, _self.value); \
     auto existing = vchain_table.get(); \
     return existing.chainid; \
-}\
+} \
+SVC_RESP_VACCOUNTS(vexec)(std::vector<char> payload, eosio::signature sig, eosio::public_key pubkey, name current_provider){ \
+    verify_signature(payload, sig, pubkey); \
+    auto unpacked = unpack_payload(payload); \
+    verify_chain(unpacked.chainid, unpacked.expiry); \
+    _nonce = unpacked.nonce; \
+    _pubkey = pubkey;\
+    unpack_exec_action(unpacked.action); \
+}
+#endif
+
+#define VACCOUNTS_DAPPSERVICE_ACTIONS_MORE() \
+VACCOUNTS_DAPPSERVICE_LOGIC \
+eosio::public_key _pubkey;\
+uint64_t _nonce;\
+eosio::name _verified = ""_n; \
+eosio::public_key get_current_public_key(){ \
+    return _pubkey; \
+} \
+struct unpacked_payload { \
+  uint64_t expiry; \
+  uint64_t nonce; \
+  eosio::checksum256 chainid; \
+  eosio::action action; \
+}; \
+unpacked_payload unpack_payload(std::vector<char> payload) { \
+  eosio::check(payload.size() > 48, "header is required");\
+  auto unpacked = eosio::unpack<unpacked_payload>( payload.data(), payload.size() ); \
+  return unpacked; \
+}
+
 
 
 

@@ -173,7 +173,7 @@ describe(`Chess Contract`, () => {
             payload: payloadSerialized
         });
     }
-    it('Hello world', done => {
+    it.skip('Hello world', done => {
         (async () => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();

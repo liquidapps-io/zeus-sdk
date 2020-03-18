@@ -25,6 +25,7 @@ node_env = "production"
 host = "localhost"
 port = 8888
 secured = false
+latest = true # if using 2.0+ version of nodeos, true, if less than 2.0, false
 
 # mainnet:
 chainid = "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906"
@@ -35,11 +36,14 @@ websocket_port = 8887
 
 [demux]
 socket_mode = "sub"
-# head block to sync demux from
-head_block = 35000000
+# a head block may be specified to sync demux from a specific block, the bypass_database_head_block must be set to true for this
+# if bypass_database_head_block is set to true and the head_block is commented out, the head block from the chain will automatically be used
+# head_block = 35000000
+
 # demux defaults to first pulling head block from toml file if postgres database is not set
-# after database is set, defaults to databse, to overwrite and default to toml file, pass true
+# after database is set, defaults to databse, to overwrite and default to toml file or the current head block, pass true
 bypass_database_head_block = false
+max_pending_messages = 5000 # amount of pending messages to add to the stack before disconnecting the demux websocket to allow pending messages to process
 
 [ipfs]
 protocol = "http"
@@ -50,25 +54,28 @@ port = 5001
 [sidechains]
   [sidechains.test1]
     # dsp
-    dsp_port = 3116
-    dsp_account = "test1"
-    dsp_private_key = ""
+    dsp_port = 3116 # dsp port to run new chain's services on, this is the port developers will push to, must be unique per new chain
+    dsp_account = "test1" # DSP Account on new chain
+    dsp_private_key = "" # DSP active private key on new chain
     # nodeos
-    nodeos_host = "localhost"
-    nodeos_port = 8888
-    nodeos_secured = false
-    nodeos_chainid = ""
-    nodeos_websocket_port = 8887
-    webhook_dapp_port = 8113
+    nodeos_host = "localhost" # nodeos host running new chain
+    nodeos_port = 8888 # nodeos host port
+    nodeos_secured = false # nodeos secured bool (true: https, false: http)
+    nodoes_latest = true # if using 2.0+ version of nodeos, true, if less than 2.0, false
+    nodeos_chainid = "" # chainid of new chain
+    nodeos_websocket_port = 8887 # nodeos websocket port, can be same per nodeos instance
+    webhook_dapp_port = 8113 # nodeos webhook port, must be unique per chain
     # demux
-    demux_webhook_port = 3196
+    demux_webhook_port = 3196 # port demux runs on, must be unique per new chain
     demux_socket_mode = "sub"
-    demux_head_block = 1
+    # demux_head_block = 1
     # demux defaults to first pulling head block from toml file if postgres database is not set
-    # after database is set, defaults to databse, to overwrite and default to toml file, pass true
+    # after database is set, defaults to database, to overwrite and default to toml file, pass true
     demux_bypass_database_head_block = false
+    demux_max_pending_messages = 5000 # amount of pending messages to add to the stack before disconnecting the demux websocket to allow pending messages to process
     # sidechain 
-    liquidx_contract = "liquidxxxxxx"
-    name = "test1"
-    # the mapping below contains the dappservices:dappservicex, mainnet_dsp:new_chain_dsp, and mainnet_service_contract:new_chain_service_contract mappings
-    mapping = "dappservices:dappservicex,heliosselene:heliosselene,uuddlrlrbass:uuddlrlrbass,cronservices:cronservices,ipfsservice1:ipfsservice1,readfndspsvc:readfndspsvc,logservices1:logservices1,oracleservic:oracleservic,accountless1:accountless1,liquidstorag:liquidstorag,authfndspsvc:authfndspsvc,vcpuservices:vcpuservices"
+    name = "test1" # CHAIN_NAME - contract on the EOS mainnet that registered the new chain
+    # the mapping below contains the dappservices:dappservicex and mainnet DSP account to the new chain's DSP account mapping
+    mapping = "dappservices:dappservicex,heliosselene:heliosselene"
+  # [sidechains.ANOTHER_CHAIN_NAME]
+    # ...

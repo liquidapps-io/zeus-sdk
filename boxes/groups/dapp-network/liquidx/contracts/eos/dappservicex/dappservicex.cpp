@@ -17,17 +17,22 @@ using namespace std;
 #include <boost/preprocessor/seq/for_each_i.hpp>
 #include <boost/preprocessor/seq/push_back.hpp>
 #include <eosio/singleton.hpp>
-#ifndef USAGE_DEFINED
-#define USAGE_DEFINED
-struct usage_t {
-  asset quantity;
-  name provider;
-  name payer;
-  name service;
-  name package;
-  bool success = false;
-};
-#endif
+
+#define DAPPSERVICES_QUOTA_SYMBOL symbol(symbol_code("QUOTA"), 4)
+#define DAPPSERVICES_QUOTA_COST 1
+
+// #ifndef USAGE_DEFINED
+// #define USAGE_DEFINED
+// struct usage_t {
+//   asset quantity;
+//   name provider;
+//   name payer;
+//   name service;
+//   name package;
+//   bool success = false;
+// };
+// #endif
+
 #define EMIT_USAGE_REPORT_EVENT(usageResult)                                   \
   START_EVENT("usage_report", "1.4")                                           \
   EVENTKV("payer", (usageResult).payer)                                        \
@@ -70,6 +75,26 @@ CONTRACT dappservicex : public eosio::contract {
 public:
   using contract::contract;
 
+  struct usage_t {
+    asset quantity;
+    name provider;
+    name payer;
+    name service;
+    name package;
+    bool success = false;
+  };
+
+  struct pricing {
+    name action;
+    uint64_t cost_per_action;
+  };
+
+  TABLE package {
+    name package_id;
+    std::vector<pricing> pricing;
+    uint64_t primary_key()const { return package_id.value; }
+  };
+  typedef eosio::multi_index<"package"_n, package> packages_t;
 
   TABLE dspentry {
     name allowed_dsp; // sisterchain account
@@ -82,10 +107,12 @@ public:
     name mainnet_owner; // mainnet account, for both consumers and DSPs
   };
   typedef eosio::singleton<"accountlink"_n, accountlink> accountlinks;
+
   TABLE setting {
     name chain_name; // owner account on mainnet
   };
   typedef eosio::singleton<"settings"_n, setting> settings;
+
   [[eosio::action]] void setlink(name owner, name mainnet_owner) {
     require_auth(owner);
     accountlinks accountlink_table(_self, owner.value);
@@ -121,6 +148,36 @@ public:
     dsptable.erase(res);
   }
 
+  [[eosio::action]] void pricepkg(name provider, name package_id, name action, uint64_t cost) {
+    require_auth(provider);
+    packages_t packages(_self, provider.value);
+    auto existing = packages.find(package_id.value);
+    if(existing != packages.end()) {
+      auto prices = existing->pricing;
+      auto itr = prices.begin();
+      while(itr != prices.end()) {
+        if(itr->action == action) {
+          if(cost == 0) {
+            prices.erase(itr);
+          } else {
+            *(itr) = pricing{action,cost};
+          }
+          break;
+        }
+        itr++;
+      }
+      packages.modify(existing, eosio::same_payer, [&](auto &p) {
+        p.pricing = prices;
+      });
+    } else {
+      if(cost == 0) return;
+      packages.emplace(provider, [&](auto &p) {
+        p.package_id = package_id;
+        p.pricing.push_back(pricing{action,cost});
+      });
+    }
+  }
+
   // for tracking
   [[eosio::action]] void xsignal(name service, name action, name provider, name package,
                  std::vector<char> signalRawData) {
@@ -128,20 +185,12 @@ public:
     string str(signalRawData.begin(), signalRawData.end());
     auto encodedData = fc::base64_encode(str);
 
-
-    settings settings_table(_self, _self.value);
-    setting current_settings =settings_table.get();
-
     dsps dsptable(_self, get_first_receiver().value);
     auto res = dsptable.find(provider.value);
     eosio::check( res != dsptable.end(), "dsp not allowed");
 
-    auto payer = get_first_receiver();
-    eosio::action(permission_level{_self, "active"_n},
-      service, "xsignalx"_n, std::make_tuple(service, action, provider, package, signalRawData, _self, payer))
-      .send();
     require_recipient(provider);
-
+    calculateUsage(service,action,provider,package,signalRawData);
     EMIT_SIGNAL_SVC_EVENT(name(get_first_receiver()), service, action, provider, package,
                           encodedData.c_str());
   }
@@ -172,18 +221,16 @@ public:
   }
 
  [[eosio::action]] void usage(usage_t usage_report) {
-    require_auth(usage_report.service);
+    require_auth(_self);
     auto payer = usage_report.payer;
     auto service = usage_report.service;
     auto provider = usage_report.provider;
     auto quantity = usage_report.quantity;
     auto package = usage_report.package;
     require_recipient(provider);
-    require_recipient(service);
     require_recipient(payer);
 
     usage_report.success = true;
-    auto shoudFail = true; // TODO: detect from transaction
     if(shouldFail()){
       lastlog_t lastlog_singleton(_self,_self.value);
       auto lastlog_inst = lastlog_singleton.get_or_default();
@@ -194,7 +241,8 @@ public:
     EMIT_USAGE_REPORT_EVENT(usage_report);
   }
 
-private:
+private: 
+
   bool shouldFail() {
     auto size = transaction_size();
     char buf[size];
@@ -208,13 +256,45 @@ private:
     }
     return false;
   }
+
+  void dispatchUsage(usage_t usage_report) {
+    action(permission_level{_self, "active"_n},
+          _self, "usage"_n, std::make_tuple(usage_report))
+        .send();
+  }
+
+  void calculateUsage(name service, name action, name provider, name package, std::vector<char> signalRawData) {
+    uint64_t amount = DAPPSERVICES_QUOTA_COST;
+    packages_t packages(_self, provider.value);
+    auto existing = packages.find(package.value);
+    if(existing != packages.end()) {
+      auto pricing = existing->pricing;
+      auto itr = pricing.begin();
+      while(itr != pricing.end()) {
+        if(itr->action == action) {
+          amount = itr->cost_per_action;
+          break;
+        }
+        itr++;
+      }
+    }
+
+    auto quantity = asset(amount, DAPPSERVICES_QUOTA_SYMBOL);
+    usage_t usageResult;
+    usageResult.quantity  = quantity;
+    usageResult.provider  = provider;
+    usageResult.payer     = get_first_receiver();
+    usageResult.package   = package;
+    usageResult.service   = service;
+    dispatchUsage(usageResult);    
+  }
 };
 
 extern "C" {
 void apply(uint64_t receiver, uint64_t code, uint64_t action) {
   if (code == receiver) {
     switch (action) {
-      EOSIO_DISPATCH_HELPER(dappservicex, (setlink)(xcallback)(adddsp)(rmvdsp)(init)(xfail)(usage))
+      EOSIO_DISPATCH_HELPER(dappservicex, (setlink)(xcallback)(adddsp)(rmvdsp)(init)(xfail)(usage)(pricepkg))
     }
   } else {
     switch (action) { EOSIO_DISPATCH_HELPER(dappservicex, (xsignal)) }

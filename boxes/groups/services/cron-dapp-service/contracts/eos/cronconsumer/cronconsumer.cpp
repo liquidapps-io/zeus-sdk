@@ -30,7 +30,7 @@ CONTRACT_START()
     statstable.set(newstats, _self);
 
     // reschedule
-    return (newstats.counter < 100);
+    return (newstats.counter < 45);
   }
  [[eosio::action]] void testschedule() {
     std::vector<char> payload;

@@ -2,6 +2,7 @@
 #include <cmath>
 #include <eosio/eosio.hpp>
 #include <eosio/transaction.hpp>
+#include <eosio/binary_extension.hpp>
 using namespace eosio;
 using namespace std;
 
@@ -31,7 +32,15 @@ public:
   using contract::contract;
 
   const name HODL_ACCOUNT = "dappairhodl1"_n;
-
+  
+  struct usage_t {
+    asset quantity;
+    name provider;
+    name payer;
+    name service;
+    name package;
+    bool success = false;
+  };
 
   TABLE account {
     asset balance;
@@ -95,6 +104,15 @@ public:
   };
   //END THIRD PARTY STAKING MODS
 
+  struct pricing {
+    name action;
+    uint64_t cost_per_action;
+  };
+
+  struct packagext {
+    std::vector<pricing> pricing;
+  };
+
   TABLE package {
     uint64_t id;
 
@@ -112,6 +130,7 @@ public:
     uint32_t min_unstake_period; // commitment
     // uint32_t min_staking_period;
     bool enabled;
+    eosio::binary_extension<packagext> ext;
 
     uint64_t primary_key() const { return id; }
     checksum256 by_package_service_provider() const {
@@ -329,6 +348,33 @@ public:
                 [&](package &r) { r.enabled = true; });
   }
 
+  [[eosio::action]] void pricepkg(name provider, name package_id, name service, name action, uint64_t cost) {
+    require_auth(provider);
+    packages_t packages(_self, _self.value);
+    auto idxKey = package::_by_package_service_provider(
+        package_id, service, provider);
+    auto cidx = packages.get_index<"bypkg"_n>();
+    auto existing = cidx.find(idxKey);
+    eosio::check(existing != cidx.end(), "missing package");
+    auto ext = existing->ext.value_or();
+    auto itr = ext.pricing.begin();
+    bool done = false;
+    while(itr != ext.pricing.end() && !done) {
+      if(itr->action == action) {
+        if(cost == 0) {
+          ext.pricing.erase(itr);          
+        } else {
+          *(itr) = pricing{action,cost};
+        }
+        done = true;
+      }
+      itr++;
+    }
+    if(!done && cost != 0) ext.pricing.push_back(pricing{action,cost});
+    cidx.modify(existing, eosio::same_payer,
+                [&](package &r) { r.ext.emplace(ext); });
+  }
+
  [[eosio::action]] void issue(name to, asset quantity, string memo) {
     auto sym = quantity.symbol;
     eosio::check(sym.is_valid(), "invalid symbol name");
@@ -467,9 +513,10 @@ public:
     string str(signalRawData.begin(), signalRawData.end());
     auto encodedData = fc::base64_encode(str);
     EMIT_SIGNAL_SVC_EVENT(name(get_first_receiver()), service, action, provider, package,
-                          encodedData.c_str());
-    require_recipient(service);
+                          encodedData.c_str());    
     require_recipient(provider);
+    require_recipient(service);
+    calculateUsage(service,action,provider,package,signalRawData);
   }
 
   [[eosio::action]] void xcallback(name provider, string request_id, string meta) {
@@ -689,7 +736,7 @@ public:
   }
 
  [[eosio::action]] void usage(usage_t usage_report) {
-    require_auth(usage_report.service);
+    require_auth(_self);
     auto payer = usage_report.payer;
     auto service = usage_report.service;
     auto provider = usage_report.provider;
@@ -768,7 +815,8 @@ public:
     eosio::check( false, "always false assert");
   }
 
-private:
+private: 
+
   inline void sub_total_staked(asset quantity) {
     stats_ext statsexts(_self, quantity.symbol.code().raw());
     auto existing = statsexts.find(quantity.symbol.code().raw());
@@ -1251,6 +1299,41 @@ private:
     return sub_quota(payer, service, provider, quantity);
   }
 
+  void dispatchUsage(usage_t usage_report) {
+    action(permission_level{_self, "active"_n},
+          _self, "usage"_n, std::make_tuple(usage_report))
+        .send();
+  }
+
+  void calculateUsage(name service, name action, name provider, name package, std::vector<char> signalRawData) {
+    packages_t packages(_self, _self.value);
+    auto idxKey = package::_by_package_service_provider(package, service, provider);
+    auto cidx = packages.get_index<"bypkg"_n>();
+    auto existing = cidx.find(idxKey);
+    eosio::check(existing != cidx.end(), "package not found");
+    uint64_t amount = DAPPSERVICES_QUOTA_COST;
+    if(existing->ext.has_value()) {
+      auto ext = existing->ext.value();
+      auto itr = ext.pricing.begin();
+      while(itr != ext.pricing.end()) {
+        if(itr->action == action) {
+          amount = itr->cost_per_action;
+          break;
+        }
+        itr++;
+      }
+    }
+
+    auto quantity = asset(amount, DAPPSERVICES_QUOTA_SYMBOL);
+    usage_t usageResult;
+    usageResult.quantity  = quantity;
+    usageResult.provider  = provider;
+    usageResult.payer     = get_first_receiver();
+    usageResult.package   = package;
+    usageResult.service   = service;
+    dispatchUsage(usageResult);    
+  }
+
   const currency_stats &getSymbolStats(symbol sym) {
     stats statstable(_self, sym.code().raw());
     auto existing = statstable.find(sym.code().raw());
@@ -1270,7 +1353,7 @@ void apply(uint64_t receiver, uint64_t code, uint64_t action) {
                         (staketo)(unstaketo)(refundto)(refreceipt)
                         (claimrewards)(create)(issue)(transfer)
                         (open)(close)(retire)(preselectpkg)(retirestake)(xcallback)
-                        (selectpkg)(regpkg)(closeprv)(modifypkg)(disablepkg)(enablepkg)(usagex)(xfail))
+                        (selectpkg)(regpkg)(closeprv)(modifypkg)(disablepkg)(enablepkg)(pricepkg)(usagex)(xfail))
     }
   } else {
     switch (action) { EOSIO_DISPATCH_HELPER(dappservices, (xsignal)) }

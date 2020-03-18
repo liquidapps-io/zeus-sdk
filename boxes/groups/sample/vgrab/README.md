@@ -8,5 +8,5 @@ https://github.com/liquidapps-io/zeus-cmd
 ```
 zeus unbox vgrab
 cd vgrab
-zeus test
+zeus test -c
 ```

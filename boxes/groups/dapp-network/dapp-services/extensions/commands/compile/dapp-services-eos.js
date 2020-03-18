@@ -16,166 +16,6 @@ add_executable( \${PROJ_NAME} \${ARGN} \${PROJ_NAME} \${PROJ_NAME}.cpp )
 include_directories( \${PROJ_NAME} PUBLIC ./ )
 `;
 
-const generateServiceCppFile = (serviceModel) => {
-  var name = serviceModel.name;
-  var commandNames = Object.keys(serviceModel.commands);
-  var M = (macro) => commandNames.map(commandName => `${macro}(${commandName})`).join('\n');
-  var upperName = name.toUpperCase();
-
-  return `#define SVC_NAME ${name}
-#include "../dappservices/${name}.hpp"
-CONTRACT ${name}service : public eosio::contract {
-  using contract::contract;
-
-private:
-public:
-
-  DAPPSERVICE_PROVIDER_ACTIONS
-  ${upperName}_DAPPSERVICE_ACTIONS
-  ${M('STANDARD_USAGE_MODEL')}
-
-#ifdef ${upperName}_DAPPSERVICE_SERVICE_MORE
-  ${upperName}_DAPPSERVICE_SERVICE_MORE
-#endif
-
-  struct model_t {
-    ${M('HANDLE_MODEL_SIGNAL_FIELD')}
-  };
-  TABLE providermdl {
-    model_t model;
-    name package_id;
-    uint64_t primary_key() const { return package_id.value; }
-  };
-
-  typedef eosio::multi_index<"providermdl"_n, providermdl> providermodels_t;
-
- [[eosio::action]] void xsignal(name service, name action,
-                 name provider, name package, std::vector<char> signalRawData) {
-    if (current_receiver() != service || _self != service)
-      return;
-    require_auth(get_first_receiver());
-    auto payer = get_first_receiver();  \
-    name dappserviceContract = DAPPSERVICES_CONTRACT;
-    ${M('HANDLECASE_SIGNAL_TYPE')}
-  }
-  [[eosio::action]] void xsignalx(name service, name action,
-                 name provider, name package, std::vector<char> signalRawData, name dappserviceContract, name payer) {
-    if (current_receiver() != service || _self != service)
-      return;
-    require_auth(dappserviceContract);
-    ${M('HANDLECASE_SIGNAL_TYPE')}
-  }
-
-  DAPPSERVICE_PROVIDER_BASIC_ACTIONS
-};
-
-EOSIO_DISPATCH_SVC_PROVIDER(${name}service)\n`;
-};
-
-const generateServiceAbiFile = (serviceModel) => {
-  const abi = {
-    '____comment': 'This file was generated with dapp-services-eos. DO NOT EDIT ' + new Date().toUTCString(),
-    'version': 'eosio::abi/1.0',
-    'structs': [{
-        'name': 'model_t',
-        'base': '',
-        'fields': []
-      },
-      {
-        'name': 'providermdl',
-        'base': '',
-        'fields': [{
-            'name': 'model',
-            'type': 'model_t'
-          },
-          {
-            'name': 'package_id',
-            'type': 'name'
-          }
-        ]
-      },
-      {
-        'name': 'xsignal',
-        'base': '',
-        'fields': [{
-            'name': 'service',
-            'type': 'name'
-          },
-          {
-            'name': 'action',
-            'type': 'name'
-          },
-          {
-            'name': 'provider',
-            'type': 'name'
-          },
-          {
-            'name': 'package',
-            'type': 'name'
-          },
-          {
-            'name': 'signalRawData',
-            'type': 'bytes'
-          }
-        ]
-      },
-      {
-        'name': 'regprovider',
-        'base': '',
-        'fields': [{
-            'name': 'provider',
-            'type': 'name'
-          },
-          {
-            'name': 'model',
-            'type': 'providermdl'
-          }
-        ]
-      }
-    ],
-    'types': [],
-    'actions': [{
-        'name': 'xsignal',
-        'type': 'xsignal',
-        'ricardian_contract': ''
-      },
-      {
-        'name': 'regprovider',
-        'type': 'regprovider',
-        'ricardian_contract': ''
-      }
-    ],
-    'tables': [{
-      'name': 'providermdl',
-      'type': 'providermdl',
-      'index_type': 'i64',
-      'key_names': [],
-      'key_types': []
-    }],
-    'ricardian_clauses': [],
-    'abi_extensions': []
-  };
-  const structs = abi.structs;
-  const model_fields = structs.find(a => a.name == 'model_t').fields;
-
-  function addCmd(cmdName) {
-    structs.push({
-      'name': `${cmdName}_model_t`,
-      'base': '',
-      'fields': [{
-        'name': 'cost_per_action',
-        'type': 'uint64'
-      }]
-    });
-    model_fields.push({
-      'name': `${cmdName}_model_field`,
-      'type': `${cmdName}_model_t`
-    });
-  }
-  Object.keys(serviceModel.commands).forEach(addCmd);
-  return JSON.stringify(abi, null, 2);
-};
-
 const generateCommandCodeText = (serviceName, commandName, commandModel, serviceContract) => {
   var fnArgs = (args) => Object.keys(args).map(name => `((${args[name]})(${name}))`).join('');
   var fnPassArgs = (args) => Object.keys(args).join(', ');
@@ -254,9 +94,17 @@ const generateServiceHppFile = (serviceModel,sidechain) => {
   var commandsHelpersCodeText = commandNames.map(
     commandName => generateCommandHelperCodeText(name, commandName,
       serviceModel.commands[commandName], serviceContract)).join('\\\n');
-  const mapEntries = (loadModels('liquidx-mappings')).filter(m => m.mainnet_account === serviceContract && (m.sidechain_name === sidechain || !sidechain));
-  const liquidxDefines = mapEntries.map(a => `#define SVC_CONTRACT_NAME_${upperName}_${a.sidechain_name.toUpperCase()} ${a.chain_account}`).join('\n');
-  const selectedSideChain = mapEntries.map(a => a.sidechain_name.toUpperCase()).find(a => a);
+  let mapEntries = (loadModels('liquidx-mappings')).filter(m => m.mainnet_account === serviceContract && (m.sidechain_name === sidechain || !sidechain));
+  let liquidxDefines;
+  let selectedSideChain;
+  if (mapEntries.length > 0) {
+    liquidxDefines = mapEntries.map(a => `#define SVC_CONTRACT_NAME_${upperName}_${a.sidechain_name.toUpperCase()} ${a.chain_account}`).join('\n');
+    selectedSideChain = mapEntries.map(a => a.sidechain_name.toUpperCase()).find(a => a);
+  } else {
+    mapEntries = loadModels('eosio-chains');
+    liquidxDefines = mapEntries.map(a => `#define SVC_CONTRACT_NAME_${upperName}_${a.name.toUpperCase()} ${serviceContract}`).join('\n');
+    selectedSideChain = mapEntries.map(a => a.name.toUpperCase()).find(a => a);
+  }
 
   return `#pragma once
 #include "../dappservices/dappservices.hpp"\n
@@ -304,16 +152,7 @@ struct ${name}_svc_helper{
 
 const compileDappService = async(serviceModel,sidechain) => {
   var name = serviceModel.name;
-  var targetFolder = path.resolve(`./contracts/eos/${name}service`);
-  if (!fs.existsSync(targetFolder)) { fs.mkdirSync(targetFolder); }
   try {
-    // generate files
-    fs.writeFileSync(path.resolve(`./contracts/eos/${name}service/${name}service.cpp`),
-      await generateServiceCppFile(serviceModel));
-    fs.writeFileSync(path.resolve(`./contracts/eos/${name}service/${name}service.abi`),
-      await generateServiceAbiFile(serviceModel));
-    fs.writeFileSync(path.resolve(`./contracts/eos/${name}service/CMakeLists.txt`),
-      CMAKELISTS_FILE);
     if (serviceModel.generateStubs) {
       fs.writeFileSync(path.resolve(`./contracts/eos/dappservices/_${name}_impl.hpp`),
         await generateImplStubHppFile(serviceModel));

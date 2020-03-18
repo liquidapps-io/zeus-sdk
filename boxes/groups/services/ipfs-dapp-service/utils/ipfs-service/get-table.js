@@ -3,26 +3,22 @@ const sha256 = require('js-sha256').sha256;
 const { getEosWrapper } = require('../../extensions/tools/eos/eos-wrapper')
 const BN = require('bignumber.js')
 const bs58 = require('bs58')
-const IPFS = require('ipfs-api');
-const ipfs = new IPFS({ host: process.env.IPFS_HOST || 'localhost', port: process.env.IPFS_PORT || 5001, protocol: process.env.IPFS_PROTOCOL || 'http' });
 const fs = require('fs');
-const ipfsTimeout = 2000;
-
+const fetch = require('node-fetch');
 const EMPTY_BUCKET_URI = '01551220E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855';
-
-const nodeosEndpoint = process.env.NODEOS_ENDPOINT || 'http://127.0.0.1:8888';
-const eos = getEosWrapper({ httpEndpoint: nodeosEndpoint })
-const shard_limit = parseInt(process.env.SHARD_LIMIT || 1024);
-const tableName = process.env.TABLE_NAME;
-const contractName = process.env.CONTRACT_NAME;
-
-if (!contractName) throw new Error('missing environment variable CONTRACT_NAME');
-
+const nodeosLatest = process.env.NODEOS_LATEST || true;
 const ipfsData = {};
 
-async function main() {
-  const vramTables = await getVramTables(contractName);
-  const tables = await Promise.all(vramTables.map(table => parseTable(contractName, table.name)));
+async function example() {
+  const dspEndpoint = process.env.DSP_ENDPOINT || 'http://127.0.0.1:13015';
+  const eos = getEosWrapper({ httpEndpoint: dspEndpoint })
+  const tableName = process.env.TABLE_NAME;
+  const contractName = process.env.CONTRACT_NAME;
+  const shard_limit = parseInt(process.env.SHARD_LIMIT || 1024);
+  if (!contractName) throw new Error('missing environment variable CONTRACT_NAME');
+
+  const vramTables = await getVramTables(contractName, eos, tableName);
+  const tables = await Promise.all(vramTables.map(table => parseTable(contractName, table.name, dspEndpoint, shard_limit)));
 
   if (process.env.VERBOSE) {
     console.log(`Total of ${Object.keys(ipfsData).length} ipfs uris`);
@@ -35,7 +31,7 @@ async function main() {
   })
 }
 
-async function getVramTables(contractName) {
+async function getVramTables(contractName, eos, tableName) {
   const abi = await eos.getAbi(contractName);
   let tables = abi.tables.filter(table => table.type.includes('shardbucket'));
   if (tableName)
@@ -44,7 +40,7 @@ async function getVramTables(contractName) {
   return tables;
 }
 
-async function getTableShardUris(contractName, tableName) {
+async function getTableShardUris(contractName, tableName, eos, shard_limit) {
   const res = await eos.getTableRows({
     'json': true,
     'scope': contractName,
@@ -60,8 +56,8 @@ async function getTableShardUris(contractName, tableName) {
 }
 
 // receives shard uri 015... returns array of bucket uris
-async function parseShardUri(shardUri) {
-  const data = await getIpfsData(shardUri);
+async function parseShardUri(shardUri, dspEndpoint, contractName, ipfsCache) {
+  const data = await getIpfsData(shardUri, dspEndpoint, contractName, ipfsCache);
   const shardDataAbi = [{
     "name": "shard_data",
     "base": "",
@@ -71,17 +67,22 @@ async function parseShardUri(shardUri) {
       }
     ]
   }];
-  const deserializedShardData = deserialize(shardDataAbi, data, 'shard_data', 'base16');
-  return deserializedShardData.values;
+  try {
+    const deserializedShardData = deserialize(shardDataAbi, data, 'shard_data');
+    return deserializedShardData.values;
+  } catch(e) {
+    console.log(`error deserializing shard data: ${e}`);
+    throw e;
+  }
 }
 
 // receives bucket uri, returns [{key, scope, data}]
-async function parseBucketUri(bucketUri) {
+async function parseBucketUri(bucketUri, dspEndpoint, contractName, ipfsCache) {
   let bucketData = [];
   if (bucketUri == EMPTY_BUCKET_URI)
     return bucketData;
 
-  const rawData = (await getIpfsData(bucketUri)).toString('hex');
+  const rawData = (await getIpfsData(bucketUri, dspEndpoint, contractName, ipfsCache)).toString('hex');
   const splitData = rawData.match(/.{1,104}/g);
   splitData.forEach(data => {
     const scope = data.substring(0, 16);
@@ -92,8 +93,8 @@ async function parseBucketUri(bucketUri) {
   return bucketData;
 }
 
-async function parseTableEntryUri(entryUri, abiStructs, structName) {
-  const data = await getIpfsData(entryUri);
+async function parseTableEntryUri(entryUri, abiStructs, structName, dspEndpoint, contractName, ipfsCache) {
+  const data = await getIpfsData(entryUri, dspEndpoint, contractName, ipfsCache);
   try {
     let desData = deserialize(abiStructs, data, structName);
     return desData;
@@ -105,15 +106,16 @@ async function parseTableEntryUri(entryUri, abiStructs, structName) {
   }
 }
 
-async function parseTable(contractName, tableName) {
-  const table = {};
-  const tableShardUris = await getTableShardUris(contractName, tableName)
-  const parsedShardUris = await Promise.all(tableShardUris.map(shardUri => parseShardUri(shardUri).catch((e) => {
+async function parseTable(contractName, tableName, dspEndpoint, shard_limit = 1024, inclIpfsData = false) {
+  const ipfsCache = {};
+  const eos = getEosWrapper({ httpEndpoint: dspEndpoint });
+  const tableShardUris = await getTableShardUris(contractName, tableName, eos, shard_limit);
+  const parsedShardUris = await Promise.all(tableShardUris.map(shardUri => parseShardUri(shardUri, dspEndpoint, contractName, ipfsCache).catch((e) => {
     console.log(`error parsing shard uri ${shardUri} - ${e}`);
     return [];
   })));
   const bucketUris = flattenArray(parsedShardUris);
-  const bucketData = await Promise.all(bucketUris.map(bucketUri => parseBucketUri(bucketUri).catch(() => {
+  const bucketData = await Promise.all(bucketUris.map(bucketUri => parseBucketUri(bucketUri, dspEndpoint, contractName, ipfsCache).catch(() => {
     console.log(`error parsing bucket uri ${bucketUri} - ${e}`);
     return [];
   })));
@@ -124,15 +126,15 @@ async function parseTable(contractName, tableName) {
   const abiTable = abi.tables.find(a => a.name == '.' + tableName);
   const structName = abiTable.type;
 
-  const tableData = await Promise.all(flattenedBucketData.map(bucketData => parseTableEntryUri(bucketData.dataUri, abi.structs, structName)));
+  const tableData = await Promise.all(flattenedBucketData.map(bucketData => parseTableEntryUri(bucketData.dataUri, abi.structs, structName, dspEndpoint, contractName, ipfsCache)));
   // recombine data to make pretty
   const fullTableData = flattenedBucketData.map((data, idx) => ({
     scope: decodeName((new BN(data.scope, 16)).toString(10)),
     key: data.key,
     data: tableData[idx]
   }));
-  table[tableName] = fullTableData;
-  return table;
+  // return { fullTableData, ipfsCache }
+  return fullTableData;
 }
 
 const hashData256 = (data) => {
@@ -141,9 +143,33 @@ const hashData256 = (data) => {
   return hash.hex();
 };
 
-async function getIpfsData(uri) {
+function postData(url = ``, data = {}) {
+  // Default options are marked with *
+  return fetch(url, {
+      method: 'POST', // *GET, POST, PUT, DELETE, etc.
+      mode: 'cors', // no-cors, cors, *same-origin
+      cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+      credentials: 'same-origin', // include, *same-origin, omit
+      headers: {
+        // "Content-Type": "application/json",
+        // "Content-Type": "application/x-www-form-urlencoded",
+      },
+      redirect: 'follow', // manual, *follow, error
+      referrer: 'no-referrer', // no-referrer, *client
+      body: JSON.stringify(data) // body data type must match "Content-Type" header
+    })
+    .then(response => response.json()); // parses response to JSON
+}
+
+async function getIpfsData(uri, dspEndpoint, contractName, ipfsCache) {
+  const eos = getEosWrapper({ httpEndpoint: dspEndpoint })
   let hash = uri.toString('hex').slice(8);
-  let matchHash = hash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('').match(/.{32}/g).reverse().join('').match(/.{2}/g).reverse().join('');
+  let matchHash;
+  if(nodeosLatest.toString() === "true") {
+    matchHash = hash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('');
+  } else {
+    matchHash = hash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('').match(/.{32}/g).reverse().join('').match(/.{2}/g).reverse().join('');
+  }
 
   const payload = {
     'json': true,
@@ -162,25 +188,20 @@ async function getIpfsData(uri) {
     return myHash.toLowerCase() == hash.toLowerCase();
   });
   if (result) {
-    ipfsData[uri] = Buffer.from(result.data, 'hex').toString('hex');
-    //console.log(`found ipfs uri ${uri} on chain`);
+    ipfsCache[uri] = Buffer.from(result.data, 'hex').toString('hex');
     return Buffer.from(result.data, 'hex');
   }
 
   const bytes = Buffer.from(uri, 'hex')
-  const encodedUri = 'z' + bs58.encode(bytes)
+  const encodedUri = 'z' + bs58.encode(bytes);
+  const res = await postData(`${dspEndpoint}/v1/dsp/ipfsservice1/get_uri`, { uri: `ipfs://${encodedUri}` });
 
-  const res = await Promise.race([
-    ipfs.files.get(encodedUri),
-    new Promise((resolve, reject) => {
-      setTimeout(() => { reject('ipfsentry not found') }, ipfsTimeout);
-    })
-  ]);
-  ipfsData[uri] = Buffer.from(res[0].content).toString('hex');
-  //console.log(`found ipfs uri ${uri} on ipfs`);
-  return Buffer.from(res[0].content);
+  ipfsCache[uri] = Buffer.from(res.data, 'base64').toString('hex');
+  return Buffer.from(res.data, 'base64');
 }
 
 const flattenArray = array => [].concat.apply([], array);
 
-main().catch(console.log)
+module.exports = {
+  parseTable
+}

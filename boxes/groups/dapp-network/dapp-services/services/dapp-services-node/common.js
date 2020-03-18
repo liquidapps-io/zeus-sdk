@@ -21,10 +21,12 @@ const mainnetDspKey = process.env.DSP_PRIVATE_KEY;
 if (!mainnetDspKey) console.warn('must provide DSP_PRIVATE_KEY if not using utils');
 const nodeosMainnetEndpoint = process.env.NODEOS_MAINNET_ENDPOINT || 'http://localhost:8888';
 const dspGatewayMainnetEndpoint = process.env.DSP_GATEWAY_MAINNET_ENDPOINT || 'http://localhost:13015';
+const nodeosLatest = process.env.NODEOS_LATEST || true;
 const proxy = httpProxy.createProxyServer();
 
 proxy.on('error', function(err, req, res) {
   if (err) {
+    logger.error('proxy error:');
     logger.error(err);
   }
   if (!res) { return; }
@@ -121,10 +123,6 @@ function decodeName(value, littleEndian = true) {
 
 const eosMainnet = async() => {
   const mainnetConfig = {
-    expireInSeconds: 120,
-    sign: true,
-    broadcast: true,
-    blocksBehind: 10,
     httpEndpoint: nodeosMainnetEndpoint,
     keyProvider: mainnetDspKey
   }
@@ -133,10 +131,6 @@ const eosMainnet = async() => {
 
 const eosDSPGateway = async() => {
   let config = {
-    expireInSeconds: 120,
-    sign: true,
-    broadcast: true,
-    blocksBehind: 10,
     httpEndpoint: dspGatewayMainnetEndpoint,
     keyProvider: mainnetDspKey
   }
@@ -150,7 +144,7 @@ var eosDSPEndpoint = getEosWrapper({
 const getEosForSidechain = async(sidechain, account = paccount, dspEndpoint = null) => {
   let config = {
     httpEndpoint: dspEndpoint ? `http://localhost:${sidechain.dsp_port}` : sidechain.nodeos_endpoint, //TODO: do we need to check for https?
-    keyProvider: process.env[`DSP_PRIVATE_KEY_${sidechain.name.toUpperCase()}`] || (await getCreateKeys(account, null, false, sidechain)).active.privateKey //TODO: any reason not to include authorization here?
+    keyProvider: process.env[`DSP_PRIVATE_KEY_${sidechain.name.toUpperCase()}`] || (await getCreateKeys(account, null, nodeosLatest.toString() === "true" ? true: false, sidechain)).active.privateKey //TODO: any reason not to include authorization here?
   }
   return getEosWrapper(config);
 }
@@ -187,6 +181,7 @@ const resolveBackendServiceData = async(service, provider, packageid, sidechain,
 const resolveExternalProviderData = async(service, provider, packageid, sidechain, balance) => {
   const eos = await eosMainnet();
   const packages = await getTableRowsSec(eos.rpc, dappServicesContract, "package", dappServicesContract, [null, packageid, service, provider], 1, 'sha256', 2);
+  logger.debug(`resolveExternalProviderData packages: ${JSON.stringify(packages)}`);
   const result = packages.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service);
   if (result.length === 0) throw new Error(`resolveExternalProviderData failed ${provider} ${service} ${packageid}`);
   if (!result[0].enabled) console.log(`DEPRECATION WARNING for ${provider} ${service} ${packageid}: Packages must be enabled for DSP services to function in the future.`); //TODO: Throw error instead
@@ -201,6 +196,9 @@ const resolveExternalProviderData = async(service, provider, packageid, sidechai
 
 const resolveProviderData = async(service, provider, packageid, sidechain, balance) =>
   ((paccount === provider) ? resolveBackendServiceData : resolveExternalProviderData)(service, provider, packageid, sidechain, balance);
+
+const toBound = (numStr, bytes) =>
+`${(new Array(bytes * 2 + 1).join('0') + numStr).substring(numStr.length).toUpperCase()}`;
 
 const getTableRowsSec = async(rpc, code, table, scope, keys, limit = 1, key_type, index_position) => {
   if (!key_type) {
@@ -231,36 +229,62 @@ const getTableRowsSec = async(rpc, code, table, scope, keys, limit = 1, key_type
     'index_position': index_position,
     'limit': limit
   };
-  var encodedKey = keys.map(v => (v !== null) ? v : 0).map(v => typeof(v) === 'string' ? encodeName(v, true) : v).map(v => new BigNumber(v)).map(v => toBound(v.toString(16), 8));
+  let encodedKeys, hexKeys;
+  if(nodeosLatest.toString() === "true") {
+    hexKeys = keys.map(v => (v !== null) ? v : 0).map(v => typeof(v) === 'string' ? encodeName(v) : v).map(v => toBound(new BigNumber(v).toString(16), 8));
+    encodedKeys = hexKeys;
+  } else {
+    encodedKeys = keys.map(v => (v !== null) ? v : 0).map(v => typeof(v) === 'string' ? encodeName(v, true) : v).map(v => new BigNumber(v)).map(v => toBound(v.toString(16), 8));
+  }
   switch (key_type) {
     case 'sha256':
+      if(nodeosLatest.toString() === "true" && hexKeys) {
+        encodedKeys = hexKeys.map(k => k.match(/.{2}/g).reverse().join(''));
+        payload.lower_bound = encodedKeys[0] + encodedKeys[1] + encodedKeys[2] + encodedKeys[3];
+      } else {
+        payload.lower_bound = encodedKey[1] + encodedKey[0] + encodedKey[3] + encodedKey[2];
+      }
+      // for sha256/i128 where the keys are name we split them pairwise and reverse
+      // this is how eosio internally encodes name values..
       payload.encode_type = 'hex';
-      payload.lower_bound = encodedKey[1] + encodedKey[0] + encodedKey[3] + encodedKey[2];
-      // 0      1        2          3
-      //null, service, provider, packageid
-
       // in code:           0ULL, package_id.value, service.value, provider.value
-
-      // need:
-      //  encodedPackage + encodedNone + encodedProvider + encodedService
-
       break;
     case 'i128':
-      payload.encode_type = 'dec';
-      payload.lower_bound = "0x" + encodedKey[1] + encodedKey[0];
+      if(nodeosLatest.toString() === "true" && hexKeys) {
+        encodedKeys = hexKeys.map(k => k.match(/.{2}/g).reverse().join(''));
+        payload.encode_type = 'hex';
+        payload.lower_bound = "0x" + encodedKeys[0] + encodedKeys[1];
+      } else {
+        payload.encode_type = 'dec';
+        payload.lower_bound = "0x" + encodedKey[1] + encodedKey[0];
+      }
       break;
     case 'i64':
-      if (encodedKey.length) {
-        payload.lower_bound = "0x" + encodedKey[0];
+      if (encodedKeys.length) {
+        payload.lower_bound = "0x" + encodedKeys[0];
         payload.encode_type = 'dec';
       }
       break;
     default:
       // code
   }
-  const result = await rpc.get_table_rows(payload);
-  const rowsResult = result.rows;
-  return rowsResult;
+  if(nodeosLatest.toString() === "true") {
+    let finalRes = [];
+    let result = await rpc.get_table_rows(payload);
+    finalRes = result.rows;
+    while (finalRes.length < limit && result.more) {
+      logger.debug(`got ${finalRes.length} responses, theres more`);
+      payload.lower_bound = result.next_key;
+      payload.limit = limit - finalRes.length;
+      result = await rpc.get_table_rows(payload);
+      finalRes =  [...finalRes, ...result.rows ];
+    }
+    return finalRes;
+  } else {
+    const result = await rpc.get_table_rows(payload);
+    const rowsResult = result.rows;
+    return rowsResult;
+  }
 };
 
 const getProviders = async(payer, service, provider, sidechain) => {
@@ -271,19 +295,19 @@ const getProviders = async(payer, service, provider, sidechain) => {
     payer = await getLinkedAccount(null, null, payer, sidechainName);
   }
   const eos = await eosMainnet();
-  const serviceWithStakingResult = await getTableRowsSec(eos.rpc, dappServicesContract, "accountext", "DAPP", [payer, service], 100, 'i128', 3);
+  const serviceWithStakingResult = await getTableRowsSec(eos.rpc, dappServicesContract, "accountext", "DAPP", [payer, service], 50, 'i128', 3);
 
   const result = serviceWithStakingResult.filter(a => (a.provider === provider || !provider) && a.account === payer && a.service === service);
   if (result.length === 0) { throw new Error(`getProviders failed - no stakes for payer - ${payer} ${provider} ${service} ${!sidechain ? 'mainnet' : sidechain.name}`); }
   return result;
 };
 
-const toBound = (numStr, bytes) =>
-  `${(new Array(bytes * 2 + 1).join('0') + numStr).substring(numStr.length).toUpperCase()}`;
-
 const resolveProviderPackage = async(payer, service, provider, sidechain, getEvery = false) => {
+  logger.debug('resolving provider package');
+  logger.debug(JSON.stringify({payer, service, provider, sidechain, getEvery }));
   let providers = [];
   const serviceWithStakingResult = await getProviders(payer, service, provider, sidechain);
+  logger.debug(`got svc with staking results - ${JSON.stringify(serviceWithStakingResult)}`)
   //we must iterate over staked packages and ensure they are enabled
   if (sidechain) {
     const sidechainName = sidechain.name;
@@ -306,6 +330,7 @@ const resolveProviderPackage = async(payer, service, provider, sidechain, getEve
     }
     catch (e) {
       logger.error(`Provider ${checkProvider.provider} package ${checkPackage} does not exist or is disabled`);
+      logger.error(e);
     }
   }
   if (!selectedPackage) { throw new Error(`resolveProviderPackage failed - no enabled packages - ${provider} ${service}`); }
@@ -331,6 +356,7 @@ const processFn = async(actionHandlers, actionObject, simulated, serviceName, ha
     return await actionHandler(actionObject, simulated, serviceName, handlers);
   }
   catch (e) {
+    logger.error('error processing')
     logger.error(e);
     throw e;
   }
@@ -401,11 +427,9 @@ const sendError = (res, e) => {
     }
   }));
 }
-const processRequstWithBody = async(req, res, body, actionHandlers, serviceName, handlers) => {
+const processRequestWithBody = async(req, res, body, actionHandlers, serviceName, handlers) => {
   var uri = req.originalUrl;
   var sidechain = body.sidechain;
-
-  logger.debug("GATEWAY-body: %s\t[%s] - %s", uri, req.ip, sidechain ? sidechain.name : "main");
 
   var isServiceRequest = uri.indexOf('/event') == 0;
   var isServiceAPIRequest = uri.indexOf('/v1/dsp/') == 0;
@@ -529,16 +553,18 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi, sidechai
   const app = genApp();
   app.use(async(req, res, next) => {
     var uri = req.originalUrl;
-    logger.info("GATEWAY: %s\t[%s] - %s", uri, req.ip, sidechain ? sidechain.name : "main");
+    logger.debug("received request: %s\t[%s] - %s", uri, req.ip, sidechain ? sidechain.name : "main");
 
-    var isServiceRequest = uri.indexOf('/event') == 0;
-    var isServiceAPIRequest = uri.indexOf('/v1/dsp/') == 0;
+    var isServiceRequest = uri.indexOf('/event') === 0;
+    var isServiceAPIRequest = uri.indexOf('/v1/dsp/') === 0;
+    var isPushTransaction = uri.indexOf('/v1/chain/push_transaction') === 0 || uri.indexOf('/v1/chain/send_transaction') === 0;
     var uriParts = uri.split('/');
     if (uri === '/v1/dsp/version')
       return res.send(pjson.version); // send response to contain the version
 
-    if (uri != '/v1/chain/push_transaction' && !isServiceRequest && !isServiceAPIRequest)
+    if (!isPushTransaction && !isServiceRequest && !isServiceAPIRequest) {
       return proxy.web(req, res, { target: sidechain ? sidechain.nodeos_endpoint : nodeosMainnetEndpoint });
+    }
 
     if (isServiceAPIRequest && serviceName === 'services') {
       if (uriParts.length < 5) return notFound(res, 'bad endpoint format');
@@ -569,12 +595,12 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi, sidechai
       if (req.headers['sidechain'] && serviceName !== 'services') {
 
         var sidechainName = req.headers['sidechain'];
-        logger.debug(`sidechain: ${sidechainName}`);
-        const sidechains = await loadModels('local-sidechains');
-        currentSidechain = sidechains.find(s => s.Name = sidechainName);
+        logger.info(`sidechain: ${sidechainName}`);
+        const sidechains = await loadModels('eosio-chains');
+        currentSidechain = sidechains.find(s => s.name == sidechainName);
       }
       body.sidechain = currentSidechain;
-      return processRequstWithBody(req, res, body, actionHandlers, serviceName, handlers);
+      return processRequestWithBody(req, res, body, actionHandlers, serviceName, handlers);
 
     });
   });
@@ -697,9 +723,9 @@ const getLinkedAccount = async(eosSideChain, eosMain, account, sidechainName, sk
       throw new Error('chain not registered on provisioning chain');
     return res.rows[0].chain_meta.dappservices_contract;
   }
-  // if no sidechain object provided, retrieve from /models/local-sidechains
+  // if no sidechain object provided, retrieve from /models/eosio-chains
   if (!eosSideChain) {
-    var models = await loadModels('local-sidechains');
+    var models = await loadModels('eosio-chains');
     const sidechain = models.find(m => m.name == sidechainName);
     eosSideChain = await getEosForSidechain(sidechain);
   }
@@ -707,12 +733,21 @@ const getLinkedAccount = async(eosSideChain, eosMain, account, sidechainName, sk
   const dappServicesSisterContract = await getLinkedAccount(eosSideChain, eosMain, 'dappservices', sidechainName);
   // returns account link map from side chain's dappservicex given a side chain account name
   const mainnetAccountList = await getTableRowsSec(eosSideChain.rpc, dappServicesSisterContract, 'accountlink', account, []);
-  if (!mainnetAccountList.length)
-    throw new Error(`no DSP link to mainnet account ${account}`);
-  const mainnetAccount = mainnetAccountList[0].mainnet_owner;
+  
+  let contract;
+  if (!mainnetAccountList.length) {
+    let services = await loadModels('dapp-services');
+    let model = services.find(a => getContractAccountFor(a) == account);
+    if(!model)
+      throw new Error(`no DSP link to mainnet account ${account}`);
+    else
+      contract = getContractAccountFor(model);
+  }
+    
+  const mainnetAccount = contract || mainnetAccountList[0].mainnet_owner;
 
   // if one way mapped (service), skipVerification = true, only check sidechain -> mainnet mapping with dappservicex contract
-  if (skipVerification)
+  if (skipVerification || contract)
     return mainnetAccount;
 
   // if !skipVerification (payer), check two way mapping via mainnet's liquidx contract' accountlink table

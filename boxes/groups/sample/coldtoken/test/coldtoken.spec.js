@@ -1,11 +1,6 @@
 require('mocha');
-
-
 const { assert } = require('chai'); // Using Assert style
-const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getNetwork } = require('../extensions/tools/eos/utils');
 const { getTestContract } = require('../extensions/tools/eos/utils');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 
 const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
@@ -15,9 +10,10 @@ var contractCode = 'coldtoken';
 var ctrt = artifacts.require(`./${contractCode}/`);
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
+const { parseTable } = require('../utils/ipfs-service/get-table');
+
 describe(`${contractCode} Contract`, () => {
   var testcontract;
-  let txRes;
   const code = 'airairairair';
   const code2 = 'airairairai2';
   var testUser = "tt11";
@@ -73,7 +69,6 @@ describe(`${contractCode} Contract`, () => {
           broadcast: true,
           sign: true
         });
-        console.log(`transfer cpu us: ${txRes.processed.receipt.cpu_usage_us}`);
         const tableRes1 = await readVRAMData({
           contract: code,
           key: symbol,
@@ -124,7 +119,6 @@ describe(`${contractCode} Contract`, () => {
           broadcast: true,
           sign: true
         });
-        console.log(`issue cpu us: ${txRes.processed.receipt.cpu_usage_us}`);
         try {
           await testtoken.transfer({
             from: code,
@@ -174,7 +168,6 @@ describe(`${contractCode} Contract`, () => {
           broadcast: true,
           sign: true
         });
-        console.log(`issue cpu us: ${txRes.processed.receipt.cpu_usage_us}`);
         await delay(2000);
         var tableRes = await readVRAMData({
           contract: code,
@@ -209,4 +202,21 @@ describe(`${contractCode} Contract`, () => {
       }
     })();
   });
+
+  it('Table can be parsed', done => {
+    (async () => {
+      try {
+        const contractName = 'airairairair';
+        const tableName = 'accounts';
+        const dspEndpoint = 'http://localhost:13015';
+        const table = await parseTable(contractName, tableName, dspEndpoint);
+        const balanceEntry = table.find(entry => (entry.scope === 'airairairair' && entry.key === '4149525a00000000'));
+        assert(balanceEntry.data.balance === '500.0000 AIRZ', 'airairairair balance of AIRZ not as expected');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  })
 });

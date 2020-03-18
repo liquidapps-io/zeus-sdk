@@ -24,6 +24,7 @@ const actionHandlers = {
     var handler = handlers[action];
     var models = await loadModels('dapp-services');
     var serviceContractForLookup = service;
+    var thisService = models.find(m => m.name == serviceName).contract;
     if (sidechain) {
       serviceContractForLookup = await getLinkedAccount(null, null, service, sidechain.name, true);
     }
@@ -31,6 +32,7 @@ const actionHandlers = {
     if (sidechain) {
       // get sidechain contract if sidechain exists
       service = await getContractAccountFor(model, sidechain);
+      thisService = await getContractAccountFor(models.find(m => m.name == serviceName), sidechain);
     }
     if (isReplay && provider == '') {
       provider = paccount;
@@ -55,7 +57,9 @@ const actionHandlers = {
     }
     provider = await resolveProvider(payer, service, provider, sidechain);
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider, sidechain);
-    if (provider !== paccount) {
+    if (provider !== paccount || service !== thisService) {
+      if(service !== thisService) 
+        logger.warn("WARNING - Service Mixup: %s requested inside %s, forwarding event.", service, thisService);
       var providerData = await resolveProviderData(service, provider, packageid, sidechain);
       if (!providerData) { return; }
       return await forwardEvent(act, providerData.endpoint, act.exception);
@@ -121,8 +125,10 @@ const extractUsageQuantity = async(e) => {
   }
   const events = (await parseEvents(jsons.join('\n'))).filter(e => e.etype === 'usage_report');
 
-  if (!events.length)
+  if (!events.length) {
+    logger.warn(`is verbose-http-errors = true enabled in the nodeos config.ini?`);
     throw new Error('usage event not found');
+  }
   var usage_report_event = events[0];
   return { usageQuantity: usage_report_event.quantity, service: usage_report_event.service, provider: usage_report_event.provider, payer: usage_report_event.payer };
 }
@@ -134,7 +140,7 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
   data = deserialize(abi, data, action);
   if (!data) { return; }
   if (!sidechain && metadata && metadata.sidechain) {
-    const models = await loadModels('local-sidechains');
+    const models = await loadModels('eosio-chains');
     sidechain = models.find(m => m.name == metadata.sidechain.name);
   }
   let sidechain_provider_on_mainnet = paccount;
@@ -150,8 +156,9 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
         mapEntry = m;
       }
     })
-    if (!mapEntry)
+    if (!mapEntry) {
       throw new Error('mapping not found')
+    }
 
     sidechain_provider_on_mainnet = mapEntry.chain_account;
     act.event.current_provider = sidechain_provider_on_mainnet;
@@ -263,7 +270,7 @@ const nodeFactory = async(serviceName, handlers) => {
   var models = await loadModels('dapp-services');
   var model = models.find(m => m.name == serviceName);
   logger.info(`nodeFactory starting ${serviceName}`);
-  var sidechains = await loadModels('local-sidechains');
+  var sidechains = await loadModels('eosio-chains');
   for (var i = 0; i < sidechains.length; i++) {
     var sidechain = sidechains[i];
     sidechainsDict[sidechain.name] = sidechain;

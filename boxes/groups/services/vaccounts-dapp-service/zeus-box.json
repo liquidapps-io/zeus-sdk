@@ -15,12 +15,13 @@
     ],
   "install":{
     "contracts":{
-      "vaccountsservice": true,
-      "vaccountsconsumer": true
+      "vaccountsconsumer": true,
+      "vaccountsremote": true
     },
     "npm":{
       "node-fetch": true,
-      "eosjs-ecc": true
+      "eosjs-ecc": true,
+      "isomorphic-fetch": true
     }
   },
   "hooks": {

@@ -4,7 +4,7 @@
     "zeus-box.json"
   ],
   "commands": {
-    "Watch": "zeus test"
+    "Watch": "zeus test -c"
   },
   "dependencies":[ "seed-extensions" ],
   "hooks": {
