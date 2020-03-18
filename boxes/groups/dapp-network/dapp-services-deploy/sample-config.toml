@@ -43,6 +43,7 @@ socket_mode = "sub"
 # demux defaults to first pulling head block from toml file if postgres database is not set
 # after database is set, defaults to databse, to overwrite and default to toml file or the current head block, pass true
 bypass_database_head_block = false
+max_pending_messages = 5000 # amount of pending messages to add to the stack before disconnecting the demux websocket to allow pending messages to process
 
 [ipfs]
 protocol = "http"
@@ -71,6 +72,7 @@ port = 5001
     # demux defaults to first pulling head block from toml file if postgres database is not set
     # after database is set, defaults to database, to overwrite and default to toml file, pass true
     demux_bypass_database_head_block = false
+    demux_max_pending_messages = 5000 # amount of pending messages to add to the stack before disconnecting the demux websocket to allow pending messages to process
     # sidechain 
     name = "test1" # CHAIN_NAME - contract on the EOS mainnet that registered the new chain
     # the mapping below contains the dappservices:dappservicex and mainnet DSP account to the new chain's DSP account mapping

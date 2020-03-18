@@ -16,7 +16,7 @@ const nodeosRpcPort = process.env.NODEOS_PORT || '8888';
 const nodeosUrl =
   `http${process.env.NODEOS_SECURED === 'true' || process.env.NODEOS_SECURED === true ? true : false ? 's' : ''}://${nodeosHost}:${nodeosRpcPort}`;
 const serviceResponseTimeout = parseInt(process.env.SERVICE_RESPONSE_TIMEOUT_MS || 10000);
-const maxPendingMessages = parseInt(process.env.MAX_PENDING_MESSAGES || 5000);
+const maxPendingMessages = parseInt(process.env.DEMUX_MAX_PENDING_MESSAGES || 5000);
 
 let abis = getAbis();
 let abiabi = getAbiAbi();

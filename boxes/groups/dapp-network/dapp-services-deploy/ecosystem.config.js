@@ -103,6 +103,7 @@ const WEBHOOK_DAPP_PORT = globalEnv.WEBHOOK_DAPP_PORT || 8812;
 const DEMUX_BACKEND = globalEnv.DEMUX_BACKEND || 'state_history_plugin';
 const DEMUX_HEAD_BLOCK = globalEnv.DEMUX_HEAD_BLOCK || 0;
 const DEMUX_BYPASS_DATABASE_HEAD_BLOCK = globalEnv.DEMUX_BYPASS_DATABASE_HEAD_BLOCK || false;
+const DEMUX_MAX_PENDING_MESSAGES = globalEnv.DEMUX_MAX_PENDING_MESSAGES || 5000;
 const WEBHOOK_DEMUX_PORT = globalEnv.WEBHOOK_DEMUX_PORT || 3195;
 const SOCKET_MODE = globalEnv.DEMUX_SOCKET_MODE || 'sub';
 const IPFS_PORT = globalEnv.IPFS_PORT || 5001;
@@ -158,9 +159,10 @@ let commonEnv = {
 
 const createDSPSidechainServices = (sidechain) => {
   // Assert .env
-  if (!sidechain.dsp_account) throw new Error("sidechain dsp_account required");
-  if (!sidechain.nodeos_chainid) throw new Error("sidechain nodeos_chainid required");
-  if (!sidechain.name) throw new Error("sidechain name required");
+  const reqFields = ['dsp_account', 'nodeos_chainid', 'name'];
+  for (const field of reqFields) {
+    if (!sidechain[field]) throw new Error(`sidechain ${field} required`);
+  }
   commonEnv = {
     ...commonEnv,
     [`DSP_PRIVATE_KEY_${sidechain.name.toUpperCase()}`]: sidechain.dsp_private_key
@@ -203,6 +205,7 @@ const createDSPSidechainServices = (sidechain) => {
         DEMUX_BACKEND: sidechain.demux_backend || 'state_history_plugin',
         DEMUX_HEAD_BLOCK: sidechain.demux_head_block || 1,
         DEMUX_BYPASS_DATABASE_HEAD_BLOCK: sidechain.demux_bypass_database_head_block || false,
+        DEMUX_MAX_PENDING_MESSAGES: sidechain.demux_max_pending_messages || 5000,
         SOCKET_MODE: sidechain.demux_socket_mode || 'sub',
         LOGFILE_NAME: `${sidechain.name}-demux`
       }
@@ -260,6 +263,7 @@ module.exports = {
         DEMUX_BACKEND,
         DEMUX_HEAD_BLOCK,
         DEMUX_BYPASS_DATABASE_HEAD_BLOCK,
+        DEMUX_MAX_PENDING_MESSAGES,
         WEBHOOK_DAPP_PORT,
         PORT: WEBHOOK_DEMUX_PORT,
         LOGFILE_NAME: 'demux' 
