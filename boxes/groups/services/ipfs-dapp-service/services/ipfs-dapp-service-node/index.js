@@ -8,6 +8,7 @@ const { loadModels } = require("../../extensions/tools/models");
 const getDefaultArgs = require('../../extensions/helpers/getDefaultArgs');
 const logger = require('../../extensions/helpers/logger');
 const { TextEncoder, TextDecoder } = require('util'); // node only; native TextEncoder/Decoder
+const nodeosLatest = process.env.NODEOS_LATEST || true;
 
 BigNumber.config({ ROUNDING_MODE: BigNumber.ROUND_FLOOR }); // equivalent
 
@@ -95,7 +96,11 @@ const converToUri = (hash) => {
 const readPointer = async(hashWithPrefix, contract, sidechain) => {
   var hash = hashWithPrefix.toString('hex').slice(8);
   var matchHash = hash;
-  matchHash = matchHash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('');
+  if(nodeosLatest.toString() === "true") {
+    matchHash = matchHash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('');
+  } else {
+    matchHash = matchHash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('').match(/.{32}/g).reverse().join('').match(/.{2}/g).reverse().join('');
+  }
 
   const payload = {
     'json': true,

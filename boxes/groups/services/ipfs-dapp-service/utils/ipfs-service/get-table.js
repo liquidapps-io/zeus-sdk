@@ -5,9 +5,8 @@ const BN = require('bignumber.js')
 const bs58 = require('bs58')
 const fs = require('fs');
 const fetch = require('node-fetch');
-
 const EMPTY_BUCKET_URI = '01551220E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855';
-
+const nodeosLatest = process.env.NODEOS_LATEST || true;
 const ipfsData = {};
 
 async function example() {
@@ -165,7 +164,12 @@ function postData(url = ``, data = {}) {
 async function getIpfsData(uri, dspEndpoint, contractName, ipfsCache) {
   const eos = getEosWrapper({ httpEndpoint: dspEndpoint })
   let hash = uri.toString('hex').slice(8);
-  let matchHash = hash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('');
+  let matchHash;
+  if(nodeosLatest.toString() === "true") {
+    matchHash = hash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('');
+  } else {
+    matchHash = hash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('').match(/.{32}/g).reverse().join('').match(/.{2}/g).reverse().join('');
+  }
 
   const payload = {
     'json': true,

@@ -21,6 +21,7 @@ const mainnetDspKey = process.env.DSP_PRIVATE_KEY;
 if (!mainnetDspKey) console.warn('must provide DSP_PRIVATE_KEY if not using utils');
 const nodeosMainnetEndpoint = process.env.NODEOS_MAINNET_ENDPOINT || 'http://localhost:8888';
 const dspGatewayMainnetEndpoint = process.env.DSP_GATEWAY_MAINNET_ENDPOINT || 'http://localhost:13015';
+const nodeosLatest = process.env.NODEOS_LATEST || true;
 const proxy = httpProxy.createProxyServer();
 
 proxy.on('error', function(err, req, res) {
@@ -143,7 +144,7 @@ var eosDSPEndpoint = getEosWrapper({
 const getEosForSidechain = async(sidechain, account = paccount, dspEndpoint = null) => {
   let config = {
     httpEndpoint: dspEndpoint ? `http://localhost:${sidechain.dsp_port}` : sidechain.nodeos_endpoint, //TODO: do we need to check for https?
-    keyProvider: process.env[`DSP_PRIVATE_KEY_${sidechain.name.toUpperCase()}`] || (await getCreateKeys(account, null, true, sidechain)).active.privateKey //TODO: any reason not to include authorization here?
+    keyProvider: process.env[`DSP_PRIVATE_KEY_${sidechain.name.toUpperCase()}`] || (await getCreateKeys(account, null, nodeosLatest.toString() === "true" ? true: false, sidechain)).active.privateKey //TODO: any reason not to include authorization here?
   }
   return getEosWrapper(config);
 }
@@ -228,21 +229,35 @@ const getTableRowsSec = async(rpc, code, table, scope, keys, limit = 1, key_type
     'index_position': index_position,
     'limit': limit
   };
-  const hexKeys = keys.map(v => (v !== null) ? v : 0).map(v => typeof(v) === 'string' ? encodeName(v) : v).map(v => toBound(new BigNumber(v).toString(16), 8));
-  let encodedKeys = hexKeys;
+  let encodedKeys, hexKeys;
+  if(nodeosLatest.toString() === "true") {
+    hexKeys = keys.map(v => (v !== null) ? v : 0).map(v => typeof(v) === 'string' ? encodeName(v) : v).map(v => toBound(new BigNumber(v).toString(16), 8));
+    encodedKeys = hexKeys;
+  } else {
+    encodedKeys = keys.map(v => (v !== null) ? v : 0).map(v => typeof(v) === 'string' ? encodeName(v, true) : v).map(v => new BigNumber(v)).map(v => toBound(v.toString(16), 8));
+  }
   switch (key_type) {
     case 'sha256':
+      if(nodeosLatest.toString() === "true" && hexKeys) {
+        encodedKeys = hexKeys.map(k => k.match(/.{2}/g).reverse().join(''));
+        payload.lower_bound = encodedKeys[0] + encodedKeys[1] + encodedKeys[2] + encodedKeys[3];
+      } else {
+        payload.lower_bound = encodedKey[1] + encodedKey[0] + encodedKey[3] + encodedKey[2];
+      }
       // for sha256/i128 where the keys are name we split them pairwise and reverse
       // this is how eosio internally encodes name values..
-      encodedKeys = hexKeys.map(k => k.match(/.{2}/g).reverse().join(''));
       payload.encode_type = 'hex';
-      payload.lower_bound = encodedKeys[0] + encodedKeys[1] + encodedKeys[2] + encodedKeys[3];
       // in code:           0ULL, package_id.value, service.value, provider.value
       break;
     case 'i128':
-      encodedKeys = hexKeys.map(k => k.match(/.{2}/g).reverse().join(''));
-      payload.encode_type = 'hex';
-      payload.lower_bound = "0x" + encodedKeys[0] + encodedKeys[1];
+      if(nodeosLatest.toString() === "true" && hexKeys) {
+        encodedKeys = hexKeys.map(k => k.match(/.{2}/g).reverse().join(''));
+        payload.encode_type = 'hex';
+        payload.lower_bound = "0x" + encodedKeys[0] + encodedKeys[1];
+      } else {
+        payload.encode_type = 'dec';
+        payload.lower_bound = "0x" + encodedKey[1] + encodedKey[0];
+      }
       break;
     case 'i64':
       if (encodedKeys.length) {
@@ -253,17 +268,23 @@ const getTableRowsSec = async(rpc, code, table, scope, keys, limit = 1, key_type
     default:
       // code
   }
-  let finalRes = [];
-  let result = await rpc.get_table_rows(payload);
-  finalRes = result.rows;
-  while (finalRes.length < limit && result.more) {
-    logger.debug(`got ${finalRes.length} responses, theres more`);
-    payload.lower_bound = result.next_key;
-    payload.limit = limit - finalRes.length;
-    result = await rpc.get_table_rows(payload);
-    finalRes =  [...finalRes, ...result.rows ];
+  if(nodeosLatest.toString() === "true") {
+    let finalRes = [];
+    let result = await rpc.get_table_rows(payload);
+    finalRes = result.rows;
+    while (finalRes.length < limit && result.more) {
+      logger.debug(`got ${finalRes.length} responses, theres more`);
+      payload.lower_bound = result.next_key;
+      payload.limit = limit - finalRes.length;
+      result = await rpc.get_table_rows(payload);
+      finalRes =  [...finalRes, ...result.rows ];
+    }
+    return finalRes;
+  } else {
+    const result = await rpc.get_table_rows(payload);
+    const rowsResult = result.rows;
+    return rowsResult;
   }
-  return finalRes;
 };
 
 const getProviders = async(payer, service, provider, sidechain) => {

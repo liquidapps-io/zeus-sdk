@@ -52,6 +52,7 @@ module.exports = async(args) => {
         DSP_PRIVATE_KEY: key.active.privateKey,
         DSP_GATEWAY_MAINNET_ENDPOINT: `http://localhost:${13015 * (pi + 1)}`, // mainnet gateway
         DSP_ACCOUNT: testProvider,
+        NODEOS_LATEST: true,
         SVC_PORT: serviceModel.port * (pi + 1),
         DSP_PORT: 13015 * (pi + 1),
       });

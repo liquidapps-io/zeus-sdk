@@ -96,6 +96,7 @@ const IPFS_HOST = globalEnv.IPFS_HOST || 'localhost';
 const NODEOS_HOST = globalEnv.NODEOS_HOST || 'localhost';
 const NODEOS_PORT = globalEnv.NODEOS_PORT || 8888;
 const NODEOS_SECURED = globalEnv.NODEOS_SECURED || false;
+const NODEOS_LATEST = globalEnv.NODEOS_LATEST || true;
 
 // Optional .env
 const WEBHOOK_DAPP_PORT = globalEnv.WEBHOOK_DAPP_PORT || 8812;
@@ -141,6 +142,7 @@ let commonEnv = {
   NODEOS_HOST,
   NODEOS_PORT,
   NODEOS_SECURED,
+  NODEOS_LATEST,
   IPFS_HOST,
   IPFS_PORT,
   IPFS_PROTOCOL,
@@ -167,6 +169,7 @@ const createDSPSidechainServices = (sidechain) => {
     NODEOS_HOST: sidechain.nodeos_host || 'localhost',
     NODEOS_PORT: sidechain.nodeos_port || 8888,
     NODEOS_SECURED: sidechain.nodeos_secured || false,
+    NODEOS_LATEST: sidechain.nodeos_latest || true,
     NODEOS_CHAINID: sidechain.nodeos_chainid,
     DSP_PORT: sidechain.dsp_port || 3116,
     WEBHOOK_DAPP_PORT: sidechain.webhook_dapp_port || 8813,

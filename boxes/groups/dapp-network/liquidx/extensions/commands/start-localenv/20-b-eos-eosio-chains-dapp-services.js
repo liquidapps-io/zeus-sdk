@@ -76,6 +76,7 @@ module.exports = async(args) => {
         DSP_PRIVATE_KEY: mainnetKeys.active.privateKey,
         SIDECHAIN: sidechain.name,
         LOGFILE_NAME: `${sidechain.name}-dapp-services-node`,
+        NODEOS_LATEST: true,
         ...config
       });
     }

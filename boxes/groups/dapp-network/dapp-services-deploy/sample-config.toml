@@ -25,6 +25,7 @@ node_env = "production"
 host = "localhost"
 port = 8888
 secured = false
+latest = true # if using 2.0+ version of nodeos, true, if less than 2.0, false
 
 # mainnet:
 chainid = "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906"
@@ -59,6 +60,7 @@ port = 5001
     nodeos_host = "localhost" # nodeos host running new chain
     nodeos_port = 8888 # nodeos host port
     nodeos_secured = false # nodeos secured bool (true: https, false: http)
+    nodoes_latest = true # if using 2.0+ version of nodeos, true, if less than 2.0, false
     nodeos_chainid = "" # chainid of new chain
     nodeos_websocket_port = 8887 # nodeos websocket port, can be same per nodeos instance
     webhook_dapp_port = 8113 # nodeos webhook port, must be unique per chain
