@@ -22,7 +22,12 @@ const { createClient } = require("../client/dist/src/dapp-client-lib");
 global.fetch = fetch;
 
 var contractCode = 'vaccountsconsumer';
+var contractCode2 = 'vaccountsremote';
 var ctrt = artifacts.require(`./${contractCode}/`);
+var ctrt2 = artifacts.require(`./${contractCode2}/`);
+
+const delay = ms => new Promise(res => setTimeout(res, ms));
+const delaySec = sec => delay(sec * 1000);
 
 function postData(url = ``, data = {}) {
     // Default options are marked with *
@@ -45,6 +50,7 @@ function postData(url = ``, data = {}) {
 
 describe(`vAccounts Service Test Contract`, () => {
     const code = 'test1v';
+    const remote = 'test3v';
     var chainId;
 
     var endpoint;
@@ -54,10 +60,13 @@ describe(`vAccounts Service Test Contract`, () => {
 
                 var deployedContract = await deployer.deploy(ctrt, code);
                 var deployedContract2 = await deployer.deploy(ctrt, "test2v");
-                await genAllocateDAPPTokens(deployedContract, "vaccounts");
-                await genAllocateDAPPTokens(deployedContract2, "vaccounts");
-                await genAllocateDAPPTokens(deployedContract, "ipfs");
-                await genAllocateDAPPTokens(deployedContract2, "ipfs");
+                var deployedContract3 = await deployer.deploy(ctrt2, remote);
+                await genAllocateDAPPTokens(deployedContract, "vaccounts", "pprovider1");
+                await genAllocateDAPPTokens(deployedContract2, "vaccounts", "pprovider1");
+                await genAllocateDAPPTokens(deployedContract3, "vaccounts", "pprovider2");
+                await genAllocateDAPPTokens(deployedContract, "ipfs", "pprovider1");
+                await genAllocateDAPPTokens(deployedContract2, "ipfs", "pprovider1");
+                await genAllocateDAPPTokens(deployedContract3, "ipfs", "pprovider2");
 
                 // create token
                 // var keys = await getCreateKeys(account);
@@ -77,6 +86,12 @@ describe(`vAccounts Service Test Contract`, () => {
                     chainid: chainId
                 }, {
                     authorization: `test2v@active`,
+                });
+                testcontract = deployedContract3.contractInstance;
+                res = await testcontract.xvinit({
+                    host: code
+                }, {
+                    authorization: `${remote}@active`,
                 });
                 done();
             }
@@ -183,6 +198,78 @@ describe(`vAccounts Service Test Contract`, () => {
                     console.error("reserror", res.error.details[0]);
                 const outputLines = res.result.processed.action_traces[0].console.split('\n');
                 assert.equal(outputLines[outputLines.length - 2], "hello from vaccount2 3", "wrong content");
+
+                done();
+            }
+            catch (e) {
+                done(e);
+            }
+        })();
+    });
+    it('Hello world - Remote', done => {
+        (async () => {
+            try {
+                let privateWif = (await PrivateKey.randomKey()).toWif();
+                const dappClient = await createClient({ httpEndpoint: endpoint, fetch });
+                const vaccClient = await dappClient.service(
+                    "vaccounts",
+                    code
+                );
+                const remClient = await dappClient.service(
+                    "vaccounts",
+                    remote
+                );
+                await vaccClient.push_liquid_account_transaction(
+                    code,
+                    privateWif,
+                    "regaccount",
+                    {
+                        vaccount: "vaccount3"
+                    }
+                );
+                //await delaySec(60); //ensuring it still works if entries are committed
+                await remClient.push_liquid_account_transaction(
+                    remote,
+                    privateWif,
+                    "hello",
+                    {
+                        vaccount: "vaccount3",
+                        b: 1,
+                        c: 2
+                    }
+                );
+                const res = await remClient.push_liquid_account_transaction(
+                    remote,
+                    privateWif,
+                    "hello",
+                    {
+                        vaccount: "vaccount3",
+                        b: 1,
+                        c: 2
+                    }
+                );
+                if (res.error)
+                    console.error("reserror", res.error.details[0]);
+                // console.log(res.result.processed.action_traces);
+                const outputLines = res.result.processed.action_traces[0].console.split('\n');
+                assert.equal(outputLines[outputLines.length - 2], "hello from vaccount3 3", "wrong content");
+
+                let failed = false;
+                try {
+                    await remClient.push_liquid_account_transaction(
+                        remote,
+                        privateWif,
+                        "hello",
+                        {
+                            vaccount: "vaccount1",
+                            b: 1,
+                            c: 2
+                        }
+                    );
+                } catch(e) {
+                    failed = true;
+                }
+                assert(failed, 'should have failed');
 
                 done();
             }

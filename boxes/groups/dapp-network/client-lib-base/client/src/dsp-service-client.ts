@@ -1,6 +1,6 @@
-import { HttpClient } from "./http-client";
+import { EosioClient } from "./eosio-client";
 
-export class DSPServiceClient extends HttpClient{
+export class DSPServiceClient extends EosioClient{
     public config:any;
     public api: any;
     public contract: string;

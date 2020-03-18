@@ -1,22 +1,15 @@
-#define VACCOUNTS_DELAYED_CLEANUP 120
-
+#define VACCOUNTS_SUBSCRIBER
 #include "../dappservices/vaccounts.hpp"
-#include "../dappservices/ipfs.hpp"
-#include "../dappservices/multi_index.hpp"
 
 #define DAPPSERVICES_ACTIONS() \
   XSIGNAL_DAPPSERVICE_ACTION \
-  IPFS_DAPPSERVICE_ACTIONS \
   VACCOUNTS_DAPPSERVICE_ACTIONS
 #define DAPPSERVICE_ACTIONS_COMMANDS() \
-  IPFS_SVC_COMMANDS()VACCOUNTS_SVC_COMMANDS() 
+  VACCOUNTS_SVC_COMMANDS() 
   
-#define CONTRACT_NAME() vaccountsconsumer 
+#define CONTRACT_NAME() vaccountsremote
 
-
-CONTRACT_START()
-
-  
+CONTRACT_START()  
   struct dummy_action_hello {
       name vaccount;
       uint64_t b;
@@ -48,4 +41,4 @@ CONTRACT_START()
   
   VACCOUNTS_APPLY(((dummy_action_hello)(hello))((dummy_action_hello)(hello2)))
   
-CONTRACT_END((init)(hello)(hello2)(regaccount)(xdcommit)(xvinit)(xvauth))
+CONTRACT_END((init)(hello)(hello2)(xvinit))

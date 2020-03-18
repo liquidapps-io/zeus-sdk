@@ -180,7 +180,17 @@ export default class LiquidAccountsService extends DSPServiceClient {
             nonce = tableRes.row.nonce;
         }
         catch (e) {
-            if (actionName !== "regaccount") throw e;
+            //lookup remote contract
+            try {
+                const response = await this.get_table_rows<any>( contract, contract, "vhost", {json: true} );
+                if(response.rows.length > 0) {
+                    let remotehost = response.rows[0].host;
+                    nonce = await this.get_nonce(remotehost,vaccount,actionName);
+                }
+            }
+            catch(e2) {
+                if (actionName !== "regaccount") throw e;
+            }
         }
         return nonce;
     }

@@ -15,7 +15,8 @@
     ],
   "install":{
     "contracts":{
-      "vaccountsconsumer": true
+      "vaccountsconsumer": true,
+      "vaccountsremote": true
     },
     "npm":{
       "node-fetch": true,

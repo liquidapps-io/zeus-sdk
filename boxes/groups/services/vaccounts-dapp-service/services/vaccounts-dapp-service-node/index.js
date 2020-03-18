@@ -1,18 +1,29 @@
 var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
-const { eosDSPGateway, paccount, resolveProviderPackage, pushTransaction, getLinkedAccount, getEosForSidechain, emitUsage } = require('../dapp-services-node/common');
+const { eosDSPGateway, paccount, resolveProvider,resolveProviderPackage,resolveProviderData, pushTransaction, getLinkedAccount, getEosForSidechain, emitUsage } = require('../dapp-services-node/common');
 const { dappServicesContract, dappServicesLiquidXContract, getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
 const { loadModels } = require("../../extensions/tools/models");
+const fetch = require('node-fetch');
 const logger = require('../../extensions/helpers/logger');
 
 nodeFactory('vaccounts', {
     api: {
-        push_action: async({ body }, res) => {
-            const { contract_code, public_key, payload, signature, sidechain } = body;
-            logger.info(`Received vaccount push_action request: account ${contract_code}, public key ${public_key}`);           
+        push_action: async(req, res) => {
+            const { contract_code, public_key, payload, signature, sidechain } = req.body;
+            logger.info(`Received vaccount push_action request: account ${contract_code}, public key ${public_key}`);
             var gateway = await eosDSPGateway();
             var loadedExtensions = await loadModels("dapp-services");
             var service = loadedExtensions.find(a => a.name == "vaccounts").contract;
-            var provider = paccount;
+            var provider = await resolveProvider(contract_code,service,'',sidechain);
+            if(provider !== paccount) {
+                //forward the request
+                logger.info(`Attempting to forward request to provider: ${provider}`);
+                const package = await resolveProviderPackage(contract_code,service,provider,sidechain);
+                const providerData = await resolveProviderData(service,provider,package);
+                const r = await fetch(providerData.endpoint + req.originalUrl, { method: 'POST', body: JSON.stringify(req.body) });
+                const resText = await r.text();
+                res.status(r.status);
+                res.send(resText);
+            }
             var mainnet_account = contract_code;
             var dapp = dappServicesContract;
             if(sidechain) {
