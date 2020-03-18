@@ -36,7 +36,8 @@ module.exports = async(args) => {
     '--verbose-http-errors',
     '--trace-history-debug-mode',
     '--delete-state-history',
-    '--wasm-runtime=wabt'
+    '--wasm-runtime=eos-vm',
+    '--eos-vm-oc-enable'
   ];
   var ports = [
     '-p 8888:8888',

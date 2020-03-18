@@ -41,7 +41,8 @@ var generateNodeos = async(model) => {
     '--verbose-http-errors',
     '--trace-history-debug-mode',
     '--delete-state-history',
-    '--wasm-runtime=wabt'
+    '--wasm-runtime=eos-vm',
+    '--eos-vm-oc-enable'
   ];
   var ports = [
     `-p ${nodeosPort}:${nodeosPort}`,
