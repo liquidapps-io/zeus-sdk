@@ -269,7 +269,10 @@ async function messageHandler(data) {
   //logger.info(JSON.stringify(data))
   head_block = data[1].head.block_num;
   const block_id = data[1].head.block_id;
-  if (!data[1].traces) { return; }
+  if (!data[1].traces) { 
+    logger.warn(`No traces detected, is trace-history = true enabled in nodeos config?`);
+    return; 
+  }
   var traces = Buffer.from(data[1].traces, 'hex');
   current_block = data[1].this_block.block_num;
   if (++c2 % 10000 == 0) { logger.info('at %s', current_block - head_block); }
