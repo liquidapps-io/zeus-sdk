@@ -54,6 +54,22 @@
     text-transform: uppercase;
 }
   
+.dataTitlePortfolio {
+    @include mobile {
+        font-size: 12px;
+    }
+    font-family: Rajdhani, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    font-style: normal;
+    font-stretch: normal;
+    line-height: normal;
+    letter-spacing: normal;
+    color: $color-light-blue;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+  
 .dataTotal {
     font-family: Rajdhani, sans-serif;
     font-size: 16px;
@@ -106,4 +122,12 @@
 
 .asterik{
     color:white;
+}
+
+.mobileHorizontalLine {
+    @include mobile {
+        border: 1px solid $color-white;
+        width: 100%;
+        margin-bottom: 15px;
+    }
 }

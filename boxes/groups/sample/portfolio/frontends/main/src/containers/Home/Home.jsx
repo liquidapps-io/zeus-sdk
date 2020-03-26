@@ -34,8 +34,8 @@ const initialState = {
   btcAddressArr: [],
   btcPrice: '',
   btcBalanceArr: [],
-  // btcBalanceApiUrl: 'https://chain.api.btc.com/v3/address/',
-  btcBalanceApiUrl: 'https://blockchain.info/q/addressbalance/',
+  btcBalanceApiUrl: 'https://chain.api.btc.com/v3/address/',
+  // btcBalanceApiUrl: 'https://blockchain.info/q/addressbalance/',
   btcTotalBalance: 0,
   // ethereum
   // ethAddressArr: ['0xc098b2a3aa256d2140208c3de6543aaef5cd3a94'],
@@ -77,10 +77,13 @@ class Home extends Component {
   }
 
   showHideLogin = () => {
-    this.setState({ displayLogin: !this.state.displayLogin });
+    this.setState({ displayLogin: !this.state.displayLogin, addAccountErr: `` });
   }
 
   login = async(event) => {
+    if(this.state.loginError !== 'none') {
+      this.setState({ loginError: `none` });
+    }
     if(!this.state.form.username || !this.state.form.pass) {
       this.setState({ loginError: `Please provide a username / password` }); 
       return;
@@ -113,7 +116,7 @@ class Home extends Component {
       } else if (e.toString().indexOf(`required service`) !== -1) {
         this.setState({ loginError: `DSP Error, please try again`, isSigningIn: false });
       } else {
-        this.setState({ loginError: e.toString(), isSigningIn: false });
+        this.setState({ loginError: `Error logging in, try again: ${e.toString()}`, isSigningIn: false });
       }
       return
     }
@@ -141,6 +144,16 @@ class Home extends Component {
     return
   }
 
+  removeAccount = async () => {
+    if(this.state.btcAddressArr.includes(this.state.inputAccount)) {
+      await this.setState({ btcAddressArr: this.state.btcAddressArr.filter(e => e !== this.state.inputAccount)});
+    } else if (this.state.ethAddressArr.includes(this.state.inputAccount)){ 
+      await this.setState({ ethAddressArr: this.state.ethAddressArr.filter(e => e !== this.state.inputAccount)});
+    } else if(this.state.eosAddressArr.includes(this.state.inputAccount)) {
+      await this.setState({ eosAddressArr: this.state.eosAddressArr.filter(e => e !== this.state.inputAccount)});
+    }
+  }
+
   addAccount = async() => {
     this.setState({ isAddingAccount: true });
     if(!this.state.isLoggedIn){
@@ -162,7 +175,10 @@ class Home extends Component {
         eos = this.state.inputAccount
         await this.setState({ eosAddressArr: [...this.state.eosAddressArr, this.state.inputAccount], addAccountErr: '' });
       }
-      else this.setState({ addAccountErr: valid });
+      else { 
+        this.setState({ addAccountErr: valid, isAddingAccount: false });
+        return;
+      }
     }
     else if (this.state.inputAccount.charAt(0) === '0') {
       valid = validateEth(this.state.inputAccount);
@@ -170,7 +186,10 @@ class Home extends Component {
         eth = this.state.inputAccount
         await this.setState({ ethAddressArr: [...this.state.ethAddressArr, this.state.inputAccount], addAccountErr: '' });
       } 
-      else this.setState({ addAccountErr: 'Please enter a valid ETH address' });
+      else {
+        this.setState({ addAccountErr: 'Please enter a valid ETH address', isAddingAccount: false });
+        return;
+      }
     }
     else if (this.state.inputAccount.length > 1) {
       valid = validateBtc(this.state.inputAccount);
@@ -178,19 +197,24 @@ class Home extends Component {
         btc = this.state.inputAccount
         await this.setState({ btcAddressArr: [...this.state.btcAddressArr, this.state.inputAccount], addAccountErr: '' });
       } 
-      else this.setState({ addAccountErr: 'Please enter a valid BTC address' });
-    }
-    else
+      else {
+        this.setState({ addAccountErr: 'Please enter a valid BTC address', isAddingAccount: false });
+        return;
+      }
+
+    } else {
       this.setState({ addAccountErr: 'Please enter a valid address' });
+    }
     if(!this.state.addAccountErr){
       try {
         await ApiService.addaccount(btc, eth, eos);
       }
       catch (e) {
         if(e.toString().indexOf("invalid nonce") !== -1){
-          this.setState({ addAccountErr: "Please try again", isAddingAccount: false, inputAccount: '' });
+          this.setState({ addAccountErr: "Please try again, invalid nonce detected", isAddingAccount: false, inputAccount: '' });
         } else {
-          this.setState({ addAccountErr: e.message, isAddingAccount: false, inputAccount: '' });
+          this.removeAccount();
+          this.setState({ addAccountErr: `There was an issue adding the account, please try adding again: ${e.message}`, isAddingAccount: false, inputAccount: '' });
         }
         return;
       }
@@ -201,7 +225,7 @@ class Home extends Component {
 
   fetchData = async (btcAddressArr, ethAddressArr, eosAddressArr) => {
     if (this.state.btcAddressArr || this.state.ethAddressArr || this.state.eosAddressArr)
-      await fetchAllData(btcAddressArr, ethAddressArr, eosAddressArr, this);
+      await fetchAllData(btcAddressArr, ethAddressArr, eosAddressArr, this, this.removeAccount);
   }
 
   handleChangeLogin(event) {

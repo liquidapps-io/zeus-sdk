@@ -42,6 +42,8 @@
 .error {
   @include mobile {
       font-size: 12px;
+      padding-left: 6px;
+      padding-right: 6px;
   }
   font-family: IBMPlexMono, sans-serif;
   font-size: 16px;

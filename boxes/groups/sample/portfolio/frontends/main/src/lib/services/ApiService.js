@@ -72,14 +72,21 @@ class ApiService {
     const service = await (await getClient()).service('vaccounts', contract);
     var vaccount = localStorage.getItem('user_account');
     const privateKey = localStorage.getItem('user_key');
-    return await service.push_liquid_account_transaction(contract,
+    return new Promise((resolve, reject) => {
+      service.push_liquid_account_transaction(contract,
       privateKey,
       'addaccount', {
         vaccount,
         btc: btc ? this.encrypt(btc): [],
         eth: eth ? this.encrypt(eth): [],
         eos: eos ? this.encrypt(eos): []
+      }).then(() => {
+        resolve();
+      })
+      .catch(err => {
+        reject(err);
       });
+    });
   }
 
   static async fetchAccounts(username, thisObject) {
