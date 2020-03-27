@@ -10,6 +10,7 @@ const os = require('os');
 
 module.exports = async(args) => {
   if (args.creator !== 'eosio') { return; } // only local
+  console.log(`args: ${JSON.stringify(args)}`);
 
   // add logging.json if doesnt exist
   await addLoggingConfig();
@@ -53,10 +54,10 @@ module.exports = async(args) => {
         nodeosArgs = [...nodeosArgs,
           '--trace-history',
           '--plugin eosio::state_history_plugin',
-          '--state-history-endpoint 0.0.0.0:8889'
+          '--state-history-endpoint 0.0.0.0:8887'
         ];
         ports = [...ports,
-          '-p 8889:8889'
+          '-p 8887:8887'
         ];
         break;
     }

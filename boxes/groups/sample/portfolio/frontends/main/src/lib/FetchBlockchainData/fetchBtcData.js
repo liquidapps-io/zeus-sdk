@@ -9,9 +9,9 @@ const fetchBtcData = async(address, thisObject) => {
       balanceData = await axios.get(btcBalanceApiUrl);
       balanceArr.push({
         address: address[i],
-        balance: balanceData.data / 100000000
+        balance: balanceData.data.data.balance / 100000000
       });
-      totalBalance += balanceData.data / 100000000;
+      totalBalance += balanceData.data.data.balance / 100000000;
     }
   }
   else {
@@ -20,9 +20,9 @@ const fetchBtcData = async(address, thisObject) => {
     balanceData = await axios.get(btcBalanceApiUrl);
     balanceArr = [{
       address: queryAddress,
-      balance: balanceData.data / 100000000
+      balance: balanceData.data.data.balance / 100000000
     }];
-    totalBalance = balanceData.data / 100000000;
+    totalBalance = balanceData.data.data.balance / 100000000;
   }
   await thisObject.setState({ btcBalanceArr: balanceArr, btcTotalBalance: totalBalance * thisObject.state.btcPrice });
 };
