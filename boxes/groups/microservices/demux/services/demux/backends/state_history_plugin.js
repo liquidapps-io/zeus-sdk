@@ -386,7 +386,8 @@ const connect = () => {
       let currTime = Math.floor(Date.now() / 1000);
       if ((currTime - heartBeat) >= 15) { //heartbeat every 15 seconds
         heartBeat = currTime;
-        logger.info("Demux heartbeat - Processed Block: %s Pending Messages: %s", current_block, pending.length);
+        const head_block_to_current_difference = (await getHeadBlockInfo()).head_block_num - current_block;
+        logger.info("Demux heartbeat - Processed Block: %s | Pending Messages: %s | Blocks Behind Head Block: %s", current_block, pending.length, head_block_to_current_difference);
       }
       if (pending.length >= maxPendingMessages) {
         logger.warn(`reached maximum amount of pending messages: ${maxPendingMessages}`);
