@@ -3,8 +3,8 @@
     "port": 13142,
     "contract": "liquidstorag",
     "prettyName": "LiquidStorage",
-    "stage":"Alpha",
-    "version": "0.5",
+    "stage":"Beta",
+    "version": "0.9",
     "description": "Distributed storage and hosting",
     "generateStubs": true,
     "commands": {

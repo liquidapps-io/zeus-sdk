@@ -303,7 +303,6 @@ const nodeFactory = async(serviceName, handlers) => {
 const nodeAutoFactory = async(serviceName) => {
   var state = {};
   logger.info(`nodeAutoFactory starting ${serviceName}`);
-
   var apiCommands = {};
   var models = await loadModels('dapp-services');
   var model = models.find(m => m.name == serviceName);
@@ -326,15 +325,24 @@ const nodeAutoFactory = async(serviceName) => {
       }
 
       apiCommands[apiName] = (async({ apiName, apiHandler, authClient }, opts, res) => {
+        const sidechain = opts.body.sidechain;
+        if (authentication && authentication.type === 'payer') {
+          var apiID = `${paccount}-${serviceName}`;
+          var AuthClient = require('../../extensions/tools/auth-client');
+          authClient = new AuthClient(apiID, authentication.contract, null, null, sidechain);
+        }
         try {
           if (!apiHandler)
             throw new Error('not implemented yet');
           if (authClient) {
-            logger.debug(`validating auth`);
-
+            logger.info(`validating auth`);
             await authClient.validate({ ...opts.body, req: opts.req, allowClientSide: false }, async({ clientCode, payload, account, permission }) => {
               try {
-                const body = JSON.parse(payload);
+                let body = JSON.parse(payload);
+                body = {
+                  ...body,
+                  sidechain
+                }
                 if (permission !== authentication.permission) throw new Error(`wrong permissions (${authentication.permission} != ${permission})`);
 
                 const result = await apiHandler(body, state, model, { account, permission, clientCode });
@@ -345,7 +353,6 @@ const nodeAutoFactory = async(serviceName) => {
                 res.status(400);
                 res.send(JSON.stringify({ error: e.toString() }));
               }
-
             });
             return;
           }

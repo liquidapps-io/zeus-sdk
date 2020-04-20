@@ -1,8 +1,9 @@
-const { eosDSPEndpoint, paccount, resolveProviderPackage, deserialize, generateABI } = require('../../services/dapp-services-node/common');
+const { eosDSPEndpoint, getEosForSidechain, paccount, resolveProviderPackage, deserialize, generateABI } = require('../../services/dapp-services-node/common');
 const { loadModels } = require("../../extensions/tools/models");
 var sha256 = require('js-sha256').sha256;
 const ecc = require('eosjs-ecc')
 const Fcbuffer = require('fcbuffer')
+const logger = require('../helpers/logger');
 
 const fetch = require('node-fetch');
 
@@ -31,7 +32,7 @@ function postData(url = ``, data = {}) {
 }
 
 class AuthClient {
-  constructor(apiID, authContract, chainId, endpoint) {
+  constructor(apiID, authContract, chainId, endpoint, sidechain) {
     this.methodSuffix = "authusage";
     this.method = "x" + this.methodSuffix;
     this.authContract = authContract;
@@ -40,6 +41,7 @@ class AuthClient {
     this.useServer = endpoint !== undefined;
     this.chainId = chainId || "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906";
     this.abi = null;
+    this.sidechain = sidechain;
   };
   hashData256(data) {
     var hash = sha256.create();
@@ -49,7 +51,7 @@ class AuthClient {
 
   async validateSignature(trx, pk, signature) {
     // const eos = Eos({ defaults: true })
-    const { structs, types } = eosDSPEndpoint.fc
+    const { structs, types } = this.sidechain ? await getEosForSidechain(this.sidechain).fc : eosDSPEndpoint.fc;
     var Transaction = structs.transaction;
     // const writeApi = WriteApi(Network, network, config, structs.transaction)
     // const txObject = Transaction.fromObject(trx.transaction.transaction)
@@ -77,7 +79,7 @@ class AuthClient {
         "name": "current_provider",
         "type": "name"
       });
-      await eosDSPEndpoint.contract(contract);
+      this.sidechain ? await (await getEosForSidechain(this.sidechain)).contract(contract) : await eosDSPEndpoint.contract(contract);
     }
 
     var hexData = actionData;
@@ -126,7 +128,7 @@ class AuthClient {
     }
     try {
       // post transaction
-      var res = await eosDSPEndpoint.pushSignedTransaction(trx);
+      var res = this.sidechain ? await (await getEosForSidechain(this.sidechain)).pushSignedTransaction(trx) : await eosDSPEndpoint.pushSignedTransaction(trx);
       // handle audited transactions (non failing)
       // validate auth from transaction result
     }
@@ -179,20 +181,16 @@ class AuthClient {
     return (account === "............");
   };
 
-  async validate({ req, trx, payload, allowClientSide }, callback) {
+  async validate({ req, trx, payload, allowClientSide, sidechain }, callback) {
     trx.serializedTransaction = Object.values(trx.serializedTransaction);
-    var parsedTrx = await eosDSPEndpoint.deserializeTransactionWithActions(trx.serializedTransaction);
+    var parsedTrx = this.sidechain ? await (await getEosForSidechain(this.sidechain)).deserializeTransactionWithActions(trx.serializedTransaction) : await eosDSPEndpoint.deserializeTransactionWithActions(trx.serializedTransaction);
     var actions = parsedTrx.actions;
     var action = actions[0];
     var authorization = action.authorization[0];
-
     var account = authorization.actor;
-
     var permission = authorization.permission;
-
     var calculatedSignature = this.hashData256(payload);
     var contract = this.authContract;
-
 
     // var actionData = await this.getActionData(action.data, this.method, contract);
     var actionData = action.data;
@@ -201,7 +199,6 @@ class AuthClient {
     // verify dataSignature == calculatedSignature
     if (calculatedSignature.toLowerCase() !== payload_hash.toLowerCase())
       throw new Error('hash does not match: ' + calculatedSignature);
-
     var clientData = await this.getClientCodeData({ clientCode: client_code });
     // validate client code exists + on chain?
 
@@ -238,7 +235,6 @@ class AuthClient {
     });
     if (authRes !== "true")
       throw new Error("auth failed");
-
     return await callback({ payload, clientCode: client_code, account, permission });
   };
   async getClientCodeFromServer({ publickey, service = 'authfndspsvc' }) {
@@ -252,7 +248,7 @@ class AuthClient {
       sign: true,
       keyProvider: [keys.active.privateKey]
     };
-    var theContract = await eosDSPEndpoint.contract(contract);
+    var theContract = this.sidechain ? await (await getEosForSidechain(this.sidechain)).contract(contract) : await eosDSPEndpoint.contract(contract);
 
     if (account == "............") {
       // fake

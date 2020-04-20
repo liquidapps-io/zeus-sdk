@@ -1,11 +1,11 @@
-const { emitUsage } = require('../../dapp-services-node/common');
+const { emitUsage, getLinkedAccount } = require('../../dapp-services-node/common');
 const { getContractAccountFor } = require('../../../extensions/tools/eos/dapp-services');
 const { unpack, saveDirToIPFS, saveToIPFS } = require('../common')
 const logger = require('../../../extensions/helpers/logger');
 
 module.exports = async(body, state, model, { account, permission, clientCode }) => {
     let { data, archive, sidechain, contract } = body;
-
+    
     if (account !== contract) throw new Error('not allowed');
     let uri;
     var length = 0;
@@ -23,7 +23,7 @@ module.exports = async(body, state, model, { account, permission, clientCode }) 
         uri = await saveToIPFS(data);
         length = data.byteLength;
     }
-    await emitUsage(contract, getContractAccountFor(model), length, sidechain, { uri })
+    await emitUsage(sidechain ? await getLinkedAccount(null, null, contract, sidechain.name) : contract, getContractAccountFor(model), length, { uri })
 
     return { uri };
 }

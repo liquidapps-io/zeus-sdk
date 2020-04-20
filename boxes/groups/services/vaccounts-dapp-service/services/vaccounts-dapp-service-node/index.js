@@ -63,12 +63,6 @@ nodeFactory('vaccounts', {
                     }
                 }));
             }
-
-
         }
-
-
-
-
     }
 });
