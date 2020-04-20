@@ -31,7 +31,7 @@ describe(`Wolfram Oracle Service Test`, () => {
   });
 
   var account = code;
-  it('Facts - What is the average air speed velocity of a laden swallow?', done => {
+  it.skip('Facts - What is the average air speed velocity of a laden swallow?', done => {
     (async () => {
       try {
         var res = await testcontract.testget({

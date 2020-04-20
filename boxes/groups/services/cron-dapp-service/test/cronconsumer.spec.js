@@ -39,7 +39,9 @@ describe(`Cron Service Test Contract`, () => {
   it('Cron test - every 2 seconds', done => {
     (async () => {
       try {
-        var res = await testcontract.testschedule({}, {
+        var res = await testcontract.testschedule({
+          interval: 2
+        }, {
           authorization: `${code}@active`,
           broadcast: true,
           sign: true

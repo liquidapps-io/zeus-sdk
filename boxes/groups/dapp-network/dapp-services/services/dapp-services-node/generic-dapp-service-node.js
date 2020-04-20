@@ -50,10 +50,13 @@ const actionHandlers = {
       act.event.broadcasted = true;
       let providers = await resolveProviderPackage(payer, service, false, sidechain, true);
       logger.debug(`providers: ${JSON.stringify(providers)}`)
-      await Promise.all(providers.map(async(prov) => {
-        await forwardEvent(act, prov.data.endpoint, false);
+      const dspResponses = await Promise.all(providers.map(async(prov) => {
+        // could return just promise if no need to log
+        const eventRes = await forwardEvent(act, prov.data.endpoint, false);
+        return eventRes;
       }));
-      return 'retry';
+      // maybe check for consistency?
+      return dspResponses[0] || 'retry';
     }
     provider = await resolveProvider(payer, service, provider, sidechain);
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider, sidechain);
@@ -66,14 +69,18 @@ const actionHandlers = {
     }
     if (!simulated) {
       if (!(getContractAccountFor(model, sidechain) == service && handler)) { return; }
-      await handleRequest(handler, act, packageid, model.name, handlers.abi);
-      return;
+      const res = await handleRequest(handler, act, packageid, model.name, handlers.abi);
+      return res;
     }
     if (!act.exception) { return; }
     if (getContractAccountFor(model, sidechain) == service && handler) {
-      await handleRequest(handler, act, packageid, model.name, handlers.abi);
-      logger.debug(`retry after handle ${action}`);
-      return 'retry';
+      const res = await handleRequest(handler, act, packageid, model.name, handlers.abi);
+      if(res) {
+        return res;
+      } else {
+        logger.warn(`retry after handle ${action}`);
+        return 'retry';
+      }
     }
   },
   'service_signal': async(act, simulated, serviceName, handlers) => {
@@ -118,7 +125,6 @@ let enableXCallback = null;
 
 const extractUsageQuantity = async(e) => {
   const details = e.json.error.details;
-
   const jsons = details[details.length - 1].message.split(': ', 2)[1].split('\n').filter(a => a.trim() != '');
   if (!jsons.length) {
     throw new Error('usage event not found');
@@ -189,65 +195,81 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
     service_on_mainnet = await getLinkedAccount(eosSideChain, eosMain, service, sidechain.name, true);
     dappServicesSisterContract = await getLinkedAccount(eosSideChain, eosMain, 'dappservices', sidechain.name);
   }
+
+  try {
+    await Promise.all(responses.map(async(response) => {
+      if (enableXCallback === null) {
+        enableXCallback = await detectXCallback(eosSideChain, dappServicesSisterContract);
+      }
+      if (enableXCallback) {
+        let e = await pushTransaction(
+          eosSideChain,
+          dappServicesSisterContract,
+          payer,
+          sidechain_provider_on_mainnet,
+          response.action,
+          response.payload,
+          requestId,
+          meta,
+          true
+        );
+        const details = e.json.error.details;
+        // update to 'abort' in contract and here, or something generic
+        // returns at location 0, but may need to find dynamically if message is not at position 0
+        if(details[0].message.includes('abort_service_request')){
+          logger.info(`abort_service_request`);
+          let abortError = new Error(`abort_service_request`);
+          abortError.details = details;
+          throw abortError;
+        }
   
-  await Promise.all(responses.map(async(response) => {
-    if (enableXCallback === null) {
-      enableXCallback = await detectXCallback(eosSideChain, dappServicesSisterContract);
+        logger.info("CONFIRMING USAGE:\n%j", e);
+  
+        // verify transaction emits usage
+        const usage_report = await extractUsageQuantity(e);
+        if (usage_report.service !== service) {
+          logger.warn(`wrong service ${usage_report.service} ${service}`);
+        }
+        if (usage_report.provider !== act.event.current_provider) {
+          logger.warn(`wrong provider ${usage_report.provider} ${act.event.current_provider}`);
+        }
+        if (usage_report.payer !== payer) {
+          logger.warn(`wrong payer ${usage_report.payer} ${payer}`);
+        }
+        if (sidechain)
+          await emitUsage(mainnet_account, service_on_mainnet, usage_report.usageQuantity, meta, requestId); // verify quota on provisioning chain    
+      }
+  
+      try {
+        let tx = await pushTransaction(
+          eosSideChain,
+          dappServicesSisterContract,
+          payer,
+          sidechain_provider_on_mainnet,
+          response.action,
+          response.payload,
+          requestId,
+          meta,
+          false
+        );
+        logger.debug("REQUEST\n%j\nRESPONSE: [%s]\n%j", act, tx.transaction_id, response);
+      } catch(e) {
+        if (e.json)
+          e.error = e.json.error;
+        logger.warn("REQUEST\n%j\nRESPONSE: [FAILED]\n%j", act, e);
+        if (e.toString().indexOf('duplicate') == -1) {
+          throw e;
+        }
+      }    
+      // dispatch on chain response - call response.action with params with paccount permissions
+    }));
+  } catch (e) { 
+    logger.error(e);
+    if (e.message.includes("abort_service_request")) {
+      return { message: e.message, shouldAbort: true, details: e.details };
     }
-    if (enableXCallback) {
-      let e = await pushTransaction(
-        eosSideChain,
-        dappServicesSisterContract,
-        payer,
-        sidechain_provider_on_mainnet,
-        response.action,
-        response.payload,
-        requestId,
-        meta,
-        true
-      );
-
-      logger.debug("CONFIRMING USAGE:\n%j", e);
-
-      // verify transaction emits usage
-      const usage_report = await extractUsageQuantity(e);
-      if (usage_report.service !== service) {
-        logger.warn(`wrong service ${usage_report.service} ${service}`);
-      }
-      if (usage_report.provider !== act.event.current_provider) {
-        logger.warn(`wrong provider ${usage_report.provider} ${act.event.current_provider}`);
-      }
-      if (usage_report.payer !== payer) {
-        logger.warn(`wrong payer ${usage_report.payer} ${payer}`);
-      }
-      if (sidechain)
-        await emitUsage(mainnet_account, service_on_mainnet, usage_report.usageQuantity, meta, requestId); // verify quota on provisioning chain    
-    }
-
-    try {
-      let tx = await pushTransaction(
-        eosSideChain,
-        dappServicesSisterContract,
-        payer,
-        sidechain_provider_on_mainnet,
-        response.action,
-        response.payload,
-        requestId,
-        meta,
-        false
-      );
-      logger.debug("REQUEST\n%j\nRESPONSE: [%s]\n%j", act, tx.transaction_id, response);
-    } catch(e) {
-      if (e.json)
-        e.error = e.json.error;
-      logger.warn("REQUEST\n%j\nRESPONSE: [FAILED]\n%j", act, e);
-      if (e.toString().indexOf('duplicate') == -1) {
-        console.log(`response error, could not call contract callback for ${response.action}`, e);
-        throw e;
-      }
-    }    
-    // dispatch on chain response - call response.action with params with paccount permissions
-  }));
+    throw e;
+  }
 };
 
 const respond = (request, packageid, payload) => {
@@ -289,7 +311,6 @@ const nodeAutoFactory = async(serviceName) => {
   if (stateHandler)
     await stateHandler(state);
 
-
   if (model.api) {
     var apiActions = Object.keys(model.api);
     for (var i = 0; i < apiActions.length; i++) {
@@ -303,7 +324,6 @@ const nodeAutoFactory = async(serviceName) => {
         var AuthClient = require('../../extensions/tools/auth-client');
         authClient = new AuthClient(apiID, authentication.contract);
       }
-
 
       apiCommands[apiName] = (async({ apiName, apiHandler, authClient }, opts, res) => {
         try {

@@ -32,8 +32,8 @@ CONTRACT_START()
     // reschedule
     return (newstats.counter < 45);
   }
- [[eosio::action]] void testschedule() {
+ [[eosio::action]] void testschedule(uint32_t interval) {
     std::vector<char> payload;
-    schedule_timer(_self, payload, 2);
+    schedule_timer(_self, payload, interval);
   }
 CONTRACT_END((testschedule))

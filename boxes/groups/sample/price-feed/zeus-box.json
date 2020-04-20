@@ -1,0 +1,19 @@
+{
+  "ignore": [
+    "README.md",
+    "LICENSE",
+    "zeus-box.json"
+  ],
+  "commands": {
+    "Test price feed": "zeus compile && zeus test pricefeed"
+  },
+  "dependencies":[
+    "oracle-dapp-service",
+    "cron-dapp-service"
+  ],
+  "install":{
+    "contracts":{
+      "pricefeed": true
+    }
+  }
+}

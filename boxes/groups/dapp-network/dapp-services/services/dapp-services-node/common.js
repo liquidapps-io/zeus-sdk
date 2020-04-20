@@ -152,7 +152,8 @@ const getEosForSidechain = async(sidechain, account = paccount, dspEndpoint = nu
 const forwardEvent = async(act, endpoint, redirect) => {
   if (redirect) { return endpoint; }  
   const r = await fetch(endpoint + '/event', { method: 'POST', body: JSON.stringify(act) });
-  return await r.text();
+  const rtxt = await r.text();
+  return rtxt;
 };
 
 const resolveBackendServiceData = async(service, provider, packageid, sidechain, balance) => {
@@ -356,7 +357,7 @@ const processFn = async(actionHandlers, actionObject, simulated, serviceName, ha
     return await actionHandler(actionObject, simulated, serviceName, handlers);
   }
   catch (e) {
-    logger.error('error processing')
+    logger.error('error processing processFn')
     logger.error(e);
     throw e;
   }
@@ -430,15 +431,15 @@ const sendError = (res, e) => {
 const processRequestWithBody = async(req, res, body, actionHandlers, serviceName, handlers) => {
   var uri = req.originalUrl;
   var sidechain = body.sidechain;
-
   var isServiceRequest = uri.indexOf('/event') == 0;
   var isServiceAPIRequest = uri.indexOf('/v1/dsp/') == 0;
   var uriParts = uri.split('/');
   if (isServiceRequest) {
     try {
 
-      await processFn(actionHandlers, body, false, serviceName, handlers);
-      res.send(JSON.stringify('ok'));
+      const ret = await processFn(actionHandlers, body, false, serviceName, handlers);
+      const retTxt = typeof(ret) === "object" ? JSON.stringify(ret) : ret;
+      res.send(retTxt);
     }
     catch (e) {
       sendError(res, e);
@@ -467,7 +468,7 @@ const processRequestWithBody = async(req, res, body, actionHandlers, serviceName
   let trys = 0;
   const garbage = [];
   const currentNodeosEndpoint = sidechain ? sidechain.nodeos_endpoint : nodeosMainnetEndpoint;
-  while (trys < 100) {
+  while (trys < 10) {
     let r = await fetch(currentNodeosEndpoint + uri, { method: 'POST', body: JSON.stringify(body) });
     let resText = await r.text();
     let rText;
@@ -514,7 +515,16 @@ const processRequestWithBody = async(req, res, body, actionHandlers, serviceName
       };
 
       const endpoint = await processFn(actionHandlers, actionObject, true, serviceName, handlers);
-      logger.info(`endpoint: ${endpoint}`);
+      logger.info(`endpoint shouldAbort: ${endpoint} typeof: ${typeof(endpoint)}`);
+      try {
+        if(endpoint.includes(`shouldAbort`) && JSON.parse(endpoint).shouldAbort) {
+          logger.info(`shouldAbort detected`);
+          return res.send(endpoint);
+        }
+      } catch(e) {
+        logger.error(`error parsing endpoint.shouldAbort`);
+        logger.error(e);
+      }
       if (endpoint === 'retry') {
         garbage.push({ ...actionObject, rollback: true });
         logger.debug(`Service request done: ${trys++}`);
