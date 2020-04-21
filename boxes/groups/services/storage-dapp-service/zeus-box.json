@@ -21,5 +21,8 @@
     "contracts":{
       "storageconsumer": true
     }
+  },
+  "hooks": {
+    "post-install": "cd client && npm run build"
   }
 }

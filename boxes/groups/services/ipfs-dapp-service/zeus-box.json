@@ -21,5 +21,8 @@
       "dfuse-eoshttp-js":true,
       "node-fetch": true
     }
+  },
+  "hooks": {
+    "post-install": "cd client && npm run build"
   }
 }
