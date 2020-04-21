@@ -361,8 +361,8 @@ const connect = () => {
     expectingABI = true;
     logger.info('ws connected');
   });
-  ws.on('error', function() {
-    logger.warn('ws error');
+  ws.on('error', function(err) {
+    logger.warn('ws error' + err.message);
   });
   ws.on('close', function() {
     if (!paused) {
