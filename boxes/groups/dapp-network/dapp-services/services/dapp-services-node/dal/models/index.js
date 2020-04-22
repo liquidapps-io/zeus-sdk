@@ -7,7 +7,7 @@ var basename = path.basename(__filename);
 const logger = require('../../../../extensions/helpers/logger');
 
 var env = process.env.DATABASE_NODE_ENV || 'development';
-const dbTimeout = process.env.DB_TIMEOUT || '2000';
+const dbTimeout = process.env.DATABASE_TIMEOUT || '10000';
 
 if (process.env.DATABASE_URL)
   env = 'production';

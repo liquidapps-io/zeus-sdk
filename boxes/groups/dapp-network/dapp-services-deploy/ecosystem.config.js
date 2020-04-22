@@ -3,6 +3,7 @@ const fs = require("fs");
 const os = require("os");
 var toml = require('toml');
 
+const disabledServices = ["sign", "log", "history"];
 var configPath = process.env.DSP_CONFIG_FILE || path.join(os.homedir(), '.dsp', "config.toml");
 if (!fs.existsSync(configPath))
   throw new Error(`Config file missing. please copy sample-config.toml to ${configPath}`);
@@ -88,6 +89,8 @@ const DSP_PRIVATE_KEY = globalEnv.DSP_PRIVATE_KEY;
 const DATABASE_URL = globalEnv.DATABASE_URL;
 const DSP_ACCOUNT_PERMISSIONS = globalEnv.DSP_ACCOUNT_PERMISSIONS || 'active';
 const DATABASE_NODE_ENV = globalEnv.DATABASE_NODE_ENV || 'production';
+const DATABASE_TIMEOUT = globalEnv.DATABASE_TIMEOUT || 10000;
+
 
 // Configure .env
 const DSP_PORT = globalEnv.DSP_PORT || 3115;
@@ -104,6 +107,8 @@ const DEMUX_BACKEND = globalEnv.DEMUX_BACKEND || 'state_history_plugin';
 const DEMUX_HEAD_BLOCK = globalEnv.DEMUX_HEAD_BLOCK || 0;
 const DEMUX_BYPASS_DATABASE_HEAD_BLOCK = globalEnv.DEMUX_BYPASS_DATABASE_HEAD_BLOCK || false;
 const DEMUX_MAX_PENDING_MESSAGES = globalEnv.DEMUX_MAX_PENDING_MESSAGES || 5000;
+const DEMUX_PROCESS_BLOCK_CHECKPOINT = globalEnv.DEMUX_PROCESS_BLOCK_CHECKPOINT || 1000;
+
 const WEBHOOK_DEMUX_PORT = globalEnv.WEBHOOK_DEMUX_PORT || 3195;
 const SOCKET_MODE = globalEnv.DEMUX_SOCKET_MODE || 'sub';
 const IPFS_PORT = globalEnv.IPFS_PORT || 5001;
@@ -125,7 +130,7 @@ const getFiles = (source, ext) =>
   readdirSync(source).map(name => join(source, name)).filter(isFile).filter(a => a.endsWith(ext)).sort();
 
 const serviceNames = getFiles(path.resolve(__dirname, `./models/dapp-services`), '.json').map(file =>
-  JSON.parse(fs.readFileSync(file).toString()).name);
+  JSON.parse(fs.readFileSync(file).toString()).name).filter(s => !disabledServices.includes(s));
 
 const DSP_SERVICES_ENABLED = globalEnv.DSP_SERVICES_ENABLED || serviceNames.join(',');
 const services = DSP_SERVICES_ENABLED.split(',');
@@ -134,6 +139,7 @@ const port = NODEOS_PORT ? ':' + NODEOS_PORT : '';
 const host = NODEOS_HOST ? NODEOS_HOST : '';
 const prefix = `http${ NODEOS_SECURED ? 's' : ''}://`
 const NODEOS_MAINNET_ENDPOINT = prefix + host + port;
+// liquidx gateways needs to run in same machine as mainnet gateway atm
 const DSP_GATEWAY_MAINNET_ENDPOINT = `http://localhost:${DSP_PORT}`; // mainnet gateway
 
 let commonEnv = {
@@ -154,6 +160,7 @@ let commonEnv = {
   DSP_CONSUMER_PAYS,
   DATABASE_URL,
   DATABASE_NODE_ENV,
+  DATABASE_TIMEOUT,
   DSP_LIQUIDX_CONTRACT
 };
 
@@ -206,6 +213,7 @@ const createDSPSidechainServices = (sidechain) => {
         DEMUX_HEAD_BLOCK: sidechain.demux_head_block || 1,
         DEMUX_BYPASS_DATABASE_HEAD_BLOCK: sidechain.demux_bypass_database_head_block || false,
         DEMUX_MAX_PENDING_MESSAGES: sidechain.demux_max_pending_messages || 5000,
+        DEMUX_PROCESS_BLOCK_CHECKPOINT: sidechain.demux_process_block_checkpoint || 1000,
         SOCKET_MODE: sidechain.demux_socket_mode || 'sub',
         LOGFILE_NAME: `${sidechain.name}-demux`
       }
@@ -264,6 +272,7 @@ module.exports = {
         DEMUX_HEAD_BLOCK,
         DEMUX_BYPASS_DATABASE_HEAD_BLOCK,
         DEMUX_MAX_PENDING_MESSAGES,
+        DEMUX_PROCESS_BLOCK_CHECKPOINT,
         WEBHOOK_DAPP_PORT,
         PORT: WEBHOOK_DEMUX_PORT,
         LOGFILE_NAME: 'demux' 
