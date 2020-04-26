@@ -8,16 +8,15 @@ const artifacts = require('../extensions/tools/eos/artifacts');
 const deployer = require('../extensions/tools/eos/deployer');
 const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
 
-var contractCode = 'oracleconsumer';
-var ctrt = artifacts.require(`./${contractCode}/`);
+const contractCode = 'oracleconsumer';
+const ctrt = artifacts.require(`./${contractCode}/`);
 describe(`Web Oracle Service Test`, () => {
-  var testcontract;
+  let testcontract;
   const code = 'test1';
   before(done => {
     (async () => {
       try {
-
-        var deployedContract = await deployer.deploy(ctrt, code);
+        const deployedContract = await deployer.deploy(ctrt, code);
         await genAllocateDAPPTokens(deployedContract, "oracle", "pprovider1", "default");
         await genAllocateDAPPTokens(deployedContract, "oracle", "pprovider2", "foobar");
 
@@ -29,8 +28,6 @@ describe(`Web Oracle Service Test`, () => {
       }
     })();
   });
-
-  var account = code;
   it.skip('Oracle HTTPS Get', done => {
     (async () => {
       try {
@@ -49,8 +46,6 @@ describe(`Web Oracle Service Test`, () => {
       }
     })();
   });
-
-
   it.skip('Oracle HTTPS+JSON Get', done => {
     (async () => {
       try {
@@ -69,7 +64,6 @@ describe(`Web Oracle Service Test`, () => {
       }
     })();
   });
-
   it('Oracle HTTPS+POST+JSON', done => {
     (async () => {
       try {
@@ -89,7 +83,56 @@ describe(`Web Oracle Service Test`, () => {
       }
     })();
   });
-
-
-
+  
+  it('Oracle minimum threshold check', done => {
+    (async() => {
+      try {
+        // set threshold to expected amount of DSPs to return values, 2
+        await testcontract.setthreshold({
+          new_threshold_val: 2
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+        // perform testget to ensure no failure with threshold of 2
+        await testcontract.testget({
+          uri: Buffer.from("https://ipfs.io/ipfs/Qmaisz6NMhDB51cCvNWa1GMS7LU1pAxdF4Ld6Ft9kZEP2a", 'utf8'),
+          expectedfield: Buffer.from("Hello from IPFS Gateway Checker\n"),
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+        // set threshold to 3 which is greater than expected DSP responses of 2
+        await testcontract.setthreshold({
+          new_threshold_val: 3
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+        // ensure testget fails due to min threshold of DSP responses not being met
+        let failed = false;
+        try {
+          await testcontract.testget({
+            uri: Buffer.from("https://ipfs.io/ipfs/Qmaisz6NMhDB51cCvNWa1GMS7LU1pAxdF4Ld6Ft9kZEP2a", 'utf8'),
+            expectedfield: Buffer.from("Hello from IPFS Gateway Checker\n"),
+          }, {
+            authorization: `${code}@active`,
+            broadcast: true,
+            sign: true
+          });
+        }
+        catch (e) {
+          failed = true;
+        }
+        assert(failed, 'should have failed, only staked to 2 DSPs and threshold is set to 3');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
 });

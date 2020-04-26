@@ -5,6 +5,7 @@ const { promisify } = require('util');
 const multihash = require('multihashes');
 var tar = require('tar-stream');
 var streamBuffers = require('stream-buffers');
+const logger = require('../../extensions/helpers/logger');
 
 BigNumber.config({ ROUNDING_MODE: BigNumber.ROUND_FLOOR }); // equivalent
 
@@ -51,13 +52,12 @@ const saveDirToIPFS = async(files) => {
 };
 
 const readFromIPFS = async(uri) => {
-    console.log('getting', uri);
     const fileName = uri.split('ipfs://', 2)[1];
     var res = await Promise.race([
         ipfs.files.get(fileName),
         new Promise((resolve, reject) => {
             setTimeout(() => { reject('ipfsentry not found') }, ipfsTimeout);
-        })
+        }),
     ]);
     var data = Buffer.from(res[0].content);
     return data;
@@ -130,11 +130,37 @@ const unpack = async(archiveData, format) => {
 
         default:
             throw new Error(`archive format not implemented yet (${format})`)
-
     }
 
-
     return files;
+}
+
+const getIpfsFileAsBuffer = async (ipfsUriOrHash) => {
+    const ipfsHash = ipfsUriOrHash.replace(/^ipfs:\/\//, "");
+    const ipfsGatewayUri = `http://localhost:8080/ipfs/${ipfsHash}`
+    const response = await fetch(ipfsGatewayUri, {
+      method: "GET", // *GET, POST, PUT, DELETE, etc.
+      mode: "cors", // no-cors, cors, *same-origin
+      credentials: "same-origin", // include, *same-origin, omit
+      headers: {
+        // "Content-Type": "application/json",
+        // "Content-Type": "application/x-www-form-urlencoded",
+      },
+      redirect: "follow", // manual, *follow, error
+      referrer: "no-referrer" // no-referrer, *client
+    });
+  
+    if (!response.ok) {
+      throw new Error(
+        `Could not fetch file "${this.getIpfsHash(ipfsUri).slice(
+          0,
+          16
+        )}..." from IPFS. ${response.statusText}`
+      );
+    }
+  
+    const buffer = await response.arrayBuffer();
+    return Buffer.from(buffer);
 }
 
 module.exports = {
@@ -142,5 +168,6 @@ module.exports = {
   saveToIPFS,
   saveDirToIPFS,
   hashData256,
-  readFromIPFS
+  readFromIPFS,
+  getIpfsFileAsBuffer
 }

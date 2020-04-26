@@ -11,7 +11,8 @@
       "orcxtest":true,
       "readfnxtest": true,
       "vaccountsx": true,
-      "cronxtest": true
+      "cronxtest": true,
+      "storagextest": true
     }
   },
   "dependencies":["eosio-chains","all-dapp-services" ]

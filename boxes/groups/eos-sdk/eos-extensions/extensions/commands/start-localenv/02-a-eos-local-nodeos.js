@@ -10,7 +10,6 @@ const os = require('os');
 
 module.exports = async(args) => {
   if (args.creator !== 'eosio') { return; } // only local
-  console.log(`args: ${JSON.stringify(args)}`);
 
   // add logging.json if doesnt exist
   await addLoggingConfig();

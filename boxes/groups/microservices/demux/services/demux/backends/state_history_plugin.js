@@ -17,6 +17,7 @@ const nodeosUrl =
   `http${process.env.NODEOS_SECURED === 'true' || process.env.NODEOS_SECURED === true ? true : false ? 's' : ''}://${nodeosHost}:${nodeosRpcPort}`;
 const serviceResponseTimeout = parseInt(process.env.SERVICE_RESPONSE_TIMEOUT_MS || 10000);
 const maxPendingMessages = parseInt(process.env.DEMUX_MAX_PENDING_MESSAGES || 5000);
+const processBlockCheckpoint = parseInt(process.env.DEMUX_PROCESS_BLOCK_CHECKPOINT || 1000);
 
 let abis = getAbis();
 let abiabi = getAbiAbi();
@@ -300,7 +301,7 @@ async function messageHandler(data) {
       const transactionTrace = types.get('transaction_trace').deserialize(buffer2);
       await transactionHandler(transactionTrace[1], blockInfo);
     }
-    if (current_block - last_processed_block >= 500) {
+    if (current_block - last_processed_block >= processBlockCheckpoint) {
       await setDatabaseBlockNumber(current_block);
       last_processed_block = current_block;
       logger.info("Updated database with current block: %s", current_block);
@@ -361,8 +362,8 @@ const connect = () => {
     expectingABI = true;
     logger.info('ws connected');
   });
-  ws.on('error', function() {
-    logger.warn('ws error');
+  ws.on('error', function(err) {
+    logger.warn(`websocket error: ${err.message}`);
   });
   ws.on('close', function() {
     if (!paused) {
@@ -380,13 +381,14 @@ const connect = () => {
     if (!expectingABI) {
       const desData = deserializeStateHisData(data);
       // received incomplete message, ignore
-      if (!desData[1].this_block) return;
+      if (!desData || !desData[1] || !desData[1].this_block) return;
       pending.push(desData);
       last_received_block = desData[1].this_block.block_num;
       let currTime = Math.floor(Date.now() / 1000);
       if ((currTime - heartBeat) >= 15) { //heartbeat every 15 seconds
         heartBeat = currTime;
-        logger.info("Demux heartbeat - Processed Block: %s Pending Messages: %s", current_block, pending.length);
+        const head_block_to_current_difference = (await getHeadBlockInfo()).head_block_num - current_block;
+        logger.info("Demux heartbeat - Processed Block: %s | Pending Messages: %s | Blocks Behind Head Block: %s", current_block, pending.length, head_block_to_current_difference);
       }
       if (pending.length >= maxPendingMessages) {
         logger.warn(`reached maximum amount of pending messages: ${maxPendingMessages}`);

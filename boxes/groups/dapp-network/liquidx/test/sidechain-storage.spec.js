@@ -1,44 +1,57 @@
 require("mocha");
-const fs = require("fs");
 const { assert } = require("chai"); // Using Assert style
 const fetch = require("node-fetch");
-const ecc = require("eosjs-ecc");
-const { JsonRpc } = require("eosjs");
+const fs = require("fs");
 const {
-  getTestContract,
   getCreateKeys,
+  getNetwork, 
+  getCreateAccount,
+  // getTestContract
 } = require("../extensions/tools/eos/utils");
+const { getEosWrapper } = require('../extensions/tools/eos/eos-wrapper');
+const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 const { createClient } = require("../client/dist/src/dapp-client-lib");
 const artifacts = require("../extensions/tools/eos/artifacts");
 const deployer = require("../extensions/tools/eos/deployer");
+const { loadModels } = require('../extensions/tools/models');
 const {
-  genAllocateDAPPTokens
+  genAllocateDAPPTokens,
+  createLiquidXMapping
 } = require("../extensions/tools/eos/dapp-services");
+const ecc = require("eosjs-ecc");
+const { JsonRpc } = require("eosjs");
 const { getIpfsFileAsBuffer } = require("../services/storage-dapp-service-node/common.js")
 
 //dappclient requirement
 global.fetch = fetch;
-var endpoint = "http://localhost:13015";
-
-const rpc = new JsonRpc(endpoint, { fetch });
-
-const contractCode = "storageconsumer";
+var endpoint;
+// setup contracts to be used
+const contractCode = "storagextest";
+// authenticator contract only deployed once as a service contract to `authentikeos` account name
+// must be account name `authentikeos`
 const authContractCode = "authenticator";
 
+// include contract code
 var ctrtStorage = artifacts.require(`./${contractCode}/`);
 var ctrtAuth = artifacts.require(`./${authContractCode}/`);
 
 const vAccount1 = `vaccount1`;
 const vAccount2 = `vaccount2`;
 
-describe(`LiquidStorage Test`, () => {
-  var testcontract;
-  const code = "test1";
+describe(`LiquidX Sidechain storagextest Service Test Contract`, () => {
   let privateKeyWif;
   let dappClient;
-
+  let testcontract;
+  // mainnet account is used to stake to package
+  const mainnet_code = 'teststor1';
+  // sister account uses services
+  const sister_code = 'teststor1x';
+  var eosconsumer;
+  // name of sidechain
+  var sidechainName = 'test1';
+  var sidechain;
   const regVAccount = async name => {
-    const vaccountClient = await dappClient.service("vaccounts", code);
+    const vaccountClient = await dappClient.service("vaccounts", sister_code);
     return vaccountClient.push_liquid_account_transaction(
       code,
       privateKeyWif,
@@ -48,27 +61,66 @@ describe(`LiquidStorage Test`, () => {
       }
     );
   }
-
   before(done => {
     (async () => {
       try {
+        // seach eosio-chains directory for sidechain objects
+        var sidechains = await loadModels('eosio-chains');
+        // find sidechain that matches sidechainName
+        sidechain = sidechains.find(a => a.name === sidechainName);
+        // create mainet and sister accounts
+        await getCreateAccount(sister_code, null, false, sidechain);
+        await getCreateAccount(mainnet_code, null, false);
+        // deploy storagextest consumer contract
+        var deployedContract = await deployer.deploy(ctrtStorage, sister_code, null, sidechain);
+        // deploy authentikeos contract, must be deployed for auth services
+        await deployer.deploy(ctrtAuth, "authentikeos", null, sidechain);
+        // issue DAPP tokens to mainnet account for storage contract
+        await genAllocateDAPPTokens({ address: mainnet_code }, 'storage', '', 'default');
+        await genAllocateDAPPTokens({ address: mainnet_code }, 'vaccounts', '', 'default');
+        await genAllocateDAPPTokens({ address: mainnet_code }, 'ipfs', '', 'default');
+        // testcontract = await getTestContract(sister_code);
+        // create LiquidX mapping from main chan to LiquidX chain
+        await createLiquidXMapping(sidechain.name, mainnet_code, sister_code);
+        const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechain.name && m.mainnet_account === 'dappservices');
+        if (!mapEntry)
+          throw new Error('mapping not found')
+        // set account name that dappservicex is deployed on
+        const dappservicex = mapEntry.chain_account;
+        // get sidechain network
+        var selectedNetwork = getNetwork(getDefaultArgs(), sidechain);
+        var config = {
+          expireInSeconds: 120,
+          sign: true,
+          chainId: selectedNetwork.chainId
+        };
+        // create keypair for sisiter chain consumer contract
+        if (sister_code) {
+          var keys = await getCreateKeys(sister_code, getDefaultArgs(), false, sidechain);
+          config.keyProvider = keys.active.privateKey;
+        }
+        eosconsumer = deployedContract.eos;
+        config.httpEndpoint = `http://localhost:${sidechain.dsp_port}`;
+        endpoint = config.httpEndpoint;
+        const rpc = new JsonRpc(endpoint, { fetch });
+        eosconsumer = getEosWrapper(config);
+        const dappservicexInstance = await eosconsumer.contract(dappservicex);
+        // enable consumer contract to use services from xprovider1 / xprovider2 on sister chain
+        await dappservicexInstance.adddsp({ owner: sister_code, dsp: 'xprovider1' }, {
+          authorization: `${sister_code}@active`,
+        });
+        await dappservicexInstance.adddsp({ owner: sister_code, dsp: 'xprovider2' }, {
+          authorization: `${sister_code}@active`,
+        });
         dappClient = await createClient({
           httpEndpoint: endpoint,
           fetch,
         });
-        var deployedStorage = await deployer.deploy(ctrtStorage, code);
-        var deployedAuth = await deployer.deploy(ctrtAuth, "authentikeos");
-
-        await genAllocateDAPPTokens(deployedStorage, "storage");
-        await genAllocateDAPPTokens(deployedStorage, "vaccounts");
-        await genAllocateDAPPTokens(deployedStorage, "ipfs");
-        testcontract = await getTestContract(code);
-
-        let info = await rpc.get_info();
-        let chainId = info.chain_id;
-
+        const info = await rpc.get_info();
+        const chainId = info.chain_id;
+        testcontract = await eosconsumer.contract(sister_code);
         try {
-          let res = await testcontract.xvinit(
+          await testcontract.xvinit(
             {
               chainid: chainId
             },
@@ -81,9 +133,7 @@ describe(`LiquidStorage Test`, () => {
           console.warn(_err.message);
         }
         privateKeyWif = await ecc.PrivateKey.fromSeed(vAccount1);
-        const publicKeyVAccount = privateKeyWif.toPublic().toString();
         privateKeyWif = privateKeyWif.toWif();
-
         try {
           await regVAccount(vAccount1);
           await regVAccount(vAccount2);
@@ -93,7 +143,6 @@ describe(`LiquidStorage Test`, () => {
             throw _err;
           }
         }
-
         done();
       } catch (e) {
         done(e);
@@ -101,11 +150,48 @@ describe(`LiquidStorage Test`, () => {
     })();
   });
 
+  var code = sister_code;
+
+  it('Upload File and read', done => {
+    (async () => {
+      try {
+        const storageClient = await dappClient.service("storage", code);
+        const keys = await getCreateKeys(code);
+        const key = keys.active.privateKey;
+        const data = Buffer.from("test1234read", "utf8");
+        const permission = "active";
+        const result = await storageClient.upload_public_file(
+          data,
+          key,
+          permission
+        );
+        let res;
+        try {
+          res = await fetch(`${endpoint}/v1/dsp/liquidstorag/get_uri`, {
+            method: 'POST',
+            mode: 'cors',
+            body: JSON.stringify({ uri: result.uri })
+          });
+        } catch(e) {
+          throw (e.json.error);
+        }
+        const resJson = await res.json();
+        assert.equal(
+          Buffer.from(resJson.data, 'base64').toString(),
+          'test1234read'
+        );
+        done();
+      } catch (e) {
+        console.log(e);
+        done(e);
+      }
+    })();
+  })
+
   it('Upload File (authenticated)', done => {
     (async () => {
       try {
         const storageClient = await dappClient.service("storage", code);
-        //var authClient = new AuthClient(apiID, 'authentikeos', null, endpoint);
         const keys = await getCreateKeys(code);
         const key = keys.active.privateKey;
         const data = Buffer.from("test1234", "utf8");
@@ -135,7 +221,6 @@ describe(`LiquidStorage Test`, () => {
           fetch
         });
         const storageClient = await dappClient.service("storage", code);
-        //var authClient = new AuthClient(apiID, 'authentikeos', null, endpoint);
         const keys = await getCreateKeys(code);
         const key = keys.active.privateKey;
         const data = Buffer.from("test1234read", "utf8");
@@ -171,7 +256,6 @@ describe(`LiquidStorage Test`, () => {
           fetch
         });
         const storageClient = await dappClient.service("storage", code);
-        //var authClient = new AuthClient(apiID, 'authentikeos', null, endpoint);
         const keys = await getCreateKeys(code);
         const key = keys.active.privateKey;
         const permission = "active";
@@ -307,7 +391,6 @@ describe(`LiquidStorage Test`, () => {
     (async () => {
       try {
         const storageClient = await dappClient.service("storage", code);
-        //var authClient = new AuthClient(apiID, 'authentikeos', null, endpoint);
         const keys = await getCreateKeys(code);
         const key = keys.active.privateKey;
         const data = Buffer.from("test1234", "utf8");

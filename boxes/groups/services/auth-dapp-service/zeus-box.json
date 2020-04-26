@@ -13,5 +13,8 @@
     "contracts":{
       "authenticator": true
     }
+  },
+  "hooks": {
+    "post-install": "cd client && npm run build"
   }
 }

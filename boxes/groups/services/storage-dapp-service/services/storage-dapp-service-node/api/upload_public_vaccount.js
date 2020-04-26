@@ -2,7 +2,7 @@ const ecc = require("eosjs-ecc");
 const fetch = require("node-fetch");
 const { JsonRpc } = require("eosjs");
 const { BigNumber } = require(`bignumber.js`);
-const { emitUsage } = require("../../dapp-services-node/common");
+const { emitUsage, getLinkedAccount } = require("../../dapp-services-node/common");
 const {
   readVRAMData,
   getContractAccountFor,
@@ -182,7 +182,7 @@ module.exports = async (body, res, model, state) => {
     uri = await saveToIPFS(data);
 
     updateLimits({ data, stateDailyLimits, vaccountName });
-    await emitUsage(contract, getContractAccountFor(model), length, sidechain, {
+    await emitUsage(sidechain ? await getLinkedAccount(null, null, contract, sidechain.name) : contract, getContractAccountFor(model), length, sidechain, {
       uri
     });
 

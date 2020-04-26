@@ -1,6 +1,6 @@
 var IPFS = require('ipfs-api');
 const { BigNumber } = require('bignumber.js');
-const { emitUsage } = require('../../dapp-services-node/common');
+const { emitUsage, getLinkedAccount } = require('../../dapp-services-node/common');
 const { getContractAccountFor } = require('../../../extensions/tools/eos/dapp-services');
 
 BigNumber.config({ ROUNDING_MODE: BigNumber.ROUND_FLOOR }); // equivalent
@@ -18,7 +18,7 @@ module.exports = async(body, state, model, { account, permission, clientCode }) 
     const pinset = await ipfs.pin.rm(hash, { recursive: true });
 
 
-    await emitUsage(contract, getContractAccountFor(model), 0, sidechain, { uri });
+    await emitUsage(sidechain ? await getLinkedAccount(null, null, contract, sidechain.name) : contract, getContractAccountFor(model), 0, sidechain, { uri });
 
     return { pinset };
 

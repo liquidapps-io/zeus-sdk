@@ -119,10 +119,10 @@ const getEndpointForContract = ({
 }) => {
   if (sidechain) {
     // resolve sidechain
-
     return `http://localhost:${sidechain.dsp_port}`;
   }
-  return "http://localhost:13015";
+  // if DSP_PORT set, use port, if not 13015 for zeus tests
+  return `http://localhost:${process.env.DSP_PORT || 13015}`;
 };
 
 const readVRAMData = async({
@@ -186,4 +186,14 @@ const createLiquidXMapping = async(sidechain_name, mainnet_account, chain_accoun
     }, { authorization: `${mainnet_account}@active` });
   }
 }
-module.exports = { genAllocateDAPPTokens, dappServicesContract, getContractAccountFor, readVRAMData, readIPFSData, getEndpointForContract, testProvidersList, dappServicesLiquidXContract, createLiquidXMapping };
+module.exports = { 
+  genAllocateDAPPTokens, 
+  dappServicesContract, 
+  getContractAccountFor, 
+  readVRAMData, 
+  readIPFSData, 
+  getEndpointForContract, 
+  testProvidersList, 
+  dappServicesLiquidXContract, 
+  createLiquidXMapping 
+};
