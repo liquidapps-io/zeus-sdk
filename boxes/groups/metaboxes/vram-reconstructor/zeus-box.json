@@ -1,15 +1,13 @@
 {
-  "ignore": [
-    "zeus-box.json"
-  ],
-  "dependencies":[
+  "ignore": [],
+  "dependencies": [
     "ipfs-dapp-service"
   ],
-  "install":{
-    "contracts":{
+  "install": {
+    "contracts": {
       "mockcontract": true
     },
-    "npm":{
+    "npm": {
       "@dfuse/client": "^0.3.0",
       "apollo-boost": "^0.4.4",
       "apollo-cache-inmemory": "^1.6.3",

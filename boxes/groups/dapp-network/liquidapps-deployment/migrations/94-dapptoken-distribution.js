@@ -1,5 +1,6 @@
-const { getCreateAccount, fmt, getEos, loadSettings, deployer, artifacts } = require('../settings');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
+const { requireBox } = require('@liquidapps/box-utils');
+const { getCreateAccount, fmt, getEos, loadSettings, deployer, artifacts } = requireBox('liquidapps-deployment/settings');
+const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 
 module.exports = async function () {
   var settings = await loadSettings();

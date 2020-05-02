@@ -1,16 +1,19 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
-  "commands": {
-  },
-  "dependencies":["seed-eos", "events", "token", "mocha", "eos-common", "hooks-cpp-contracts"],
-  "install":{
-    "contracts":{
+  "commands": {},
+  "dependencies": [
+    "seed-eos",
+    "events",
+    "token",
+    "mocha",
+    "eos-common"
+  ],
+  "install": {
+    "contracts": {
       "BancorNetwork": true
     }
   },
-  "hooks": {
-  }
+  "hooks": {}
 }

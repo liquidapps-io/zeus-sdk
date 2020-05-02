@@ -1,19 +1,20 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Start EOS Localenv": "zeus start-localenv"
   },
-  "dependencies":["core-extensions" ],
+  "dependencies": [
+    "core-extensions"
+  ],
   "install": {
-    "npm":{
+    "npm": {
       "kill-port": true
     }
   },
   "hooks": {
-    "post-install": "bash extensions/scripts/install-eos.sh",
-    "post-unpack": "bash extensions/scripts/install-eosio-cdt.sh"
+    "post-install": "bash scripts/install-eos.sh",
+    "post-unpack": "bash scripts/install-eosio-cdt.sh"
   }
 }

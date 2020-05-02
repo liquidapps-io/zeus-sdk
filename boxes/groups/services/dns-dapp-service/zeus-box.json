@@ -1,20 +1,18 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json",
-    "zeus-config.js"
+    "README.md"
   ],
   "commands": {},
   "hooks": {},
   "dependencies": [
     "dapp-services"
   ],
-  "install":{
-    "npm":{
+  "install": {
+    "npm": {
       "dnsd": true,
       "native-dns": true
     },
-    "contracts":{
+    "contracts": {
       "dnsconsumer": true
     }
   }

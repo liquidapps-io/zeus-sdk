@@ -1,9 +1,12 @@
-const { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
+const { requireBox, createDir } = require('@liquidapps/box-utils');
+const { nodeFactory } = requireBox('dapp-services/services/dapp-services-node/generic-dapp-service-node');
 const handlers = {};
-const logger = require('../../extensions/helpers/logger');
+const logger = requireBox('log-extensions/helpers/logger');
+
+createDir('protocols', 'services/oracle-dapp-service-node/protocols');
 
 nodeFactory('oracle', {
-  geturi: async({ event, rollback }, { uri }) => {
+  geturi: async ({ event, rollback }, { uri }) => {
     if (rollback) {
       event.action = 'orcclean';
       console.log('orcclean after failed transaction', uri);
@@ -25,7 +28,7 @@ nodeFactory('oracle', {
     try {
       if (!handler) {
 
-        handler = require(`./protocols/${proto}`);
+        handler = requireBox(`protocols/${proto}`);
         if (!handler)
           throw new Error(`unsupported protocol ${proto}`);
         handlers[proto] = handler;

@@ -27,8 +27,9 @@ cd $THEDIR
 export DEMUX_BACKEND=state_history_plugin
 export IPFS_HOST=localhost
 # zeus unbox helloworld -c --test
+mkdir framework-tests; cd framework-tests
+zeus box create
 zeus unbox framework-tests -c 
-cd framework-tests
 zeus test -c
 cd ..
 

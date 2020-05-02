@@ -1,25 +1,25 @@
-
-
 require('mocha');
+
+const { requireBox } = require('@liquidapps/box-utils');
 const { assert } = require('chai'); // Using Assert style
-const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getEosWrapper } = require('../extensions/tools/eos/eos-wrapper');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
+const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
+const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
+const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 const fetch = require('node-fetch');
 const ecc = require('eosjs-ecc')
 let { PrivateKey, PublicKey, Signature, Aes, key_utils, config } = require('eosjs-ecc')
 const eosjs2 = require('eosjs');
 const { JsonRpc, Api, Serialize } = eosjs2;
 const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig'); // development only
-const { loadModels } = require('../extensions/tools/models');
+const { loadModels } = requireBox('seed-models/tools/models');
 
-const { getNetwork, getCreateAccount } = require('../extensions/tools/eos/utils');
+const { getNetwork, getCreateAccount } = requireBox('seed-eos/tools/eos/utils');
 const { TextDecoder, TextEncoder } = require('text-encoding');
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens, readVRAMData, createLiquidXMapping } = require('../extensions/tools/eos/dapp-services');
-const { encodeName } = require('../services/dapp-services-node/common');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens, readVRAMData, createLiquidXMapping } = requireBox('dapp-services/tools/eos/dapp-services');
+const { encodeName } = requireBox('dapp-services/services/dapp-services-node/common');
 
 var contractCode = 'vaccountsx';
 var ctrt = artifacts.require(`./${contractCode}/`);

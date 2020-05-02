@@ -1,13 +1,19 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Create Database": "zeus create converter eosio.token SYS tknarly TKNARLY cnvtkna 0",
     "Run Locally": "zeus migrate"
   },
-  "dependencies":["seed-eos","seed-migrations", "secure-accounts-extensions", "seed-extensions", "seed-models", "bancor-relay", "token"],
-  "hooks": {
-  }
+  "dependencies": [
+    "seed-eos",
+    "seed-migrations",
+    "secure-accounts-extensions",
+    "seed-extensions",
+    "seed-models",
+    "bancor-relay",
+    "token"
+  ],
+  "hooks": {}
 }

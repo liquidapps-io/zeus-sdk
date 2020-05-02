@@ -1,5 +1,5 @@
-var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
-const { loadModels } = require("../../extensions/tools/models");
+const { requireBox } = require('@liquidapps/box-utils');
+var { nodeFactory } = requireBox('dapp-services/services/dapp-services-node/generic-dapp-service-node');
 var sha256 = require('js-sha256').sha256;
 const ecc = require('eosjs-ecc');
 const Fcbuffer = require('fcbuffer');
@@ -93,7 +93,7 @@ const signFn = {
     // TODO: we need to take into account the nonce of pending transactions
     // to not overwrite them - tricky business
     const nonce = await web3.eth.getTransactionCount(keypair.publicKey);
-    const key = keypair.privateKey.startsWith('0x') ? 
+    const key = keypair.privateKey.startsWith('0x') ?
       keypair.privateKey.slice(2) : keypair.privateKey;
     const privateKey = new Buffer(key, 'hex');
     const rawTx = {
@@ -122,54 +122,54 @@ const signFn = {
 // can the transaction be sent.
 const signHandlers = {
   "eosio": async (id, destination, trx_data, chain, chain_type, sigs, account, sigs_required) => {
-      // get key from storage
-      var keypair = await getCreateKeypair['eosio'](chain, chain_type, account);
+    // get key from storage
+    var keypair = await getCreateKeypair['eosio'](chain, chain_type, account);
 
-      // read transaction's action data, from ipfs or directly or raw from history
-      var trxData = await resolveTrxData(trx);
+    // read transaction's action data, from ipfs or directly or raw from history
+    var trxData = await resolveTrxData(trx);
 
-      if (!trxData) {
-        console.log('failed parsing trx data (probably not JSON)');
-        return;
-      }
+    if (!trxData) {
+      console.log('failed parsing trx data (probably not JSON)');
+      return;
+    }
 
-      // sign with internal keys and return sig_
-      const signature = await signFn['eosio'](trxData, chain, account, keypair);
-      sigs+=';'+signature;
-      const sigsCount = sigs.length;
+    // sign with internal keys and return sig_
+    const signature = await signFn['eosio'](trxData, chain, account, keypair);
+    sigs += ';' + signature;
+    const sigsCount = sigs.length;
 
-      // optionally post when enough sigs are ready
-      var haveEnoughSigs = sigs_required != -1 && sigs_required > sigsCount;
-      // return trx id from other chain    
-      var trx_id;
-      if (haveEnoughSigs) {
-        trx_id = await postFn['eosio'](trxData, chain, account, sigs);
-      }
-      return {
-        id, trx, chain, chain_type, sigs, account, sigs_required, trx_id
-      };
+    // optionally post when enough sigs are ready
+    var haveEnoughSigs = sigs_required != -1 && sigs_required > sigsCount;
+    // return trx id from other chain    
+    var trx_id;
+    if (haveEnoughSigs) {
+      trx_id = await postFn['eosio'](trxData, chain, account, sigs);
+    }
+    return {
+      id, trx, chain, chain_type, sigs, account, sigs_required, trx_id
+    };
   },
   "binance": async (id, destination, trx_data, chain, chain_type, sigs, account, sigs_required) => {
 
   },
   "ethereum": async (id, destination, trx_data, chain, chain_type, sigs, account, sigs_required) => {
-      // get key from storage
-      var keypair = await getCreateKeypair['ethereum'](chain, chain_type, account);
+    // get key from storage
+    var keypair = await getCreateKeypair['ethereum'](chain, chain_type, account);
 
 
-      // sign with internal keys and return sig
-      const signedTx = await signFn['ethereum'](destination, trx_data, chain, account, keypair);
+    // sign with internal keys and return sig
+    const signedTx = await signFn['ethereum'](destination, trx_data, chain, account, keypair);
 
-      const trx_id = await postFn['ethereum'](signedTx, chain, account, sigs);
+    const trx_id = await postFn['ethereum'](signedTx, chain, account, sigs);
 
-      return {
-        id, destination, trx_data, chain, chain_type, sigs, account, sigs_required, trx_id
-      };
+    return {
+      id, destination, trx_data, chain, chain_type, sigs, account, sigs_required, trx_id
+    };
   }
 }
 
 nodeFactory('sign', {
-  signtrx: async({ event, rollback }, { id, destination, trx_data, chain, chain_type, sigs, account, sigs_required }) => {
+  signtrx: async ({ event, rollback }, { id, destination, trx_data, chain, chain_type, sigs, account, sigs_required }) => {
     console.log('picked up signtrx event, args:');
     console.log('id', id);
     console.log('trx', trx_data);
@@ -197,7 +197,7 @@ nodeFactory('sign', {
     }
   },
   api: {
-    genkey: async({ body }, res) => {
+    genkey: async ({ body }, res) => {
       try {
         // todo: use auth service
         var { chain, chain_type, account } = body;
@@ -213,9 +213,9 @@ nodeFactory('sign', {
 });
 
 const numberToHex = (number) => {
-  if (typeof(number) == 'number')
+  if (typeof (number) == 'number')
     return `0x${number.toString(16)}`;
-  if (typeof(number) == 'string' && !(number.startsWith('0x')))
+  if (typeof (number) == 'string' && !(number.startsWith('0x')))
     return `0x${parseInt(number).toString(16)}`;
   return number;
 }

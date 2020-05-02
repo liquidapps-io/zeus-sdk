@@ -1,17 +1,14 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json",
-    "zeus-config.js"
+    "README.md"
   ],
   "commands": {},
   "hooks": {},
   "dependencies": [
     "dapp-services"
   ],
-  "install":{
-    "npm":{
-    },
-    "contracts":{}
+  "install": {
+    "npm": {},
+    "contracts": {}
   }
 }

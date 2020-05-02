@@ -1,12 +1,12 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Watch": "zeus test -c"
   },
-  "dependencies":[ "seed-extensions" ],
-  "hooks": {
-  }
+  "dependencies": [
+    "seed-extensions"
+  ],
+  "hooks": {}
 }

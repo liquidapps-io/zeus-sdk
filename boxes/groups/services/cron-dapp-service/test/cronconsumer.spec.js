@@ -2,14 +2,11 @@ require('mocha');
 
 
 const { assert } = require('chai'); // Using Assert style
-const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getNetwork } = require('../extensions/tools/eos/utils');
-var Eos = require('eosjs');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
+const { requireBox } = require('@liquidapps/box-utils');
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 var contractCode = 'cronconsumer';
@@ -23,7 +20,7 @@ describe(`Cron Service Test Contract`, () => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
         await genAllocateDAPPTokens(deployedContract, 'cron');
-        const { getTestContract, getLocalDSPEos } = require('../extensions/tools/eos/utils');
+        const { getTestContract, getLocalDSPEos } = requireBox('seed-eos/tools/eos/utils');
         testcontract = await getTestContract(code);
         dspeos = await getLocalDSPEos(code);
 

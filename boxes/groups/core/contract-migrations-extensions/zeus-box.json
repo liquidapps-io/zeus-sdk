@@ -1,14 +1,14 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json",
-    "zeus-config.js"
+    "README.md"
   ],
   "commands": {
-    "Migrate":"zeus migrate",
-    "No reset":"zeus migrate --no-reset"
+    "Migrate": "zeus migrate",
+    "No reset": "zeus migrate --no-reset"
   },
-  "dependencies":["migrations-extensions", "seed-models"],
-  "hooks": {
-  }
+  "dependencies": [
+    "migrations-extensions",
+    "seed-models"
+  ],
+  "hooks": {}
 }

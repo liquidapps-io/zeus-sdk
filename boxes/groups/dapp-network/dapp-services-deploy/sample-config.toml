@@ -7,7 +7,7 @@ account = "<DSP ACCOUNT>"
 private_key = "<DSP PRIVATE KEY>"
 port = 3115
 # configure available services: (comment for all services)
-# services_enabled = "ipfs,vaccounts,oracle,cron,auth,storage"
+services_enabled = "ipfs,vaccounts,oracle,cron,auth,storage"
 # account_permissions = "active"
 # consumer_pays: setting this to true forces consumer to pay for all cpu/net/ram
 # however, if they don't have the correct permission setup, everything will fail

@@ -1,5 +1,6 @@
-const { getTestContract, getEos } = require('../extensions/tools/eos/utils');
-const { loadModels } = require('../extensions/tools/models');
+const { requireBox } = require('@liquidapps/box-utils');
+const { getTestContract, getEos } = requireBox('seed-eos/tools/eos/utils');
+const { loadModels } = requireBox('seed-models/tools/models');
 
 module.exports = async function () {
   const deployments = await loadModels('contract-deployments');

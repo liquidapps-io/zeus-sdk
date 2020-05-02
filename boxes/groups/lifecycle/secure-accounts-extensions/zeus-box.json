@@ -1,12 +1,14 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Add Secure to migrations": "zeus secure-account accountabc owner active"
   },
-  "dependencies":["seed-eos", "seed-migrations", "seed-models"],
-  "hooks": {
-  }
+  "dependencies": [
+    "seed-eos",
+    "seed-migrations",
+    "seed-models"
+  ],
+  "hooks": {}
 }

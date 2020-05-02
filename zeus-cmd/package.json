@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@liquidapps/box-utils": "^1.0.0",
     "aws-sdk": "^2.606.0",
     "colors": "^1.4.0",
     "is-wsl": "^2.1.1",

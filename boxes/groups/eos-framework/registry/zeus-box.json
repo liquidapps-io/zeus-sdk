@@ -1,19 +1,20 @@
 {
   "ignore": [
-    "README.md",
-    "LICENSE",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Test": "zeus test -c"
   },
-  "dependencies":[
-    "hooks-npm",
-    "mocha","seed-eos", "seed-migrations", "hooks-cpp-contracts","eos-common",
-    "all-dapp-services", 
-    "seed-models"],
-  "install":{
-    "contracts":{
+  "dependencies": [
+    "mocha",
+    "seed-eos",
+    "seed-migrations",
+    "eos-common",
+    "all-dapp-services",
+    "seed-models"
+  ],
+  "install": {
+    "contracts": {
       "registry": true
     }
   }

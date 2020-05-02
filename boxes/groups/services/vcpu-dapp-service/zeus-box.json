@@ -1,23 +1,21 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json",
-    "zeus-config.js"
+    "README.md"
   ],
   "commands": {},
   "hooks": {},
   "dependencies": [
     "dapp-services"
   ],
-  "install":{
-    "npm":{
+  "install": {
+    "npm": {
       "assemblyscript": "github:AssemblyScript/assemblyscript",
       "node-fetch": "^2.6.0"
     },
-    "contracts":{
+    "contracts": {
       "vcpuconsumer": true
     },
-    "vcpu_contracts":{
+    "vcpu_contracts": {
       "vcpuconsumer": true
     }
   }

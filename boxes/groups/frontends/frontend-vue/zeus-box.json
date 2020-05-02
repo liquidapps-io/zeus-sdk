@@ -1,15 +1,14 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Deploy Frontend": "zeus deploy frontend main",
     "Run Locally": "zeus run frontend main"
   },
-  "install":{
-    "npm-in-dirs":{
-      "frontends/main":{
+  "install": {
+    "npm-in-dirs": {
+      "frontends/main": {
         "npm": {
           "babel-core": "^6.26.3",
           "babel-loader": "^7.1.4",
@@ -53,7 +52,6 @@
           "less": "^3.0.4",
           "less-loader": "^4.1.0",
           "vue-template-compiler": "^2.5.17"
-
         },
         "npm-scripts": {
           "start": "vue-cli-service serve",
@@ -63,5 +61,7 @@
       }
     }
   },
-  "dependencies":["frontend-transit"]
+  "dependencies": [
+    "frontend-transit"
+  ]
 }

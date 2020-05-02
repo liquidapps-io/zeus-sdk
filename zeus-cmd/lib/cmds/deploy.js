@@ -5,7 +5,7 @@ const cmd = 'deploy';
 module.exports = {
   description: `${cmd} a component`,
   builder: (yargs) => {
-    var extPath = path.join(path.resolve('.'), 'extensions/commands', cmd);
+    var extPath = path.join(path.resolve('.'), 'commands', cmd);
     var myPath = path.resolve(__dirname, '../cmds', cmd);
     yargs = yargs.commandDir(myPath);
     if (fs.existsSync(extPath) && global.enableExt) {
@@ -14,5 +14,5 @@ module.exports = {
     return yargs;
   },
   usage: `${cmd} <command>`,
-  handler: (args) => {}
+  handler: (args) => { }
 };

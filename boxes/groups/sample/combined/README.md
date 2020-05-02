@@ -6,8 +6,9 @@ https://github.com/liquidapps-io/zeus-cmd
 
 ## Run a local EOSIO node, DAPP-Network system, DSP-Services and the combined sample
 ```
+mkdir combined; cd combined
+zeus box create
 zeus unbox combined
-cd combined
 zeus test -c
 ```
 

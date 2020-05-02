@@ -1,12 +1,12 @@
 
-
+const { requireBox } = require('@liquidapps/box-utils');
 require('mocha');
 const { assert } = require('chai'); // Using Assert style
-const { getTestContract } = require('../extensions/tools/eos/utils');
+const { getTestContract } = requireBox('seed-eos/tools/eos/utils');
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
 
 const contractCode = 'oracleconsumer';
 const ctrt = artifacts.require(`./${contractCode}/`);
@@ -83,9 +83,9 @@ describe(`Web Oracle Service Test`, () => {
       }
     })();
   });
-  
+
   it('Oracle minimum threshold check', done => {
-    (async() => {
+    (async () => {
       try {
         // set threshold to expected amount of DSPs to return values, 2
         await testcontract.setthreshold({

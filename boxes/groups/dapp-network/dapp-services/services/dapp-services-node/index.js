@@ -3,13 +3,14 @@
 
 
 if (process.env.DAEMONIZE_PROCESS) { require('daemonize-process')(); }
-const logger = require('../../extensions/helpers/logger');
 const { genNode, genApp, paccount, processFn, forwardEvent, resolveProviderData, resolveProvider, resolveProviderPackage, getLinkedAccount } = require('./common');
 const dal = require('./dal/dal');
-const { loadModels } = require('../../extensions/tools/models');
+const { requireBox } = require('@liquidapps/box-utils');
+const logger = requireBox('log-extensions/helpers/logger');
+const { loadModels } = requireBox('seed-models/tools/models');
 
 const actionHandlers = {
-  'service_request': async(act, simulated) => {
+  'service_request': async (act, simulated) => {
     let { service, provider, sidechain, meta } = act.event;
     if (!sidechain && meta && meta.sidechain) {
       sidechain = sidechainsDict[meta.sidechain.name];
@@ -69,7 +70,7 @@ const actionHandlers = {
 
 
   },
-  'service_signal': async(act, simulated) => {
+  'service_signal': async (act, simulated) => {
     if (simulated) { return; }
     let { meta, service, provider, sidechain } = act.event;
 
@@ -110,7 +111,7 @@ const actionHandlers = {
     act.sidechain = sidechain;
     return await forwardEvent(act, providerData.endpoint);
   },
-  'usage_report': async(act, simulated) => {
+  'usage_report': async (act, simulated) => {
     if (simulated) { return; }
     let { service, provider, sidechain, meta } = act.event;
     if (!sidechain && meta && meta.sidechain) {
@@ -162,10 +163,10 @@ async function genAllNodes() {
   sidechains.forEach(sc => sidechainsDict[sc.name] = sc);
   const scName = process.env.SIDECHAIN;
   // if sidechain gateway (identified by ^)
-  if(scName) {
-      const sidechain = sidechains.find(sc => sc.name === scName);
-      if (!sidechain) throw new Error(`could not find sidechain ${scName} under models/eosio-chains`);
-      await genNode(actionHandlers, process.env.PORT || 3116, 'services', undefined, undefined, sidechain);
+  if (scName) {
+    const sidechain = sidechains.find(sc => sc.name === scName);
+    if (!sidechain) throw new Error(`could not find sidechain ${scName} under models/eosio-chains`);
+    await genNode(actionHandlers, process.env.PORT || 3116, 'services', undefined, undefined, sidechain);
   } else {
     await genNode(actionHandlers, process.env.PORT || 3115, 'services');
   }
@@ -175,7 +176,7 @@ genAllNodes();
 const bootTime = Date.now();
 let inRecoveryMode = false;
 const appWebHookListener = genApp();
-appWebHookListener.post('/', async(req, res) => {
+appWebHookListener.post('/', async (req, res) => {
   req.body.replay = inRecoveryMode;
   try {
     await processFn(actionHandlers, req.body);

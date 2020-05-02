@@ -1,6 +1,7 @@
-const { deserialize, decodeName } = require('../../services/dapp-services-node/common')
+const { requireBox } = require('@liquidapps/box-utils');
+const { deserialize, decodeName } = requireBox('dapp-services/services/dapp-services-node/common')
 const sha256 = require('js-sha256').sha256;
-const { getEosWrapper } = require('../../extensions/tools/eos/eos-wrapper')
+const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 const BN = require('bignumber.js')
 const bs58 = require('bs58')
 const IPFS = require('ipfs-api');
@@ -30,7 +31,7 @@ async function getOrderedKeys(contractName, tableName, scope) {
   const bucketData = await Promise.all(bucketUris.map(bucketUri => parseBucketUri(bucketUri)));
   const flattenedBucketData = flattenArray(bucketData);
 
-  const filteredBucketData = flattenedBucketData.filter(data => { 
+  const filteredBucketData = flattenedBucketData.filter(data => {
     return scope === data.scope || scope === decodeName((new BN(data.scope, 16)).toString(10));
   });
   let allKeys = filteredBucketData.map(data => new BN(data.key.match(/.{2}/g).reverse().join(''), 16).toString(10));
@@ -65,9 +66,9 @@ async function parseShardUri(shardUri) {
     "name": "shard_data",
     "base": "",
     "fields": [{
-        "name": "values",
-        "type": "bytes[]"
-      }
+      "name": "values",
+      "type": "bytes[]"
+    }
     ]
   }];
   const deserializedShardData = deserialize(shardDataAbi, data, 'shard_data', 'base16');

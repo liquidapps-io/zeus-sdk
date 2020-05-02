@@ -1,14 +1,14 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json",
-    "zeus-config.js"
+    "README.md"
   ],
   "commands": {
     "Create contract from template": "zeus create contract somecontract",
     "help for create-contract": "zeus create contract somecontract --help"
   },
-  "dependencies":["templates-emptycontract-eos-cpp","frontend-react"],
-  "hooks": {
-  }
+  "dependencies": [
+    "templates-emptycontract-eos-cpp",
+    "frontend-react"
+  ],
+  "hooks": {}
 }

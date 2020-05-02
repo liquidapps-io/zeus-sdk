@@ -56,8 +56,27 @@ var currentYargs = require('yargs') // eslint-disable-line
   .showHelpOnFail(false, 'whoops, something went wrong! run with --help')
   .help('h').alias('h', 'help').demandCommand().completion().strict();
 
-var extPath = path.join(path.resolve('.'), 'extensions/commands');
-if (fs.existsSync(extPath) && global.enableExt)
-  currentYargs = currentYargs.commandDir(extPath);
+
+if (global.enableExt) {
+  var extPath = path.join(path.resolve('.'), 'commands');
+  if (fs.existsSync(extPath)) {
+    try {
+      currentYargs = currentYargs.commandDir(extPath);
+    } catch (e) {
+      // If box-utils package is not available this may catch an error.
+      // We can ignore the error and assume they are using built-in commands
+    }
+  }
+
+  if (fs.existsSync(path.resolve('.', 'zeus_boxes'))) {
+    var list = fs.readdirSync(path.resolve('.', 'zeus_boxes'), { withFileTypes: true });
+    list.forEach(function (dirent) {
+      if (dirent.isDirectory()) {
+        extPath = path.join(path.resolve('.', 'zeus_boxes', dirent.name, 'commands'));
+        if (fs.existsSync(extPath)) { currentYargs = currentYargs.commandDir(extPath); }
+      }
+    });
+  }
+}
 
 currentYargs.argv;

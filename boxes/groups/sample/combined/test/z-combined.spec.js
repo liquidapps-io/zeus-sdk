@@ -1,24 +1,23 @@
 
 
 require('mocha');
+const { requireBox } = require('@liquidapps/box-utils');
 const { assert } = require('chai'); // Using Assert style
-const { getTestContract } = require('../extensions/tools/eos/utils');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
+const { getUrl, getTestContract } = requireBox('seed-eos/tools/eos/utils');
+const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 const fetch = require('node-fetch');
 const ecc = require('eosjs-ecc')
 const { PrivateKey } = require('eosjs-ecc')
 const eosjs2 = require('eosjs');
 const { JsonRpc } = eosjs2;
 
-const { getUrl } = require('../extensions/tools/eos/utils');
-
 var url = getUrl(getDefaultArgs());
 const rpc = new JsonRpc(url, { fetch });
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens, readVRAMData } = require('../extensions/tools/eos/dapp-services');
-const { createClient } = require("../client/dist/src/dapp-client-lib");
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens, readVRAMData } = requireBox('dapp-services/tools/eos/dapp-services');
+const { createClient } = requireBox("client-lib-base/client/dist/src/dapp-client-lib");
 global.fetch = fetch;
 
 var contractCode = 'combined';
@@ -41,7 +40,7 @@ describe(`Combined Services Test Contract`, () => {
                 await genAllocateDAPPTokens(deployedContract, "ipfs");
                 await genAllocateDAPPTokens(deployedContract, "oracle");
 
-                endpoint = "http://localhost:13015";                
+                endpoint = "http://localhost:13015";
 
                 let info = await rpc.get_info();
                 chainId = info.chain_id;
@@ -68,7 +67,7 @@ describe(`Combined Services Test Contract`, () => {
                 const vaccClient = await dappClient.service(
                     "vaccounts", code
                 );
-                
+
                 let res = await vaccClient.push_liquid_account_transaction(
                     code,
                     privateWif,
@@ -84,7 +83,7 @@ describe(`Combined Services Test Contract`, () => {
                     "getlucky",
                     {
                         vaccount: "vaccount5",
-                        seed:"12345"
+                        seed: "12345"
                     }
                 );
 
@@ -95,33 +94,33 @@ describe(`Combined Services Test Contract`, () => {
                     scope: code
                 });
                 assert(tableRes.row.seed == "12345", "table was not created or updated");
-                           
+
                 res = await vaccClient.push_liquid_account_transaction(
                     code,
                     privateWif,
                     "testlucky",
                     {
                         vaccount: "vaccount5",
-                        seed:"12345"
+                        seed: "12345"
                     }
-                );             
+                );
                 res = await vaccClient.push_liquid_account_transaction(
                     code,
                     privateWif,
                     "checklucky",
                     {
                         vaccount: "vaccount5",
-                        seed:"12345"
+                        seed: "12345"
                     }
                 );
-            
+
                 res = await vaccClient.push_liquid_account_transaction(
                     code,
                     privateWif,
                     "getlucky",
                     {
                         vaccount: "vaccount5",
-                        seed:"34567"
+                        seed: "34567"
                     }
                 );
                 tableRes = await readVRAMData({
@@ -131,14 +130,14 @@ describe(`Combined Services Test Contract`, () => {
                     scope: code
                 });
                 assert(tableRes.row.seed == "34567", "table was not created or updated");
-                          
+
                 res = await vaccClient.push_liquid_account_transaction(
                     code,
                     privateWif,
                     "getlucky",
                     {
                         vaccount: "vaccount5",
-                        seed:"56789"
+                        seed: "56789"
                     }
                 );
                 tableRes = await readVRAMData({
@@ -148,14 +147,14 @@ describe(`Combined Services Test Contract`, () => {
                     scope: code
                 });
                 assert(tableRes.row.seed == "56789", "table was not created or updated");
-            
+
                 res = await vaccClient.push_liquid_account_transaction(
                     code,
                     privateWif,
                     "getlucky2",
                     {
                         vaccount: "vaccount5",
-                        seed:"78901"
+                        seed: "78901"
                     }
                 );
                 tableRes = await readVRAMData({
@@ -188,7 +187,7 @@ describe(`Combined Services Test Contract`, () => {
                 const vaccClient = await dappClient.service(
                     "vaccounts", code
                 );
-                
+
                 console.log("Reg1");
                 let res = await vaccClient.push_liquid_account_transaction(
                     code,
@@ -237,7 +236,7 @@ describe(`Combined Services Test Contract`, () => {
                         quantity: "100.0000 EOS"
                     }
                 );
-                console.log("Transfer1");      
+                console.log("Transfer1");
                 res = await vaccClient.push_liquid_account_transaction(
                     code,
                     privateWif1,

@@ -2,18 +2,18 @@ require('mocha');
 
 
 const { assert } = require('chai'); // Using Assert style
-const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getNetwork, getCreateAccount } = require('../extensions/tools/eos/utils');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
+const { requireBox } = require('@liquidapps/box-utils');
+const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
+const { getNetwork, getCreateAccount } = requireBox('seed-eos/tools/eos/utils');
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
 
 
 var contractCode = 'authenticator';
 var ctrt = artifacts.require(`./${contractCode}/`);
-var AuthClient = require('../extensions/tools/auth-client');
+var AuthClient = requireBox('auth-dapp-service/tools/auth-client');
 const code = 'authentikeos';
 var apiID = 'ssAuthAPI';
 
@@ -31,7 +31,7 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
 
         await genAllocateDAPPTokens(deployedContract, 'auth');
         // create token
-        const { getLocalDSPEos } = require('../extensions/tools/eos/utils');
+        const { getLocalDSPEos } = requireBox('seed-eos/tools/eos/utils');
         dspeos = await getLocalDSPEos(code);
 
         done();

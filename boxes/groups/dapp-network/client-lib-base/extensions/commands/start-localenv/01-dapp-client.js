@@ -1,4 +1,4 @@
-const { execPromise } = require('../../helpers/_exec');
+const { execPromise } = requireBox('seed-zeus-support/_exec');
 const fs = require('fs');
 var path = require('path');
 

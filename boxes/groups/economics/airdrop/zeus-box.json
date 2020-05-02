@@ -1,26 +1,28 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
-    "Create airdrop":"zeus airdrop create myairdrop",
-    "Download Snapshot":"zeus airdrop download-snapshot myairdrop",
-    "Transform":"zeus airdrop transform-entries myairdrop",
-    "Populate Entries":"zeus airdrop populate-entries myairdrop",
-    "Init":"zeus airdrop init myairdrop",
-    "Periodic Cleanup":"zeus airdrop cleanup myairdrop"
+    "Create airdrop": "zeus airdrop create myairdrop",
+    "Download Snapshot": "zeus airdrop download-snapshot myairdrop",
+    "Transform": "zeus airdrop transform-entries myairdrop",
+    "Populate Entries": "zeus airdrop populate-entries myairdrop",
+    "Init": "zeus airdrop init myairdrop",
+    "Periodic Cleanup": "zeus airdrop cleanup myairdrop"
   },
-  "hooks": {
-  },
-  "dependencies":["oracle-dapp-service","readfn-dapp-service", "token"],
-  "install":{
-    "npm":{
+  "hooks": {},
+  "dependencies": [
+    "oracle-dapp-service",
+    "readfn-dapp-service",
+    "token"
+  ],
+  "install": {
+    "npm": {
       "aws-sdk": true,
       "node-fetch": true,
       "async-csv": true
     },
-    "contracts":{
+    "contracts": {
       "airdrop": true
     }
   }

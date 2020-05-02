@@ -1,14 +1,14 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json",
-    "zeus-config.js"
+    "README.md"
   ],
-  "commands":{
+  "commands": {
     "Compile sample contracts": "zeus compile",
     "Migrate sample contracts (deploy to local eos.node)": "zeus migrate",
     "Test sample contract": "zeus test -c"
   },
-  "hooks":{},
-  "dependencies":["sample-eos-cpp"]
+  "hooks": {},
+  "dependencies": [
+    "sample-eos-cpp"
+  ]
 }

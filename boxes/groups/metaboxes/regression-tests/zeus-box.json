@@ -1,8 +1,17 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json",
-    "zeus-config.js"
+    "README.md"
   ],
-  "dependencies":["helloworld", "all-dapp-services", "airhodl" ,"coldtoken","vgrab","deepfreeze","airdrop","chess","liquidx","combined"]
+  "dependencies": [
+    "helloworld",
+    "all-dapp-services",
+    "airhodl",
+    "coldtoken",
+    "vgrab",
+    "deepfreeze",
+    "airdrop",
+    "chess",
+    "liquidx",
+    "combined"
+  ]
 }

@@ -1,30 +1,24 @@
 {
   "ignore": [
-    "README.md",
-    "LICENSE",    
-    "zeus-box.json"
+    "README.md"
   ],
   "Watch": "zeus vaccounts push-action",
-  "dependencies":[
+  "dependencies": [
     "dapp-services",
     "seed-utils",
     "mocha",
-    "hooks-cpp-contracts",
     "ipfs-dapp-service",
     "log-dapp-service"
-    ],
-  "install":{
-    "contracts":{
+  ],
+  "install": {
+    "contracts": {
       "vaccountsconsumer": true,
       "vaccountsremote": true
     },
-    "npm":{
+    "npm": {
       "node-fetch": true,
       "eosjs-ecc": true,
       "isomorphic-fetch": true
     }
-  },
-  "hooks": {
-    "post-install": "cd client && npm run build"
   }
 }

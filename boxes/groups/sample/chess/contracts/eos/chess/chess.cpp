@@ -14,7 +14,6 @@
 #include "../dappservices/vaccounts.hpp"
 #include "../dappservices/readfn.hpp"
 #include "../dappservices/vcpu.hpp"
-#include "../dappservices/multi_index.hpp"
 
 #define DAPPSERVICES_ACTIONS() \
   XSIGNAL_DAPPSERVICE_ACTION \

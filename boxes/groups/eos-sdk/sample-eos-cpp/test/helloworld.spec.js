@@ -1,11 +1,10 @@
-const { assert } = require('chai');
+
 require('mocha');
 
+const { requireBox } = require('@liquidapps/box-utils');
 
-
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const eosUtils = require('../extensions/tools/eos/utils');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
 
 const code = 'helloworld';
 var contract = artifacts.require(`./${code}/`);

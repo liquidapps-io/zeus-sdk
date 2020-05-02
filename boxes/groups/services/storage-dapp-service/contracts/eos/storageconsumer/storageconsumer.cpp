@@ -6,6 +6,7 @@
 #include "../dappservices/ipfs.hpp"
 #include "../dappservices/multi_index.hpp"
 #include "../dappservices/vaccounts.hpp"
+
 #include <eosio/singleton.hpp>
 
 /* ADD LIQUIDACCOUNT / VRAM RELATED ACTIONS */

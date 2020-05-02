@@ -6,7 +6,7 @@
 #include <eosio/crypto.hpp>
 #include <eosio/action.hpp>
 #include <eosio/singleton.hpp>
-#include "./multi_index.hpp"
+#include "../dappservices/multi_index.hpp"
 #include <boost/preprocessor/control/iif.hpp>
 #include <boost/preprocessor/list/for_each.hpp>
 #include <boost/preprocessor/seq/for_each.hpp>

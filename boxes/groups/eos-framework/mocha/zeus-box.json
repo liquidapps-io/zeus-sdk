@@ -1,8 +1,6 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json",
-    "zeus-config.js"
+    "README.md"
   ],
   "commands": {
     "Test": "zeus test -c"
@@ -20,7 +18,6 @@
   },
   "hooks": {},
   "dependencies": [
-    "seed-tests",
-    "hooks-npm"
+    "seed-tests"
   ]
 }

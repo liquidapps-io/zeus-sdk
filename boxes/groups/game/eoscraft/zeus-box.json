@@ -1,12 +1,14 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Deploy Frontend": "zeus deploy frontend main",
     "Run Frontend Locally": "zeus run frontend main",
     "Run Locally": "zeus migrate"
   },
-  "dependencies":["eoscraft-frontend","craft"]
+  "dependencies": [
+    "eoscraft-frontend",
+    "craft"
+  ]
 }

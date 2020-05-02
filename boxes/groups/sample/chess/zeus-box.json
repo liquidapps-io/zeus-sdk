@@ -1,8 +1,6 @@
 {
   "ignore": [
-    "README.md",
-    "LICENSE",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Deploy contract": "zeus migrate",
@@ -11,23 +9,26 @@
     "Deploy frontend": "zeus deploy frontend main",
     "Deploy and register frontend": "zeus deploy frontend main --ipfs --register chess"
   },
-  "dependencies":[
-    "hooks-npm",
-    "mocha","seed-eos", "seed-migrations", "hooks-cpp-contracts","eos-common",
-    "all-dapp-services", "seed-frontends", "oracle-stockfish",
-    "seed-models"],
-  "install":{
-    "contracts":{
+  "dependencies": [
+    "mocha",
+    "seed-eos",
+    "seed-migrations",
+    "eos-common",
+    "all-dapp-services",
+    "seed-frontends",
+    "oracle-stockfish",
+    "seed-models"
+  ],
+  "install": {
+    "contracts": {
       "chess": true
     },
-    "vcpu_contracts":{
+    "vcpu_contracts": {
       "chess": true
     },
-    "npm-in-dirs":{
-      "frontends/main":{
-        "npm": {
-
-        }
+    "npm-in-dirs": {
+      "frontends/main": {
+        "npm": {}
       }
     }
   }

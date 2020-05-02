@@ -1,5 +1,6 @@
-const { getEos, loadSettings } = require('../settings');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
+const { getEos, loadSettings } = requireBox('liquidapps-deployment/settings');
+const { requireBox } = require('@liquidapps/box-utils');
+const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 var args = getDefaultArgs();
 
 const protectAccount = async (account) => {

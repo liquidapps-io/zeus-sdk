@@ -5,10 +5,12 @@ const { TextDecoder, TextEncoder } = require('text-encoding');
 const fetch = require('node-fetch');
 const WebSocket = require('ws');
 const pako = require('pako');
-const { loadModels } = require('../../../extensions/tools/models');
+const { requireBox } = require('@liquidapps/box-utils');
+const { loadModels } = requireBox('seed-models/tools/models');
 const { getAbis, getAbiAbi } = require('./state_history_abi');
-const logger = require('../../../extensions/helpers/logger');
-const dal = require('../../dapp-services-node/dal/dal');
+const logger = requireBox('log-extensions/helpers/logger');
+const dal = requireBox('dapp-services/services/dapp-services-node/dal/dal');
+
 const sidechainName = process.env.SIDECHAIN;
 const nodeosWebsocketPort = process.env.NODEOS_WEBSOCKET_PORT || '8887';
 const nodeosHost = process.env.NODEOS_HOST || 'localhost';
@@ -29,7 +31,7 @@ let pending = [];
 let genesisTimestampMs;
 let sidechain = null;
 let capturedEvents;
-const loadEvents = async() => {
+const loadEvents = async () => {
   if (!capturedEvents) {
     capturedEvents = {};
     let capturedEventsModels = await loadModels('captured-events');
@@ -93,7 +95,7 @@ const handlers = {
   },
   '*': {
     '*': {
-      '*': async(txid, account, method, code, actData, event, eventNum, blockInfo, cbevent) => {
+      '*': async (txid, account, method, code, actData, event, eventNum, blockInfo, cbevent) => {
         // load from model.
 
         let events = await loadEvents();
@@ -222,7 +224,7 @@ function parseEvents(text) {
     try {
       return JSON.parse(a);
     }
-    catch (e) {}
+    catch (e) { }
   }).filter(a => a);
 }
 async function actionHandler(txid, action, maxEventNum, blockInfo, cbevent) {
@@ -270,9 +272,9 @@ async function messageHandler(data) {
   //logger.info(JSON.stringify(data))
   head_block = data[1].head.block_num;
   const block_id = data[1].head.block_id;
-  if (!data[1].traces) { 
+  if (!data[1].traces) {
     logger.warn(`No traces detected, is trace-history = true enabled in nodeos config?`);
-    return; 
+    return;
   }
   var traces = Buffer.from(data[1].traces, 'hex');
   current_block = data[1].this_block.block_num;
@@ -362,10 +364,10 @@ const connect = () => {
     expectingABI = true;
     logger.info('ws connected');
   });
-  ws.on('error', function(err) {
+  ws.on('error', function (err) {
     logger.warn(`websocket error: ${err.message}`);
   });
-  ws.on('close', function() {
+  ws.on('close', function () {
     if (!paused) {
       logger.warn('websocket closed and not paused');
       setTimeout(connect, 1000); //hardcoded interval
@@ -467,7 +469,7 @@ async function setDatabaseBlockNumber(blockNum) {
 
 async function getDatabaseBlockNumber() {
   const settings = await dal.getSettings();
-  if(sidechainName) {
+  if (sidechainName) {
     if (settings && settings.data && settings.data[sidechainName] && settings.data[sidechainName].last_processed_block)
       return settings.data[sidechainName].last_processed_block;
   }
@@ -480,10 +482,10 @@ async function getDatabaseBlockNumber() {
 async function getNonDatabaseStartBlock() {
   if (process.env.DEMUX_HEAD_BLOCK)
     return process.env.DEMUX_HEAD_BLOCK;
-  
+
   const headBlock = await getHeadBlockInfo();
   return headBlock.head_block_num;
-} 
+}
 
 async function getStartingBlockNumber() {
   if (process.env.DEMUX_BYPASS_DATABASE_HEAD_BLOCK === 'true' || process.env.DEMUX_BYPASS_DATABASE_HEAD_BLOCK === true) {

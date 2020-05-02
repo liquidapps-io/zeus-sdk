@@ -1,9 +1,10 @@
-const { emitUsage } = require('../dapp-services-node/common');
+const { requireBox } = require('@liquidapps/box-utils');
+const { emitUsage } = requireBox('dapp-services/services/dapp-services-node/common');
 var IPFS = require('ipfs-api');
 const { BigNumber } = require('bignumber.js');
 var sha256 = require('js-sha256').sha256;
-const { getUrl } = require('../../extensions/tools/eos/utils');
-const getDefaultArgs = require('../../extensions/helpers/getDefaultArgs');
+const { getUrl } = requireBox('seed-eos/tools/eos/utils');
+const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 
 BigNumber.config({ ROUNDING_MODE: BigNumber.ROUND_FLOOR }); // equivalent
 
@@ -29,7 +30,7 @@ const hashData256 = (data) => {
 };
 
 
-const getContractEntry = async(contract, scope, type, host) => {
+const getContractEntry = async (contract, scope, type, host) => {
     var str = `${type}-${host}`;
     var hash = hashData256(Buffer.from(str));
     console.log('getting dns record for ', hash, contract, scope, type, host)
@@ -95,9 +96,9 @@ async function handler(req, res) {
                 },
             });
 
-            relay.on('message', function(err, answer) {
+            relay.on('message', function (err, answer) {
                 console.log("err", err);
-                answer.answer.forEach(function(a) {
+                answer.answer.forEach(function (a) {
                     //console.dir(a);
                     if (!a.address) {
                         return;
@@ -112,11 +113,11 @@ async function handler(req, res) {
                 });
             });
 
-            relay.on('timeout', function() {
+            relay.on('timeout', function () {
                 res.end();
             });
 
-            relay.on('end', function() {
+            relay.on('end', function () {
                 res.end();
             });
 

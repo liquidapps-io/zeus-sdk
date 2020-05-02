@@ -1,6 +1,6 @@
 #pragma once
 #include "ipfs.hpp"
-#include "log.hpp"
+#include "../dappservices/log.hpp"
 #include "../Common/base/base64.hpp"
 // #include "../Common/base/base32.hpp"
 #include "../Common/base/base58.hpp"

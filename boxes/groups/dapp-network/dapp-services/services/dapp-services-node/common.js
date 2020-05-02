@@ -1,22 +1,22 @@
 const paccount = process.env.DSP_ACCOUNT || process.env.PROOF_PROVIDER_ACCOUNT || 'pprovider1';
 const paccountPermission = process.env.DSP_ACCOUNT_PERMISSIONS || 'active';
 const fetch = require('node-fetch');
-const { getCreateKeys } = require('../../extensions/helpers/key-utils');
-const { dappServicesContract, dappServicesLiquidXContract, getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
+const { requireBox } = require('@liquidapps/box-utils');
+const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
+const { dappServicesContract, dappServicesLiquidXContract, getContractAccountFor } = requireBox('dapp-services/tools/eos/dapp-services');
 
-const { loadModels } = require('../../extensions/tools/models');
-const { getEosWrapper } = require('../../extensions/tools/eos/eos-wrapper');
+const { loadModels } = requireBox('seed-models/tools/models');
+const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 const bodyParser = require('body-parser');
 const express = require('express');
 const cors = require('cors');
 const httpProxy = require('http-proxy');
 const { BigNumber } = require('bignumber.js');
-const logger = require('../../extensions/helpers/logger');
+const logger = requireBox('log-extensions/helpers/logger');
 const eosjs2 = require('eosjs');
 const { Serialize } = eosjs2;
 const { TextDecoder, TextEncoder } = require('text-encoding');
 const { Long } = require('bytebuffer')
-
 const mainnetDspKey = process.env.DSP_PRIVATE_KEY;
 if (!mainnetDspKey) console.warn('must provide DSP_PRIVATE_KEY if not using utils');
 const nodeosMainnetEndpoint = process.env.NODEOS_MAINNET_ENDPOINT || 'http://localhost:8888';
@@ -24,7 +24,7 @@ const dspGatewayMainnetEndpoint = process.env.DSP_GATEWAY_MAINNET_ENDPOINT || 'h
 const nodeosLatest = process.env.NODEOS_LATEST || true;
 const proxy = httpProxy.createProxyServer();
 
-proxy.on('error', function(err, req, res) {
+proxy.on('error', function (err, req, res) {
   if (err) {
     logger.error('proxy error:');
     logger.error(err);
@@ -121,7 +121,7 @@ function decodeName(value, littleEndian = true) {
   return str
 }
 
-const eosMainnet = async() => {
+const eosMainnet = async () => {
   const mainnetConfig = {
     httpEndpoint: nodeosMainnetEndpoint,
     keyProvider: mainnetDspKey
@@ -129,7 +129,7 @@ const eosMainnet = async() => {
   return getEosWrapper(mainnetConfig);
 }
 
-const eosDSPGateway = async() => {
+const eosDSPGateway = async () => {
   let config = {
     httpEndpoint: dspGatewayMainnetEndpoint,
     keyProvider: mainnetDspKey
@@ -141,26 +141,26 @@ var eosDSPEndpoint = getEosWrapper({
   httpEndpoint: dspGatewayMainnetEndpoint
 });
 
-const getEosForSidechain = async(sidechain, account = paccount, dspEndpoint = null) => {
+const getEosForSidechain = async (sidechain, account = paccount, dspEndpoint = null) => {
   let config = {
     httpEndpoint: dspEndpoint ? `http://localhost:${sidechain.dsp_port}` : sidechain.nodeos_endpoint, //TODO: do we need to check for https?
-    keyProvider: process.env[`DSP_PRIVATE_KEY_${sidechain.name.toUpperCase()}`] || (await getCreateKeys(account, null, nodeosLatest.toString() === "true" ? true: false, sidechain)).active.privateKey //TODO: any reason not to include authorization here?
+    keyProvider: process.env[`DSP_PRIVATE_KEY_${sidechain.name.toUpperCase()}`] || (await getCreateKeys(account, null, nodeosLatest.toString() === "true" ? true : false, sidechain)).active.privateKey //TODO: any reason not to include authorization here?
   }
   return getEosWrapper(config);
 }
 
-const forwardEvent = async(act, endpoint, redirect) => {
-  if (redirect) { return endpoint; }  
+const forwardEvent = async (act, endpoint, redirect) => {
+  if (redirect) { return endpoint; }
   const r = await fetch(endpoint + '/event', { method: 'POST', body: JSON.stringify(act) });
   const rtxt = await r.text();
   return rtxt;
 };
 
-const resolveBackendServiceData = async(service, provider, packageid, sidechain, balance) => {
+const resolveBackendServiceData = async (service, provider, packageid, sidechain, balance) => {
   if (balance !== undefined) {
     const eos = await eosMainnet();
     const packages = await getTableRowsSec(eos.rpc, dappServicesContract, "package", dappServicesContract, [null, packageid, service, provider], 1, 'sha256', 2);
-    const result = packages.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service);  
+    const result = packages.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service);
     if (result.length === 0) throw new Error(`resolveBackendServiceData failed ${provider} ${service} ${packageid}`);
     if (Number(balance.substring(0, balance.length - 5)) < Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)))
       logger.warn(`DAPP Balance is less than minimum stake quantity for provider: ${provider}, service: ${service}, packageid: ${packageid}: ${Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)) - Number(balance.substring(0, balance.length - 5))} more DAPP must be staked to meet threshold`);
@@ -179,7 +179,7 @@ const resolveBackendServiceData = async(service, provider, packageid, sidechain,
   };
 };
 
-const resolveExternalProviderData = async(service, provider, packageid, sidechain, balance) => {
+const resolveExternalProviderData = async (service, provider, packageid, sidechain, balance) => {
   const eos = await eosMainnet();
   const packages = await getTableRowsSec(eos.rpc, dappServicesContract, "package", dappServicesContract, [null, packageid, service, provider], 1, 'sha256', 2);
   logger.debug(`resolveExternalProviderData packages: ${JSON.stringify(packages)}`);
@@ -195,13 +195,13 @@ const resolveExternalProviderData = async(service, provider, packageid, sidechai
   };
 };
 
-const resolveProviderData = async(service, provider, packageid, sidechain, balance) =>
+const resolveProviderData = async (service, provider, packageid, sidechain, balance) =>
   ((paccount === provider) ? resolveBackendServiceData : resolveExternalProviderData)(service, provider, packageid, sidechain, balance);
 
 const toBound = (numStr, bytes) =>
-`${(new Array(bytes * 2 + 1).join('0') + numStr).substring(numStr.length).toUpperCase()}`;
+  `${(new Array(bytes * 2 + 1).join('0') + numStr).substring(numStr.length).toUpperCase()}`;
 
-const getTableRowsSec = async(rpc, code, table, scope, keys, limit = 1, key_type, index_position) => {
+const getTableRowsSec = async (rpc, code, table, scope, keys, limit = 1, key_type, index_position) => {
   if (!key_type) {
     switch (keys.length) {
       case 0:
@@ -216,7 +216,7 @@ const getTableRowsSec = async(rpc, code, table, scope, keys, limit = 1, key_type
         break;
       default:
         throw new Error('unknown key length');
-        // code
+      // code
     };
   }
   if (index_position === undefined)
@@ -231,15 +231,15 @@ const getTableRowsSec = async(rpc, code, table, scope, keys, limit = 1, key_type
     'limit': limit
   };
   let encodedKeys, hexKeys;
-  if(nodeosLatest.toString() === "true") {
-    hexKeys = keys.map(v => (v !== null) ? v : 0).map(v => typeof(v) === 'string' ? encodeName(v) : v).map(v => toBound(new BigNumber(v).toString(16), 8));
+  if (nodeosLatest.toString() === "true") {
+    hexKeys = keys.map(v => (v !== null) ? v : 0).map(v => typeof (v) === 'string' ? encodeName(v) : v).map(v => toBound(new BigNumber(v).toString(16), 8));
     encodedKeys = hexKeys;
   } else {
-    encodedKeys = keys.map(v => (v !== null) ? v : 0).map(v => typeof(v) === 'string' ? encodeName(v, true) : v).map(v => new BigNumber(v)).map(v => toBound(v.toString(16), 8));
+    encodedKeys = keys.map(v => (v !== null) ? v : 0).map(v => typeof (v) === 'string' ? encodeName(v, true) : v).map(v => new BigNumber(v)).map(v => toBound(v.toString(16), 8));
   }
   switch (key_type) {
     case 'sha256':
-      if(nodeosLatest.toString() === "true" && hexKeys) {
+      if (nodeosLatest.toString() === "true" && hexKeys) {
         encodedKeys = hexKeys.map(k => k.match(/.{2}/g).reverse().join(''));
         payload.lower_bound = encodedKeys[0] + encodedKeys[1] + encodedKeys[2] + encodedKeys[3];
       } else {
@@ -251,7 +251,7 @@ const getTableRowsSec = async(rpc, code, table, scope, keys, limit = 1, key_type
       // in code:           0ULL, package_id.value, service.value, provider.value
       break;
     case 'i128':
-      if(nodeosLatest.toString() === "true" && hexKeys) {
+      if (nodeosLatest.toString() === "true" && hexKeys) {
         encodedKeys = hexKeys.map(k => k.match(/.{2}/g).reverse().join(''));
         payload.encode_type = 'hex';
         payload.lower_bound = "0x" + encodedKeys[0] + encodedKeys[1];
@@ -267,9 +267,9 @@ const getTableRowsSec = async(rpc, code, table, scope, keys, limit = 1, key_type
       }
       break;
     default:
-      // code
+    // code
   }
-  if(nodeosLatest.toString() === "true") {
+  if (nodeosLatest.toString() === "true") {
     let finalRes = [];
     let result = await rpc.get_table_rows(payload);
     finalRes = result.rows;
@@ -278,7 +278,7 @@ const getTableRowsSec = async(rpc, code, table, scope, keys, limit = 1, key_type
       payload.lower_bound = result.next_key;
       payload.limit = limit - finalRes.length;
       result = await rpc.get_table_rows(payload);
-      finalRes =  [...finalRes, ...result.rows ];
+      finalRes = [...finalRes, ...result.rows];
     }
     return finalRes;
   } else {
@@ -288,7 +288,7 @@ const getTableRowsSec = async(rpc, code, table, scope, keys, limit = 1, key_type
   }
 };
 
-const getProviders = async(payer, service, provider, sidechain) => {
+const getProviders = async (payer, service, provider, sidechain) => {
   if (sidechain) {
     const sidechainName = sidechain.name;
     service = await getLinkedAccount(null, null, service, sidechainName, true);
@@ -303,9 +303,9 @@ const getProviders = async(payer, service, provider, sidechain) => {
   return result;
 };
 
-const resolveProviderPackage = async(payer, service, provider, sidechain, getEvery = false) => {
+const resolveProviderPackage = async (payer, service, provider, sidechain, getEvery = false) => {
   logger.debug('resolving provider package');
-  logger.debug(JSON.stringify({payer, service, provider, sidechain, getEvery }));
+  logger.debug(JSON.stringify({ payer, service, provider, sidechain, getEvery }));
   let providers = [];
   const serviceWithStakingResult = await getProviders(payer, service, provider, sidechain);
   logger.debug(`got svc with staking results - ${JSON.stringify(serviceWithStakingResult)}`)
@@ -327,7 +327,7 @@ const resolveProviderPackage = async(payer, service, provider, sidechain, getEve
         data: providerData
       })
       selectedPackage = checkPackage;
-      if(!getEvery) break;
+      if (!getEvery) break;
     }
     catch (e) {
       logger.error(`Provider ${checkProvider.provider} package ${checkPackage} does not exist or is disabled`);
@@ -335,11 +335,11 @@ const resolveProviderPackage = async(payer, service, provider, sidechain, getEve
     }
   }
   if (!selectedPackage) { throw new Error(`resolveProviderPackage failed - no enabled packages - ${provider} ${service}`); }
-  if(getEvery) return providers;
+  if (getEvery) return providers;
   return selectedPackage;
 };
 
-const resolveProvider = async(payer, service, provider, sidechain) => {
+const resolveProvider = async (payer, service, provider, sidechain) => {
   if (provider != '') { return provider; }
   const serviceWithStakingResult = await getProviders(payer, service, provider, sidechain);
 
@@ -350,7 +350,7 @@ const resolveProvider = async(payer, service, provider, sidechain) => {
   return intersectLists[Math.floor(Math.random() * intersectLists.length)];
 };
 
-const processFn = async(actionHandlers, actionObject, simulated, serviceName, handlers) => {
+const processFn = async (actionHandlers, actionObject, simulated, serviceName, handlers) => {
   var actionHandler = actionHandlers[actionObject.event.etype];
   if (!actionHandler) { return; }
   try {
@@ -383,11 +383,11 @@ async function parseEvents(text) {
     try {
       return JSON.parse(a);
     }
-    catch (e) {}
+    catch (e) { }
   }).filter(a => a);
 }
 
-const handleAction = async(actionHandlers, action, simulated, serviceName, handlers) => {
+const handleAction = async (actionHandlers, action, simulated, serviceName, handlers) => {
   var res = [];
 
   var events = await parseEvents(action.console);
@@ -401,12 +401,12 @@ const handleAction = async(actionHandlers, action, simulated, serviceName, handl
   return res;
 };
 
-const rollBack = async(garbage, actionHandlers, serviceName, handlers) => {
+const rollBack = async (garbage, actionHandlers, serviceName, handlers) => {
   return await Promise.all(garbage.map(async rollbackAction => {
     try {
       return processFn(actionHandlers, rollbackAction, true, serviceName, handlers);
     }
-    catch (e) {}
+    catch (e) { }
   }));
 };
 const notFound = (res, message = 'bad endpoint') => {
@@ -428,7 +428,7 @@ const sendError = (res, e) => {
     }
   }));
 }
-const processRequestWithBody = async(req, res, body, actionHandlers, serviceName, handlers) => {
+const processRequestWithBody = async (req, res, body, actionHandlers, serviceName, handlers) => {
   var uri = req.originalUrl;
   var sidechain = body.sidechain;
   var isServiceRequest = uri.indexOf('/event') == 0;
@@ -438,7 +438,7 @@ const processRequestWithBody = async(req, res, body, actionHandlers, serviceName
     try {
 
       const ret = await processFn(actionHandlers, body, false, serviceName, handlers);
-      const retTxt = typeof(ret) === "object" ? JSON.stringify(ret) : ret;
+      const retTxt = typeof (ret) === "object" ? JSON.stringify(ret) : ret;
       res.send(retTxt);
     }
     catch (e) {
@@ -515,13 +515,13 @@ const processRequestWithBody = async(req, res, body, actionHandlers, serviceName
       };
 
       const endpoint = await processFn(actionHandlers, actionObject, true, serviceName, handlers);
-      logger.info(`endpoint shouldAbort: ${endpoint} typeof: ${typeof(endpoint)}`);
+      logger.info(`endpoint shouldAbort: ${endpoint} typeof: ${typeof (endpoint)}`);
       try {
-        if(endpoint.includes(`shouldAbort`) && JSON.parse(endpoint).shouldAbort) {
+        if (endpoint.includes(`shouldAbort`) && JSON.parse(endpoint).shouldAbort) {
           logger.info(`shouldAbort detected`);
           return res.send(endpoint);
         }
-      } catch(e) {
+      } catch (e) {
         logger.error(`error parsing endpoint.shouldAbort`);
         logger.error(e);
       }
@@ -557,11 +557,11 @@ const processRequestWithBody = async(req, res, body, actionHandlers, serviceName
   }
   return notFound(res, `too many tries ${uri}`);
 }
-const pjson = require('../../package.json');
-const genNode = async(actionHandlers, port, serviceName, handlers, abi, sidechain) => {
+const pjson = require('../../../../package.json');
+const genNode = async (actionHandlers, port, serviceName, handlers, abi, sidechain) => {
   if (handlers) handlers.abi = abi;
   const app = genApp();
-  app.use(async(req, res, next) => {
+  app.use(async (req, res, next) => {
     var uri = req.originalUrl;
     logger.debug("received request: %s\t[%s] - %s", uri, req.ip, sidechain ? sidechain.name : "main");
 
@@ -595,7 +595,7 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi, sidechai
 
     getRawBody(req, {
       length: req.headers['content-length']
-    }, async function(err, string) {
+    }, async function (err, string) {
       if (err) return next(err);
       const body = JSON.parse(string.toString());
 
@@ -699,9 +699,9 @@ const generateCommandABI = (commandName, commandModel) => {
 
 const generateABI =
   (serviceModel) =>
-  Object.keys(serviceModel.commands).map(c => generateCommandABI(c, serviceModel.commands[c]));
+    Object.keys(serviceModel.commands).map(c => generateCommandABI(c, serviceModel.commands[c]));
 
-const detectXCallback = async(eos, contractName) => {
+const detectXCallback = async (eos, contractName) => {
   if (!contractName)
     contractName = dappServicesContract;
   var contract = await eos.contract(contractName);
@@ -712,7 +712,7 @@ const detectXCallback = async(eos, contractName) => {
 let enableXCallback = null;
 
 // returns a mainnet linked account for a service contract or service payer, or a dappservicex contract on a sidechain
-const getLinkedAccount = async(eosSideChain, eosMain, account, sidechainName, skipVerification) => {
+const getLinkedAccount = async (eosSideChain, eosMain, account, sidechainName, skipVerification) => {
   // TODO: add cache
   // get dappservices account link from mainnet
   // if no eosMainnet instance provided, fetch
@@ -743,17 +743,17 @@ const getLinkedAccount = async(eosSideChain, eosMain, account, sidechainName, sk
   const dappServicesSisterContract = await getLinkedAccount(eosSideChain, eosMain, 'dappservices', sidechainName);
   // returns account link map from side chain's dappservicex given a side chain account name
   const mainnetAccountList = await getTableRowsSec(eosSideChain.rpc, dappServicesSisterContract, 'accountlink', account, []);
-  
+
   let contract;
   if (!mainnetAccountList.length) {
     let services = await loadModels('dapp-services');
     let model = services.find(a => getContractAccountFor(a) == account);
-    if(!model)
+    if (!model)
       throw new Error(`no DSP link to mainnet account ${account}`);
     else
       contract = getContractAccountFor(model);
   }
-    
+
   const mainnetAccount = contract || mainnetAccountList[0].mainnet_owner;
 
   // if one way mapped (service), skipVerification = true, only check sidechain -> mainnet mapping with dappservicex contract
@@ -767,22 +767,22 @@ const getLinkedAccount = async(eosSideChain, eosMain, account, sidechainName, sk
   return mainnetAccount;
 }
 
-const getPayerPermissions = async(endpoint, dappContract, payer, provider, permission) => {
-  let authorization = [{actor: provider,permission}]; //backwards compatability
-  if(payer == dappContract) return authorization; //make this universal for emitting
+const getPayerPermissions = async (endpoint, dappContract, payer, provider, permission) => {
+  let authorization = [{ actor: provider, permission }]; //backwards compatability
+  if (payer == dappContract) return authorization; //make this universal for emitting
   try {
     let account = await endpoint.rpc.get_account(payer);
-    let dsp = account.permissions.find(p=>p.perm_name == "dsp");
-    if(!dsp) throw new Error('no dsp permission');
-    let found = dsp.required_auth.accounts.find(a=>a.permission.actor == provider && a.permission.permission == permission);
-    if(!found) {
-      logger.warn("CONSUMER ISSUE: %s is not on the DSP permission for %s",provider,payer);
+    let dsp = account.permissions.find(p => p.perm_name == "dsp");
+    if (!dsp) throw new Error('no dsp permission');
+    let found = dsp.required_auth.accounts.find(a => a.permission.actor == provider && a.permission.permission == permission);
+    if (!found) {
+      logger.warn("CONSUMER ISSUE: %s is not on the DSP permission for %s", provider, payer);
       throw new Error('this provider is not on the dsp permission list');
     }
-    authorization = [{actor: payer, permission: "dsp"}]; //if detected - we will use this
-  } catch(e) {    
-    let forcePayer = process.env.DSP_CONSUMER_PAYS === 'true' || process.env.DSP_CONSUMER_PAYS === true  ? true : false;
-    if(forcePayer) {
+    authorization = [{ actor: payer, permission: "dsp" }]; //if detected - we will use this
+  } catch (e) {
+    let forcePayer = process.env.DSP_CONSUMER_PAYS === 'true' || process.env.DSP_CONSUMER_PAYS === true ? true : false;
+    if (forcePayer) {
       throw e;
     } else {
       logger.warn("CONSUMER ISSUE: %s does not have a valid DSP permission configured", payer);
@@ -791,14 +791,14 @@ const getPayerPermissions = async(endpoint, dappContract, payer, provider, permi
   return authorization;
 }
 
-const pushTransaction = async(endpoint, dappContract, payer, provider, action, payload, requestId = "", meta = {}, fail = false) => {
+const pushTransaction = async (endpoint, dappContract, payer, provider, action, payload, requestId = "", meta = {}, fail = false) => {
   dappContract = dappContract || dappServicesContract;
   var actions = [];
   if (enableXCallback === null) {
     enableXCallback = await detectXCallback(endpoint, dappContract);
   }
   let payerPermissions = await getPayerPermissions(endpoint, dappContract, payer, provider, paccountPermission);
-  
+
   actions.push({
     account: payer,
     name: action,
@@ -821,7 +821,7 @@ const pushTransaction = async(endpoint, dappContract, payer, provider, action, p
       }
     });
 
-    if(fail) {
+    if (fail) {
       //move xcallback to be the first action
       //we don't care about the cpu payer cause this must fail
       let x = actions.pop();
@@ -834,10 +834,10 @@ const pushTransaction = async(endpoint, dappContract, payer, provider, action, p
           permission: paccountPermission,
         }],
         data: {}
-      });    
+      });
     }
   }
-  
+
   try {
     let tx = await endpoint.transact({
       actions
@@ -847,27 +847,27 @@ const pushTransaction = async(endpoint, dappContract, payer, provider, action, p
       broadcast: true,
       blocksBehind: 10
     });
-    if(fail) {
+    if (fail) {
       logger.info(`expectedFailTx = ${JSON.stringify(expectedFailTx)}`);
       throw new Error('simulated trx expected to fail');
     }
-    return tx;    
+    return tx;
   }
   catch (e) {
-    if(fail) return e;
+    if (fail) return e;
     logger.debug("TRANSMITTING ACTION FAILED: \n%j\n", JSON.stringify(actions));
-    throw e;    
+    throw e;
   }
 }
 
-const emitUsage = async(contract, service, quantity = 1, meta = {}, requestId = '') => {
+const emitUsage = async (contract, service, quantity = 1, meta = {}, requestId = '') => {
   const provider = paccount;
   const currentPackage = await resolveProviderPackage(contract, service, provider);
   const eosProv = await eosMainnet();
   if (enableXCallback === null) {
     enableXCallback = await detectXCallback(eosProv);
   }
-  var quantityAsset = typeof(quantity) === 'string' ? quantity : `${(quantity / 10000).toFixed(4)} QUOTA`;
+  var quantityAsset = typeof (quantity) === 'string' ? quantity : `${(quantity / 10000).toFixed(4)} QUOTA`;
   let report = {
     usage_report: {
       "provider": paccount,
@@ -897,12 +897,12 @@ const emitUsage = async(contract, service, quantity = 1, meta = {}, requestId = 
   }
 
 }
-module.exports = { 
-  deserialize, generateABI, genNode, genApp, forwardEvent, 
-  resolveProviderData, resolveProvider, processFn, handleAction, 
-  paccount, proxy, eosMainnet, 
-  resolveProviderPackage, eosDSPGateway, paccountPermission, 
-  encodeName, decodeName, getProviders, getEosForSidechain, 
-  emitUsage, detectXCallback, getTableRowsSec, getLinkedAccount, 
-  parseEvents, pushTransaction, eosDSPEndpoint 
+module.exports = {
+  deserialize, generateABI, genNode, genApp, forwardEvent,
+  resolveProviderData, resolveProvider, processFn, handleAction,
+  paccount, proxy, eosMainnet,
+  resolveProviderPackage, eosDSPGateway, paccountPermission,
+  encodeName, decodeName, getProviders, getEosForSidechain,
+  emitUsage, detectXCallback, getTableRowsSec, getLinkedAccount,
+  parseEvents, pushTransaction, eosDSPEndpoint
 };

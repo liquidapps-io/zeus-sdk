@@ -2,7 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 var toml = require('toml');
-
+const { createDir, getBoxName, getBoxesDir } = require('@liquidapps/box-utils');
 const disabledServices = ["sign", "log", "history"];
 var configPath = process.env.DSP_CONFIG_FILE || path.join(os.homedir(), '.dsp', "config.toml");
 if (!fs.existsSync(configPath))
@@ -20,6 +20,8 @@ catch (e) {
 }
 var globalEnv = {};
 
+// createDir(`models`, `models`);
+// createDir(`services`, `services`);
 const sidechains = configData.sidechains;
 // generate nodeos_endpoint in obj
 Object.keys(sidechains).forEach(k => {
@@ -29,8 +31,8 @@ Object.keys(sidechains).forEach(k => {
   sidechains[k].nodeos_endpoint = prefix + host + port;
 })
 function createSidechainModels(data) {
-  const liquidxMappingsDir = path.resolve(__dirname, `./models/liquidx-mappings/`);
-  const localSidechainsDir = path.resolve(__dirname, `./models/eosio-chains/`);
+  const liquidxMappingsDir = path.resolve(getBoxesDir(), `liquidx/models/liquidx-mappings/`);
+  const localSidechainsDir = path.resolve(getBoxesDir(), `liquidx/models/eosio-chains/`);
   let sidechains = data.sidechains;
   if (!sidechains) { return; }
   Object.keys(sidechains).forEach(k => {
@@ -91,7 +93,6 @@ const DSP_ACCOUNT_PERMISSIONS = globalEnv.DSP_ACCOUNT_PERMISSIONS || 'active';
 const DATABASE_NODE_ENV = globalEnv.DATABASE_NODE_ENV || 'production';
 const DATABASE_TIMEOUT = globalEnv.DATABASE_TIMEOUT || 10000;
 
-
 // Configure .env
 const DSP_PORT = globalEnv.DSP_PORT || 3115;
 const DSP_CONSUMER_PAYS = globalEnv.DSP_CONSUMER_PAYS || false;
@@ -129,7 +130,7 @@ const isFile = source => !lstatSync(source).isDirectory();
 const getFiles = (source, ext) =>
   readdirSync(source).map(name => join(source, name)).filter(isFile).filter(a => a.endsWith(ext)).sort();
 
-const serviceNames = getFiles(path.resolve(__dirname, `./models/dapp-services`), '.json').map(file =>
+const serviceNames = getFiles(path.resolve(getBoxesDir(), getBoxName(`models/dapp-services`), `models/dapp-services/`), '.json').map(file =>
   JSON.parse(fs.readFileSync(file).toString()).name).filter(s => !disabledServices.includes(s));
 
 const DSP_SERVICES_ENABLED = globalEnv.DSP_SERVICES_ENABLED || serviceNames.join(',');
@@ -187,7 +188,7 @@ const createDSPSidechainServices = (sidechain) => {
   return [
     {
       name: `${sidechain.name}-dapp-services-node`,
-      script: path.join(__dirname, 'services', 'dapp-services-node', 'index.js'),
+      script: path.join(getBoxesDir(), getBoxName(`services/dapp-services-node/index.js`),  'services', 'dapp-services-node', 'index.js'),
       autorestart: true,
       cwd: __dirname,
       log_date_format: "YYYY-MM-DDTHH:mm:ss",
@@ -200,7 +201,7 @@ const createDSPSidechainServices = (sidechain) => {
     },
     {
       name: `${sidechain.name}-demux`,
-      script: path.join(__dirname, 'services', 'demux', 'index.js'),
+      script: path.join(getBoxesDir(), getBoxName(`services/demux/index.js`),  'services', 'demux', 'index.js'),
       autorestart: true,
       cwd: __dirname,
       log_date_format: "YYYY-MM-DDTHH:mm:ss",
@@ -223,7 +224,7 @@ const createDSPSidechainServices = (sidechain) => {
 
 const createDSPServiceApp = (name) => ({
   name: `${name}-dapp-service-node`,
-  script: path.join(__dirname, 'services', `${name}-dapp-service-node`, 'index.js'),
+  script: path.join(getBoxesDir(), getBoxName(`services/${name}-dapp-service-node/index.js`),  'services', `${name}-dapp-service-node`, 'index.js'),
   autorestart: true,
   cwd: __dirname,
   log_date_format: "YYYY-MM-DDTHH:mm:ss",
@@ -242,12 +243,11 @@ const sidechainServicesApps = Array.prototype.concat.apply(
 );
 
 const servicesApps = services.map(createDSPServiceApp);
-
 module.exports = {
   force: true,
   apps: [{
       name: 'dapp-services-node',
-      script: path.join(__dirname, 'services', 'dapp-services-node', 'index.js'),
+      script: path.join(getBoxesDir(), getBoxName(`services/dapp-services-node/index.js`),  'services', `dapp-services-node`, 'index.js'),
       autorestart: true,
       cwd: __dirname,
       log_date_format: "YYYY-MM-DDTHH:mm:ss",
@@ -260,7 +260,7 @@ module.exports = {
     },
     {
       name: 'demux',
-      script: path.join(__dirname, 'services', 'demux', 'index.js'),
+      script: path.join(getBoxesDir(), getBoxName(`services/demux/index.js`),  'services', `demux`, 'index.js'),
       autorestart: true,
       cwd: __dirname,
       log_date_format: "YYYY-MM-DDTHH:mm:ss",

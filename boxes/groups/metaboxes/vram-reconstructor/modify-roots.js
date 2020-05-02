@@ -1,7 +1,8 @@
 require("dotenv").config();
 const fs = require('fs');
-const { getEosWrapper } = require('./extensions/tools/eos/eos-wrapper');
-const { getCreateKeys } = require('./extensions/helpers/key-utils');
+const { requireBox } = require('@liquidapps/box-utils');
+const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
+const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
 
 const table = process.env.TABLE || "claiminfo114";
 const batchSize = parseInt(process.env.BATCH_SIZE || "10");

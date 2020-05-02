@@ -1,15 +1,12 @@
 require('mocha');
 
-
+const { requireBox } = require('@liquidapps/box-utils');
 const { assert } = require('chai'); // Using Assert style
-const { getNetwork, getCreateKeys, getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
-var Eos = require('eosjs');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
+const { getCreateAccount, getTestContract } = requireBox('seed-eos/tools/eos/utils');
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens, readVRAMData } = require('../extensions/tools/eos/dapp-services');
-const { getTestContract } = require('../extensions/tools/eos/utils');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens, readVRAMData } = requireBox('dapp-services/tools/eos/dapp-services');
 
 var contractCode = 'vcpuconsumer';
 var serviceName = 'vcpu'

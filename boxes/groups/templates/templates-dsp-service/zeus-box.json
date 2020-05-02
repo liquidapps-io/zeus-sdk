@@ -1,22 +1,21 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Create contract from template": "zeus create dsp-service someservice"
-  },  
-  "dependencies":[
-    "hooks-npm",
-    "mocha","seed-eos", "seed-migrations", "hooks-cpp-contracts","eos-common",
-    "dapp-services",
-    "seed-models","templates-extensions"
-  ],
-  "install":{
-    "contracts":{
-    }
   },
-  "hooks": {
-  }
-
+  "dependencies": [
+    "mocha",
+    "seed-eos",
+    "seed-migrations",
+    "eos-common",
+    "dapp-services",
+    "seed-models",
+    "templates-extensions"
+  ],
+  "install": {
+    "contracts": {}
+  },
+  "hooks": {}
 }

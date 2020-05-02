@@ -1,19 +1,17 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Register DSP": "zeus register dapp-service-provider-package --help"
   },
   "dependencies": [
-    "hooks-npm",
     "mocha",
     "seed-eos",
     "seed-migrations",
-    "hooks-cpp-contracts",
     "eos-common",
     "all-dapp-services",
+    "liquidx",
     "seed-models"
   ]
 }

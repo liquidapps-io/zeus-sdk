@@ -1,4 +1,4 @@
-const { loadSettings, deployer, artifacts } = require('../settings');
+const { loadSettings, deployer, artifacts } = requireBox('liquidapps-deployment/settings');
 
 module.exports = async function () {
   var settings = await loadSettings();

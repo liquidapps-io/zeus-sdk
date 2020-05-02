@@ -1,17 +1,17 @@
 require('mocha');
 
-
+const { requireBox } = require('@liquidapps/box-utils');
 const { assert } = require('chai'); // Using Assert style
-const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getNetwork, getCreateAccount } = require('../extensions/tools/eos/utils');
-const { getEosWrapper } = require('../extensions/tools/eos/eos-wrapper');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
-const { loadModels } = require('../extensions/tools/models');
+const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
+const { getNetwork, getCreateAccount } = requireBox('seed-eos/tools/eos/utils');
+const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
+const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
+const { loadModels } = requireBox('seed-models/tools/models');
 var sha256 = require('js-sha256').sha256;
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens, readVRAMData, createLiquidXMapping } = require('../extensions/tools/eos/dapp-services');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens, readVRAMData, createLiquidXMapping } = requireBox('dapp-services/tools/eos/dapp-services');
 const delay = ms => new Promise(res => setTimeout(res, ms));
 const delaySec = sec => delay(sec * 1000);
 

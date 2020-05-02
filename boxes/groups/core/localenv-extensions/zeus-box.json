@@ -1,12 +1,12 @@
 {
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Watch": "zeus start-localenv"
   },
-  "dependencies":["seed-extensions"],
-  "hooks": {
-  }
+  "dependencies": [
+    "seed-extensions"
+  ],
+  "hooks": {}
 }

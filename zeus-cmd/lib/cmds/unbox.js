@@ -1,7 +1,7 @@
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
-const { execPromise, emojMap } = require('../helpers/_exec');
+const { execPromise, emojMap, execScripts } = require('../helpers/_exec');
 const mapping = require('../helpers/_mapping');
 const temp = require('temp');
 
@@ -82,77 +82,103 @@ const runHook = async (hookName, args, zeusBoxJson, location, opts) => {
   if (zeusBoxJson.hooks) {
     const hooks = zeusBoxJson.hooks;
     if (hooks[hookName]) {
-      console.log(emojMap.comet + `${hookName.green} hook for box: ${args.box.yellow}`);
+      console.log(emojMap.comet + `${hookName.green} hook for box: ${args.boxes[0].yellow}`);
       const stdout = await execPromise(hooks[hookName], opts);
     }
   }
-  // check for post-install hooks under ./extensions/commands/hook/post-install.js
-  var hookFile = path.resolve(`./extensions/commands/hook/${hookName}`);
-  if (fs.existsSync(hookFile + '.js')) {
-    //console.log(emojMap.comet + `${hookName.green} hook for box: ${args.box.yellow}`);
-    await require(hookFile).handler(args, zeusBoxJson, location, opts);
+
+  let hooksPath = path.join(path.resolve(__dirname, "../hooks", hookName));
+  if (fs.existsSync(hooksPath)) {
+    await execScripts(hooksPath, (script) => {
+      //console.log(`running ${hookName} hook ${path.basename(script)}`);
+      return [args, zeusBoxJson, global.path];
+    }, args);
   }
 };
+
 const handler = async (args, globalCopyList = []) => {
-  // resolve github system boxes
-  var boxName = args.box;
-  // var repo = boxName.split('/')[0];
-  // var repo = boxName.split('/')[1];
+
+  if (!global.currentlyUnboxedBoxes) {
+    global.currentlyUnboxedBoxes = [];
+    if (!fs.existsSync(path.resolve('./zeus-box.json'))) {
+      console.log(`Missing zeus-box.json. Please use zeus box create.`);
+      return;
+    }
+
+    if (!fs.existsSync(path.resolve('./package.json'))) {
+      console.log(`Missing package.json. Please use zeus box create.`);
+    } else {
+      console.log('NPM Install');
+      await execPromise('npm install');
+    }
+
+    var newDir = path.resolve('./', 'zeus_boxes');
+    if (!fs.existsSync(newDir)) { fs.mkdirSync(newDir); }
+
+    let boxJson = JSON.parse(fs.readFileSync(path.resolve('./zeus-box.json')));
+    if (!boxJson.dependencies) {
+      boxJson.dependencies = [];
+    }
+
+    if (!args.boxes || !args.boxes.length) {
+      args.boxes = JSON.parse(fs.readFileSync(path.resolve('./zeus-box.json'))).dependencies;
+    }
+
+    global.path = process.cwd();
+
+    if (args.boxes && args.boxes.length) {
+      for (let boxName of args.boxes) {
+        var params = { ...args, boxes: [boxName] };
+        console.log(emojMap.gear + 'Unboxing:', boxName.yellow);
+        await handler(params, globalCopyList);
+        process.chdir(global.path);
+        if (!boxJson.dependencies.includes(boxName)) {
+          boxJson.dependencies.push(boxName);
+          fs.writeFileSync(`./zeus-box.json`, JSON.stringify(boxJson, null, 4), function (err) { if (err) throw err; });
+        }
+      }
+    }
+    return;
+  }
+
+  var boxName = args.boxes[0];
+  if (global.currentlyUnboxedBoxes.indexOf(boxName) != -1) { return; }
+
+  const boxesMapping = mapping.getCombined(args.storagePath);
+  let boxUri;
+
+  if (boxName in boxesMapping) {
+    boxUri = boxesMapping[boxName];
+  } else {
+    console.log(`Box '${boxName}' not found. Perhaps your mapping file is not updated?`);
+    return;
+  }
+
   if (mapping.boxInBothMappings(args.storagePath, boxName)) {
     console.log("WARNING:", boxName, "found in both local and builtin mapping. Unboxing using local mapping. If you wish to revert to builtin mapping, use zeus box remove", boxName);
   }
-  const boxes = mapping.getCombined(args.storagePath);
-  if (boxes[boxName]) { boxName = boxes[boxName]; }
+
+  process.chdir(global.path);
+
+  global.currentlyUnboxedBoxes.push(boxName);
+
+  var newDir = path.resolve(global.path, 'zeus_boxes/', boxName);
+  if (fs.existsSync(newDir)) { console.log(`Box '${boxName}' already unboxed`); return; }
+
   var extractPath = await mkdir('zeus');
   let stdout;
   var inputPath;
-  var currentzeusBoxJson = {
-    'ignore': [
-      'README.md',
-      'zeus-box.json',
-      'zeus-config.js'
-    ],
-    'commands': {
-    },
-    'hooks': {
 
-    },
-    'dependencies': []
-  };
-  var createDir = false;
-  if (global.currentzeusBoxJson) {
-    currentzeusBoxJson = global.currentzeusBoxJson;
-  } else if (fs.existsSync(path.resolve('./zeus-box.json'))) {
-    currentzeusBoxJson = JSON.parse(fs.readFileSync(path.resolve('./zeus-box.json')));
-    if (!currentzeusBoxJson.dependencies) { currentzeusBoxJson.dependencies = []; }
-  } else {
-    if (args.createDir) {
-      createDir = true;
-      var newDir = path.resolve('./', args.box);
-      if (fs.existsSync(newDir)) { throw new Error('path already exists', newDir); }
-      fs.mkdirSync(newDir);
-      process.chdir(newDir);
-      args.createDir = false;
-    }
-  }
-  if (currentzeusBoxJson.dependencies.indexOf(args.box) != -1) { return; }
-
-  if (!args.no_sample) {
-    console.log(emojMap.gear + 'Unboxing:', args.box.yellow);
-  }
-
-  currentzeusBoxJson.dependencies.push(args.box);
-  global.currentzeusBoxJson = currentzeusBoxJson;
-  if (boxName.indexOf('://') > 0 && boxName.indexOf('://') < 10) {
-    var protocol = boxName.split('://')[0];
+  if (boxUri.indexOf('://') > 0 && boxUri.indexOf('://') < 10) {
+    var protocol = boxUri.split('://')[0];
     var dirPath = await mkdir('zeus');
     inputPath = path.join(dirPath, 'archive.zip');
 
     switch (protocol) {
       case 'ipfs':
-        var hash = boxName.split('://')[1];
+        var hash = boxUri.split('://')[1];
         if (!process.env.SKIP_IPFS_GATEWAY) {
-          boxName = `https://cloudflare-ipfs.com/ipfs/${hash}`;
+          boxUri = `https://cloudflare-ipfs.com/ipfs/${hash}`;
         } else {
           var ipfsout = await execPromise(`${process.env.IPFS || 'ipfs'} cat /ipfs/${hash} > ${inputPath}`);
           break;
@@ -161,12 +187,11 @@ const handler = async (args, globalCopyList = []) => {
       //
       case 'http':
       case 'https':
-        // console.log(`downloading ${args.box}`);
-        stdout = await execPromise(`${process.env.CURL || 'curl'} ${boxName} -L -o ${inputPath}`, {});
+        stdout = await execPromise(`${process.env.CURL || 'curl'} ${boxUri} -L -o ${inputPath}`, {});
 
         break;
       case 'file':
-        var file = boxName.split('://')[1];
+        var file = boxUri.split('://')[1];
         inputPath = file;
         break;
 
@@ -175,10 +200,9 @@ const handler = async (args, globalCopyList = []) => {
       // code
     }
   } else {
-    throw new Error(`box '${args.box}' not found. maybe mapping not updated?`);
+    throw new Error(`Cannot parse box '${boxName}' URI: ${boxUri}`);
   }
 
-  // console.log(`extracting ${args.box}`);
   await (() => new Promise((resolve, reject) => {
     var extractor = require('unzipper').Extract({ path: extractPath });
     extractor.on('close', resolve);
@@ -201,19 +225,8 @@ const handler = async (args, globalCopyList = []) => {
   }
   var zeusBoxJson = JSON.parse(fs.readFileSync(zeusBoxJsonPath));
 
-  // load zeus-box.json
-  if (zeusBoxJson.dependencies) {
-    if (zeusBoxJson.dependencies.filter(pkg => currentzeusBoxJson.dependencies.indexOf(pkg) == -1).length) { console.log(emojMap.gear + 'Unboxing:', zeusBoxJson.dependencies.filter(pkg => currentzeusBoxJson.dependencies.indexOf(pkg) == -1).map(a => a.yellow).join(',')); }
-    // todo: load extension unbox if exists
-    for (var i = 0; i < zeusBoxJson.dependencies.length; i++) {
-      var dep = zeusBoxJson.dependencies[i];
-      var unboxExt = path.resolve(`./extensions/commands/unbox.js`);
-      var params = { ...args, box: dep, no_sample: true };
-      if (fs.existsSync(unboxExt + '.js')) {
-        await require(unboxExt).handler(params, globalCopyList);
-      } else { await handler(params, globalCopyList); }
-    }
-  }
+  fs.mkdirSync(newDir);
+  process.chdir(newDir);
 
   // run build script
   await runHook('post-unpack', args, zeusBoxJson, extractPath, {
@@ -238,13 +251,32 @@ const handler = async (args, globalCopyList = []) => {
   //     cwd:path.resolve('.')
   // });
   // console.log(stdout);
-  if (fs.existsSync('.gitignore') && !args.noIgnore) {
+  /*if (fs.existsSync('.gitignore') && !args.noIgnore) {
     var currentGitIgnore = fs.readFileSync('.gitignore').toString();
     currentGitIgnore += '\n';
     currentGitIgnore += newIgnoreList.map(a => a.replace(/\\/g, '/')).filter(a => a.indexOf('node_modules/') == -1 && a.indexOf('extensions/') == -1).map(a => a.substring(1)).filter(a => a !== '.gitignore').join('\n');
     fs.writeFileSync('.gitignore', currentGitIgnore);
+  }*/
+  //fs.writeFileSync(path.resolve('./zeus-box.json'), JSON.stringify(currentzeusBoxJson, null, 2));
+
+  // load zeus-box.json
+  if (zeusBoxJson.dependencies) {
+    if (zeusBoxJson.dependencies.filter(pkg => global.currentlyUnboxedBoxes.indexOf(pkg) == -1).length) { console.log(emojMap.gear + 'Unboxing:', zeusBoxJson.dependencies.filter(pkg => global.currentlyUnboxedBoxes.indexOf(pkg) == -1).map(a => a.yellow).join(',')); }
+    // todo: load extension unbox if exists
+    for (var i = 0; i < zeusBoxJson.dependencies.length; i++) {
+      var dep = zeusBoxJson.dependencies[i];
+      if (!global.currentlyUnboxedBoxes.includes(dep)) {
+        var unboxExt = path.resolve(`.commands/unbox.js`);
+        var params = { ...args, boxes: [dep], no_sample: true };
+        if (fs.existsSync(unboxExt + '.js')) {
+          await require(unboxExt).handler(params, globalCopyList);
+        } else { await handler(params, globalCopyList); }
+      }
+
+    }
   }
-  fs.writeFileSync(path.resolve('./zeus-box.json'), JSON.stringify(currentzeusBoxJson, null, 2));
+
+  process.chdir(newDir);
 
   // run install script
   try {
@@ -258,24 +290,23 @@ const handler = async (args, globalCopyList = []) => {
       console.log(stdout);
     }
   } catch (e) {
+    console.log(e);
     // delete all files in  newIgnoreList
     globalCopyList.forEach(f => {
       try {
         fs.unlinkSync(f);
       } catch (e) { }
     });
-    if (args.createDir) {
-      var dirToDelete = path.resolve('.');
-      process.chdir(path.resolve('..'));
-      fs.rmdirSync(dirToDelete);
-    }
+    var dirToDelete = path.resolve('.');
+    process.chdir(path.resolve('..'));
+    fs.rmdirSync(dirToDelete);
     throw e;
   }
   // console.log('cleaning up');
   // var archive = `https://github.com/${}/${}/archive/master.zip`;
   // https://github.com/zeit/serve/archive/master.zip
   if (args.no_sample || !zeusBoxJson.commands || Object.keys(zeusBoxJson.commands).length == 0) { return; }
-  console.log(emojMap.ok + `Done: ${createDir ? `\nEnter new directory:\n     cd ${args.box}` : ''}\nPlease try these sample commands:`);
+  console.log(emojMap.ok + `Done:\nPlease try these sample commands:`);
   console.log(Object.keys(zeusBoxJson.commands).map(label => `     ${emojMap.star}${label.underline}: ${zeusBoxJson.commands[label].yellow}`).join('\n'));
   // resolve github 3rd party boxes
   // resolve ipfs boxes
@@ -284,14 +315,11 @@ const handler = async (args, globalCopyList = []) => {
 module.exports = {
   description: 'installs a templated plugin or a seed',
   builder: (yargs) => {
-    yargs.option('create-dir', {
-      // describe: '',
-      default: true
-    }).option('test', {
+    yargs.option('test', {
       // describe: '',
       default: false
-    }).alias('c', 'create-dir').example('$0 unbox seed --no-create-dir --no-test');
+    }).example('$0 unbox seed --test');
   },
-  command: 'unbox <box>',
+  command: 'unbox [boxes..]',
   handler
 };
