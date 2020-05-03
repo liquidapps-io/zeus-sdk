@@ -18,8 +18,10 @@ const delaySec = sec => delay(sec * 1000);
 
 var contractCode = 'ipfsxtest';
 var ctrt = artifacts.require(`./${contractCode}/`);
+var contractCodeMain = 'ipfsconsumer';
+var ctrtMain = artifacts.require(`./${contractCodeMain}/`);
 describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
-  var testcontract, testcontract2;
+  var testcontract, testcontract2, testcontractMain;
   const mainnet_code = 'testc5';
   const sister_code = 'testc5x';
   const mainnet_code2 = 'testc51';
@@ -51,7 +53,8 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
         //create first
         await getCreateAccount(sister_code, null, false, sidechain);
         await getCreateAccount(mainnet_code, null, false);
-        var deployedContract = await deployer.deploy(ctrt, sister_code, null, sidechain);
+        await deployer.deploy(ctrt, sister_code, null, sidechain);
+        await deployer.deploy(ctrtMain, mainnet_code);
         await genAllocateDAPPTokens({ address: mainnet_code }, 'ipfs', '', 'default');
         await createLiquidXMapping(sidechain.name, mainnet_code, sister_code);
 
@@ -119,6 +122,18 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
           });
         }
         catch (e) { }
+
+        var mainnetNetwork = getNetwork(getDefaultArgs());
+        var mainnetConfig = {
+          expireInSeconds: 120,
+          sign: true,
+          chainId: mainnetNetwork.chainId,
+          httpEndpoint: 'http://localhost:13015'
+        };
+        var mainnetKeys = await getCreateKeys(mainnet_code, getDefaultArgs());
+        mainnetConfig.keyProvider = mainnetKeys.active.privateKey;
+        var eosMainnet = getEosWrapper(mainnetConfig);
+        testcontractMain = await eosMainnet.contract(mainnet_code);
 
         done();
       }
@@ -281,6 +296,45 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
         await testcontract.testremote({
           remote: sister_code2,
           id: 77777
+        }, {
+          authorization: `${sister_code}@active`,
+        });
+
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it('sidechain - read from other chain', done => {
+    (async() => {
+      try {
+        await testcontract.testindexa({
+          id: 99999
+        }, {
+          authorization: `${sister_code}@active`,
+        });
+
+        await testcontractMain.testindexa({
+          id: 33333
+        }, {
+          authorization: `${mainnet_code}@active`,
+        });
+
+        await testcontractMain.testchain({
+          remote: sister_code,
+          id: 99999,
+          chain: "test1"
+        }, {
+          authorization: `${mainnet_code}@active`,
+        });
+
+        await testcontract.testchain({
+          remote: mainnet_code,
+          id: 33333,
+          chain: "mainnet"
         }, {
           authorization: `${sister_code}@active`,
         });

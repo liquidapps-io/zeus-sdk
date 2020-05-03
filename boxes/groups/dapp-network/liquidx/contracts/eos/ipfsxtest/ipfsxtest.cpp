@@ -44,8 +44,18 @@ CONTRACT_START()
     });
   }
 
+  [[eosio::action]] void testfind(uint64_t id) {
+    testindex_t testset(_self,_self.value);
+    auto const& data = testset.get(id,"data not found");
+  }
+
   [[eosio::action]] void testremote(name remote, uint64_t id) {
     testindex_t testset(remote,remote.value);
+    auto const& data = testset.get(id,"data not found");
+  }
+
+  [[eosio::action]] void testchain(name remote, uint64_t id, name chain) {
+    testindex_t testset(remote, remote.value, 1024, 64, false, false, 0, chain);
     auto const& data = testset.get(id,"data not found");
   }
 
@@ -104,4 +114,4 @@ CONTRACT_START()
     eosio::check(entries.begin() == entries.end(),"must be empty");
 
   }
-CONTRACT_END((testset)(testget)(testempty)(increment)(testindexa)(testremote)(testresize)(testdelay)(xdcommit)(testcollide)(verfempty))
+CONTRACT_END((testset)(testget)(testempty)(increment)(testindexa)(testfind)(testremote)(testchain)(testresize)(testdelay)(xdcommit)(testcollide)(verfempty))

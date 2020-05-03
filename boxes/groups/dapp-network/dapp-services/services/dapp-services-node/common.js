@@ -505,7 +505,7 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
         if (i < jsons.length - 1) await processFn(actionHandlers, currentActionObject, true, serviceName, handlers);
       }
       const event = currentEvent;
-      if (!event)
+      if (!event) 
         throw new Error("unable to parse service request. is nodeos missing 'contracts-console = true'?");
       event.sidechain = sidechain;
       const actionObject = {
