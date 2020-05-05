@@ -1,13 +1,14 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
-  "dependencies": [
-    "dapp-services",
-    "log-dapp-service",
-    "seed-utils-cleanup",
-    "mocha"
-  ],
+  "dependencies": {
+    "dapp-services": "^1.0.0",
+    "log-dapp-service": "^1.0.0",
+    "seed-utils-cleanup": "^1.0.0",
+    "mocha": "^1.0.0"
+  },
   "install": {
     "contracts": {
       "ipfsconsumer": true,

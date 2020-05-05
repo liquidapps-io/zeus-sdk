@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -6,11 +7,11 @@
     "Create Token": "zeus create token ...",
     "Migrate": "zeus migrate"
   },
-  "dependencies": [
-    "mocha",
-    "seed-eos",
-    "seed-models"
-  ],
+  "dependencies": {
+    "mocha": "^1.0.0",
+    "seed-eos": "^1.0.0",
+    "seed-models": "^1.0.0"
+  },
   "install": {
     "contracts": {
       "Token": true

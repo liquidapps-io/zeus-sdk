@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -11,11 +12,11 @@
     "Periodic Cleanup": "zeus airdrop cleanup myairdrop"
   },
   "hooks": {},
-  "dependencies": [
-    "oracle-dapp-service",
-    "readfn-dapp-service",
-    "token"
-  ],
+  "dependencies": {
+    "oracle-dapp-service": "^1.0.0",
+    "readfn-dapp-service": "^1.0.0",
+    "token": "^1.0.0"
+  },
   "install": {
     "npm": {
       "aws-sdk": true,

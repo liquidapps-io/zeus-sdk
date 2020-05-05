@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -14,11 +15,11 @@
       "preinstall": ""
     }
   },
-  "dependencies": [
-    "eos-extensions",
-    "zeus-eos",
-    "eos-common",
-    "eosio-system-contracts",
-    "eos-keystore"
-  ]
+  "dependencies": {
+    "eos-extensions": "^1.0.0",
+    "zeus-eos": "^1.0.0",
+    "eos-common": "^1.0.0",
+    "eosio-system-contracts": "^1.0.0",
+    "eos-keystore": "^1.0.0"
+  }
 }

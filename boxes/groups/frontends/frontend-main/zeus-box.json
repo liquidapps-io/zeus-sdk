@@ -1,10 +1,11 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
-  "dependencies": [
-    "seed-frontends",
-    "seed-eos",
-    "core-extensions"
-  ]
+  "dependencies": {
+    "seed-frontends": "^1.0.0",
+    "seed-eos": "^1.0.0",
+    "core-extensions": "^1.0.0"
+  }
 }

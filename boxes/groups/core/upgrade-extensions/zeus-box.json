@@ -4,7 +4,10 @@
     "README.md"
   ],
   "commands": {
-    "Unbox sample": "zeus unbox sample-eos-cpp"
+    "Watch": "zeus upgrade"
+  },
+  "dependencies": {
+    "seed-extensions": "^1.0.0"
   },
   "hooks": {}
 }

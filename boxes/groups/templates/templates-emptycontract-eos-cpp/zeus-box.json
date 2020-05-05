@@ -1,18 +1,19 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
   "commands": {
     "Create contract from template": "zeus create contract somecontract"
   },
-  "dependencies": [
-    "mocha",
-    "seed-eos",
-    "seed-migrations",
-    "eos-common",
-    "seed-models",
-    "templates-extensions"
-  ],
+  "dependencies": {
+    "mocha": "^1.0.0",
+    "seed-eos": "^1.0.0",
+    "seed-migrations": "^1.0.0",
+    "eos-common": "^1.0.0",
+    "seed-models": "^1.0.0",
+    "templates-extensions": "^1.0.0"
+  },
   "install": {
     "contracts": {}
   },

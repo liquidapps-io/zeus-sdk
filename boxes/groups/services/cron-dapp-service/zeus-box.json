@@ -1,11 +1,12 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
-  "dependencies": [
-    "dapp-services",
-    "mocha"
-  ],
+  "dependencies": {
+    "dapp-services": "^1.0.0",
+    "mocha": "^1.0.0"
+  },
   "install": {
     "contracts": {
       "cronconsumer": true

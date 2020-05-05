@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -15,7 +16,7 @@
       }
     }
   },
-  "dependencies": [
-    "frontend-vue"
-  ]
+  "dependencies": {
+    "frontend-vue": "^1.0.0"
+  }
 }

@@ -1,12 +1,13 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
   "commands": {
     "Watch": "zeus test -c"
   },
-  "dependencies": [
-    "seed-extensions"
-  ],
+  "dependencies": {
+    "seed-extensions": "^1.0.0"
+  },
   "hooks": {}
 }

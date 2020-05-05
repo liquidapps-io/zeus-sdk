@@ -1,13 +1,14 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
   "commands": {
     "Start EOS Localenv": "zeus start-localenv"
   },
-  "dependencies": [
-    "core-extensions"
-  ],
+  "dependencies": {
+    "core-extensions": "^1.0.0"
+  },
   "install": {
     "npm": {
       "kill-port": true

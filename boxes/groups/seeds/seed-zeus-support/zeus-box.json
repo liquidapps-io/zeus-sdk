@@ -1,8 +1,9 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
   "commands": {},
-  "dependencies": [],
+  "dependencies": {},
   "hooks": {}
 }

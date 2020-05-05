@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -28,7 +29,7 @@
       }
     }
   },
-  "dependencies": [
-    "frontend-transit"
-  ]
+  "dependencies": {
+    "frontend-transit": "^1.0.0"
+  }
 }

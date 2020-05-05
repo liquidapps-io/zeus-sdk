@@ -1,11 +1,12 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
-  "dependencies": [
-    "seed-eos",
-    "seed-zeus-support"
-  ],
+  "dependencies": {
+    "seed-eos": "^1.0.0",
+    "seed-zeus-support": "^1.0.0"
+  },
   "install": {
     "npm-in-dirs": {
       "client": {

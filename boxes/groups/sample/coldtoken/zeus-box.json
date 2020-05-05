@@ -1,18 +1,19 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
   "commands": {
     "Test": "zeus test -c"
   },
-  "dependencies": [
-    "mocha",
-    "seed-eos",
-    "seed-migrations",
-    "eos-common",
-    "ipfs-dapp-service",
-    "seed-models"
-  ],
+  "dependencies": {
+    "mocha": "^1.0.0",
+    "seed-eos": "^1.0.0",
+    "seed-migrations": "^1.0.0",
+    "eos-common": "^1.0.0",
+    "ipfs-dapp-service": "^1.0.0",
+    "seed-models": "^1.0.0"
+  },
   "install": {
     "contracts": {
       "coldtoken": true

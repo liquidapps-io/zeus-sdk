@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -6,8 +7,8 @@
     "Create event": "zeus create event"
   },
   "hooks": {},
-  "dependencies": [
-    "seed-eos",
-    "core-extensions"
-  ]
+  "dependencies": {
+    "seed-eos": "^1.0.0",
+    "core-extensions": "^1.0.0"
+  }
 }

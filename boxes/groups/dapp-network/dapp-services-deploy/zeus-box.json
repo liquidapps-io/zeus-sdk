@@ -1,17 +1,18 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
   "commands": {
     "Register DSP": "zeus register dapp-service-provider-package --help"
   },
-  "dependencies": [
-    "mocha",
-    "seed-eos",
-    "seed-migrations",
-    "eos-common",
-    "all-dapp-services",
-    "liquidx",
-    "seed-models"
-  ]
+  "dependencies": {
+    "mocha": "^1.0.0",
+    "seed-eos": "^1.0.0",
+    "seed-migrations": "^1.0.0",
+    "eos-common": "^1.0.0",
+    "all-dapp-services": "^1.0.0",
+    "liquidx": "^1.0.0",
+    "seed-models": "^1.0.0"
+  }
 }

@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -12,11 +13,11 @@
       "helloworld": true
     }
   },
-  "dependencies": [
-    "mocha",
-    "seed-eos",
-    "seed-migrations",
-    "eos-common"
-  ],
+  "dependencies": {
+    "mocha": "^1.0.0",
+    "seed-eos": "^1.0.0",
+    "seed-migrations": "^1.0.0",
+    "eos-common": "^1.0.0"
+  },
   "hooks": {}
 }

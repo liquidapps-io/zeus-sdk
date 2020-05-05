@@ -1,15 +1,16 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
   "Watch": "zeus vaccounts push-action",
-  "dependencies": [
-    "dapp-services",
-    "seed-utils",
-    "mocha",
-    "ipfs-dapp-service",
-    "log-dapp-service"
-  ],
+  "dependencies": {
+    "dapp-services": "^1.0.0",
+    "seed-utils": "^1.0.0",
+    "mocha": "^1.0.0",
+    "ipfs-dapp-service": "^1.0.0",
+    "log-dapp-service": "^1.0.0"
+  },
   "install": {
     "contracts": {
       "vaccountsconsumer": true,

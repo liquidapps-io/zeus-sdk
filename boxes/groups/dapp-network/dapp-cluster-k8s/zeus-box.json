@@ -1,11 +1,12 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
   "hooks": {
     "post-install": "git clone https://github.com/liquidapps-io/dapp-dsp-k8s-helm.git && cd dapp-dsp-k8s-helm && git clone https://github.com/liquidapps-io/eosio-node-k8s-helm.git nodeos && helm dependency update || true"
   },
-  "dependencies": [
-    "coldtoken"
-  ]
+  "dependencies": {
+    "coldtoken": "^1.0.0"
+  }
 }

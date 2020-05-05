@@ -1,12 +1,13 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
-  "dependencies": [
-    "seed-eos",
-    "js-client",
-    "frontend-main"
-  ],
+  "dependencies": {
+    "seed-eos": "^1.0.0",
+    "js-client": "^1.0.0",
+    "frontend-main": "^1.0.0"
+  },
   "install": {
     "npm-in-dirs": {
       "frontends/main": {

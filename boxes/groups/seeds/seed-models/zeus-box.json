@@ -1,10 +1,11 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
-  "dependencies": [
-    "seed-zeus-support"
-  ],
+  "dependencies": {
+    "seed-zeus-support": "^1.0.0"
+  },
   "install": {
     "npm": {
       "js-yaml": true

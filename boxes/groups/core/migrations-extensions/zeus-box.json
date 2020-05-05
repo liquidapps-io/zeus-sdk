@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -6,10 +7,10 @@
     "Migrate": "zeus migrate",
     "No reset": "zeus migrate --no-reset"
   },
-  "dependencies": [
-    "localenv-extensions",
-    "seed-eos",
-    "zeus-eos"
-  ],
+  "dependencies": {
+    "localenv-extensions": "^1.0.0",
+    "seed-eos": "^1.0.0",
+    "zeus-eos": "^1.0.0"
+  },
   "hooks": {}
 }

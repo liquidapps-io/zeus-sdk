@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -8,10 +9,10 @@
     "Test sample contract": "zeus test -c"
   },
   "hooks": {},
-  "dependencies": [
-    "dapp-sample",
-    "toolchain",
-    "game-sample",
-    "framework-tests"
-  ]
+  "dependencies": {
+    "dapp-sample": "^1.0.0",
+    "toolchain": "^1.0.0",
+    "game-sample": "^1.0.0",
+    "framework-tests": "^1.0.0"
+  }
 }

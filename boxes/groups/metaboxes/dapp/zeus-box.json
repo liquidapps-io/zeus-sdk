@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -6,9 +7,9 @@
     "Create contract from template": "zeus create contract somecontract",
     "help for create-contract": "zeus create contract somecontract --help"
   },
-  "dependencies": [
-    "templates-emptycontract-eos-cpp",
-    "frontend-react"
-  ],
+  "dependencies": {
+    "templates-emptycontract-eos-cpp": "^1.0.0",
+    "frontend-react": "^1.0.0"
+  },
   "hooks": {}
 }

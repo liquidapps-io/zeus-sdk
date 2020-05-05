@@ -1,10 +1,11 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
-  "dependencies": [
-    "all-dapp-services",
-    "coldtoken",
-    "microauctions"
-  ]
+  "dependencies": {
+    "all-dapp-services": "^1.0.0",
+    "coldtoken": "^1.0.0",
+    "microauctions": "^1.0.0"
+  }
 }

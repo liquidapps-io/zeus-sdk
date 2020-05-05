@@ -1,26 +1,27 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
-  "dependencies": [
-    "log-dapp-service",
-    "ipfs-dapp-service",
-    "cron-dapp-service",
-    "vaccounts-dapp-service",
-    "oracle-dapp-service",
-    "storage-dapp-service",
-    "auth-dapp-service",
-    "history-dapp-service",
-    "readfn-dapp-service",
-    "dns-dapp-service",
-    "vcpu-dapp-service",
-    "oracle-web",
-    "oracle-self-history",
-    "oracle-foreign-chain",
-    "oracle-sister-chain",
-    "oracle-wolframalpha",
-    "oracle-random",
-    "oracle-sql",
-    "oracle-vcpu"
-  ]
+  "dependencies": {
+    "log-dapp-service": "^1.0.0",
+    "ipfs-dapp-service": "^1.0.0",
+    "cron-dapp-service": "^1.0.0",
+    "vaccounts-dapp-service": "^1.0.0",
+    "oracle-dapp-service": "^1.0.0",
+    "storage-dapp-service": "^1.0.0",
+    "auth-dapp-service": "^1.0.0",
+    "history-dapp-service": "^1.0.0",
+    "readfn-dapp-service": "^1.0.0",
+    "dns-dapp-service": "^1.0.0",
+    "vcpu-dapp-service": "^1.0.0",
+    "oracle-web": "^1.0.0",
+    "oracle-self-history": "^1.0.0",
+    "oracle-foreign-chain": "^1.0.0",
+    "oracle-sister-chain": "^1.0.0",
+    "oracle-wolframalpha": "^1.0.0",
+    "oracle-random": "^1.0.0",
+    "oracle-sql": "^1.0.0",
+    "oracle-vcpu": "^1.0.0"
+  }
 }

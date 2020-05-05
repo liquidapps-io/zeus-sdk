@@ -1,19 +1,20 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
-  "dependencies": [
-    "seed-zeus-support",
-    "seed-microservices",
-    "core-extensions",
-    "demux",
-    "seed-eos",
-    "events",
-    "seed-models",
-    "mocha",
-    "client-lib-base",
-    "ipfs-daemon"
-  ],
+  "dependencies": {
+    "seed-zeus-support": "^1.0.0",
+    "seed-microservices": "^1.0.0",
+    "core-extensions": "^1.0.0",
+    "demux": "^1.0.0",
+    "seed-eos": "^1.0.0",
+    "events": "^1.0.0",
+    "seed-models": "^1.0.0",
+    "mocha": "^1.0.0",
+    "client-lib-base": "^1.0.0",
+    "ipfs-daemon": "^1.0.0"
+  },
   "install": {
     "contracts": {
       "dappservices": true,

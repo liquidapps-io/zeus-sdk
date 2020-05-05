@@ -1,9 +1,10 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
   "commands": {},
-  "dependencies": [
-    "seed-utils"
-  ]
+  "dependencies": {
+    "seed-utils": "^1.0.0"
+  }
 }

@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -6,9 +7,9 @@
     "Migrate": "zeus migrate",
     "No reset": "zeus migrate --no-reset"
   },
-  "dependencies": [
-    "migrations-extensions",
-    "seed-models"
-  ],
+  "dependencies": {
+    "migrations-extensions": "^1.0.0",
+    "seed-extensions": "^1.0.0"
+  },
   "hooks": {}
 }

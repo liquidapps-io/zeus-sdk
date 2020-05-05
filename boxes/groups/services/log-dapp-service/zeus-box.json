@@ -1,10 +1,11 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
-  "dependencies": [
-    "dapp-services"
-  ],
+  "dependencies": {
+    "dapp-services": "^1.0.0"
+  },
   "install": {
     "contracts": {
       "logconsumer": true

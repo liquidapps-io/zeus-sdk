@@ -1,10 +1,11 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
   "commands": {},
   "hooks": {},
-  "dependencies": [
-    "events"
-  ]
+  "dependencies": {
+    "events": "^1.0.0"
+  }
 }

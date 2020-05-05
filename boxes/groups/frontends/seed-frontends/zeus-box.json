@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -7,9 +8,9 @@
     "Deploy Frontend To LiquidStorage": "zeus deploy frontend main --storage-provider pprovider1 --storage-account test1 --storage-key test1privatekey",
     "Run Locally": "zeus run frontend main"
   },
-  "dependencies": [
-    "seed-zeus-support",
-    "core-extensions"
-  ],
+  "dependencies": {
+    "seed-zeus-support": "^1.0.0",
+    "core-extensions": "^1.0.0"
+  },
   "hooks": {}
 }

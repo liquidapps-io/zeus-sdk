@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -9,18 +10,18 @@
     "Deploy frontend": "zeus deploy frontend main",
     "Deploy and register frontend": "zeus deploy frontend main --ipfs --register portfolio"
   },
-  "dependencies": [
-    "mocha",
-    "seed-eos",
-    "seed-migrations",
-    "ipfs-dapp-service",
-    "vaccounts-dapp-service",
-    "oracle-dapp-service",
-    "cron-dapp-service",
-    "eos-common",
-    "seed-frontends",
-    "seed-models"
-  ],
+  "dependencies": {
+    "mocha": "^1.0.0",
+    "seed-eos": "^1.0.0",
+    "seed-migrations": "^1.0.0",
+    "ipfs-dapp-service": "^1.0.0",
+    "vaccounts-dapp-service": "^1.0.0",
+    "oracle-dapp-service": "^1.0.0",
+    "cron-dapp-service": "^1.0.0",
+    "eos-common": "^1.0.0",
+    "seed-frontends": "^1.0.0",
+    "seed-models": "^1.0.0"
+  },
   "install": {
     "contracts": {
       "liquidportfolio": true

@@ -1,13 +1,14 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
   "commands": {
     "Watch": "zeus run <type> <name>"
   },
-  "dependencies": [
-    "seed-extensions",
-    "seed-models"
-  ],
+  "dependencies": {
+    "seed-extensions": "^1.0.0",
+    "seed-models": "^1.0.0"
+  },
   "hooks": {}
 }

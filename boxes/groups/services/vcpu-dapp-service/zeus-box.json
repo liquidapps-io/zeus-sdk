@@ -1,12 +1,13 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
   "commands": {},
   "hooks": {},
-  "dependencies": [
-    "dapp-services"
-  ],
+  "dependencies": {
+    "dapp-services": "^1.0.0"
+  },
   "install": {
     "npm": {
       "assemblyscript": "github:AssemblyScript/assemblyscript",

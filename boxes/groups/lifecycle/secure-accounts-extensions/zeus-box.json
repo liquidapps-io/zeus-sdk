@@ -1,14 +1,15 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
   "commands": {
     "Add Secure to migrations": "zeus secure-account accountabc owner active"
   },
-  "dependencies": [
-    "seed-eos",
-    "seed-migrations",
-    "seed-models"
-  ],
+  "dependencies": {
+    "seed-eos": "^1.0.0",
+    "seed-migrations": "^1.0.0",
+    "seed-models": "^1.0.0"
+  },
   "hooks": {}
 }

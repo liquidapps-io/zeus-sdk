@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -7,8 +8,8 @@
     "Run Frontend Locally": "zeus run frontend main",
     "Run Locally": "zeus migrate"
   },
-  "dependencies": [
-    "eoscraft-frontend",
-    "craft"
-  ]
+  "dependencies": {
+    "eoscraft-frontend": "^1.0.0",
+    "craft": "^1.0.0"
+  }
 }

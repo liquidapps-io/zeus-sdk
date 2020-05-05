@@ -1,17 +1,18 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
   "commands": {
     "Run framework tests": "zeus test -c"
   },
-  "dependencies": [
-    "all-dapp-services",
-    "mocha",
-    "coldtoken",
-    "vgrab",
-    "microauctions"
-  ],
+  "dependencies": {
+    "all-dapp-services": "^1.0.0",
+    "mocha": "^1.0.0",
+    "coldtoken": "^1.0.0",
+    "vgrab": "^1.0.0",
+    "microauctions": "^1.0.0"
+  },
   "install": {
     "contracts": {
       "svcsconsumer": true

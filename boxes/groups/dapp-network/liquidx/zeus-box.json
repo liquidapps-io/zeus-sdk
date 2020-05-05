@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -14,8 +15,8 @@
       "storagextest": true
     }
   },
-  "dependencies": [
-    "eosio-chains",
-    "all-dapp-services"
-  ]
+  "dependencies": {
+    "eosio-chains": "^1.0.0",
+    "all-dapp-services": "^1.0.0"
+  }
 }

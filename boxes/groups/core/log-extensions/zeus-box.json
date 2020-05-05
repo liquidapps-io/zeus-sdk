@@ -1,13 +1,14 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
   "commands": {
     "Watch": "zeus log docker-log"
   },
-  "dependencies": [
-    "seed-extensions"
-  ],
+  "dependencies": {
+    "seed-extensions": "^1.0.0"
+  },
   "hooks": {},
   "install": {
     "npm": {

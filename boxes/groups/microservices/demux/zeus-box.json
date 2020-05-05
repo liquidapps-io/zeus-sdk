@@ -1,13 +1,14 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
-  "dependencies": [
-    "events",
-    "seed-microservices",
-    "seed-models",
-    "log-extensions"
-  ],
+  "dependencies": {
+    "events": "^1.0.0",
+    "seed-microservices": "^1.0.0",
+    "seed-models": "^1.0.0",
+    "log-extensions": "^1.0.0"
+  },
   "install": {
     "npm": {
       "zeromq": true,

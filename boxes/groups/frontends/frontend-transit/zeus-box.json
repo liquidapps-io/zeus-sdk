@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -28,9 +29,9 @@
       }
     }
   },
-  "dependencies": [
-    "seed-frontends",
-    "core-extensions",
-    "frontend-main"
-  ]
+  "dependencies": {
+    "seed-frontends": "^1.0.0",
+    "core-extensions": "^1.0.0",
+    "frontend-main": "^1.0.0"
+  }
 }

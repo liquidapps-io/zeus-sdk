@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -9,15 +10,15 @@
     "Deploy frontend": "zeus deploy frontend main",
     "Deploy and register frontend": "zeus deploy frontend main --ipfs --register cardgame1111"
   },
-  "dependencies": [
-    "mocha",
-    "seed-eos",
-    "seed-migrations",
-    "eos-common",
-    "all-dapp-services",
-    "seed-frontends",
-    "seed-models"
-  ],
+  "dependencies": {
+    "mocha": "^1.0.0",
+    "seed-eos": "^1.0.0",
+    "seed-migrations": "^1.0.0",
+    "eos-common": "^1.0.0",
+    "all-dapp-services": "^1.0.0",
+    "seed-frontends": "^1.0.0",
+    "seed-models": "^1.0.0"
+  },
   "install": {
     "contracts": {
       "cardgame": true

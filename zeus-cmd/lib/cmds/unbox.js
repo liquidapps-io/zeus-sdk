@@ -4,6 +4,7 @@ const fs = require('fs');
 const { execPromise, emojMap, execScripts } = require('../helpers/_exec');
 const mapping = require('../helpers/_mapping');
 const temp = require('temp');
+const semver = require('semver');
 
 const { promisify } = require('util');
 const mkdir = promisify(temp.mkdir); // (A)
@@ -96,6 +97,20 @@ const runHook = async (hookName, args, zeusBoxJson, location, opts) => {
   }
 };
 
+const deleteFolderRecursive = function(pathToDelete) {
+  if (fs.existsSync(pathToDelete)) {
+    fs.readdirSync(pathToDelete).forEach((file, index) => {
+      const curPath = path.join(pathToDelete, file);
+      if (fs.lstatSync(curPath).isDirectory()) { // recurse
+        deleteFolderRecursive(curPath);
+      } else { // delete file
+        fs.unlinkSync(curPath);
+      }
+    });
+    fs.rmdirSync(pathToDelete);
+  }
+};
+
 const handler = async (args, globalCopyList = []) => {
 
   if (!global.currentlyUnboxedBoxes) {
@@ -115,13 +130,12 @@ const handler = async (args, globalCopyList = []) => {
     var newDir = path.resolve('./', 'zeus_boxes');
     if (!fs.existsSync(newDir)) { fs.mkdirSync(newDir); }
 
-    let boxJson = JSON.parse(fs.readFileSync(path.resolve('./zeus-box.json')));
-    if (!boxJson.dependencies) {
-      boxJson.dependencies = [];
-    }
-
     if (!args.boxes || !args.boxes.length) {
-      args.boxes = JSON.parse(fs.readFileSync(path.resolve('./zeus-box.json'))).dependencies;
+      args.boxes = [];
+      let dependencies = JSON.parse(fs.readFileSync(path.resolve('./zeus-box.json'))).dependencies;
+      for (let d of Object.keys(dependencies)) {
+        args.boxes.push(d + '@' + dependencies[d]);
+      }
     }
 
     global.path = process.cwd();
@@ -132,30 +146,55 @@ const handler = async (args, globalCopyList = []) => {
         console.log(emojMap.gear + 'Unboxing:', boxName.yellow);
         await handler(params, globalCopyList);
         process.chdir(global.path);
-        if (!boxJson.dependencies.includes(boxName)) {
-          boxJson.dependencies.push(boxName);
-          fs.writeFileSync(`./zeus-box.json`, JSON.stringify(boxJson, null, 4), function (err) { if (err) throw err; });
-        }
       }
     }
     return;
   }
 
-  var boxName = args.boxes[0];
+  var boxNameAndVersion = args.boxes[0];
+  var boxNameAndVersionSplit = boxNameAndVersion.split('@');
+  var boxName = boxNameAndVersionSplit[0];
+  if (boxNameAndVersionSplit.length > 1) {
+    var versionRange = boxNameAndVersionSplit[1];
+    if (!semver.validRange(versionRange)) {
+      console.log(`Given version '${versionRange}' for Box '${boxName}' is not semver valid`);
+      return;
+    }
+  } else {
+    var versionRange = '';
+  }
+
   if (global.currentlyUnboxedBoxes.indexOf(boxName) != -1) { return; }
 
   const boxesMapping = mapping.getCombined(args.storagePath);
   let boxUri;
 
   if (boxName in boxesMapping) {
-    boxUri = boxesMapping[boxName];
+    var versions = (Object.keys(boxesMapping[boxName]));
+    var version = semver.maxSatisfying(versions, versionRange);
+    if (version) {
+      boxUri = boxesMapping[boxName][version];
+    } else {
+      console.log(`Given version '${versionRange}' for Box '${boxName}' is not in mapping`);
+      return;
+    }
   } else {
     console.log(`Box '${boxName}' not found. Perhaps your mapping file is not updated?`);
     return;
   }
 
-  if (mapping.boxInBothMappings(args.storagePath, boxName)) {
-    console.log("WARNING:", boxName, "found in both local and builtin mapping. Unboxing using local mapping. If you wish to revert to builtin mapping, use zeus box remove", boxName);
+  // If this is not a second-level dependency
+  if (!args.no_sample) {
+    let boxJson = JSON.parse(fs.readFileSync(path.resolve('./zeus-box.json')));
+    if (!boxJson.dependencies) {
+      boxJson.dependencies = {};
+    }
+    boxJson.dependencies[boxName] = versionRange;
+    fs.writeFileSync(`./zeus-box.json`, JSON.stringify(boxJson, null, 4), function (err) { if (err) throw err; });
+  }
+
+  if (mapping.boxInBothMappings(args.storagePath, boxName, version)) {
+    console.log("WARNING:", boxName, "with version", version, "found in both local and builtin mapping. Unboxing using local mapping. If you wish to revert to builtin mapping, use zeus box remove", boxName);
   }
 
   process.chdir(global.path);
@@ -163,7 +202,17 @@ const handler = async (args, globalCopyList = []) => {
   global.currentlyUnboxedBoxes.push(boxName);
 
   var newDir = path.resolve(global.path, 'zeus_boxes/', boxName);
-  if (fs.existsSync(newDir)) { console.log(`Box '${boxName}' already unboxed`); return; }
+  if (fs.existsSync(newDir)) {
+    if (!args.update) {
+      console.log(`${emojMap.white_frowning_face}Box ${boxName.red} already unboxed`); return;
+    } else {
+      if(fs.lstatSync(newDir).isDirectory()) {
+        deleteFolderRecursive(newDir)
+      } else {
+        fs.unlinkSync(newDir);
+      }
+    }
+  }
 
   var extractPath = await mkdir('zeus');
   let stdout;
@@ -261,18 +310,22 @@ const handler = async (args, globalCopyList = []) => {
 
   // load zeus-box.json
   if (zeusBoxJson.dependencies) {
-    if (zeusBoxJson.dependencies.filter(pkg => global.currentlyUnboxedBoxes.indexOf(pkg) == -1).length) { console.log(emojMap.gear + 'Unboxing:', zeusBoxJson.dependencies.filter(pkg => global.currentlyUnboxedBoxes.indexOf(pkg) == -1).map(a => a.yellow).join(',')); }
-    // todo: load extension unbox if exists
-    for (var i = 0; i < zeusBoxJson.dependencies.length; i++) {
-      var dep = zeusBoxJson.dependencies[i];
-      if (!global.currentlyUnboxedBoxes.includes(dep)) {
-        var unboxExt = path.resolve(`.commands/unbox.js`);
-        var params = { ...args, boxes: [dep], no_sample: true };
-        if (fs.existsSync(unboxExt + '.js')) {
-          await require(unboxExt).handler(params, globalCopyList);
-        } else { await handler(params, globalCopyList); }
+    let dependenciesWithVersions = [];
+    for (let d of Object.keys(zeusBoxJson.dependencies)) {
+      if (!global.currentlyUnboxedBoxes.includes(d)) {
+        dependenciesWithVersions.push(d + '@' + zeusBoxJson.dependencies[d]);
       }
-
+    }
+    if (dependenciesWithVersions.length > 0) {
+      console.log(emojMap.gear + 'Unboxing:', dependenciesWithVersions.map(a => a.yellow).join(','));
+    }
+    for (var i = 0; i < dependenciesWithVersions.length; i++) {
+      var dep = dependenciesWithVersions[i];
+      var unboxExt = path.resolve(`.commands/unbox.js`);
+      var params = { ...args, boxes: [dep], no_sample: true };
+      if (fs.existsSync(unboxExt + '.js')) {
+        await require(unboxExt).handler(params, globalCopyList);
+      } else { await handler(params, globalCopyList); }
     }
   }
 
@@ -318,7 +371,10 @@ module.exports = {
     yargs.option('test', {
       // describe: '',
       default: false
-    }).example('$0 unbox seed --test');
+    }).option('update', {
+      // describe: '',
+      default: true
+    }).example('$0 unbox seed --test --no-update');
   },
   command: 'unbox [boxes..]',
   handler

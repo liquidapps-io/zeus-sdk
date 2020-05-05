@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -8,7 +9,7 @@
     "Test sample contract": "zeus test -c"
   },
   "hooks": {},
-  "dependencies": [
-    "sample-eos-cpp"
-  ]
+  "dependencies": {
+    "sample-eos-cpp": "^1.0.0"
+  }
 }

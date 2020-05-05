@@ -1,15 +1,16 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
-  "dependencies": [
-    "dapp-services",
-    "seed-utils",
-    "mocha",
-    "auth-dapp-service",
-    "ipfs-dapp-service",
-    "vaccounts-dapp-service"
-  ],
+  "dependencies": {
+    "dapp-services": "^1.0.0",
+    "seed-utils": "^1.0.0",
+    "mocha": "^1.0.0",
+    "auth-dapp-service": "^1.0.0",
+    "ipfs-dapp-service": "^1.0.0",
+    "vaccounts-dapp-service": "^1.0.0"
+  },
   "install": {
     "npm": {
       "tar-stream": true,

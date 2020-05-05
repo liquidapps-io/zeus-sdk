@@ -1,17 +1,18 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
-  "dependencies": [
-    "helloworld",
-    "all-dapp-services",
-    "airhodl",
-    "coldtoken",
-    "vgrab",
-    "deepfreeze",
-    "airdrop",
-    "chess",
-    "liquidx",
-    "combined"
-  ]
+  "dependencies": {
+    "helloworld": "^1.0.0",
+    "all-dapp-services": "^1.0.0",
+    "airhodl": "^1.0.0",
+    "coldtoken": "^1.0.0",
+    "vgrab": "^1.0.0",
+    "deepfreeze": "^1.0.0",
+    "airdrop": "^1.0.0",
+    "chess": "^1.0.0",
+    "liquidx": "^1.0.0",
+    "combined": "^1.0.0"
+  }
 }

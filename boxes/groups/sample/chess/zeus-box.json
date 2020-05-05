@@ -1,4 +1,5 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
@@ -9,16 +10,16 @@
     "Deploy frontend": "zeus deploy frontend main",
     "Deploy and register frontend": "zeus deploy frontend main --ipfs --register chess"
   },
-  "dependencies": [
-    "mocha",
-    "seed-eos",
-    "seed-migrations",
-    "eos-common",
-    "all-dapp-services",
-    "seed-frontends",
-    "oracle-stockfish",
-    "seed-models"
-  ],
+  "dependencies": {
+    "mocha": "^1.0.0",
+    "seed-eos": "^1.0.0",
+    "seed-migrations": "^1.0.0",
+    "eos-common": "^1.0.0",
+    "all-dapp-services": "^1.0.0",
+    "seed-frontends": "^1.0.0",
+    "oracle-stockfish": "^1.0.0",
+    "seed-models": "^1.0.0"
+  },
   "install": {
     "contracts": {
       "chess": true

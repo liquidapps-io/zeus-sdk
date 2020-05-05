@@ -1,16 +1,17 @@
 {
+  "version": "1.0.0",
   "ignore": [
     "README.md"
   ],
-  "dependencies": [
-    "dapp-services",
-    "mocha",
-    "seed-utils-cleanup",
-    "oracle-web",
-    "oracle-self-history",
-    "oracle-random",
-    "oracle-sister-chain"
-  ],
+  "dependencies": {
+    "dapp-services": "^1.0.0",
+    "mocha": "^1.0.0",
+    "seed-utils-cleanup": "^1.0.0",
+    "oracle-web": "^1.0.0",
+    "oracle-self-history": "^1.0.0",
+    "oracle-random": "^1.0.0",
+    "oracle-sister-chain": "^1.0.0"
+  },
   "install": {
     "contracts": {
       "oracleconsumer": true
