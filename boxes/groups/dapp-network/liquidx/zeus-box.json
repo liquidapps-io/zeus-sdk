@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "ignore": [
     "README.md"
   ],
@@ -11,6 +11,8 @@
       "orcxtest": true,
       "readfnxtest": true,
       "vaccountsx": true,
+      "vaccntxrem": true,
+      "vaccntxremx": true,
       "cronxtest": true,
       "storagextest": true
     }

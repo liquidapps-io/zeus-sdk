@@ -1,14 +1,73 @@
 const { requireBox } = require('@liquidapps/box-utils');
-var { nodeFactory } = requireBox('dapp-services/services/dapp-services-node/generic-dapp-service-node');
-const { eosDSPGateway, paccount, resolveProvider, resolveProviderPackage, resolveProviderData, pushTransaction, getLinkedAccount, getEosForSidechain, emitUsage } = requireBox('dapp-services/services/dapp-services-node/common');
-const { dappServicesContract, dappServicesLiquidXContract, getContractAccountFor } = requireBox('dapp-services/tools/eos/dapp-services');
-const { loadModels } = requireBox('seed-models/tools/models');
 const fetch = require('node-fetch');
+
+var { nodeFactory } = requireBox('dapp-services/services/dapp-services-node/generic-dapp-service-node');
+const { eosDSPGateway, paccount, resolveProvider,resolveProviderPackage,resolveProviderData, pushTransaction, getLinkedAccount, getEosForSidechain, emitUsage } = requireBox('dapp-services/services/dapp-services-node/common');
+const { readVRAMData, dappServicesContract } = requireBox('dapp-services/tools/eos/dapp-services');
+const { loadModels } = requireBox('seed-models/tools/models');
 const logger = requireBox('log-extensions/helpers/logger');
 
 nodeFactory('vaccounts', {
     api: {
-        push_action: async (req, res) => {
+        get_nonce: async(req, res) => {            
+            const {contract_code, vaccount, sidechain} = req.body;
+            logger.info("Received NONCE request for %s : %s", contract_code, vaccount);
+            try {                
+                let code = contract_code;
+                let nonce = 0;
+                let nonce_modifier = 0;
+                let chain = null;
+                let gateway = sidechain ? await getEosForSidechain(sidechain,paccount,true) : await eosDSPGateway();                
+                try {
+                    let vhost = await gateway.getTableRows({
+                        code: code,
+                        scope: code,
+                        table: 'vhost',
+                        json: true
+                    });
+                    code = vhost.rows[0].host;
+                } catch(e) {} //don't care if it fails
+                try {
+                    let crosschain = await gateway.getTableRows({
+                        code: code,
+                        scope: code,
+                        table: 'vchain',
+                        json: true
+                    });
+                    if(crosschain.rows[0].hostchain) {
+                        code = crosschain.rows[0].hostcode;
+                        chain = crosschain.rows[0].hostchain;
+                        nonce_modifier = Number(crosschain.rows[0].nonce);
+                    }                    
+                } catch(e) {} //don't care if it fails
+                try {
+                    let hostchain = sidechain;
+                    if(chain) {
+                        if(chain == 'mainnet') {
+                            hostchain = null;
+                        } else {
+                            let sidechains = await loadModels('eosio-chains');
+                            hostchain = sidechains.find(a => a.name === chain);
+                            if(!hostchain) throw new Error(`Unsupported sidechain ${chain} requested from contract`);
+                        }
+                    } 
+                    vkey = await readVRAMData({
+                        contract: code,
+                        scope: code,
+                        table: 'vkey',
+                        key: vaccount,
+                        sidechain: hostchain
+                    });
+                    nonce = Number(vkey.row.nonce);    
+                } catch(e) {} //don't care if it fails
+                let finalNonce = Number(nonce + nonce_modifier);
+                res.send({nonce: finalNonce});
+            } catch(e) {
+                res.status(400);
+                res.send(JSON.stringify({ error: e.toString() }));
+            }
+        },
+        push_action: async(req, res) => {
             const { contract_code, public_key, payload, signature, sidechain } = req.body;
             logger.info(`Received vaccount push_action request: account ${contract_code}, public key ${public_key}`);
             var gateway = await eosDSPGateway();

@@ -4,6 +4,7 @@ const {toBound} = common;
 import * as liquidaccount from "../types/dsp/liquid-account";
 const serviceContract = "accountless1";
 export const V1_DSP_PUSH_LIQUIDACCOUNT_ACTION = `/v1/dsp/${serviceContract}/push_action`;
+export const V1_DSP_GET_LIQUIDACCOUNT_NONCE = `/v1/dsp/${serviceContract}/get_nonce`;
 const ecc = require( "eosjs-ecc" );
 import { Serialize } from 'eosjs';
 
@@ -171,26 +172,14 @@ export default class LiquidAccountsService extends DSPServiceClient {
     private get_nonce = async (contract, vaccount, actionName) => {
         let nonce = 0;
         try {
-            const tableRes = await this.ipfs.get_vram_row(
-                contract,
-                contract,
-                "vkey",
+            const nonceRes = await this.post<liquidaccount.Nonce>(V1_DSP_GET_LIQUIDACCOUNT_NONCE, {
+                contract_code: contract,
                 vaccount
-            );
-            nonce = tableRes.row.nonce;
+            });
+            nonce = nonceRes.nonce;
         }
         catch (e) {
-            //lookup remote contract
-            try {
-                const response = await this.get_table_rows<any>( contract, contract, "vhost", {json: true} );
-                if(response.rows.length > 0) {
-                    let remotehost = response.rows[0].host;
-                    nonce = await this.get_nonce(remotehost,vaccount,actionName);
-                }
-            }
-            catch(e2) {
-                if (actionName !== "regaccount") throw e;
-            }
+            if (actionName !== "regaccount") throw e;
         }
         return nonce;
     }

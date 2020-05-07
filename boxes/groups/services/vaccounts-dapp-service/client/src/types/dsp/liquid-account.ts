@@ -3,6 +3,10 @@ export interface Payload {
     [data: string]: any;
 }
 
+export interface Nonce {
+    nonce: number;
+}
+
 export interface CombinedPayload {
     name: string;
     data: {
