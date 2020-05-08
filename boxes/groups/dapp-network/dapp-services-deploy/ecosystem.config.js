@@ -182,6 +182,7 @@ const createDSPSidechainServices = (sidechain) => {
     NODEOS_LATEST: sidechain.nodeos_latest || true,
     NODEOS_CHAINID: sidechain.nodeos_chainid,
     DSP_PORT: sidechain.dsp_port || 3116,
+    DSP_ACCOUNT_PERMISSIONS: sidechain.dsp_account_permissions || 'active',
     WEBHOOK_DAPP_PORT: sidechain.webhook_dapp_port || 8813,
     SIDECHAIN: sidechain.name
   }
@@ -201,7 +202,7 @@ const createDSPSidechainServices = (sidechain) => {
     },
     {
       name: `${sidechain.name}-demux`,
-      script: path.join(getBoxesDir(), getBoxName(`services/demux/index.js`),  'services', 'demux', 'index.js'),
+      script: path.join(getBoxesDir(), 'demux',  'services', 'demux', 'index.js'),
       autorestart: true,
       cwd: __dirname,
       log_date_format: "YYYY-MM-DDTHH:mm:ss",
@@ -260,7 +261,7 @@ module.exports = {
     },
     {
       name: 'demux',
-      script: path.join(getBoxesDir(), getBoxName(`services/demux/index.js`),  'services', `demux`, 'index.js'),
+      script: path.join(getBoxesDir(), 'demux',  'services', `demux`, 'index.js'),
       autorestart: true,
       cwd: __dirname,
       log_date_format: "YYYY-MM-DDTHH:mm:ss",
