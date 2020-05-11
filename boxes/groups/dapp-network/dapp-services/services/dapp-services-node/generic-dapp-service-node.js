@@ -7,7 +7,6 @@ const { loadModels } = requireBox('seed-models/tools/models');
 const logger = requireBox('log-extensions/helpers/logger');
 const { dappServicesContract, getContractAccountFor } = requireBox('dapp-services/tools/eos/dapp-services');
 const { deserialize, generateABI, genNode, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission, emitUsage, detectXCallback, getTableRowsSec, getLinkedAccount, parseEvents, pushTransaction, getEosForSidechain, eosMainnet } = require('./common');
-const AuthClientSetup = requireBox('auth-dapp-service/tools/auth-client');
 
 var sidechainsDict = {};
 
@@ -316,8 +315,9 @@ const nodeAutoFactory = async (serviceName) => {
       var apiHandler = await loadIfExists(serviceName, `api/${apiName}`); // load from file
       logger.debug(`registering api ${serviceName} ${apiName}`);
       const authentication = model.api[apiName].authentication;
-      let authClient;
+      let authClient, AuthClientSetup;
       if (authentication && authentication.type === 'payer') {
+        AuthClientSetup = requireBox('auth-dapp-service/tools/auth-client');
         var apiID = `${paccount}-${serviceName}`;
         authClient = new AuthClientSetup(apiID, authentication.contract);
       }

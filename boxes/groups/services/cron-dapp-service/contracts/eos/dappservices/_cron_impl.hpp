@@ -29,7 +29,7 @@ static void schedule_timer(name timer,std::vector<char> payload, uint32_t second
     timers.set(newtimer, current_receiver()); \
     SEND_SVC_REQUEST(schedule, timer, payload, seconds); \
 }  \
-static void remove_timer(name timer,std::vector<char> payload, uint32_t seconds){  \
+static void remove_timer(name timer){  \
     timers_def timers(current_receiver(), timer.value); \
     if(timers.exists()){ \
         timers.remove(); \
@@ -48,6 +48,5 @@ SVC_RESP_CRON(schedule)(name timer,std::vector<char> payload, uint32_t seconds,n
         return; \
     schedule_timer(timer, payload, seconds);\
 } \
-
 
 
