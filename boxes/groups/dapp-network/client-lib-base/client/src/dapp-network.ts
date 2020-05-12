@@ -335,11 +335,12 @@ export class DappClient extends EosioClient {
         let options:any = {};
         options.key_type = 'sha256';
         options.index_position = 2;
-        const packageHexLE = getTableBoundsForName(package_name).lower_bound;
-        const serviceBounds = getTableBoundsForName(service).lower_bound;
+        options.encode_type = 'hex';
+        const packageHexLE = getTableBoundsForName(package_name).lower_bound.match(/.{2}/g).reverse().join('');
+        const serviceBounds = getTableBoundsForName(service).lower_bound.match(/.{2}/g).reverse().join('');
         const providerBounds = getTableBoundsForName(provider);
-        options.lower_bound = `${packageHexLE}${`0`.repeat(16)}${providerBounds.lower_bound}${serviceBounds}`;
-        options.upper_bound = `${packageHexLE}${`0`.repeat(16)}${providerBounds.upper_bound}${serviceBounds}`;
+        options.lower_bound = `${`0`.repeat(16)}${packageHexLE}${serviceBounds}${providerBounds.lower_bound.match(/.{2}/g).reverse().join('')}`;
+        options.upper_bound = `${`0`.repeat(16)}${packageHexLE}${serviceBounds}${providerBounds.upper_bound.match(/.{2}/g).reverse().join('')}`;
         return this.get_table_rows<Package>( this.dappservices, this.dappservices, "package", options );
     }
 
@@ -347,10 +348,11 @@ export class DappClient extends EosioClient {
         let options:any = {};
         options.key_type = 'i128';
         options.index_position = 3;
-        const accountHexLE = getTableBoundsForName(account).lower_bound;
+        options.encode_type = 'hex';
+        const accountHexLE = getTableBoundsForName(account).lower_bound.match(/.{2}/g).reverse().join('');
         const serviceBounds = getTableBoundsForName(service);
-        options.lower_bound = `0x${serviceBounds.lower_bound}${accountHexLE}`;
-        options.upper_bound = `0x${serviceBounds.upper_bound}${accountHexLE}`;
+        options.lower_bound = `0x${accountHexLE}${serviceBounds.lower_bound.match(/.{2}/g).reverse().join('')}`;
+        options.upper_bound = `0x${accountHexLE}${serviceBounds.upper_bound.match(/.{2}/g).reverse().join('')}`;
         return this.get_table_rows<Accountext>( this.dappservices, names.DAPP, "accountext", options );
     }
 
@@ -358,11 +360,12 @@ export class DappClient extends EosioClient {
         let options:any = {};
         options.key_type = 'sha256';
         options.index_position = 2;
-        const accountHexLE = getTableBoundsForName(account).lower_bound;
-        const serviceBounds = getTableBoundsForName(service).lower_bound;
+        options.encode_type = 'hex';
+        const accountHexLE = getTableBoundsForName(account).lower_bound.match(/.{2}/g).reverse().join('');
+        const serviceBounds = getTableBoundsForName(service).lower_bound.match(/.{2}/g).reverse().join('');
         const providerBounds = getTableBoundsForName(provider);
-        options.lower_bound = `${accountHexLE}${`0`.repeat(16)}${providerBounds.lower_bound}${serviceBounds}`;
-        options.upper_bound = `${accountHexLE}${`0`.repeat(16)}${providerBounds.upper_bound}${serviceBounds}`;
+        options.lower_bound = `${`0`.repeat(16)}${accountHexLE}${serviceBounds}${providerBounds.lower_bound.match(/.{2}/g).reverse().join('')}`;
+        options.upper_bound = `${`0`.repeat(16)}${accountHexLE}${serviceBounds}${providerBounds.upper_bound.match(/.{2}/g).reverse().join('')}`;
         return this.get_table_rows<Accountext>( this.dappservices, names.DAPP, "accountext", options );
     }
 }
