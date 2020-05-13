@@ -109,6 +109,7 @@ const DEMUX_HEAD_BLOCK = globalEnv.DEMUX_HEAD_BLOCK || 0;
 const DEMUX_BYPASS_DATABASE_HEAD_BLOCK = globalEnv.DEMUX_BYPASS_DATABASE_HEAD_BLOCK || false;
 const DEMUX_MAX_PENDING_MESSAGES = globalEnv.DEMUX_MAX_PENDING_MESSAGES || 5000;
 const DEMUX_PROCESS_BLOCK_CHECKPOINT = globalEnv.DEMUX_PROCESS_BLOCK_CHECKPOINT || 1000;
+const DEMUX_MAX_MEMORY_MB = globalEnv.DEMUX_MAX_MEMORY_MB || 8196;
 
 const WEBHOOK_DEMUX_PORT = globalEnv.WEBHOOK_DEMUX_PORT || 3195;
 const SOCKET_MODE = globalEnv.DEMUX_SOCKET_MODE || 'sub';
@@ -218,7 +219,10 @@ const createDSPSidechainServices = (sidechain) => {
         DEMUX_PROCESS_BLOCK_CHECKPOINT: sidechain.demux_process_block_checkpoint || 1000,
         SOCKET_MODE: sidechain.demux_socket_mode || 'sub',
         LOGFILE_NAME: `${sidechain.name}-demux`
-      }
+      },  
+      "node_args": [
+        `--max_old_space_size=${sidechain.demux_max_memory_mb || 8196}`
+      ]
     }
   ] 
 }
@@ -277,7 +281,10 @@ module.exports = {
         WEBHOOK_DAPP_PORT,
         PORT: WEBHOOK_DEMUX_PORT,
         LOGFILE_NAME: 'demux' 
-      }
+      },  
+      "node_args": [
+        `--max_old_space_size=${DEMUX_MAX_MEMORY_MB}`
+      ]
     },
     ...servicesApps,
     ...sidechainServicesApps
