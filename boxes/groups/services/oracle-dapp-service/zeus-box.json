@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "ignore": [
     "README.md"
   ],
@@ -8,6 +8,7 @@
     "mocha": "^1.0.0",
     "seed-utils-cleanup": "^1.0.0",
     "oracle-web": "^1.0.0",
+    "oracle-echo": "^1.0.0",
     "oracle-self-history": "^1.0.0",
     "oracle-random": "^1.0.0",
     "oracle-sister-chain": "^1.0.0"

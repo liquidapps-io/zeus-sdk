@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "ignore": [
     "README.md"
   ],
@@ -22,6 +22,7 @@
     "oracle-wolframalpha": "^1.0.0",
     "oracle-random": "^1.0.0",
     "oracle-sql": "^1.0.0",
-    "oracle-vcpu": "^1.0.0"
+    "oracle-vcpu": "^1.0.0",
+    "oracle-echo": "^1.0.0"
   }
 }
