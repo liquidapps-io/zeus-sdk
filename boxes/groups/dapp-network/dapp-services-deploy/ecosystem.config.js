@@ -2,7 +2,8 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 var toml = require('toml');
-const { createDir, getBoxName, getBoxesDir } = require('@liquidapps/box-utils');
+const { getBoxName, getBoxesDir, requireBox } = require('@liquidapps/box-utils');
+const { loadModels } = requireBox('seed-models/tools/models');
 const disabledServices = ["sign", "log", "history"];
 var configPath = process.env.DSP_CONFIG_FILE || path.join(os.homedir(), '.dsp', "config.toml");
 if (!fs.existsSync(configPath))
@@ -20,8 +21,6 @@ catch (e) {
 }
 var globalEnv = {};
 
-// createDir(`models`, `models`);
-// createDir(`services`, `services`);
 const sidechains = configData.sidechains;
 // generate nodeos_endpoint in obj
 Object.keys(sidechains).forEach(k => {
@@ -128,11 +127,7 @@ const { lstatSync, readdirSync } = fs;
 const { join } = require('path');
 const isFile = source => !lstatSync(source).isDirectory();
 
-const getFiles = (source, ext) =>
-  readdirSync(source).map(name => join(source, name)).filter(isFile).filter(a => a.endsWith(ext)).sort();
-
-const serviceNames = getFiles(path.resolve(getBoxesDir(), getBoxName(`models/dapp-services`), `models/dapp-services/`), '.json').map(file =>
-  JSON.parse(fs.readFileSync(file).toString()).name).filter(s => !disabledServices.includes(s));
+const serviceNames = (loadModels('dapp-services')).map(file => file.name).filter(s => !disabledServices.includes(s));
 
 const DSP_SERVICES_ENABLED = globalEnv.DSP_SERVICES_ENABLED || serviceNames.join(',');
 const services = DSP_SERVICES_ENABLED.split(',');
