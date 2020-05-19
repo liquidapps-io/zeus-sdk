@@ -1,14 +1,16 @@
 {
+  "version": "1.0.0",
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Test": "zeus test -c"
   },
-  "dependencies":["ipfs-dapp-service"],
-  "install":{
-    "contracts":{
+  "dependencies": {
+    "ipfs-dapp-service": "^1.0.0"
+  },
+  "install": {
+    "contracts": {
       "airhodl": true
     }
   }

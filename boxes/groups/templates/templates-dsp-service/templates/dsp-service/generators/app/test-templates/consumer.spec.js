@@ -1,14 +1,15 @@
 require('mocha');
 
 
+const { requireBox } = require('@liquidapps/box-utils');
 const { assert } = require('chai'); // Using Assert style
-const { getNetwork, getCreateKeys } = require('../extensions/tools/eos/utils');
+const { getNetwork, getCreateKeys } = requireBox('seed-eos/tools/eos/utils');
 var Eos = require('eosjs');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
+const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens, readVRAMData } = require('../extensions/tools/eos/dapp-services');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens, readVRAMData } = requireBox('dapp-services/tools/eos/dapp-services');
 
 var contractCode = '<%- consumercontractname %>';
 var serviceName = '<%- servicename %>'
@@ -35,7 +36,7 @@ describe(`${contractCode} Contract`, () => {
     const code = getTestAccountName(Math.floor(Math.random() * 1000));
     var account = code;
     before(done => {
-        (async() => {
+        (async () => {
             try {
                 var deployedContract = await deployer.deploy(ctrt, code);
                 await genAllocateDAPPTokens(deployedContract, serviceName);
@@ -64,7 +65,7 @@ describe(`${contractCode} Contract`, () => {
     });
 
     it('test1', done => {
-        (async() => {
+        (async () => {
             try {
                 done();
             }

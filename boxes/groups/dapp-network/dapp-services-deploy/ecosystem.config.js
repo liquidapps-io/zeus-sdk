@@ -2,7 +2,8 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 var toml = require('toml');
-
+const { getBoxName, getBoxesDir, requireBox } = require('@liquidapps/box-utils');
+const { loadModels } = requireBox('seed-models/tools/models');
 const disabledServices = ["sign", "log", "history"];
 var configPath = process.env.DSP_CONFIG_FILE || path.join(os.homedir(), '.dsp', "config.toml");
 if (!fs.existsSync(configPath))
@@ -29,8 +30,8 @@ Object.keys(sidechains).forEach(k => {
   sidechains[k].nodeos_endpoint = prefix + host + port;
 })
 function createSidechainModels(data) {
-  const liquidxMappingsDir = path.resolve(__dirname, `./models/liquidx-mappings/`);
-  const localSidechainsDir = path.resolve(__dirname, `./models/eosio-chains/`);
+  const liquidxMappingsDir = path.resolve(getBoxesDir(), `liquidx/models/liquidx-mappings/`);
+  const localSidechainsDir = path.resolve(getBoxesDir(), `liquidx/models/eosio-chains/`);
   let sidechains = data.sidechains;
   if (!sidechains) { return; }
   Object.keys(sidechains).forEach(k => {
@@ -91,7 +92,6 @@ const DSP_ACCOUNT_PERMISSIONS = globalEnv.DSP_ACCOUNT_PERMISSIONS || 'active';
 const DATABASE_NODE_ENV = globalEnv.DATABASE_NODE_ENV || 'production';
 const DATABASE_TIMEOUT = globalEnv.DATABASE_TIMEOUT || 10000;
 
-
 // Configure .env
 const DSP_PORT = globalEnv.DSP_PORT || 3115;
 const DSP_CONSUMER_PAYS = globalEnv.DSP_CONSUMER_PAYS || false;
@@ -108,6 +108,7 @@ const DEMUX_HEAD_BLOCK = globalEnv.DEMUX_HEAD_BLOCK || 0;
 const DEMUX_BYPASS_DATABASE_HEAD_BLOCK = globalEnv.DEMUX_BYPASS_DATABASE_HEAD_BLOCK || false;
 const DEMUX_MAX_PENDING_MESSAGES = globalEnv.DEMUX_MAX_PENDING_MESSAGES || 5000;
 const DEMUX_PROCESS_BLOCK_CHECKPOINT = globalEnv.DEMUX_PROCESS_BLOCK_CHECKPOINT || 1000;
+const DEMUX_MAX_MEMORY_MB = globalEnv.DEMUX_MAX_MEMORY_MB || 8196;
 
 const WEBHOOK_DEMUX_PORT = globalEnv.WEBHOOK_DEMUX_PORT || 3195;
 const SOCKET_MODE = globalEnv.DEMUX_SOCKET_MODE || 'sub';
@@ -126,11 +127,7 @@ const { lstatSync, readdirSync } = fs;
 const { join } = require('path');
 const isFile = source => !lstatSync(source).isDirectory();
 
-const getFiles = (source, ext) =>
-  readdirSync(source).map(name => join(source, name)).filter(isFile).filter(a => a.endsWith(ext)).sort();
-
-const serviceNames = getFiles(path.resolve(__dirname, `./models/dapp-services`), '.json').map(file =>
-  JSON.parse(fs.readFileSync(file).toString()).name).filter(s => !disabledServices.includes(s));
+const serviceNames = (loadModels('dapp-services')).map(file => file.name).filter(s => !disabledServices.includes(s));
 
 const DSP_SERVICES_ENABLED = globalEnv.DSP_SERVICES_ENABLED || serviceNames.join(',');
 const services = DSP_SERVICES_ENABLED.split(',');
@@ -181,13 +178,14 @@ const createDSPSidechainServices = (sidechain) => {
     NODEOS_LATEST: sidechain.nodeos_latest || true,
     NODEOS_CHAINID: sidechain.nodeos_chainid,
     DSP_PORT: sidechain.dsp_port || 3116,
+    DSP_ACCOUNT_PERMISSIONS: sidechain.dsp_account_permissions || 'active',
     WEBHOOK_DAPP_PORT: sidechain.webhook_dapp_port || 8813,
     SIDECHAIN: sidechain.name
   }
   return [
     {
       name: `${sidechain.name}-dapp-services-node`,
-      script: path.join(__dirname, 'services', 'dapp-services-node', 'index.js'),
+      script: path.join(getBoxesDir(), getBoxName(`services/dapp-services-node/index.js`),  'services', 'dapp-services-node', 'index.js'),
       autorestart: true,
       cwd: __dirname,
       log_date_format: "YYYY-MM-DDTHH:mm:ss",
@@ -200,7 +198,7 @@ const createDSPSidechainServices = (sidechain) => {
     },
     {
       name: `${sidechain.name}-demux`,
-      script: path.join(__dirname, 'services', 'demux', 'index.js'),
+      script: path.join(getBoxesDir(), 'demux',  'services', 'demux', 'index.js'),
       autorestart: true,
       cwd: __dirname,
       log_date_format: "YYYY-MM-DDTHH:mm:ss",
@@ -216,14 +214,17 @@ const createDSPSidechainServices = (sidechain) => {
         DEMUX_PROCESS_BLOCK_CHECKPOINT: sidechain.demux_process_block_checkpoint || 1000,
         SOCKET_MODE: sidechain.demux_socket_mode || 'sub',
         LOGFILE_NAME: `${sidechain.name}-demux`
-      }
+      },  
+      "node_args": [
+        `--max_old_space_size=${sidechain.demux_max_memory_mb || 8196}`
+      ]
     }
   ] 
 }
 
 const createDSPServiceApp = (name) => ({
   name: `${name}-dapp-service-node`,
-  script: path.join(__dirname, 'services', `${name}-dapp-service-node`, 'index.js'),
+  script: path.join(getBoxesDir(), getBoxName(`services/${name}-dapp-service-node/index.js`),  'services', `${name}-dapp-service-node`, 'index.js'),
   autorestart: true,
   cwd: __dirname,
   log_date_format: "YYYY-MM-DDTHH:mm:ss",
@@ -242,12 +243,11 @@ const sidechainServicesApps = Array.prototype.concat.apply(
 );
 
 const servicesApps = services.map(createDSPServiceApp);
-
 module.exports = {
   force: true,
   apps: [{
       name: 'dapp-services-node',
-      script: path.join(__dirname, 'services', 'dapp-services-node', 'index.js'),
+      script: path.join(getBoxesDir(), getBoxName(`services/dapp-services-node/index.js`),  'services', `dapp-services-node`, 'index.js'),
       autorestart: true,
       cwd: __dirname,
       log_date_format: "YYYY-MM-DDTHH:mm:ss",
@@ -260,7 +260,7 @@ module.exports = {
     },
     {
       name: 'demux',
-      script: path.join(__dirname, 'services', 'demux', 'index.js'),
+      script: path.join(getBoxesDir(), 'demux',  'services', `demux`, 'index.js'),
       autorestart: true,
       cwd: __dirname,
       log_date_format: "YYYY-MM-DDTHH:mm:ss",
@@ -276,7 +276,10 @@ module.exports = {
         WEBHOOK_DAPP_PORT,
         PORT: WEBHOOK_DEMUX_PORT,
         LOGFILE_NAME: 'demux' 
-      }
+      },  
+      "node_args": [
+        `--max_old_space_size=${DEMUX_MAX_MEMORY_MB}`
+      ]
     },
     ...servicesApps,
     ...sidechainServicesApps

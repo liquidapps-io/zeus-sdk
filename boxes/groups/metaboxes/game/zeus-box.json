@@ -1,14 +1,15 @@
 {
+  "version": "1.0.0",
   "ignore": [
-    "README.md",
-    "zeus-box.json",
-    "zeus-config.js"
+    "README.md"
   ],
   "commands": {
     "Create contract from template": "zeus create contract somecontract",
     "help for create-contract": "zeus create contract somecontract --help"
   },
-  "dependencies":["templates-emptycontract-eos-cpp","frontend-phaser"],
-  "hooks": {
-  }
+  "dependencies": {
+    "templates-emptycontract-eos-cpp": "^1.0.0",
+    "frontend-phaser": "^1.0.0"
+  },
+  "hooks": {}
 }

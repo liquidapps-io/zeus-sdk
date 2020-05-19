@@ -1,9 +1,10 @@
-const { genRandomId } = require('../extensions/tools/eos/utils');
+const { requireBox } = require('@liquidapps/box-utils');
+const { genRandomId } = requireBox('seed-eos/tools/eos/utils');
 const fetch = require('node-fetch');
 const { Serialize } = require('eosjs');
 const { hexToUint8Array, arrayToHex } = Serialize;
 const { TextDecoder, TextEncoder } = require('text-encoding');
-const { getEosWrapper } = require('../extensions/tools/eos/eos-wrapper');
+const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 
 const contractAccount = process.env.CONTRACT;
 const endpoint = process.env.DSP_ENDPOINT || 'http://127.0.0.1:13015';
@@ -133,7 +134,7 @@ async function main() {
       service: 'oracleservic',
       action: 'geturi',
       rollback: true
-    } 
+    }
   }
   const abi = await eosPrivate.getAbi(contractAccount);
   table = process.env.TABLE || abi.tables.find(table => Object.keys(tableConfig).includes(table.name)).name;

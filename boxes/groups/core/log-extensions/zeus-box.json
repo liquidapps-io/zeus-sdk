@@ -1,15 +1,16 @@
 {
+  "version": "1.0.0",
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Watch": "zeus log docker-log"
   },
-  "dependencies":[ "seed-extensions" ],
-  "hooks": {
+  "dependencies": {
+    "seed-extensions": "^1.0.0"
   },
-  "install":{
+  "hooks": {},
+  "install": {
     "npm": {
       "winston": "^3.2.1",
       "winston-daily-rotate-file": "^3.10.0"

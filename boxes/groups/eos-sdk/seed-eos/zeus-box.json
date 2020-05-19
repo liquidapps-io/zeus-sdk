@@ -1,19 +1,25 @@
 {
+  "version": "1.0.0",
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Unbox sample": "zeus unbox sample-eos-cpp"
   },
-  "install":{
-    "npm":{
+  "install": {
+    "npm": {
       "mkdirp": true,
       "which": true
-    }, 
-    "npm-scripts":{
+    },
+    "npm-scripts": {
       "preinstall": ""
     }
   },
-  "dependencies":["eos-extensions", "zeus-eos", "eos-common", "eosio-system-contracts", "eos-keystore"]
+  "dependencies": {
+    "eos-extensions": "^1.0.0",
+    "zeus-eos": "^1.0.0",
+    "eos-common": "^1.0.0",
+    "eosio-system-contracts": "^1.0.0",
+    "eos-keystore": "^1.0.0"
+  }
 }

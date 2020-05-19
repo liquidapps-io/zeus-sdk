@@ -7,8 +7,8 @@ account = "<DSP ACCOUNT>"
 private_key = "<DSP PRIVATE KEY>"
 port = 3115
 # configure available services: (comment for all services)
-# services_enabled = "ipfs,vaccounts,oracle,cron,auth,storage"
-# account_permissions = "active"
+services_enabled = "ipfs,vaccounts,oracle,cron,auth,storage"
+# account_permissions = "active" # permission level used to sign DSP transactions, defaults to active
 # consumer_pays: setting this to true forces consumer to pay for all cpu/net/ram
 # however, if they don't have the correct permission setup, everything will fail
 # review consumer pays documentation prior to setting this to true
@@ -46,6 +46,7 @@ socket_mode = "sub"
 bypass_database_head_block = false
 max_pending_messages = 5000 # amount of pending messages to add to the stack before disconnecting the demux websocket to allow pending messages to process
 process_block_checkpoint = 1000 # amount of blocks to pass before updating PostgreSQL database with the last processed block
+# max_memory_mb = # max amount of memory to be consumed by demux, defaults to 8196
 
 [ipfs]
 protocol = "http"
@@ -59,6 +60,7 @@ port = 5001
     dsp_port = 3116 # dsp port to run new chain's services on, this is the port developers will push to, must be unique per new chain
     dsp_account = "test1" # DSP Account on new chain
     dsp_private_key = "" # DSP active private key on new chain
+    # dsp_account_permissions = "active" # permission level used to sign DSP transactions, defaults to active
     # nodeos
     nodeos_host = "localhost" # nodeos host running new chain
     nodeos_port = 8888 # nodeos host port
@@ -76,6 +78,7 @@ port = 5001
     demux_bypass_database_head_block = false
     demux_max_pending_messages = 5000 # amount of pending messages to add to the stack before disconnecting the demux websocket to allow pending messages to process
     demux_process_block_checkpoint = 1000 # amount of blocks to pass before updating PostgreSQL database with the last processed block
+    # demux_max_memory_mb = # max amount of memory to be consumed by demux, defaults to 8196
     # sidechain 
     name = "test1" # CHAIN_NAME - contract on the EOS mainnet that registered the new chain
     # the mapping below contains the dappservices:dappservicex and mainnet DSP account to the new chain's DSP account mapping

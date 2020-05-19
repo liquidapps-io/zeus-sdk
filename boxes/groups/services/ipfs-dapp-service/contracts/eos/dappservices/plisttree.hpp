@@ -1,6 +1,6 @@
 #pragma once
 #include "plist.hpp"
-#include "log.hpp"
+#include "../dappservices/log.hpp"
 
 
 class plisttreeNode {

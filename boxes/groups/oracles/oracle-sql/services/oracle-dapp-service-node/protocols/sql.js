@@ -2,8 +2,9 @@ const Sequelize = require('sequelize');
 const eosjs2 = require('eosjs');
 const { TextDecoder, TextEncoder } = require('text-encoding');
 const { Serialize, JsonRpc } = eosjs2;
-const logger = require('../../../extensions/helpers/logger');
-const { eosDSPGateway, paccount, resolveProviderPackage, deserialize, generateABI } = require('../../dapp-services-node/common');
+const { requireBox } = require('@liquidapps/box-utils');
+const logger = requireBox('log-extensions/helpers/logger');
+const { eosDSPGateway, paccount, resolveProviderPackage, deserialize, generateABI } = requireBox('dapp-services/services/dapp-services-node/common');
 
 const fullabi = (abi) => {
   return {
@@ -12,14 +13,14 @@ const fullabi = (abi) => {
   };
 };
 
-module.exports = async({ proto, address, sidechain, contract }) => {
+module.exports = async ({ proto, address, sidechain, contract }) => {
   // sql://query
   var dbContractName = contract;
   if (sidechain)
     dbContractName = `${sidechain}-${contract}`
   const sequelize = new Sequelize({
     dialect: 'sqlite',
-    storage: `dbs/${paccount}-${dbContractName}.sqlite`,
+    storage: `zeus_boxes/dbs/${paccount}-${dbContractName}.sqlite`,
     query: { raw: true }
   });
   await sequelize.authenticate();

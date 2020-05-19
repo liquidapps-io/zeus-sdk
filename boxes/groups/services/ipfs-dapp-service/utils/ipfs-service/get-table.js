@@ -1,6 +1,7 @@
-const { deserialize, decodeName } = require('../../services/dapp-services-node/common')
+const { requireBox } = require('@liquidapps/box-utils');
+const { deserialize, decodeName } = requireBox('dapp-services/services/dapp-services-node/common')
 const sha256 = require('js-sha256').sha256;
-const { getEosWrapper } = require('../../extensions/tools/eos/eos-wrapper')
+const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 const BN = require('bignumber.js')
 const bs58 = require('bs58')
 const fs = require('fs');
@@ -62,15 +63,15 @@ async function parseShardUri(shardUri, dspEndpoint, contractName, ipfsCache) {
     "name": "shard_data",
     "base": "",
     "fields": [{
-        "name": "values",
-        "type": "bytes[]"
-      }
+      "name": "values",
+      "type": "bytes[]"
+    }
     ]
   }];
   try {
     const deserializedShardData = deserialize(shardDataAbi, data, 'shard_data');
     return deserializedShardData.values;
-  } catch(e) {
+  } catch (e) {
     console.log(`error deserializing shard data: ${e}`);
     throw e;
   }
@@ -98,7 +99,7 @@ async function parseTableEntryUri(entryUri, abiStructs, structName, dspEndpoint,
   try {
     let desData = deserialize(abiStructs, data, structName);
     return desData;
-  } catch(e) {
+  } catch (e) {
     console.log(`error deserializing uri ${entryUri}`);
     return {
       "error": true
@@ -146,18 +147,18 @@ const hashData256 = (data) => {
 function postData(url = ``, data = {}) {
   // Default options are marked with *
   return fetch(url, {
-      method: 'POST', // *GET, POST, PUT, DELETE, etc.
-      mode: 'cors', // no-cors, cors, *same-origin
-      cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-      credentials: 'same-origin', // include, *same-origin, omit
-      headers: {
-        // "Content-Type": "application/json",
-        // "Content-Type": "application/x-www-form-urlencoded",
-      },
-      redirect: 'follow', // manual, *follow, error
-      referrer: 'no-referrer', // no-referrer, *client
-      body: JSON.stringify(data) // body data type must match "Content-Type" header
-    })
+    method: 'POST', // *GET, POST, PUT, DELETE, etc.
+    mode: 'cors', // no-cors, cors, *same-origin
+    cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+    credentials: 'same-origin', // include, *same-origin, omit
+    headers: {
+      // "Content-Type": "application/json",
+      // "Content-Type": "application/x-www-form-urlencoded",
+    },
+    redirect: 'follow', // manual, *follow, error
+    referrer: 'no-referrer', // no-referrer, *client
+    body: JSON.stringify(data) // body data type must match "Content-Type" header
+  })
     .then(response => response.json()); // parses response to JSON
 }
 
@@ -165,7 +166,7 @@ async function getIpfsData(uri, dspEndpoint, contractName, ipfsCache) {
   const eos = getEosWrapper({ httpEndpoint: dspEndpoint })
   let hash = uri.toString('hex').slice(8);
   let matchHash;
-  if(nodeosLatest.toString() === "true") {
+  if (nodeosLatest.toString() === "true") {
     matchHash = hash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('');
   } else {
     matchHash = hash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('').match(/.{32}/g).reverse().join('').match(/.{2}/g).reverse().join('');

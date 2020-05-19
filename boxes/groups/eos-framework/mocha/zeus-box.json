@@ -1,8 +1,7 @@
 {
+  "version": "1.0.0",
   "ignore": [
-    "README.md",
-    "zeus-box.json",
-    "zeus-config.js"
+    "README.md"
   ],
   "commands": {
     "Test": "zeus test -c"
@@ -19,8 +18,7 @@
     }
   },
   "hooks": {},
-  "dependencies": [
-    "seed-tests",
-    "hooks-npm"
-  ]
+  "dependencies": {
+    "seed-tests": "^1.0.0"
+  }
 }

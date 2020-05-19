@@ -1,27 +1,23 @@
 {
+  "version": "1.0.0",
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Watch": "zeus watch"
   },
-  "dependencies":[
-      "run-extensions",
-      "migrations-extensions",
-      "contract-migrations-extensions",
-      "test-extensions",
-      "build-extensions",
-      "localenv-extensions",
-      "upgrade-extensions",
-      "unbox-extensions",
-      "create-extensions",
-      "hooks-extensions",
-      "update-extensions",
-      "log-extensions",
-      "sync-builtin-boxes-extensions",
-      "templates-emptycontract-eos-cpp"
-    ],
-  "hooks": {
-  }
+  "dependencies": {
+    "run-extensions": "^1.0.0",
+    "migrations-extensions": "^1.0.0",
+    "contract-migrations-extensions": "^1.0.0",
+    "test-extensions": "^1.0.0",
+    "build-extensions": "^1.0.0",
+    "localenv-extensions": "^1.0.0",
+    "create-extensions": "^1.0.0",
+    "log-extensions": "^1.0.0",
+    "sync-builtin-boxes-extensions": "^1.0.0",
+    "templates-emptycontract-eos-cpp": "^1.0.0",
+    "upgrade-extensions": "^1.0.0"
+  },
+  "hooks": {}
 }

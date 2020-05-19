@@ -1,17 +1,17 @@
 require('mocha');
 
-
+const { requireBox } = require('@liquidapps/box-utils');
 const { assert } = require('chai'); // Using Assert style
-const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getNetwork, getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
-const { getTableRowsSec } = require('../services/dapp-services-node/common');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
+const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
+const { getNetwork, getCreateAccount, getEos } = requireBox('seed-eos/tools/eos/utils');
+const { getTableRowsSec } = requireBox('dapp-services/services/dapp-services-node/common');
+const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { dappServicesContract, testProvidersList } = require('../extensions/tools/eos/dapp-services');
-const { loadModels } = require('../extensions/tools/models');
-const { getEosWrapper } = require('../extensions/tools/eos/eos-wrapper');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { dappServicesContract, testProvidersList } = requireBox('dapp-services/tools/eos/dapp-services');
+const { loadModels } = requireBox('seed-models/tools/models');
+const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 
 var contractCode = 'ipfsconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
@@ -68,7 +68,7 @@ async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccou
   });
 
   // create service account
-  await getCreateAccount(serviceContract);  
+  await getCreateAccount(serviceContract);
 }
 
 async function allocateDAPPTokens(deployedContract, quantity = '1000.0000 DAPP') {
@@ -283,7 +283,7 @@ async function setcost(serviceName = 'ipfs', provider = 'pprovider1', package_id
     await servicesTokenContract.pricepkg({
       provider,
       package_id,
-      service,      
+      service,
       action,
       cost
     }, {
@@ -864,10 +864,10 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
       catch (e) {
         done(e);
       }
-    })();    
+    })();
   });
 
-  
+
   it('Custom action quota pricing', done => {
     (async () => {
       try {
@@ -879,26 +879,26 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         await deployServicePackage({ package_id: selectedPackage, package_period });
         await selectPackage({ deployedContract, selectedPackage });
         await stake({ deployedContract, selectedPackage });
-        await setcost("ipfs","pprovider1",selectedPackage,"warmup",5);
-        await setcost("ipfs","pprovider1",selectedPackage,"commit",5);
+        await setcost("ipfs", "pprovider1", selectedPackage, "warmup", 5);
+        await setcost("ipfs", "pprovider1", selectedPackage, "commit", 5);
 
         //FIRST
-        await invokeService(testContractAccount, testcontract);    
+        await invokeService(testContractAccount, testcontract);
         let table = await getTableRowsSec(eos.rpc, dappServicesContract, "accountext", "DAPP", [null, testContractAccount, "ipfsservice1", "pprovider1"], 1, 'sha256', 2);
-        let first = Number(table[0].quota.replace(" QUOTA",""));
+        let first = Number(table[0].quota.replace(" QUOTA", ""));
 
         //SECOND
         await invokeService(testContractAccount, testcontract);
         table = await getTableRowsSec(eos.rpc, dappServicesContract, "accountext", "DAPP", [null, testContractAccount, "ipfsservice1", "pprovider1"], 1, 'sha256', 2);
-        let second = Number(table[0].quota.replace(" QUOTA",""));
-        assert(second <= (first - 0.0005),"quota must decrease by 5");
+        let second = Number(table[0].quota.replace(" QUOTA", ""));
+        assert(second <= (first - 0.0005), "quota must decrease by 5");
 
         //THIRD
         await invokeService(testContractAccount, testcontract);
         table = await getTableRowsSec(eos.rpc, dappServicesContract, "accountext", "DAPP", [null, testContractAccount, "ipfsservice1", "pprovider1"], 1, 'sha256', 2);
-        let third = Number(table[0].quota.replace(" QUOTA",""));
-        assert(third <= (second - 0.0005),"quota must decrease by 5");
-        
+        let third = Number(table[0].quota.replace(" QUOTA", ""));
+        assert(third <= (second - 0.0005), "quota must decrease by 5");
+
         done();
       }
       catch (e) {

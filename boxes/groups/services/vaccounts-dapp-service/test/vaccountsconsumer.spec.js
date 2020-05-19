@@ -1,24 +1,23 @@
 
 
 require('mocha');
+const { requireBox } = require('@liquidapps/box-utils');
 const { assert } = require('chai'); // Using Assert style
-const { getTestContract } = require('../extensions/tools/eos/utils');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
+const { getTestContract, getUrl } = requireBox('seed-eos/tools/eos/utils');
+const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 const fetch = require('node-fetch');
 const ecc = require('eosjs-ecc')
 const { PrivateKey } = require('eosjs-ecc')
 const eosjs2 = require('eosjs');
 const { JsonRpc } = eosjs2;
 
-const { getUrl } = require('../extensions/tools/eos/utils');
-
 var url = getUrl(getDefaultArgs());
 const rpc = new JsonRpc(url, { fetch });
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
-const { createClient } = require("../client/dist/src/dapp-client-lib");
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
+const { createClient } = requireBox("client-lib-base/client/dist/src/dapp-client-lib");
 global.fetch = fetch;
 
 var contractCode = 'vaccountsconsumer';
@@ -266,7 +265,7 @@ describe(`vAccounts Service Test Contract`, () => {
                             c: 2
                         }
                     );
-                } catch(e) {
+                } catch (e) {
                     failed = true;
                 }
                 assert(failed, 'should have failed');

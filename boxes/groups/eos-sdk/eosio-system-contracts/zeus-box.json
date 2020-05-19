@@ -1,8 +1,7 @@
 {
+  "version": "1.0.0",
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
-  "hooks": {
-  }
+  "hooks": {}
 }

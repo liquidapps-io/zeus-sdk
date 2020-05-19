@@ -73,6 +73,22 @@ module.exports = {
     }
     var zeusBoxJson = JSON.parse(fs.readFileSync(zeusBoxJsonPath));
 
+    if (!zeusBoxJson.version) {
+      throw new Error('zeus-box.json must provide box version');
+    }
+
+    var version = zeusBoxJson.version;
+
+    var regex = '^[0-9]+\.[0-9]+\.[0-9]+$';
+    var found = version.match(regex);
+    if (!found) {
+      throw new Error('Box version must follow semver format: x.x.x');
+    }
+
+    if (zeusBoxJson.dependencies && !(typeof zeusBoxJson.dependencies === 'object' && !Array.isArray(zeusBoxJson.dependencies))) {
+      throw new Error('zeus-box.json dependencies must be an object');
+    }
+
     var ignoreList = [];
     if (zeusBoxJson.ignore) { ignoreList = zeusBoxJson.ignore.filter(a => a != 'zeus-box.json').map(a => a); }
 
@@ -160,7 +176,7 @@ module.exports = {
     // var archive = `https://github.com/${}/${}/archive/master.zip`;
     // https://github.com/zeit/serve/archive/master.zip
     if (String(args['update-mapping']) === 'true') {
-      mapping.add(args.storagePath, packageName, uri);
+      mapping.add(args.storagePath, packageName, version, uri);
     }
     console.log('done.');
     process.exit();

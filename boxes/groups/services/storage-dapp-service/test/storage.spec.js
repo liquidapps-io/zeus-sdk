@@ -1,4 +1,5 @@
 require("mocha");
+const { requireBox, getBoxesDir } = require('@liquidapps/box-utils');
 const fs = require("fs");
 const { assert } = require("chai"); // Using Assert style
 const fetch = require("node-fetch");
@@ -7,14 +8,12 @@ const { JsonRpc } = require("eosjs");
 const {
   getTestContract,
   getCreateKeys,
-} = require("../extensions/tools/eos/utils");
-const { createClient } = require("../client/dist/src/dapp-client-lib");
-const artifacts = require("../extensions/tools/eos/artifacts");
-const deployer = require("../extensions/tools/eos/deployer");
-const {
-  genAllocateDAPPTokens
-} = require("../extensions/tools/eos/dapp-services");
-const { getIpfsFileAsBuffer } = require("../services/storage-dapp-service-node/common.js")
+} = requireBox('seed-eos/tools/eos/utils');
+const { createClient } = requireBox("client-lib-base/client/dist/src/dapp-client-lib");
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
+const { getIpfsFileAsBuffer } = requireBox("storage-dapp-service/services/storage-dapp-service-node/common.js")
 
 //dappclient requirement
 global.fetch = fetch;
@@ -89,7 +88,7 @@ describe(`LiquidStorage Test`, () => {
           await regVAccount(vAccount2);
         } catch (_err) {
           // ignore vaccount already exists error
-          if(!/already exists/ig.test(_err.message)) {
+          if (!/already exists/ig.test(_err.message)) {
             throw _err;
           }
         }
@@ -175,7 +174,8 @@ describe(`LiquidStorage Test`, () => {
         const keys = await getCreateKeys(code);
         const key = keys.active.privateKey;
         const permission = "active";
-        const path = "test/utils/YourTarBall.tar";
+        const boxDir = getBoxesDir();
+        const path = `${boxDir}test/utils/YourTarBall.tar`;
         const content = fs.readFileSync(path);
         const result = await storageClient.upload_public_archive(
           content,
@@ -261,7 +261,7 @@ describe(`LiquidStorage Test`, () => {
         } catch (error) {
           assert.match(error.json.error, /max global/);
         }
- 
+
         done();
       } catch (e) {
         console.log(e);

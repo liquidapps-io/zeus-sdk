@@ -1,15 +1,14 @@
 {
+  "version": "1.0.0",
   "ignore": [
-    "README.md",
-    "LICENSE",
-    "zeus-box.json"
+    "README.md"
   ],
-  "dependencies":[
-    "dapp-services",
-    "seed-utils",
-    "mocha",
-    "hooks-cpp-contracts"],
-  "install":{
-    "contracts":{}
+  "dependencies": {
+    "dapp-services": "^1.0.0",
+    "seed-utils": "^1.0.0",
+    "mocha": "^1.0.0"
+  },
+  "install": {
+    "contracts": {}
   }
 }

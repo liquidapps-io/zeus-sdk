@@ -1,26 +1,24 @@
 #!/usr/bin/env node
-
-
-
 if (process.env.DAEMONIZE_PROCESS) { require('daemonize-process')(); }
 const path = require('path');
 const fs = require('fs');
-const logger = require('../../extensions/helpers/logger');
-const { loadModels } = require('../../extensions/tools/models');
-const { dappServicesContract, getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
+const { requireBox, getBoxesDir } = require('@liquidapps/box-utils');
+const { loadModels } = requireBox('seed-models/tools/models');
+const logger = requireBox('log-extensions/helpers/logger');
+const { dappServicesContract, getContractAccountFor } = requireBox('dapp-services/tools/eos/dapp-services');
 const { deserialize, generateABI, genNode, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission, emitUsage, detectXCallback, getTableRowsSec, getLinkedAccount, parseEvents, pushTransaction, getEosForSidechain, eosMainnet } = require('./common');
 
 var sidechainsDict = {};
 
 const actionHandlers = {
-  'service_request': async(act, simulated, serviceName, handlers) => {
+  'service_request': async (act, simulated, serviceName, handlers) => {
     let isReplay = act.replay;
     let { service, payer, provider, action, data, broadcasted, sidechain, meta } = act.event;
 
     if (!sidechain && meta && meta.sidechain) {
       sidechain = sidechainsDict[meta.sidechain.name];
     }
-    logger.info(`service_request ${provider} ${service} ${payer} ${sidechain ? sidechain.name:""}`)
+    logger.info(`service_request ${provider} ${service} ${payer} ${sidechain ? sidechain.name : ""}`)
     var handler = handlers[action];
     var models = await loadModels('dapp-services');
     var serviceContractForLookup = service;
@@ -50,7 +48,7 @@ const actionHandlers = {
       act.event.broadcasted = true;
       let providers = await resolveProviderPackage(payer, service, false, sidechain, true);
       logger.debug(`providers: ${JSON.stringify(providers)}`)
-      const dspResponses = await Promise.all(providers.map(async(prov) => {
+      const dspResponses = await Promise.all(providers.map(async (prov) => {
         // could return just promise if no need to log
         const eventRes = await forwardEvent(act, prov.data.endpoint, false);
         return eventRes;
@@ -61,7 +59,7 @@ const actionHandlers = {
     provider = await resolveProvider(payer, service, provider, sidechain);
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider, sidechain);
     if (provider !== paccount || service !== thisService) {
-      if(service !== thisService) 
+      if (service !== thisService)
         logger.warn("WARNING - Service Mixup: %s requested inside %s, forwarding event.", service, thisService);
       var providerData = await resolveProviderData(service, provider, packageid, sidechain);
       if (!providerData) { return; }
@@ -75,7 +73,7 @@ const actionHandlers = {
     if (!act.exception) { return; }
     if (getContractAccountFor(model, sidechain) == service && handler) {
       const res = await handleRequest(handler, act, packageid, model.name, handlers.abi);
-      if(res) {
+      if (res) {
         return res;
       } else {
         logger.warn(`retry after handle ${action}`);
@@ -83,7 +81,7 @@ const actionHandlers = {
       }
     }
   },
-  'service_signal': async(act, simulated, serviceName, handlers) => {
+  'service_signal': async (act, simulated, serviceName, handlers) => {
     if (simulated) { return; }
     let { action, data } = act.event;
     let { sidechain, meta } = act.event;
@@ -103,7 +101,7 @@ const actionHandlers = {
     logger.debug(`service_signal handler`)
     await handler(sigData);
   },
-  'usage_report': async(act, simulated, serviceName, handlers) => {
+  'usage_report': async (act, simulated, serviceName, handlers) => {
     if (simulated) { return; }
     var handler = handlers[`_usage`];
     let { sidechain, meta } = act.event;
@@ -123,7 +121,7 @@ const actionHandlers = {
 
 let enableXCallback = null;
 
-const extractUsageQuantity = async(e) => {
+const extractUsageQuantity = async (e) => {
   const details = e.json.error.details;
   const jsons = details[details.length - 1].message.split(': ', 2)[1].split('\n').filter(a => a.trim() != '');
   if (!jsons.length) {
@@ -139,7 +137,7 @@ const extractUsageQuantity = async(e) => {
   return { usageQuantity: usage_report_event.quantity, service: usage_report_event.service, provider: usage_report_event.provider, payer: usage_report_event.payer };
 }
 
-const handleRequest = async(handler, act, packageid, serviceName, abi) => {
+const handleRequest = async (handler, act, packageid, serviceName, abi) => {
   let { sidechain, event } = act;
   let { service, payer, provider, action, data } = event;
   const metadata = act.event.meta;
@@ -154,11 +152,11 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
   act.event.packageid = packageid;
   const eosMain = await eosMainnet();
   let eosSideChain = eosMain;
-  if (sidechain) {    
-    const models = await loadModels('liquidx-mappings');    
-    let mapEntry; 
+  if (sidechain) {
+    const models = await loadModels('liquidx-mappings');
+    let mapEntry;
     models.forEach(m => {
-      if(m.sidechain_name === sidechain.name && m.mainnet_account === paccount){
+      if (m.sidechain_name === sidechain.name && m.mainnet_account === paccount) {
         mapEntry = m;
       }
     })
@@ -197,7 +195,7 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
   }
 
   try {
-    await Promise.all(responses.map(async(response) => {
+    await Promise.all(responses.map(async (response) => {
       if (enableXCallback === null) {
         enableXCallback = await detectXCallback(eosSideChain, dappServicesSisterContract);
       }
@@ -216,15 +214,15 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
         const details = e.json.error.details;
         // update to 'abort' in contract and here, or something generic
         // returns at location 0, but may need to find dynamically if message is not at position 0
-        if(details[0].message.includes('abort_service_request')){
+        if (details[0].message.includes('abort_service_request')) {
           logger.info(`abort_service_request`);
           let abortError = new Error(`abort_service_request`);
           abortError.details = details;
           throw abortError;
         }
-  
+
         logger.info("CONFIRMING USAGE:\n%j", e);
-  
+
         // verify transaction emits usage
         const usage_report = await extractUsageQuantity(e);
         if (usage_report.service !== service) {
@@ -239,7 +237,7 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
         if (sidechain)
           await emitUsage(mainnet_account, service_on_mainnet, usage_report.usageQuantity, meta, requestId); // verify quota on provisioning chain    
       }
-  
+
       try {
         let tx = await pushTransaction(
           eosSideChain,
@@ -253,17 +251,17 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
           false
         );
         logger.debug("REQUEST\n%j\nRESPONSE: [%s]\n%j", act, tx.transaction_id, response);
-      } catch(e) {
+      } catch (e) {
         if (e.json)
           e.error = e.json.error;
         logger.warn("REQUEST\n%j\nRESPONSE: [FAILED]\n%j", act, e);
         if (e.toString().indexOf('duplicate') == -1) {
           throw e;
         }
-      }    
+      }
       // dispatch on chain response - call response.action with params with paccount permissions
     }));
-  } catch (e) { 
+  } catch (e) {
     logger.error(e);
     if (e.message.includes("abort_service_request")) {
       return { message: e.message, shouldAbort: true, details: e.details };
@@ -282,13 +280,13 @@ const respond = (request, packageid, payload) => {
   }];
 };
 
-const loadIfExists = async(serviceName, suffix) => {
-  var reqPath = path.resolve(__dirname, `../${serviceName}-dapp-service-node/${suffix}`);
+const loadIfExists = async (serviceName, suffix) => {
+  const reqPath = path.resolve(`${getBoxesDir()}${serviceName}-dapp-service/services/${serviceName}-dapp-service-node/${suffix}`)
   if (fs.existsSync(reqPath + ".js"))
     return require(reqPath)
 }
 
-const nodeFactory = async(serviceName, handlers) => {
+const nodeFactory = async (serviceName, handlers) => {
   var models = await loadModels('dapp-services');
   var model = models.find(m => m.name == serviceName);
   logger.info(`nodeFactory starting ${serviceName}`);
@@ -300,7 +298,7 @@ const nodeFactory = async(serviceName, handlers) => {
   return genNode(actionHandlers, process.env.SVC_PORT || model.port, serviceName, handlers, await generateABI(model));
 };
 
-const nodeAutoFactory = async(serviceName) => {
+const nodeAutoFactory = async (serviceName) => {
   var state = {};
   logger.info(`nodeAutoFactory starting ${serviceName}`);
   var apiCommands = {};
@@ -317,26 +315,25 @@ const nodeAutoFactory = async(serviceName) => {
       var apiHandler = await loadIfExists(serviceName, `api/${apiName}`); // load from file
       logger.debug(`registering api ${serviceName} ${apiName}`);
       const authentication = model.api[apiName].authentication;
-      let authClient;
+      let authClient, AuthClientSetup;
       if (authentication && authentication.type === 'payer') {
+        AuthClientSetup = requireBox('auth-dapp-service/tools/auth-client');
         var apiID = `${paccount}-${serviceName}`;
-        var AuthClient = require('../../extensions/tools/auth-client');
-        authClient = new AuthClient(apiID, authentication.contract);
+        authClient = new AuthClientSetup(apiID, authentication.contract);
       }
 
-      apiCommands[apiName] = (async({ apiName, apiHandler, authClient }, opts, res) => {
+      apiCommands[apiName] = (async ({ apiName, apiHandler, authClient }, opts, res) => {
         const sidechain = opts.body.sidechain;
         if (authentication && authentication.type === 'payer') {
           var apiID = `${paccount}-${serviceName}`;
-          var AuthClient = require('../../extensions/tools/auth-client');
-          authClient = new AuthClient(apiID, authentication.contract, null, null, sidechain);
+          authClient = new AuthClientSetup(apiID, authentication.contract, null, null, sidechain);
         }
         try {
           if (!apiHandler)
             throw new Error('not implemented yet');
           if (authClient) {
             logger.info(`validating auth`);
-            await authClient.validate({ ...opts.body, req: opts.req, allowClientSide: false }, async({ clientCode, payload, account, permission }) => {
+            await authClient.validate({ ...opts.body, req: opts.req, allowClientSide: false }, async ({ clientCode, payload, account, permission }) => {
               try {
                 let body = JSON.parse(payload);
                 body = {
@@ -376,7 +373,7 @@ const nodeAutoFactory = async(serviceName) => {
     var requestName = dspCommands[i];
     var dspRequestHandler = await loadIfExists(serviceName, `chain/${requestName}`); // load from file
     logger.debug(`registering chain handler ${serviceName} ${requestName}`);
-    handlers[requestName] = (async({ requestName, dspRequestHandler }, opts, req) => {
+    handlers[requestName] = (async ({ requestName, dspRequestHandler }, opts, req) => {
       if (!dspRequestHandler)
         throw new Error('not implemented yet');
       logger.debug(`running chain handler ${serviceName} ${requestName}`);

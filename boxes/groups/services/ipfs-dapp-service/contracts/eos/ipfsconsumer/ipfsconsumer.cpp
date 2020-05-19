@@ -110,6 +110,11 @@ CONTRACT_START()
     auto const& data = testset.get(id,"data not found");
   }
 
+  [[eosio::action]] void testchain(name remote, uint64_t id, name chain) {
+    testindex_t testset(remote,remote.value, 1024, 64, false, false, 0, chain);
+    auto const& data = testset.get(id,"data not found");
+  }
+
   [[eosio::action]] void testindexa(uint64_t id) {
     testindex_t testset(_self,_self.value);
     testset.emplace(_self, [&]( auto& a ){
@@ -181,5 +186,5 @@ CONTRACT_END(
   (testbig)(checkbig)
   (testmed)(checkmed)
   (verfempty)
-  (testremote)
+  (testremote)(testchain)
   )

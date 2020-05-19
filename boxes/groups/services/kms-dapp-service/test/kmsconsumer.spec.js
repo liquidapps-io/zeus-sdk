@@ -1,14 +1,9 @@
 require('mocha');
 
-
-const { assert } = require('chai'); // Using Assert style
-const { getNetwork, getCreateKeys, getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
-var Eos = require('eosjs');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
-
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
+const { requireBox } = require('@liquidapps/box-utils');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
 
 var contractCode = 'eosio.token';
 var serviceName = 'kns'
@@ -38,7 +33,7 @@ describe(`KMS Service Contract`, () => {
             try {
                 var deployedContract = await deployer.deploy(ctrt, code);
                 await genAllocateDAPPTokens(deployedContract, serviceName);
-                const { getTestContract } = require('../extensions/tools/eos/utils');
+                const { getTestContract } = requireBox('seed-eos/tools/eos/utils');
                 testcontract = await getTestContract(code);
 
 

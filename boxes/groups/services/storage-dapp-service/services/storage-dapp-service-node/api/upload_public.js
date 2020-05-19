@@ -1,11 +1,12 @@
-const { emitUsage, getLinkedAccount } = require('../../dapp-services-node/common');
-const { getContractAccountFor } = require('../../../extensions/tools/eos/dapp-services');
-const { unpack, saveDirToIPFS, saveToIPFS } = require('../common')
-const logger = require('../../../extensions/helpers/logger');
+const { requireBox } = require('@liquidapps/box-utils');
+const { emitUsage, getLinkedAccount } = requireBox('dapp-services/services/dapp-services-node/common');
+const { getContractAccountFor } = requireBox('dapp-services/tools/eos/dapp-services');
+const { unpack, saveDirToIPFS, saveToIPFS } = requireBox('storage-dapp-service/services/storage-dapp-service-node/common');
+const logger = requireBox('log-extensions/helpers/logger');
 
-module.exports = async(body, state, model, { account, permission, clientCode }) => {
+module.exports = async (body, state, model, { account, permission, clientCode }) => {
     let { data, archive, sidechain, contract } = body;
-    
+
     if (account !== contract) throw new Error('not allowed');
     let uri;
     var length = 0;

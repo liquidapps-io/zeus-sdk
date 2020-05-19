@@ -1,15 +1,15 @@
 const { assert } = require('chai');
 require('mocha');
+const { requireBox } = require('@liquidapps/box-utils');
 
+const { eosDSPEndpoint } = requireBox('dapp-services/services/dapp-services-node/common');
 
-const { eosDSPEndpoint } = require('../services/dapp-services-node/common');
-
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
-const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getCreateAccount } = require('../extensions/tools/eos/utils');
-const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
+const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
+const { getCreateAccount } = requireBox('seed-eos/tools/eos/utils');
+const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
 
 var args = getDefaultArgs();
 

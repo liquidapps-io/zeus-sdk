@@ -1,15 +1,17 @@
+const { requireBox } = require('@liquidapps/box-utils');
 const ecc = require("eosjs-ecc");
 const fetch = require("node-fetch");
 const { JsonRpc } = require("eosjs");
 const { BigNumber } = require(`bignumber.js`);
-const { emitUsage, getLinkedAccount } = require("../../dapp-services-node/common");
+const { emitUsage, getLinkedAccount } = requireBox('dapp-services/services/dapp-services-node/common');
+
 const {
   readVRAMData,
   getContractAccountFor,
   getEndpointForContract
-} = require("../../../extensions/tools/eos/dapp-services");
-const { unpack, saveDirToIPFS, saveToIPFS, hashData256 } = require("../common");
-const logger = require("../../../extensions/helpers/logger");
+} = requireBox('dapp-services/tools/eos/dapp-services')
+const { unpack, saveDirToIPFS, saveToIPFS, hashData256 } = requireBox('storage-dapp-service/services/storage-dapp-service-node/common');
+const logger = requireBox("log-extensions/helpers/logger");
 
 const getOrCreateDailyLimits = ({ sidechain, state, contract }) => {
   const sidechainIdentifier = sidechain || `mainnet`;

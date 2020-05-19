@@ -750,6 +750,7 @@ template<name::raw TableName, typename PrimKey>
 class sharded_hashtree_t{
     name     _code;
     name     _self;
+    name     _chain;
     uint32_t _shards;
     uint32_t _buckets_per_shard;    
     uint64_t _scope; 
@@ -757,6 +758,7 @@ class sharded_hashtree_t{
     bool _pin_shards;
     bool _pin_buckets;
     bool _external;
+    bool _crosschain;
 
 
     public:
@@ -775,16 +777,18 @@ class sharded_hashtree_t{
     
     
     
-    sharded_hashtree_t(name code, uint64_t scope, uint32_t shards = 1024,uint32_t buckets_per_shard = 64, bool pin_shards = false, bool pin_buckets = false, uint32_t cleanup_delay = 0){
+    sharded_hashtree_t(name code, uint64_t scope, name chain, uint32_t shards = 1024,uint32_t buckets_per_shard = 64, bool pin_shards = false, bool pin_buckets = false, uint32_t cleanup_delay = 0){
         _code = code;
+        _chain = chain;
         _self = current_receiver();
         _external = _code == _self ? false : true;
+        _crosschain = _chain == ""_n ? false : true;
         _shards = shards;
         _buckets_per_shard = buckets_per_shard;
         _scope = scope;
-        _pin_buckets = pin_buckets;
-        _pin_shards = pin_shards;
-        _cleanup_delay = cleanup_delay;
+        _pin_buckets = _external ? false : pin_buckets; //we dont want to pin anything or have a delay if external
+        _pin_shards = _external ? false : pin_shards;
+        _cleanup_delay = _external ? 0 : cleanup_delay;
     }
     
     ipfsmultihash_t* get(PrimKey primary) const{
@@ -857,7 +861,19 @@ class sharded_hashtree_t{
     }
     
     // add cache for shard data and bucket
-    std::vector<char> getBucket(bucket_t<PrimKey>& sb, bool pin = false) const{
+    std::vector<char> getBucket(bucket_t<PrimKey>& sb, bool pin = false) const{        
+        //TODO: we need a mechanism to get a shard pointer when its requesting from another chain
+        if(_crosschain) { 
+            auto castedKey = primary_to_key<PrimKey>(sb.key);
+            uint8_t keySize = std::max<uint8_t>(sizeof(PrimKey),8);
+            uint8_t index_position = 1;
+            auto bucket_data = ipfs_svc_helper::getCrosschainTreeData<shardbucket_data>(sb.shard, name(_code), name(TableName), name(_chain), _scope, index_position, castedKey, keySize);            
+            auto bucket_uri = bucket_data.values[sb.bucket];
+            auto bucket_raw_data = ipfs_svc_helper::getRawData(ipfsmultihash_to_uri(bucket_uri));
+            // read and return data
+            return bucket_raw_data;
+        }
+
         // get pointer from RAM
         shardbucket_t _shardbucket_table(_code,_code.value);
         auto shardData = _shardbucket_table.find(sb.shard);
@@ -896,7 +912,7 @@ class sharded_hashtree_t{
         }        
 
         //emplace and return empty if no existing data
-        if(shardData == _shardbucket_table.end()){  
+        if(shardData == _shardbucket_table.end() && !_crosschain){  
             if(!_external) { //only emplace our own table
                 _shardbucket_table.emplace(_self, [&]( auto& a ) {
                     // new dataset
@@ -977,6 +993,7 @@ class advanced_multi_index{
 
 
     name     _code;
+    name     _chain;
     uint64_t _scope;  
     uint32_t _cleanup_delay; 
     
@@ -1198,8 +1215,8 @@ typedef h_const_iterator const_iterator;
       
 
  public:
-      advanced_multi_index( name code, uint64_t scope, uint32_t shards = 1024,uint32_t buckets_per_shard = 64, bool pin_shards = false, bool pin_buckets = false, uint32_t cleanup_delay = 0)
-      :_code(code),_scope(scope),primary_hashtree(_code, _scope, shards, buckets_per_shard, pin_shards, pin_buckets,cleanup_delay),_cleanup_delay(cleanup_delay)
+      advanced_multi_index( name code, uint64_t scope, uint32_t shards = 1024,uint32_t buckets_per_shard = 64, bool pin_shards = false, bool pin_buckets = false, uint32_t cleanup_delay = 0, name chain = ""_n)
+      :_code(code),_scope(scope),_chain(chain),primary_hashtree(_code, _scope, _chain, shards, buckets_per_shard, pin_shards, pin_buckets,cleanup_delay),_cleanup_delay(cleanup_delay)
       {
       }
 

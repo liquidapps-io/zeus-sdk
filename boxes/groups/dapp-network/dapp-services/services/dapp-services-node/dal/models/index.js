@@ -4,7 +4,8 @@ var fs = require('fs');
 var path = require('path');
 var Sequelize = require('sequelize');
 var basename = path.basename(__filename);
-const logger = require('../../../../extensions/helpers/logger');
+const { requireBox } = require('@liquidapps/box-utils');
+const logger = requireBox('log-extensions/helpers/logger');
 
 var env = process.env.DATABASE_NODE_ENV || 'development';
 const dbTimeout = process.env.DATABASE_TIMEOUT || '10000';
@@ -52,12 +53,12 @@ function addTimeoutProxy(obj, timeout, objName) {
   const handler = {
     get(target, propKey, receiver) {
       const origMethod = target[propKey];
-      if (typeof(origMethod) !== 'function')
+      if (typeof (origMethod) !== 'function')
         return origMethod;
 
       return function (...args) {
         // logger.debug(`${objName} with method ${propKey} calling`);
-        const timedMethod = async function() {
+        const timedMethod = async function () {
           const beforeTime = Date.now();
           const result = await origMethod.apply(target, args);
           const totalTime = Date.now() - beforeTime;

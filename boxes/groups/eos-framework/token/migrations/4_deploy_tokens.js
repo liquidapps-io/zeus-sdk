@@ -1,6 +1,7 @@
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { loadModels } = require('../extensions/tools/models');
+const { requireBox } = require('@liquidapps/box-utils');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { loadModels } = requireBox('seed-models/tools/models');
 var token = artifacts.require('./Token/');
 
 module.exports = async function (args) {

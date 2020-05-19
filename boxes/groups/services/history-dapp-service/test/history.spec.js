@@ -1,15 +1,12 @@
 require('mocha');
 
-
+const { requireBox } = require('@liquidapps/box-utils');
 const { assert } = require('chai'); // Using Assert style
-const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getNetwork } = require('../extensions/tools/eos/utils');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
 const fetch = require('node-fetch');
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
 
 function postData(url = ``, data = {}) {
   // Default options are marked with *
@@ -41,7 +38,7 @@ describe(`History Service Test Contract`, () => {
         var deployedContract = await deployer.deploy(ctrt, code);
         await genAllocateDAPPTokens(deployedContract, 'readfn');
 
-        const { getTestContract } = require('../extensions/tools/eos/utils');
+        const { getTestContract } = requireBox('seed-eos/tools/eos/utils');
         testcontract = await getTestContract(code);
         done();
       }

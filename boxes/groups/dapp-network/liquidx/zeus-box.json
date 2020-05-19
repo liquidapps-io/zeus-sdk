@@ -1,19 +1,24 @@
 {
+  "version": "1.0.1",
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
-  "install":{
-    "contracts":{
+  "install": {
+    "contracts": {
       "dappservicex": true,
       "liquidx": true,
-      "ipfsxtest":true,
-      "orcxtest":true,
+      "ipfsxtest": true,
+      "orcxtest": true,
       "readfnxtest": true,
       "vaccountsx": true,
+      "vaccntxrem": true,
+      "vaccntxremx": true,
       "cronxtest": true,
       "storagextest": true
     }
   },
-  "dependencies":["eosio-chains","all-dapp-services" ]
+  "dependencies": {
+    "eosio-chains": "^1.0.0",
+    "all-dapp-services": "^1.0.0"
+  }
 }

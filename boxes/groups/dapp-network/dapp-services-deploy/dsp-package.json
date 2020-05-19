@@ -9,13 +9,11 @@
   },
   "author": "",
   "license": "ISC",
-  "engines": {
-    "node": ">=8.2.1"
-  },
   "config": { 
     "unsafe-perm": true 
   },
   "dependencies": {
+    "@liquidapps/box-utils": "^1.0.0",
     "@types/jest": "^24.0.11",
     "assemblyscript": "github:AssemblyScript/assemblyscript",
     "babel-polyfill": "^6.26.0",
@@ -76,9 +74,9 @@
     "winston": "^3.2.1"
   },
   "bin": {
-    "setup-dsp": "./setup.js"
+    "setup-dsp": "./zeus_boxes/dapp-services-deploy/setup.js"
   },
   "engines": {
-    "node": ">=10.0.0"
+    "node": ">=10.0.0 <11.0.0"
   }
 }

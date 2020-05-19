@@ -1,10 +1,10 @@
 {
+  "version": "1.0.0",
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
-  "install":{
-    "npm":{
+  "install": {
+    "npm": {
       "yeoman-generator": "^2.0.5",
       "generator-generator": true,
       "deep-extend": true,
@@ -12,5 +12,8 @@
       "yo": true
     }
   },
-  "dependencies":["seed-extensions", "seed-models"]
+  "dependencies": {
+    "seed-extensions": "^1.0.0",
+    "seed-models": "^1.0.0"
+  }
 }

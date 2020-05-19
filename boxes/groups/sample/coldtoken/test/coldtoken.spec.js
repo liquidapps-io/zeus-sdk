@@ -1,16 +1,17 @@
 require('mocha');
+const { requireBox } = require('@liquidapps/box-utils');
 const { assert } = require('chai'); // Using Assert style
-const { getTestContract } = require('../extensions/tools/eos/utils');
+const { getTestContract } = requireBox('seed-eos/tools/eos/utils');
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens, readVRAMData } = require('../extensions/tools/eos/dapp-services');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens, readVRAMData } = requireBox('dapp-services/tools/eos/dapp-services');
 
 var contractCode = 'coldtoken';
 var ctrt = artifacts.require(`./${contractCode}/`);
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
-const { parseTable } = require('../utils/ipfs-service/get-table');
+const { parseTable } = requireBox('ipfs-dapp-service/utils/ipfs-service/get-table');
 
 describe(`${contractCode} Contract`, () => {
   var testcontract;
@@ -36,7 +37,7 @@ describe(`${contractCode} Contract`, () => {
     })();
   });
   it('should increase the balance of receiver and decrease of the sender', done => {
-    (async() => {
+    (async () => {
       try {
         var symbol = 'AIRZ';
         // create token
@@ -95,7 +96,7 @@ describe(`${contractCode} Contract`, () => {
   });
 
   it('shouldn\'t be able to transfer more than the balance', done => {
-    (async() => {
+    (async () => {
       try {
         var symbol = 'AIR';
         var failed = false;

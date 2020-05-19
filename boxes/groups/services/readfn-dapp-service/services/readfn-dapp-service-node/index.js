@@ -1,13 +1,14 @@
-var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
-const { getCreateKeys } = require('../../extensions/helpers/key-utils');
-const { emitUsage, eosDSPGateway, getEosForSidechain, paccount, getLinkedAccount, paccountPermission } = require('../dapp-services-node/common');
-const { loadModels } = require("../../extensions/tools/models");
-const logger = require('../../extensions/helpers/logger');
+const { requireBox } = require('@liquidapps/box-utils');
+var { nodeFactory } = requireBox('dapp-services/services/dapp-services-node/generic-dapp-service-node');
+const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
+const { emitUsage, eosDSPGateway, getEosForSidechain, paccount, getLinkedAccount, paccountPermission } = requireBox('dapp-services/services/dapp-services-node/common');
+const { loadModels } = requireBox('seed-models/tools/models');
+const logger = requireBox('log-extensions/helpers/logger');
 
 // todo: periodically call "usage" for hold and serve
 nodeFactory('readfn', {
   api: {
-    read: async({ body }, res) => {
+    read: async ({ body }, res) => {
       // todo: verify api key or ref domain
 
       try {
@@ -24,7 +25,7 @@ nodeFactory('readfn', {
         if (!env && !sidechain)
           key = (await getCreateKeys(paccount)).active.privateKey;
 
-        if(sidechain) {
+        if (sidechain) {
           let sidechains = await loadModels('eosio-chains');
           let sidechainObj = sidechains.find(a => a.name === sidechain);
           const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechainObj.name && m.mainnet_account === provider);
@@ -32,13 +33,13 @@ nodeFactory('readfn', {
             throw new Error('mapping not found')
           provider = mapEntry.chain_account;
           mainnet_account = await getLinkedAccount(null, null, contract_code, sidechainObj.name);
-          gateway = await getEosForSidechain(sidechainObj,provider,true);
-          env = process.env[`DSP_PRIVATE_KEY_${sidechainObj.name}`]; 
-          if(!env)
-            key = (await getCreateKeys(provider, null, false, sidechainObj)).active.privateKey; 
+          gateway = await getEosForSidechain(sidechainObj, provider, true);
+          env = process.env[`DSP_PRIVATE_KEY_${sidechainObj.name}`];
+          if (!env)
+            key = (await getCreateKeys(provider, null, false, sidechainObj)).active.privateKey;
         }
         let contract = await gateway.contract(contract_code);
-        
+
         if (method.indexOf("read") !== 0)
           throw new Error("readfn can only invoke actions named 'read*'");
 
@@ -58,7 +59,7 @@ nodeFactory('readfn', {
           }
           var resMsg = expectedError.error.details[0].message;
 
-          if (typeof(resMsg) === 'object') {
+          if (typeof (resMsg) === 'object') {
             resMsg = resMsg.response.error.details
           }
 

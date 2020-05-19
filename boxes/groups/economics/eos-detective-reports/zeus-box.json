@@ -1,12 +1,17 @@
 {
+  "version": "1.0.0",
   "ignore": [
-    "README.md",
-    "LICENSE",
-    "zeus-box.json"
+    "README.md"
   ],
-  "dependencies":["seed-eos", "events", "token", "mocha", "eos-common",  "hooks-cpp-contracts"],
-  "install":{
-    "contracts":{
+  "dependencies": {
+    "seed-eos": "^1.0.0",
+    "events": "^1.0.0",
+    "token": "^1.0.0",
+    "mocha": "^1.0.0",
+    "eos-common": "^1.0.0"
+  },
+  "install": {
+    "contracts": {
       "detective": true
     }
   }

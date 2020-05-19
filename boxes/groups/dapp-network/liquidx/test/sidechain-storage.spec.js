@@ -2,25 +2,26 @@ require("mocha");
 const { assert } = require("chai"); // Using Assert style
 const fetch = require("node-fetch");
 const fs = require("fs");
+const { requireBox } = require('@liquidapps/box-utils');
 const {
   getCreateKeys,
-  getNetwork, 
+  getNetwork,
   getCreateAccount,
   // getTestContract
-} = require("../extensions/tools/eos/utils");
-const { getEosWrapper } = require('../extensions/tools/eos/eos-wrapper');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
-const { createClient } = require("../client/dist/src/dapp-client-lib");
-const artifacts = require("../extensions/tools/eos/artifacts");
-const deployer = require("../extensions/tools/eos/deployer");
-const { loadModels } = require('../extensions/tools/models');
+} = requireBox('seed-eos/tools/eos/utils');
+const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
+const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
+const { createClient } = requireBox("client-lib-base/client/dist/src/dapp-client-lib");
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { loadModels } = requireBox('seed-models/tools/models');
 const {
   genAllocateDAPPTokens,
   createLiquidXMapping
-} = require("../extensions/tools/eos/dapp-services");
+} = requireBox('dapp-services/tools/eos/dapp-services');
 const ecc = require("eosjs-ecc");
 const { JsonRpc } = require("eosjs");
-const { getIpfsFileAsBuffer } = require("../services/storage-dapp-service-node/common.js")
+const { getIpfsFileAsBuffer } = requireBox("storage-dapp-service/services/storage-dapp-service-node/common.js")
 
 //dappclient requirement
 global.fetch = fetch;
@@ -139,7 +140,7 @@ describe(`LiquidX Sidechain storagextest Service Test Contract`, () => {
           await regVAccount(vAccount2);
         } catch (_err) {
           // ignore vaccount already exists error
-          if(!/already exists/ig.test(_err.message)) {
+          if (!/already exists/ig.test(_err.message)) {
             throw _err;
           }
         }
@@ -172,7 +173,7 @@ describe(`LiquidX Sidechain storagextest Service Test Contract`, () => {
             mode: 'cors',
             body: JSON.stringify({ uri: result.uri })
           });
-        } catch(e) {
+        } catch (e) {
           throw (e.json.error);
         }
         const resJson = await res.json();
@@ -259,7 +260,7 @@ describe(`LiquidX Sidechain storagextest Service Test Contract`, () => {
         const keys = await getCreateKeys(code);
         const key = keys.active.privateKey;
         const permission = "active";
-        const path = "test/utils/YourTarBall.tar";
+        const path = "zeus_boxes/test/utils/YourTarBall.tar";
         const content = fs.readFileSync(path);
         const result = await storageClient.upload_public_archive(
           content,
@@ -345,7 +346,7 @@ describe(`LiquidX Sidechain storagextest Service Test Contract`, () => {
         } catch (error) {
           assert.match(error.json.error, /max global/);
         }
- 
+
         done();
       } catch (e) {
         console.log(e);

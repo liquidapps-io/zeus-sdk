@@ -1,20 +1,22 @@
 {
+  "version": "1.0.0",
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Deploy Frontend": "zeus deploy frontend main",
     "Run Locally": "zeus run frontend main"
   },
-  "install":{
-    "npm-in-dirs":{
-      "frontends/main":{
+  "install": {
+    "npm-in-dirs": {
+      "frontends/main": {
         "npm": {
           "vue-codemirror": "^4.0.5"
         }
       }
     }
   },
-  "dependencies":["frontend-vue"]
+  "dependencies": {
+    "frontend-vue": "^1.0.0"
+  }
 }

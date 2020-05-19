@@ -1,13 +1,15 @@
 {
+  "version": "1.0.0",
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
-  "install":{
-    "npm":{
+  "install": {
+    "npm": {
       "eosjs@20.0.0": true,
       "eosjs-ecc": true
     }
   },
-  "dependencies":["seed", "hooks-npm"]
+  "dependencies": {
+    "seed-zeus-support": "^1.0.0"
+  }
 }

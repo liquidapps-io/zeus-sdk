@@ -1,14 +1,15 @@
 require('mocha');
+const { requireBox } = require('@liquidapps/box-utils');
 const { assert } = require('chai'); // Using Assert style
-const { getTestContract, getLocalDSPEos } = require('../extensions/tools/eos/utils');
+const { getTestContract, getLocalDSPEos } = requireBox('price-feed/extensions/tools/eos/utils');
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
+const artifacts = requireBox('price-feed/extensions/tools/eos/artifacts');
+const deployer = requireBox('price-feed/extensions/tools/eos/deployer');
+const { genAllocateDAPPTokens } = requireBox('price-feed/extensions/tools/eos/dapp-services');
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 // setup nodeos RPC
-const fetch = require('node-fetch'); 
+const fetch = require('node-fetch');
 const { JsonRpc } = require('eosjs');
 const rpc = new JsonRpc('http://127.0.0.1:8888', { fetch });
 
@@ -19,7 +20,7 @@ describe(`Price Feed Test`, () => {
   const code = 'test1';
   let dspeos;
   before(done => {
-    (async() => {
+    (async () => {
       try {
         const deployedContract = await deployer.deploy(ctrt, code);
         // staking to 2 DSPs for the oracle and cron services
@@ -37,7 +38,7 @@ describe(`Price Feed Test`, () => {
     })();
   });
   it('Oracle Price Feed Bitcoin', done => {
-    (async() => {
+    (async () => {
       try {
         // setting threshold for how many DSPs must respond in order to accept oracle responses
         await testcontract.settings({
@@ -54,8 +55,8 @@ describe(`Price Feed Test`, () => {
         const intervalTime = 5;
         // using cron to call oracle price feed every 1 second
         await testcontract.testfeed({
-            uri: Buffer.from(`https+json://USD/min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD&api_key=d5a24f9e55abec981ac9ee4c76b04a2f27d18024a1415df80fa00a794f48dcab`, 'utf8'),
-            interval: intervalTime // cron interval
+          uri: Buffer.from(`https+json://USD/min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD&api_key=d5a24f9e55abec981ac9ee4c76b04a2f27d18024a1415df80fa00a794f48dcab`, 'utf8'),
+          interval: intervalTime // cron interval
         }, {
           authorization: `${code}@active`,
           broadcast: true,
@@ -71,13 +72,13 @@ describe(`Price Feed Test`, () => {
             'limit': 1
           });
           console.log(`prevprice: ${JSON.stringify(res.rows)}`)
-          if(res.rows[0]) {
+          if (res.rows[0]) {
             console.log(`prevprice: ${res.rows[0].last_price}`)
           }
           try {
             let cpu = await rpc.get_account(code);
             console.log(`CPU used: ${cpu.cpu_limit.used}`);
-          } catch(e) {
+          } catch (e) {
             console.log(e);
           }
         }, intervalTime * 1000);

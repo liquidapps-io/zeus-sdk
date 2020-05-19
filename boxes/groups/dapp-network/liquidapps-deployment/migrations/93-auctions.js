@@ -1,4 +1,5 @@
-const { fmt, loadSettings, deployer, artifacts } = require('../settings');
+const { requireBox } = require('@liquidapps/box-utils');
+const { fmt, loadSettings, deployer, artifacts } = requireBox('liquidapps-deployment/settings');
 
 const deployAuctionInstance = async (auctionInstance) => {
   const settings = await loadSettings();

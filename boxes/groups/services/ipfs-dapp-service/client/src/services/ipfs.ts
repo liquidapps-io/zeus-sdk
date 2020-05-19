@@ -2,7 +2,7 @@ const serviceContract = "ipfsservice1"
 
 import {DSPServiceClient} from '../dsp-service-client';
 import * as common from "../dapp-common";
-import * as get_table_row from "../types/chain/get_table_row";
+import * as get_table_row from "../types/chain/get_table_rows";
 const V1_DSP_GET_TABLE_ROW = `/v1/dsp/${serviceContract}/get_table_row`;
 
 export default class VRAMService extends DSPServiceClient {

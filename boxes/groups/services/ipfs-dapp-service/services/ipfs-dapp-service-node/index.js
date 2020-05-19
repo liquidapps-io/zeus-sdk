@@ -1,12 +1,13 @@
-var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
-const { deserialize, encodeName, decodeName, resolveProviderPackage, getProviders, resolveProviderData, getLinkedAccount } = require('../dapp-services-node/common');
+const { requireBox } = require('@liquidapps/box-utils');
+var { nodeFactory } = requireBox('dapp-services/services/dapp-services-node/generic-dapp-service-node');
+const { deserialize, encodeName, decodeName, resolveProviderPackage, getProviders, resolveProviderData, getLinkedAccount } = requireBox('dapp-services/services/dapp-services-node/common');
 var IPFS = require('ipfs-api');
 const { BigNumber } = require('bignumber.js');
 var sha256 = require('js-sha256').sha256;
-const { getUrl } = require('../../extensions/tools/eos/utils');
-const { loadModels } = require("../../extensions/tools/models");
-const getDefaultArgs = require('../../extensions/helpers/getDefaultArgs');
-const logger = require('../../extensions/helpers/logger');
+const { getUrl } = requireBox('seed-eos/tools/eos/utils');
+const { loadModels } = requireBox('seed-models/tools/models');
+const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
+const logger = requireBox('log-extensions/helpers/logger');
 const { TextEncoder, TextDecoder } = require('util'); // node only; native TextEncoder/Decoder
 const nodeosLatest = process.env.NODEOS_LATEST || true;
 
@@ -32,14 +33,14 @@ var LRU = require("lru-cache"),
   options = {
     max: 1024 * 1024 * cacheMB,
     updateAgeOnGet: true,
-    length: function(n, key) { return n.length },
+    length: function (n, key) { return n.length },
     maxAge: 1000 * 60 * cacheMinutes
   },
   cache = new LRU(options)
 
 
 
-const saveToIPFS = async(data) => {
+const saveToIPFS = async (data) => {
   const bufData = Buffer.from(data, 'hex');
   const hash = hashData256(bufData);
   const uri = converToUri("01551220" + hash);
@@ -60,7 +61,7 @@ const saveToIPFS = async(data) => {
   return uri;
 };
 
-const readFromIPFS = async(uri) => {
+const readFromIPFS = async (uri) => {
   var cachedValue = cache.get(uri);
   if (cachedValue) {
     logger.info(`getting from cache ${uri}`);
@@ -78,9 +79,9 @@ const readFromIPFS = async(uri) => {
     var data = Buffer.from(res[0].content);
     cache.set(uri, data);
     return data;
-  } catch(e) {
+  } catch (e) {
     throw new Error(`ipfsentry ${uri} not found`);
-  }  
+  }
 };
 const convertFromUri = (uri) => {
   const address = uri.slice(8); // remove ipfs://z
@@ -93,10 +94,10 @@ const converToUri = (hash) => {
   const address = multihash.toB58String(bytes);
   return 'ipfs://z' + address;
 };
-const readPointer = async(hashWithPrefix, contract, sidechain) => {
+const readPointer = async (hashWithPrefix, contract, sidechain) => {
   var hash = hashWithPrefix.toString('hex').slice(8);
   var matchHash = hash;
-  if(nodeosLatest.toString() === "true") {
+  if (nodeosLatest.toString() === "true") {
     matchHash = matchHash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('');
   } else {
     matchHash = matchHash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('').match(/.{32}/g).reverse().join('').match(/.{2}/g).reverse().join('');
@@ -127,7 +128,7 @@ const readPointer = async(hashWithPrefix, contract, sidechain) => {
     try {
       data = await readFromIPFS(uri);
       return data;
-    } catch(e) {
+    } catch (e) {
       data = await readRemoteIPFS(contract, uri, sidechain);
       return data;
     }
@@ -150,12 +151,12 @@ const prepKeyForCalc = (key, keytype = null, keysize = 64) => {
   let prep = "";
   let buf = Buffer.from(stringToName(key, keytype, keysize));
   let pos = buf.length / 8;
-  while(pos > 0) {
-    let word = buf.slice((pos-1)*8, pos*8);
+  while (pos > 0) {
+    let word = buf.slice((pos - 1) * 8, pos * 8);
     prep += nameToString(word) + "-";
     --pos;
   }
-  return prep.slice(0,-1);
+  return prep.slice(0, -1);
 }
 
 const calculateBucketShard = (key, keytype, keysize, scope, buckets, shards, scopetype) => {
@@ -183,7 +184,7 @@ const parseShard = (shardRaw) => {
   return res;
 };
 
-const fetchShardUri = async(contract, table, shard, sidechain) => {
+const fetchShardUri = async (contract, table, shard, sidechain) => {
   try {
     // get eos client instance
     const currentRPC = getEosRpc(sidechain);
@@ -205,13 +206,13 @@ const fetchShardUri = async(contract, table, shard, sidechain) => {
   }
 }
 
-const fetchRawShard = async(contract, table, shard, sidechain) => {
+const fetchRawShard = async (contract, table, shard, sidechain) => {
   const shardUri = await fetchShardUri(contract, table, shard, sidechain)
   const shardRaw = await readPointer(shardUri, contract, sidechain);
   return shardRaw;
 }
 
-const fetchShard = async(contract, table, shard, sidechain) => {
+const fetchShard = async (contract, table, shard, sidechain) => {
   const shardRaw = await fetchRawShard(contract, table, shard, sidechain)
   // parse shard.
   return parseShard(shardRaw);
@@ -228,14 +229,14 @@ const stringToSymbol = (str) => {
 const stringToNameInner = (str, keysize = 64) => {
   let length = keysize / 8;
   //we have to reverse 256bit strings
-  if(str.length === 32 || keysize === 256) {
-    let first = str.slice(0,16);
-    let second = str.slice(16,32);
-    return Buffer.from(second+first);
+  if (str.length === 32 || keysize === 256) {
+    let first = str.slice(0, 16);
+    let second = str.slice(16, 32);
+    return Buffer.from(second + first);
   }
   const pad = '\0'.repeat(length - str.length);
   return Buffer.from(pad + str);
-};  
+};
 
 const stringToName = (str, keytype = null, keysize = 64) => {
   let length = keysize / 4;
@@ -245,7 +246,7 @@ const stringToName = (str, keytype = null, keysize = 64) => {
     const fixedPaddedNum = paddedNum.match(/.{2}/g).reverse().join('');
     return Buffer.from(fixedPaddedNum, 'hex');
   }
-  if(keytype === 'hex') {
+  if (keytype === 'hex') {
     const paddedNum = '0'.repeat(length - str.length) + str;
     const fixedPaddedNum = paddedNum.match(/.{2}/g).reverse().join('');
     return Buffer.from(fixedPaddedNum, 'hex');
@@ -259,32 +260,32 @@ const nameToString = (name) => {
   const tmp = new BigNumber(name.toString('hex'), 16);
   return decodeName(tmp.toString(), true);
 };
-const parseBucket = async(bucketRawData, keysize) => {
+const parseBucket = (bucketRawData, keysize) => {
   const bucket = {};
-  var pos = 0;
+  let pos = 0;
   while (pos < bucketRawData.length) {
     const scope = bucketRawData.slice(pos, pos + 8);
     pos += 8;
-    const key = bucketRawData.slice(pos, pos + (keysize/8));
-    pos += (keysize/8);
+    const key = bucketRawData.slice(pos, pos + (keysize / 8));
+    pos += (keysize / 8);
     const hash = bucketRawData.slice(pos, pos + 36);
     pos += 36;
     bucket[`${scope}.${key}`] = hash;
   }
   return bucket;
 };
-const fetchBucket = async(bucketPointer, contract, sidechain, keysize) => {
+const fetchBucket = async (bucketPointer, contract, sidechain, keysize) => {
   var bucketRawData = await readPointer(bucketPointer, contract, sidechain);
   return parseBucket(bucketRawData, keysize);
 };
 
-const extractRowFromBucket = async(bucketData, scope, key, contract, sidechain) => {
+const extractRowFromBucket = async (bucketData, scope, key, contract, sidechain) => {
   const rowPointer = bucketData[`${scope}.${key}`];
   logger.debug(`rowPointer ${rowPointer}`);
   if (rowPointer) { return await readPointer(rowPointer, contract, sidechain); }
 };
 
-const extractRowFromShardData = async(shardData, bucket, scope, key, keysize, contract, sidechain) => {
+const extractRowFromShardData = async (shardData, bucket, scope, key, keysize, contract, sidechain) => {
   if (!shardData) { return; }
   const bucketPointer = shardData[bucket];
   const bucketData = await fetchBucket(bucketPointer, contract, sidechain, keysize);
@@ -292,7 +293,7 @@ const extractRowFromShardData = async(shardData, bucket, scope, key, keysize, co
   return await extractRowFromBucket(bucketData, scope, key, contract, sidechain);
 };
 
-const getRowRaw = async(contract, table, scope, key, keytype, keysize, buckets, shards, sidechain) => {
+const getRowRaw = async (contract, table, scope, key, keytype, keysize, buckets, shards, sidechain) => {
   const { shard, bucket } = calculateBucketShard(key, keytype, keysize, scope, buckets, shards);
   logger.debug(`shard, bucket ${shard} ${bucket}`);
   let innerscope = stringToNameInner(stringToName(scope)).toString();
@@ -305,7 +306,7 @@ const getRowRaw = async(contract, table, scope, key, keytype, keysize, buckets, 
   return await extractRowFromShardData(shardData, bucket, innerscope, innerkey, keysize, contract, sidechain);
 };
 
-const deserializeRow = async(contract, table, rowRaw, sidechain, encoding) => {
+const deserializeRow = async (contract, table, rowRaw, sidechain, encoding) => {
   if (!rowRaw) { return; }
 
   const api = getEosApi(sidechain);
@@ -339,11 +340,11 @@ const getVconfig = async (account, table, sidechain) => {
     return { shards: 1024, buckets_per_shard: 64 };
   }
   const vconfigRes = await rpc.get_table_rows({
-      code: account,
-      scope: table,
-      table: ".vconfig",
-      json: true,
-      limit: 1
+    code: account,
+    scope: table,
+    table: ".vconfig",
+    json: true,
+    limit: 1
   });
   const vconfig = vconfigRes.rows[0];
   if (!vconfig)
@@ -369,30 +370,34 @@ const getRequiredIpfsData = async (
   logger.debug(`got #shards ${shards} #buckets-per-shard ${buckets_per_shard}`);
   // const { shards, buckets_per_shard, shard_selector } = await getVconfig(account, table, sidechain);
   //const refKey = (new BigNumber(uint64Key, 16)).toString();
-  const refKey = (new BigNumber(key, 16)).toString(16);
+  const refKey = (new BigNumber(key, 16)).toString(16); 
+  const keyType = 'hex';
   logger.info(refKey)
   logger.info(scope)
-  const { bucket, shard } = calculateBucketShard(refKey, 'hex', keysize, scope, buckets_per_shard, shards, 'number');
+  const { bucket, shard } = calculateBucketShard(refKey, keyType, keysize, scope, buckets_per_shard, shards, 'number');
   logger.debug(`got shard ${shard} bucket ${bucket}`);
   // const { bucket, shard } = shard_key_selectors[shard_selector](key, scope, buckets_per_shard, shards);
 
-  //const shardUri = await fetchShardUri(account, table, shard, sidechain);
-  //const shardIpfsUri = await converToUri(shardUri);
+  if(!shard_uri) {
+    const shardUri = await fetchShardUri(account, table, shard, sidechain);
+    shard_uri = converToUri(shardUri);
+  }
   const shardHash = convertFromUri(shard_uri);
   const shardRawData = await readPointer(shardHash, account, sidechain);
   const shardData = parseShard(shardRawData);
+  logger.debug(`got shard uri ${shard_uri}`);
   // TODO: check if data is in ipfsentry table already?
   uris.push({ uri: shard_uri, data: shardRawData });
 
   const bucketUri = shardData[bucket];
   const bucketIpfsUri = converToUri(bucketUri);
   const bucketRawData = await readPointer(bucketUri, account, sidechain);
-  const bucketData = parseBucket(bucketRawData);
+  const bucketData = parseBucket(bucketRawData,keysize);
   logger.debug(`got bucket uri ${bucketIpfsUri}`);
   uris.push({ uri: bucketIpfsUri, data: bucketRawData });
 
-  formattedScope = stringToNameInner(stringToName(scope, 'number')).toString();
-  formattedKey = stringToNameInner(stringToName(refKey, 'hex', keysize)).toString();
+  formattedScope = stringToNameInner(stringToName(scope,'number')).toString();
+  formattedKey = stringToNameInner(stringToName(refKey, keyType, keysize), keysize).toString();
   let tableEntryUri = bucketData[`${formattedScope}.${formattedKey}`];
   if (tableEntryUri) {
     tableEntryUri = tableEntryUri.toString('hex');
@@ -402,7 +407,7 @@ const getRequiredIpfsData = async (
     uris.push({ uri: tableEntryIpfsUri, data: tableEntryRawData });
   }
 
-  return uris; 
+  return uris;
 }
 
 async function verifyIPFSConnection() {
@@ -416,7 +421,7 @@ async function verifyIPFSConnection() {
   }
 }
 
-function postData (url = ``, data = {}) {
+function postData(url = ``, data = {}) {
   // Default options are marked with *
   return fetch(url, {
     method: 'POST', // *GET, POST, PUT, DELETE, etc.
@@ -434,29 +439,38 @@ function postData (url = ``, data = {}) {
     .then(response => response.json()); // parses response to JSON
 }
 
-const readRemoteIPFS = async(contract, uri, sidechain) => {
+const readRemoteIPFS = async (contract, uri, sidechain) => {
   let loadedExtensions = await loadModels("dapp-services");
   let service = loadedExtensions.find(a => a.name == "ipfs").contract;
   let mainnet_account = contract;
-  if(sidechain) 
-    mainnet_account = await getLinkedAccount(null, null, contract, sidechain.name);  
-  const remoteProviders = await getProviders(contract, service, false, false);  
+  if (sidechain)
+    mainnet_account = await getLinkedAccount(null, null, contract, sidechain.name);
+  const remoteProviders = await getProviders(contract, service, false, false);
   //iterate over these providers
-  for (let i = 0; i < remoteProviders.length; i++) {      
+  for (let i = 0; i < remoteProviders.length; i++) {
     const provider = remoteProviders[i].provider;
     logger.debug("Attempting to fetch %s from %s", uri, provider);
     const packageid = await resolveProviderPackage(mainnet_account, service, provider);
     const remote = await resolveProviderData(service, provider, packageid);
-    const result = await postData(`${remote.endpoint}/v1/dsp/${service}/get_uri`, { uri });      
-    if(result.data) return Buffer.from(result.data,'base64');      
-  }          
-  throw new Error(`Unable to fetch ${uri} from any providers`);  
+    const result = await postData(`${remote.endpoint}/v1/dsp/${service}/get_uri`, { uri });
+    if (result.data) return Buffer.from(result.data, 'base64');
+  }
+  throw new Error(`Unable to fetch ${uri} from any providers`);
+}
+
+const getSidechain = async(chain, sidechain) => {
+  if(chain == "") return sidechain;
+  if(chain == "mainnet") return null;
+  let sidechains = await loadModels('eosio-chains');
+  let sidechainObj = sidechains.find(a => a.name === chain);
+  if(!sidechainObj) throw new Error(`Unsupported sidechain ${chain} requested from contract`);
+  return sidechainObj;
 }
 
 verifyIPFSConnection();
 
 nodeFactory('ipfs', {
-  commit: async({ rollback, replay, exception }, { data }) => {
+  commit: async ({ rollback, replay, exception }, { data }) => {
     if (rollback) { return; }
     const uri = await saveToIPFS(data);
     if (process.env.PASSIVE_DSP_NODE == 'true' || replay || exception) {
@@ -467,7 +481,7 @@ nodeFactory('ipfs', {
       size: data.length / 2
     };
   },
-  warmup: async({ event, rollback }, { uri }) => {
+  warmup: async ({ event, rollback }, { uri }) => {
     if (rollback) {
       // rollback warmup
       event.action = 'cleanup';
@@ -482,7 +496,7 @@ nodeFactory('ipfs', {
       let data;
       try {
         data = await readFromIPFS(uri);
-      } catch(e) {
+      } catch (e) {
         //if code exists (backwards compatability) use it, 
         //otherwise check all providers that payer has staked to
         data = await readRemoteIPFS(event.payer, uri, event.sidechain);
@@ -495,7 +509,7 @@ nodeFactory('ipfs', {
       };
     }
   },
-  warmupcode: async({ event, rollback }, { uri, code }) => {
+  warmupcode: async ({ event, rollback }, { uri, code }) => {
     if (rollback) {
       // rollback warmup
       event.action = 'cleanup';
@@ -510,9 +524,9 @@ nodeFactory('ipfs', {
       let data;
       try {
         data = await readFromIPFS(uri);
-      } catch(e) {
+      } catch (e) {
         //if code exists (backwards compatability) use it, 
-        //otherwise check all providers that payer has staked to
+        //otherwise check all providers that payer has staked to        
         data = await readRemoteIPFS(code || event.payer, uri, event.sidechain);
       }
       logger.info(`Got warmup data for uri ${uri}`);
@@ -523,15 +537,15 @@ nodeFactory('ipfs', {
       };
     }
   },
-  cleanup: async({ rollback, exception, replay }, { uri }) => {
+  cleanup: async ({ rollback, exception, replay }, { uri }) => {
     if (rollback || exception || replay) { return; }
     logger.debug(`cleanup ${uri}`);
     return {
       size: 0,
-      uri 
+      uri
     };
   },
-  warmuprow: async({ event, rollback }, { uri, code, table, scope, index_position, key, keysize }) => {
+  warmuprow: async ({ event, rollback }, { uri, code, table, scope, index_position, key, keysize }) => {
     if (rollback) {
       // rollback warmup
       event.action = 'cleanuprow';
@@ -544,7 +558,7 @@ nodeFactory('ipfs', {
       try {
         // have to modify event object to contain more garbage
         logger.info(`WARMUP ROW: getting data for account ${event.payer} : ${code || event.payer} - ${table} ${scope} ${index_position} ${key} ${keysize}`);
-        keysize = keysize * 8; // sizeof(PrimKey) measures each 8 bits as size 1 
+        keysize = keysize * 8; // sizeof(PrimKey) measures each 8 bits as size 1         
         const requiredData = await getRequiredIpfsData(uri, code || event.payer, table, scope, index_position, key, keysize, event.sidechain);
         const uris = requiredData.map(entry => entry.uri);
         const data = requiredData.map(entry => entry.data);
@@ -552,6 +566,47 @@ nodeFactory('ipfs', {
         event.garbage = { uris };
         logger.info(`got uris for warmuprow - ${JSON.stringify(uris)}`);
         return {
+          uris,
+          data,
+          size
+        };
+      } catch (e) {
+        console.log(e)
+        logger.error(e);
+        throw e;
+      }
+    }
+  },
+  warmupchain: async({ event, rollback }, { shard, code, table, chain, scope, index_position, key, keysize }) => {
+    if (rollback) {
+      // rollback warmup
+      event.action = 'cleanchain';
+      return {
+        shard,
+        code,
+        table,
+        chain,
+        size: 0,
+        uris: event.garbage.uris
+      };
+    }
+    else {
+      try {
+        // have to modify event object to contain more garbage
+        const sidechain = await getSidechain(chain, event.sidechain);
+        logger.info(`WARMUP CHAIN: getting data for account ${event.payer} : ${code || event.payer} - ${sidechain ? sidechain.name : 'mainnet'} ${shard} ${table} ${scope} ${index_position} ${key} ${keysize}`);
+        keysize = keysize * 8; // sizeof(PrimKey) measures each 8 bits as size 1         
+        const requiredData = await getRequiredIpfsData(null, code, table, scope, index_position, key, keysize, sidechain);
+        const uris = requiredData.map(entry => entry.uri);
+        const data = requiredData.map(entry => entry.data);
+        const size = data.reduce((acc, cur) => acc + cur.length, 0);
+        event.garbage = { uris };
+        logger.info(`got uris for warmupchain - ${JSON.stringify(uris)}`);
+        return {
+          shard,
+          code,
+          table,
+          chain,
           uris,
           data,
           size
@@ -571,8 +626,20 @@ nodeFactory('ipfs', {
       uris
     };
   },
+  cleanchain: async({ rollback, exception, replay }, { shard, code, table, chain, uris }) => {
+    if (rollback || exception || replay) { return; }
+    logger.debug(`cleanchain ${uris}`);
+    return {
+      shard,
+      code,
+      table,
+      chain,
+      size: 0,
+      uris
+    };
+  },
   api: {
-    get_table_row: async({ body }, res) => {
+    get_table_row: async ({ body }, res) => {
       try {
         const { contract, table, scope, key } = body;
         const keytype = body.keytype ? body.keytype : null;
@@ -596,15 +663,15 @@ nodeFactory('ipfs', {
         res.send(JSON.stringify({ error: e.toString() }));
       }
     },
-    get_uri: async({ body }, res) => {
+    get_uri: async ({ body }, res) => {
       const { uri } = body;
       const encoding = body.encoding ? body.encoding : 'base64';
-      logger.debug("get_uri: %s", uri);      
-      try {        
+      logger.debug("get_uri: %s", uri);
+      try {
         const raw = await readFromIPFS(uri);
         const data = raw.toString(encoding);
 
-        logger.debug("get_uri: %s retrieved data %s", uri, data);    
+        logger.debug("get_uri: %s retrieved data %s", uri, data);
         res.send(JSON.stringify({ uri, data }));
       }
       catch (e) {

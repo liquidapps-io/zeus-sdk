@@ -1,5 +1,6 @@
 const fs = require('fs');
-const { getEosWrapper } = require('../../extensions/tools/eos/eos-wrapper');
+const { requireBox } = require('@liquidapps/box-utils');
+const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 
 var contractAccount = process.env.CONTRACT;
 var tableName = 'accounts'; //TODO: How would we pass in this argument?
@@ -9,8 +10,7 @@ var filename;
 var eosPrivate;
 var backup = {};
 
-function prepare_backup()
-{
+function prepare_backup() {
     var eosconfig = {
         expireInSeconds: 1200,
         sign: true,
@@ -34,9 +34,9 @@ function prepare_backup()
 
 function push_shardbuckets(shardbuckets) {
     let revision = backup.revision;
-    let map = shardbuckets.map(shardbucket=>{
+    let map = shardbuckets.map(shardbucket => {
         let shard_revision = shardbucket.revision || 0;
-        if(shard_revision === revision) {
+        if (shard_revision === revision) {
             return {
                 key: shardbucket.shard,
                 value: shardbucket.shard_uri
@@ -55,7 +55,7 @@ async function get_config() {
             'table': '.vconfig',
             'limit': 1
         });
-        if(res.rows.length == 0) {
+        if (res.rows.length == 0) {
             console.error(`No config found for table '${tableName}': Are you using the correct table name, or has it been used before?`);
             return;
         }
@@ -63,12 +63,12 @@ async function get_config() {
         backup.revision = config.revision;
         backup.manifest.next_available_key = config.next_available_key;
         backup.manifest.shards = config.shards;
-        backup.manifest.buckets_per_shard = config.buckets_per_shard;    
-        console.log('Configuration found');    
-    } catch(e) {
+        backup.manifest.buckets_per_shard = config.buckets_per_shard;
+        console.log('Configuration found');
+    } catch (e) {
         console.error(`Unable to get vram config: .vconfig must be exposed in ABI or you are using an old version of dapp:multi_index`);
         console.log('Default configuration being used');
-    }    
+    }
 }
 
 async function get_shards(lower_bound) {
@@ -84,26 +84,26 @@ async function get_shards(lower_bound) {
         });
         console.log(`Fetched ${res.rows.length} shardbuckets`);
         if (res.rows.length == 0) { return; }
-        lower_bound = res.rows[res.rows.length-1].shard;
+        lower_bound = res.rows[res.rows.length - 1].shard;
         push_shardbuckets(res.rows);
-    
-        if(res.more) {
+
+        if (res.more) {
             return get_shards(lower_bound);
         }
-    } catch(e) {
+    } catch (e) {
         console.error(`Unable to fetch or process table '${tableName}': Have you properly exposed the ABI?`);
-    }    
+    }
 }
 
 function write_backup() {
     let ts = parseInt((backup.timestamp.getTime() / 1000).toFixed(0));
     let path = filename ? filename : `vram-backup-${backup.contract}-${backup.table}-${backup.revision}-${ts}.json`;
     let data = JSON.stringify(backup);
-    fs.writeFileSync(path,data);
+    fs.writeFileSync(path, data);
     console.log(`Wrote backup to ${path}`);
 }
 
-async function run() {    
+async function run() {
     prepare_backup();
     console.log(`Backing up vram for Contract '${backup.contract}', Table '${backup.table}'`);
     await get_config();
@@ -112,11 +112,11 @@ async function run() {
     write_backup();
 }
 
-async function generateBackup(contract,table,nodeos,output) {
+async function generateBackup(contract, table, nodeos, output) {
     contractAccount = contract;
     tableName = table;
-    if(nodeos) endpoint = nodeos;
-    if(output) filename = output;
+    if (nodeos) endpoint = nodeos;
+    if (output) filename = output;
     await run();
     return backup;
 }

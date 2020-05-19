@@ -6,8 +6,9 @@ https://github.com/liquidapps-io/zeus-cmd
 
 ## Unbox & Test
 ```
+mkdir microauctions; cd microauctions
+zeus box create
 zeus unbox microauctions
-cd microauctions
 zeus test -c
 ```
 

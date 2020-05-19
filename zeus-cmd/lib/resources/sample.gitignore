@@ -1,0 +1,16 @@
+zeus_boxes/
+**/node_modules/
+**/dist/
+**/build/
+**/*.wasm
+**/*.abi
+
+**/Makefile
+**/CMakeCache.txt
+**/CMakeFiles/**
+**/CMakeFiles
+**/cmake_install.cmake
+**/CMakeLists.txt
+
+.idea/
+.env

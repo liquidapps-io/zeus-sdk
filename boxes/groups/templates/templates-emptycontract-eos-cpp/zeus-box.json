@@ -1,21 +1,21 @@
 {
+  "version": "1.0.0",
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Create contract from template": "zeus create contract somecontract"
-  },  
-  "dependencies":[
-    "hooks-npm",
-    "mocha","seed-eos", "seed-migrations", "hooks-cpp-contracts","eos-common",
-    "seed-models","templates-extensions"
-  ],
-  "install":{
-    "contracts":{
-    }
   },
-  "hooks": {
-  }
-
+  "dependencies": {
+    "mocha": "^1.0.0",
+    "seed-eos": "^1.0.0",
+    "seed-migrations": "^1.0.0",
+    "eos-common": "^1.0.0",
+    "seed-models": "^1.0.0",
+    "templates-extensions": "^1.0.0"
+  },
+  "install": {
+    "contracts": {}
+  },
+  "hooks": {}
 }

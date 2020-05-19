@@ -2,11 +2,12 @@ require('mocha');
 
 
 const { assert } = require('chai'); // Using Assert style
-const { getCreateKeys } = require('../extensions/helpers/key-utils');
+const { requireBox } = require('@liquidapps/box-utils');
+const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
 
 var contractCode = 'vgrab';
 var ctrt = artifacts.require(`./${contractCode}/`);
@@ -26,7 +27,7 @@ describe(`${contractCode} Contract`, () => {
         var deployedContract2 = await deployer.deploy(ctrt, code2);
         await genAllocateDAPPTokens(deployedContract, 'ipfs');
         // create token
-        const { getTestContract } = require('../extensions/tools/eos/utils');
+        const { getTestContract } = requireBox('seed-eos/tools/eos/utils');
         testcontract = await getTestContract(code);
 
         done();

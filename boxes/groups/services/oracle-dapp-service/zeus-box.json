@@ -1,20 +1,23 @@
 {
+  "version": "1.0.1",
   "ignore": [
-    "README.md",
-    "LICENSE",
-    "zeus-box.json"
+    "README.md"
   ],
-  "dependencies":[
-    "dapp-services",
-    "mocha",
-    "seed-utils-cleanup",
-    "hooks-cpp-contracts",
-    "oracle-web","oracle-self-history","oracle-random","oracle-sister-chain"],
-  "install":{
-    "contracts":{
+  "dependencies": {
+    "dapp-services": "^1.0.0",
+    "mocha": "^1.0.0",
+    "seed-utils-cleanup": "^1.0.0",
+    "oracle-web": "^1.0.0",
+    "oracle-echo": "^1.0.0",
+    "oracle-self-history": "^1.0.0",
+    "oracle-random": "^1.0.0",
+    "oracle-sister-chain": "^1.0.0"
+  },
+  "install": {
+    "contracts": {
       "oracleconsumer": true
     },
-    "npm":{
+    "npm": {
       "node-fetch": true
     }
   }

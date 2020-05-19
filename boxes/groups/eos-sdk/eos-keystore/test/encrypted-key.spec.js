@@ -2,7 +2,8 @@ require('mocha');
 
 
 const { assert } = require('chai'); // Using Assert style
-const { execPromise } = require('../extensions/helpers/_exec');
+const { requireBox } = require('@liquidapps/box-utils');
+const { execPromise } = requireBox('seed-zeus-support/_exec');
 const os = require('os');
 const fs = require('fs');
 

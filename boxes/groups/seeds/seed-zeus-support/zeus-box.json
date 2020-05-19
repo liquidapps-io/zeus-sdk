@@ -1,11 +1,9 @@
 {
+  "version": "1.0.0",
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
-  "commands": {
-  },
-  "dependencies":["seed-zeus-base", "hooks-npm"],
-  "hooks": {
-  }
+  "commands": {},
+  "dependencies": {},
+  "hooks": {}
 }

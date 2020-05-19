@@ -21,25 +21,25 @@ module.exports = class extends Generator {
 
         this.fs.copyTpl(
             this.templatePath('**'),
-            this.destinationPath(`contracts/eos/${name}consumer/`),
+            this.destinationPath(`zeus_boxes/contracts/eos/${name}consumer/`),
             this.options
         );
 
         this.fs.copyTpl(
-            path.resolve('./templates/dsp-service/generators/app/test-templates/consumer.spec.js'),
+            path.resolve('zeus_boxes/templates-dsp-service/templates/dsp-service/generators/app/test-templates/consumer.spec.js'),
             this.destinationPath(`test/${name}consumer.spec.js`),
             this.options
         );
         this.fs.copyTpl(
-            path.resolve('./templates/dsp-service/generators/app/model-template/model.json'),
-            this.destinationPath(`models/dapp-services/${name}.json`),
+            path.resolve('zeus_boxes/templates-dsp-service/templates/dsp-service/generators/app/model-template/model.json'),
+            this.destinationPath(`zeus_boxes/models/dapp-services/${name}.json`),
             this.options
         );
 
 
 
         // append to cmakelists
-        const originalContent = fs.readFileSync(this.destinationPath('', 'contracts/eos/CMakeLists.txt'), 'utf8');
+        const originalContent = fs.readFileSync(this.destinationPath('', 'zeus_boxes/contracts/eos/CMakeLists.txt'), 'utf8');
         if (originalContent.split('\n').indexOf(`# building:${name}`) !== -1) { return; }
         const toAppendContent = `\n
 # building:${name}\n
@@ -54,6 +54,6 @@ ExternalProject_Add(
    INSTALL_COMMAND ""
    BUILD_ALWAYS 1
 )\n`;
-        fs.writeFileSync(this.destinationPath('', 'contracts/eos/CMakeLists.txt'), originalContent.concat(toAppendContent));
+        fs.writeFileSync(this.destinationPath('', 'zeus_boxes/contracts/eos/CMakeLists.txt'), originalContent.concat(toAppendContent));
     }
 };
