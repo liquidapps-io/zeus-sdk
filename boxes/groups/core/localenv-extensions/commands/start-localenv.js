@@ -38,6 +38,10 @@ module.exports = {
       .option('stake', {
         describe: 'account staking amount',
         default: '300.0000'
+      })
+      .option('phase', {
+        describe: 'phase of local env step to start',
+        default: ''
       }).example(`$0 ${cmd}`);
   },
   command: cmd,
@@ -47,7 +51,7 @@ module.exports = {
     await execScripts(path.join(boxesDir, 'start-localenv'), (script) => {
       console.log(emojMap.anchor + 'Setup environment', path.basename(script).green);
       return [args];
-    }, args);
+    }, args, args.phase ? args.phase : undefined);
   }
 }
 
