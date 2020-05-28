@@ -49,14 +49,17 @@ const isFile = source => !lstatSync(source).isDirectory();
 const getScripts = source =>
   readdirSync(source).map(name => join(source, name)).filter(isFile).filter(a => a.endsWith('.js')).sort();
 
-const execScripts = async(scriptsPath, argsFn, yargsArgs) => {
+const execScripts = async(scriptsPath, argsFn, yargsArgs, helper) => {
   global.yargsArgs = yargsArgs;
-  var scripts = getScripts(scriptsPath);
-  for (var i = 0; i < scripts.length; i++) {
-    var script = scripts[i];
-    var newArgs = argsFn(script);
+  let scripts = getScripts(scriptsPath);
+  for (let i = 0; i < scripts.length; i++) {
+    if(helper && !scripts[i].includes(helper)) {
+      continue;
+    }
+    let script = scripts[i];
+    let newArgs = argsFn(script);
     if (!newArgs) { continue; }
-    var module = require(script);
+    let module = require(script);
     await module.call(module, ...newArgs);
   }
 };
