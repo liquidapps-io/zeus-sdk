@@ -122,12 +122,16 @@ const actionHandlers = {
 let enableXCallback = null;
 
 const extractUsageQuantity = async (e) => {
-  const details = e.json.error.details;
-  const jsons = details[details.length - 1].message.split(': ', 2)[1].split('\n').filter(a => a.trim() != '');
-  if (!jsons.length) {
+  let details = e.json.error.details;
+  try {
+    details = details[details.length - 1].message.split(': ', 2)[1].split('\n').filter(a => a.trim() != '');
+  } catch (e) {
+    logger.error(`Unable to extract usage quantity`)
+  }
+  if (!details.length) {
     throw new Error('usage event not found');
   }
-  const events = (await parseEvents(jsons.join('\n'))).filter(e => e.etype === 'usage_report');
+  const events = (await parseEvents(details.join('\n'))).filter(e => e.etype === 'usage_report');
 
   if (!events.length) {
     logger.warn(`is verbose-http-errors = true enabled in the nodeos config.ini?`);
