@@ -186,5 +186,9 @@ CONTRACT_START()
         // stop or enable start of price feed cron
         [[eosio::action]] 
         void stopstart(bool stopstart_bool);
+    
+        // test price feed without cron
+        [[eosio::action]] 
+        void testfetch(std::vector<char> uri);
         
-CONTRACT_END((testfeed)(settings)(stopstart))
+CONTRACT_END((testfeed)(settings)(stopstart)(testfetch))
