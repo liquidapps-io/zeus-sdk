@@ -31,6 +31,13 @@ async function deployLocalService(serviceModel, provider = 'pprovider1', gateway
   }, {
     authorization: `${provider}@active`,
   });
+  await contractInstance.enablepkg({
+    provider,
+    package_id,
+    service: serviceContract
+  }, {
+    authorization: `${provider}@active`,
+  });
 
   //create the service contract accounts, but don't load them with code
   await getCreateAccount(serviceContract);

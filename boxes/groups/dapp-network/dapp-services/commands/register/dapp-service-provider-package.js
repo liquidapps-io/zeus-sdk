@@ -74,6 +74,13 @@ module.exports = {
         sign: true,
         keyProvider: [key]
       });
+      await contractInstance.enablepkg({
+        provider,
+        package_id,
+        service: serviceContract
+      }, {
+        authorization: `${provider}@active`,
+      });
     }
     catch (e) {
       console.log(emojMap.white_frowning_face + 'failed', e);
