@@ -10,8 +10,9 @@ const logger = requireBox('log-extensions/helpers/logger');
 var env = process.env.DATABASE_NODE_ENV || 'development';
 const dbTimeout = process.env.DATABASE_TIMEOUT || '10000';
 
-if (process.env.DATABASE_URL)
+if (process.env.DATABASE_URL && process.env.DATABASE_URL !== "false") {
   env = 'production';
+}
 var config = require(__dirname + '/../config/config.js')[env];
 
 var db = {};
