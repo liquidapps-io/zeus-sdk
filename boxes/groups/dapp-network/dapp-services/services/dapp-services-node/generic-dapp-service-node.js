@@ -6,7 +6,12 @@ const { requireBox, getBoxesDir } = require('@liquidapps/box-utils');
 const { loadModels } = requireBox('seed-models/tools/models');
 const logger = requireBox('log-extensions/helpers/logger');
 const { dappServicesContract, getContractAccountFor } = requireBox('dapp-services/tools/eos/dapp-services');
-const { deserialize, generateABI, genNode, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission, emitUsage, detectXCallback, getTableRowsSec, getLinkedAccount, parseEvents, pushTransaction, getEosForSidechain, eosMainnet } = require('./common');
+const { deserialize, generateABI, genNode, paccount, forwardEvent, 
+  resolveProviderData, resolveProvider, getProviders, 
+  resolveProviderPackage, paccountPermission, emitUsage, 
+  detectXCallback, getTableRowsSec, getLinkedAccount, 
+  parseEvents, pushTransaction, getEosForSidechain, 
+  eosMainnet, mainnetDfuseEnable, loggerHelper } = require('./common');
 
 var sidechainsDict = {};
 
@@ -122,17 +127,17 @@ const actionHandlers = {
 let enableXCallback = null;
 
 const extractUsageQuantity = async (e) => {
-  let details = e.json.error.details;
-  try {
-    details = details[details.length - 1].message.split(': ', 2)[1].split('\n').filter(a => a.trim() != '');
-  } catch (e) {
-    logger.error(`Unable to extract usage quantity`)
+  const details = e.json.error.details;
+  let jsons;
+  // if pending console does not contain usage report, use assertion message
+  if(!JSON.stringify(details[details.length - 1]).includes('usage_report')) {
+    jsons = details[details.length - 2].message.split(': ', 2)[1].split(`'`).join(`"`).split('\n').filter(a => a.trim() != '');
+  } else {
+    jsons = details[details.length - 1].message.split(': ', 2)[1].split('\n').filter(a => a.trim() != '');
   }
-  if (!details.length) {
-    throw new Error('usage event not found');
-  }
-  const events = (await parseEvents(details.join('\n'))).filter(e => e.etype === 'usage_report');
-
+  if(!jsons && mainnetDfuseEnable) logger.warn('usage event not found, network may need to update to latest dappservices contract');
+  if (!jsons.length) throw new Error('usage event not found');
+  const events = (await parseEvents(jsons.join('\n'))).filter(e => e.etype === 'usage_report');
   if (!events.length) {
     logger.warn(`is verbose-http-errors = true enabled in the nodeos config.ini?`);
     throw new Error('usage event not found');

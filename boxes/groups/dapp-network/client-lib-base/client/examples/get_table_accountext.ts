@@ -1,7 +1,7 @@
 import { getClient } from "./client";
 
 (async () => {
-    const response = await (await getClient()).get_table_accountext();
+    const response = await (await getClient()).dappNetwork.get_table_accountext();
     for (const row of response.rows) {
         console.log(row);
         // {

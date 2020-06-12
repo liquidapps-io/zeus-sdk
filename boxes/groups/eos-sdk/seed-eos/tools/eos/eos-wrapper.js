@@ -1,7 +1,16 @@
+const { requireBox } = require('@liquidapps/box-utils');
+const logger = requireBox('log-extensions/helpers/logger');
 const { Api, JsonRpc, RpcError } = require('eosjs');
 const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig'); // development only
 const fetch = require('node-fetch'); // node only; not needed in browsers
 const { TextEncoder, TextDecoder } = require('util'); // node only; native TextEncoder/Decoder
+const dfuseEndpoints = {
+    'mainnet': 'https://mainnet.eos.dfuse.io',
+    'testnet': 'https://testnet.eos.dfuse.io',
+    'kylin': 'https://kylin.eos.dfuse.io',
+    'worbli': 'https://worbli.eos.dfuse.io',
+    'wax': 'https://mainnet.wax.dfuse.io'
+}
 
 function getEosWrapper(config) {
     const defaults = {
@@ -10,7 +19,44 @@ function getEosWrapper(config) {
         broadcast: true,
         blocksBehind: 3
     }
+
     const rpc = new JsonRpc(config.httpEndpoint, { fetch });
+    rpc.fetch = (async(path, body) => {
+        let response;
+        let json;        
+        try {
+            if((path == '/v1/chain/push_transaction' || path == '/v1/chain/send_transaction') && (config.dfuseEnable === "true" || config.dfuseEnable === true)) {
+                logger.debug(`Pushing to dFuse ${config.dfuseNetwork} with Guarantee ${config.dfuseGuarantee} Wrapper`)
+                response = await fetch(dfuseEndpoints[config.dfuseNetwork] + path, {
+                    body: JSON.stringify(body),
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${config.dfusePushApiKey}`,
+                        'X-Eos-Push-Guarantee': `${config.dfuseGuarantee}`
+                    }
+                });
+            } else {
+                logger.debug(`Not pushing to dFuse Wrapper`)
+                response = await fetch(config.httpEndpoint + path, {
+                    body: JSON.stringify(body),
+                    method: 'POST',
+                });
+            } 
+            logger.warn(`Wrapper response: ${typeof(response) == "object" ? JSON.stringify(response) : response}`)   
+            json = await response.json();
+            if (json.processed && json.processed.except) {
+                throw new RpcError(json);
+            }
+        } catch (e) {
+            e.isFetchError = true;
+            throw e;
+        }
+        if (!response.ok) {
+            throw new RpcError(json);
+        }
+        return json;
+    }).bind(rpc);
+
     if (config.keyProvider && !Array.isArray(config.keyProvider))
         config.keyProvider = [config.keyProvider];
     const signatureProvider = config.keyProvider ? new JsSignatureProvider(config.keyProvider) : new JsSignatureProvider([]);

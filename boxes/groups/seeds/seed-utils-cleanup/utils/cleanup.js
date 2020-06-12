@@ -5,12 +5,76 @@ const { Serialize } = require('eosjs');
 const { hexToUint8Array, arrayToHex } = Serialize;
 const { TextDecoder, TextEncoder } = require('text-encoding');
 const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
+const logger = requireBox('log-extensions/helpers/logger');
+
+//dfuse settings
+const mainnetDfuseEnable = process.env.DFUSE_PUSH_ENABLE || false;
+const mainnetDfuseGuarantee = process.env.DFUSE_PUSH_GUARANTEE || 'in-block';
+const mainnetDfuseApiKey = process.env.DFUSE_API_KEY || '';
+const mainnetDfuseNetwork = process.env.DFUSE_NETWORK || 'mainnet';
 
 const contractAccount = process.env.CONTRACT;
 const endpoint = process.env.DSP_ENDPOINT || 'http://127.0.0.1:13015';
 const chunkSize = parseInt(process.env.CHUNK_SIZE || 5);
 const url = `${endpoint}/event`;
-const eosPrivate = getEosWrapper({ httpEndpoint: endpoint });
+
+const WebSocketClient = require("ws");
+const { createDfuseClient } = require("@dfuse/client");
+
+const webSocketFactory = async (url, protocols) => {
+  const webSocket = new WebSocketClient(url, protocols, {
+    handshakeTimeout: 30 * 1000, // 30s
+    maxPayload: 200 * 1024 * 1000 * 1000 // 200Mb
+  })
+
+  const onUpgrade = (response) => {
+    console.log("Socket upgrade response status code.", response.statusCode)
+
+    // You need to remove the listener at some point since this factory
+    // is called at each reconnection with the remote endpoint!
+    webSocket.removeListener("upgrade", onUpgrade)
+  }
+
+  webSocket.on("upgrade", onUpgrade)
+
+  return webSocket
+}
+
+const client = mainnetDfuseApiKey ? createDfuseClient({ apiKey: mainnetDfuseApiKey, network: mainnetDfuseNetwork,
+  httpClientOptions: {
+    fetch
+  },
+  graphqlStreamClientOptions: {
+    socketOptions: {
+      // The WebSocket factory used for GraphQL stream must use this special protocols set
+      // We intend on making the library handle this for you automatically in the future,
+      // for now, it's required otherwise, the GraphQL will not connect correctly.
+      webSocketFactory: (url) => webSocketFactory(url, ["graphql-ws"]),
+      reconnectDelayInMs: 250 // document every 5s
+    }
+  },
+  streamClientOptions: {
+    socketOptions: {
+      webSocketFactory: (url) => webSocketFactory(url)
+    }
+  }
+}): '';
+
+const getDfuseJwt = async () => {
+  const jwtApiKey = await client.getTokenInfo();
+  return jwtApiKey.token
+}
+
+const eosMainnet = async () => {
+  const mainnetConfig = {
+    httpEndpoint: endpoint,
+    dfuseEnable: mainnetDfuseEnable,
+    dfuseGuarantee: mainnetDfuseGuarantee,
+    dfusePushApiKey: mainnetDfuseApiKey ? await getDfuseJwt() : '',
+    dfuseNetwork: mainnetDfuseNetwork
+  }
+  return getEosWrapper(mainnetConfig);
+}
 
 let totalSize = 0;
 let cnt = 0;
@@ -95,7 +159,7 @@ function chunk(arr, len) {
 }
 
 // returns next lower bound
-async function cleanup({ contractAccount, table, lower_bound, dataKey, service, action, replay, rollback }) {
+async function cleanup(eosPrivate, { contractAccount, table, lower_bound, dataKey, service, action, replay, rollback }) {
   lower_bound = lower_bound || 0;
   let res = await eosPrivate.getTableRows({
     'json': true,
@@ -136,11 +200,12 @@ async function main() {
       rollback: true
     }
   }
+  const eosPrivate = await eosMainnet();
   const abi = await eosPrivate.getAbi(contractAccount);
   table = process.env.TABLE || abi.tables.find(table => Object.keys(tableConfig).includes(table.name)).name;
 
   const { dataKey, service, action, rollback, replay } = tableConfig[table];
-  await cleanup({ contractAccount, table, dataKey, service, action, replay, rollback });
+  await cleanup(eosPrivate, { contractAccount, table, dataKey, service, action, replay, rollback });
 }
 
 main().catch(console.log);

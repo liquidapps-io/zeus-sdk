@@ -15,7 +15,10 @@ async function createClient(config: {
     endPointForContract?: string,
     services?: string[],
     fetch?: any,
-    blocksBehind?: Number
+    blocksBehind?: Number,
+    dfuse_key?: string
+    dfuse_guarantee?: string
+    dfuse_network?: string
   }):Promise<any> {
   const defaults = {
     expireSeconds: 60,
@@ -30,8 +33,18 @@ async function createClient(config: {
   if (config.keyProvider && !Array.isArray(config.keyProvider))
     config.keyProvider = [config.keyProvider];
   const signatureProvider = config.keyProvider ? new JsSignatureProvider(config.keyProvider) : new JsSignatureProvider([]);
-  const dappNetwork = new DappClient( "", { endpoint: config.httpEndpoint, fetch:config.fetch } );;
-  const dappAirHODLClient = new DappAirHODLClient( "", { endpoint: config.httpEndpoint, fetch:config.fetch } );;
+  const dappNetwork = new DappClient( "", { 
+    endpoint: config.httpEndpoint, 
+    fetch:config.fetch, 
+    dfuse_key: config.dfuse_key, 
+    dfuse_guarantee: config.dfuse_guarantee, 
+  } );
+  const dappAirHODLClient = new DappAirHODLClient( "", { 
+    endpoint: config.httpEndpoint, 
+    fetch:config.fetch, 
+    dfuse_key: config.dfuse_key, 
+    dfuse_guarantee: config.dfuse_guarantee, 
+  } );
   let api:any = new Api({ rpc, signatureProvider, textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
   if(config.endPointForContract){
     for (let i=0;i < config.services.length;i++){

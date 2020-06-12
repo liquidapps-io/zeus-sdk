@@ -13,6 +13,8 @@ import { EosioClient } from "./eosio-client";
  * @param {string} [options.endpoint] dsp endpoint
  * @param {string} [options.dappservices="dappservices"] DAPP Services contract
  * @param {Fetch} [options.fetch=global.fetch] fetch
+ * @param {string} [options.dfuse_key=""] Dfuse API key
+ * @param {string} [options.dfuse_guarantee="in-block"] Dfuse Push Guarantee
  * @example
  *
  * const endpoint = "https://kylin-dsp-2.liquidapps.io"
@@ -28,6 +30,8 @@ export class DappAirHODLClient extends EosioClient {
         fetch?: Fetch,
         dappservices?: string,
         dappairhodl1?: string,
+        dfuse_key?: string
+        dfuse_guarantee?: string
     } = {} ) {
         super( network, options );
         this.dappservices = options.dappservices || this.dappservices;
