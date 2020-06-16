@@ -91,7 +91,7 @@ export const fetchStaking = async () => {
     // remove accounts that do not meet min stake amount
     for(let i = 0; i < accounts.length; i++) {
       let providerPackage: types.PackageEntry = await fetchPackage(client, accounts[i].pending_package, accounts[i].service, accounts[i].provider, 9999999 );
-      if(returnNumber(accounts[i].balance) >= returnNumber(providerPackage.rows[0].min_stake_quantity)) newAccounts.push(accounts[i])
+      if(providerPackage.rows.length && (returnNumber(accounts[i].balance) >= returnNumber(providerPackage.rows[0].min_stake_quantity))) newAccounts.push(accounts[i])
     }
     // map from array of objects to array of accounts
     newAccounts = newAccounts.map(el => el.account);
