@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "ignore": [
     "README.md"
   ],
@@ -13,6 +13,7 @@
     "airdrop": "^1.0.0",
     "chess": "^1.0.0",
     "liquidx": "^1.0.0",
-    "combined": "^1.0.0"
+    "combined": "^1.0.0",
+    "tokenpeg": "^1.0.0"
   }
 }

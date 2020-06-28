@@ -1392,7 +1392,7 @@ typedef h_const_iterator const_iterator;
       }
 
       void load_manifest(ipfsmultihash_t ipfshash, string description) {
-          load_manifest(ipfsmultihash_to_uri(ipfshash));
+          load_manifest(ipfsmultihash_to_uri(ipfshash), description);
       }
 
       void load_manifest(uint64_t backup_id, string description) {
