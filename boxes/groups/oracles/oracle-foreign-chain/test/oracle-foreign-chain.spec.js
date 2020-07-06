@@ -67,7 +67,7 @@ describe(`foreign_chain Oracle Service Test`, () => {
       }
     })();
   });
-  it('Chain Oracle XIBC - cardano', done => {
+  it.skip('Chain Oracle XIBC - cardano', done => {
     (async () => {
       try {
         var res = await testcontract.testget({

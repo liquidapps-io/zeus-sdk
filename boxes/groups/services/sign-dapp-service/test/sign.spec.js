@@ -1,11 +1,9 @@
 require('mocha');
-
-
 const { assert } = require('chai'); // Using Assert style
 const { requireBox } = require('@liquidapps/box-utils');
+const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
 const { getNetwork, getCreateAccount } = requireBox('seed-eos/tools/eos/utils');
-const Eos = require('eosjs');
 const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 const fetch = require('node-fetch');
 const Web3 = require('web3');
@@ -20,7 +18,6 @@ const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-servi
 const provider = new Web3.providers.HttpProvider('http://localhost:8545');
 const web3 = new Web3(provider);
 
-const dspUrl = 'http://localhost:13128';
 const contractCode = 'signer';
 const ctrt = artifacts.require(`./${contractCode}/`);
 
@@ -37,8 +34,7 @@ describe(`Sign DAPP Service Test Contract`, () => {
     (async () => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
-
-        await genAllocateDAPPTokens(deployedContract, 'sign');
+        await genAllocateDAPPTokens(deployedContract, 'sign', 'pprovider1');
         // create token
         var selectedNetwork = getNetwork(getDefaultArgs());
         var config = {
@@ -51,8 +47,8 @@ describe(`Sign DAPP Service Test Contract`, () => {
           config.keyProvider = keys.active.privateKey;
         }
         eosvram = deployedContract.eos;
-        config.httpEndpoint = 'http://localhost:8888';
-        eosvram = new Eos(config);
+        config.httpEndpoint = 'http://localhost:13015';
+        eosvram = getEosWrapper(config);
         endpoint = config.httpEndpoint;
 
         testcontract = await eosvram.contract(code);
@@ -66,15 +62,12 @@ describe(`Sign DAPP Service Test Contract`, () => {
     })();
   });
 
-  it('sends 1 wei from the multisig to a random address', done => {
-    (async () => {
+  it('sends 1 wei from the multisig to a selected address', done => {
+    (async() => {
       try {
         const prevBalance = (await web3.eth.getBalance(randomEthAddress)).toString();
-        const data = getEthMultisigTxData(randomEthAddress, '1');
-        const trx = JSON.stringify({ to: ethMultiSig.address, data });
-        console.log(trx);
+        const data = getEthMultisigTxData(randomEthAddress, '1'); 
         await sendSigRequest('1', ethMultiSig.address, data, '1', 'ethereum', '0', '1', 1);
-        // sleep
         await sleep(2000)
         const postBalance = (await web3.eth.getBalance(randomEthAddress)).toString();
         assert.equal(postBalance - prevBalance, 1, 'eth address balance should be 1');
@@ -86,84 +79,77 @@ describe(`Sign DAPP Service Test Contract`, () => {
     })();
   })
 
-  it.skip('sign call - single sig', done => {
-    (async () => {
+  it('sends 1 token from the multisig to a selected address', done => {
+    (async() => {
       try {
-        // generate keys
-        // sign 
+        const token = await deployErc20Token(ethMultiSig.address, 100);
+        const prevBalance = (await token.balanceOf(randomEthAddress)).toString();
+        console.log(prevBalance)
+        await testcontract.sendtoken({
+          multisig_address: ethMultiSig.address,
+          token_address: token.address,
+          destination: randomEthAddress,
+          amount: 1
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+        await sleep(2000)
+        const postBalance = (await token.balanceOf(randomEthAddress)).toString();
+        console.log(postBalance)
+        assert.equal(postBalance - prevBalance, 1, 'eth address balance should be 1');
         done();
       }
       catch (e) {
         done(e);
       }
     })();
-  });
-  it.skip('sign call - multi sig', done => {
-    (async () => {
-      try {
-        // generate keys
-        // sign 
-        done();
-      }
-      catch (e) {
-        done(e);
-      }
-    })();
-  });
-  it.skip('sign call - single sig - post', done => {
-    (async () => {
-      try {
-        // generate keys
-        // sign and post
-        // use ibc to verify
-        done();
-      }
-      catch (e) {
-        done(e);
-      }
-    })();
-  });
-  it.skip('sign call - multi sig  - post', done => {
-    (async () => {
-      try {
-        // generate keys
-        // sign and post
-        // use ibc to verify
-        done();
-      }
-      catch (e) {
-        done(e);
-      }
-    })();
-  });
+  })
 
+  it('sends 1 wei from the multisig to a random address (internal encoding)', done => {
+    (async() => {
+      try {
+        const prevBalance = (await web3.eth.getBalance(randomEthAddress)).toString();
+        await sendEth(ethMultiSig.address, randomEthAddress, 1);
+        await sleep(2000)
+        const postBalance = (await web3.eth.getBalance(randomEthAddress)).toString();
+        assert.equal(postBalance - prevBalance, 1, 'eth address balance should be 1');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  })
+
+  it.skip('sign call - multi sig', done => {
+    (async() => {
+      try {
+        // generate keys
+        // sign 
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
 });
 
-function postData(url = ``, data = {}) {
-  // Default options are marked with *
-  return fetch(url, {
-    method: 'POST', // *GET, POST, PUT, DELETE, etc.
-    mode: 'cors', // no-cors, cors, *same-origin
-    cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-    credentials: 'same-origin', // include, *same-origin, omit
-    headers: {
-      // "Content-Type": "application/json",
-      // "Content-Type": "application/x-www-form-urlencoded",
-    },
-    redirect: 'follow', // manual, *follow, error
-    referrer: 'no-referrer', // no-referrer, *client
-    body: JSON.stringify(data) // body data type must match "Content-Type" header
-  })
-    .then(async response => {
-      var text = await response.text();
-      var json = JSON.parse(text);
-      if (json.error)
-        throw new Error(json.error);
-      return json;
-    }); // parses response to JSON
-}
-
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function sendEth(multiSigAddress, destination, amount) {
+  return testcontract.sendeth({
+    multisig_address: multiSigAddress,
+    destination,
+    amount
+  }, {
+    authorization: `${code}@active`,
+    broadcast: true,
+    sign: true
+  })
+}
 
 function sendSigRequest(id, destination, trx_data, chain, chain_type, sigs, account, sigs_required) {
   return testcontract.sendsigreq({
@@ -182,20 +168,44 @@ function sendSigRequest(id, destination, trx_data, chain, chain_type, sigs, acco
   })
 }
 
-// method to return tx data to be sent to multisig,
-// where to and value are the parameters of the tx the multisig
-// will send
+
 function getEthMultisigTxData(to, value) {
-  const multiSigAbi = JSON.parse(fs.readFileSync(path.resolve('./test/eth-build/multisigAbi.json')));
+  const multiSigAbi = JSON.parse(fs.readFileSync(path.resolve('./zeus_boxes/test/eth-build/multisigAbi.json')));
 
   const multiSigContract = new web3.eth.Contract(multiSigAbi);
   return multiSigContract.methods.submitTransaction(to, value, '0x0').encodeABI();
 }
 
+// deploys ERC20 token and issues `amount` of token to `account`
+async function deployErc20Token(account, amount){
+  const tokenAbi = JSON.parse(fs.readFileSync(path.resolve('./zeus_boxes/test/eth-build/tokenAbi.json')));
+  const tokenBin = fs.readFileSync(path.resolve('./zeus_boxes/test/eth-build/token.bin'), 'utf8');
+
+  const availableAccounts = await web3.eth.getAccounts();
+  const masterAccount = availableAccounts[0];
+
+  const tokenContract = contract({
+    abi: tokenAbi,
+    unlinked_binary: tokenBin
+  });
+
+  tokenContract.setProvider(web3.currentProvider);
+
+  const deployedContract = await tokenContract.new('Test Token', 'TST', '0x0', {
+    from: masterAccount,
+    gas: '5000000'
+  });
+  // fund multisig with 100 wei
+  await deployedContract.issue(account, amount, {
+    from: masterAccount
+  });
+  return deployedContract; 
+}
+
 // deploys multisig from accounts[0] with accounts[1] as signer
 async function deployEthMultiSig(signers, numOfSigners = '1') {
-  const multiSigAbi = JSON.parse(fs.readFileSync(path.resolve('./test/eth-build/multisigAbi.json')));
-  const multiSigBin = fs.readFileSync(path.resolve('./test/eth-build/multisig.bin'), 'utf8');
+  const multiSigAbi = JSON.parse(fs.readFileSync(path.resolve('./zeus_boxes/test/eth-build/multisigAbi.json')));
+  const multiSigBin = fs.readFileSync(path.resolve('./zeus_boxes/test/eth-build/multisig.bin'), 'utf8');
 
   const availableAccounts = await web3.eth.getAccounts();
   const masterAccount = availableAccounts[0];
@@ -222,17 +232,3 @@ async function deployEthMultiSig(signers, numOfSigners = '1') {
   });
   return deployedContract;
 }
-
-// async function createDspKey(chain, chain_type, account) {
-//   const dspPublicKey = await postData(`${dspUrl}/v1/dsp/genkey`, { chain, chain_type, account });
-//   // fund the new account?
-//   if (chain == 'ethereum') {
-//     let fundingAccount = (await web3.eth.getAccounts())[1];
-//     let fundingAmount = '1000000000000000000'; // 1 ETH
-//     await web3.eth.sendTransaction({
-//       from: fundingAccount,
-//       to: dspPublicKey,
-//       value: fundingAmount
-//     });
-//   }
-// }

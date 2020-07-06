@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "ignore": [
     "README.md"
   ],
@@ -14,6 +14,7 @@
     "chess": "^1.0.0",
     "liquidx": "^1.0.0",
     "combined": "^1.0.0",
-    "tokenpeg": "^1.0.0"
+    "tokenpeg": "^1.0.0",
+    "sign-dapp-service": "^1.0.0"
   }
 }
