@@ -8,7 +8,7 @@ const blockCount = process.env.BLOCK_COUNT_PER_QUERY || 1000000;
 let rpc = new JsonRpc(`https://${dfuse_endpoint}`, { fetch, token });
 
 const contractAccount = process.env.CONTRACT;
-const endpoint = `http${process.env.NODEOS_SECURED === 'true' || process.env.NODEOS_SECURED === true ? true : false ? 's' : ''}://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_PORT || '13115'}`;
+const endpoint = `http${process.env.NODEOS_SECURED === 'true' || process.env.NODEOS_SECURED === true ? 's' : ''}://${process.env.NODEOS_HOST || 'localhost'}:${process.env.NODEOS_PORT || '13115'}`;
 const url = `${endpoint}/event`;
 const { Serialize } = require('eosjs');
 const { TextDecoder, TextEncoder } = require('text-encoding');
@@ -147,7 +147,7 @@ function chunk(arr, len) {
 
   return chunks;
 }
-var res = [];
+var resArr = [];
 var tempToken = null;
 
 let lastBlock = process.env.LAST_BLOCK || 35000000;
@@ -161,15 +161,15 @@ async function run (lower_bound) {
     await getTransactions(async trx => {
       const curLastBlock = parseInt(trx.execution_trace.block_num);
       if (curLastBlock >= lastBlock) { lastBlock = curLastBlock + 1; }
-      // res.push(trx);
+      // resArr.push(trx);
       // handleSingleTrx(trx)
       await handleSingleTrx(trx);
       found = true;
-      if (res.length >= 10000) {
-        const ares = res.map(a => a.console).filter(a => a !== '');
+      if (resArr.length >= 10000) {
+        const ares = resArr.map(a => a.console).filter(a => a !== '');
 
-        // console.log("\nparsing", res.length, ares.length, lastBlock);
-        res = [];
+        // console.log("\nparsing", resArr.length, ares.length, lastBlock);
+        resArr = [];
         var events = [];
         ares.forEach(a => {
           a.split('\n').forEach(line => {
@@ -197,8 +197,8 @@ async function run (lower_bound) {
     if (!found) { break; }
   }
   console.log('\nhave more');
-  if (res.more) {
-    return run(res.rows[res.rows.length - 1].id);
+  if (resArr.more) {
+    return run(resArr.rows[resArr.rows.length - 1].id);
   }
 }
 run().then(a => {
