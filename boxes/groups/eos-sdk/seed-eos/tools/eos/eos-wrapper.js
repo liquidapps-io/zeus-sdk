@@ -36,13 +36,11 @@ function getEosWrapper(config) {
                     }
                 });
             } else {
-                logger.debug(`Not pushing to dFuse Wrapper`)
                 response = await fetch(config.httpEndpoint + path, {
                     body: JSON.stringify(body),
                     method: 'POST',
                 });
             } 
-            logger.warn(`Wrapper response: ${typeof(response) == "object" ? JSON.stringify(response) : response}`)   
             json = await response.json();
             if (json.processed && json.processed.except) {
                 throw new RpcError(json);

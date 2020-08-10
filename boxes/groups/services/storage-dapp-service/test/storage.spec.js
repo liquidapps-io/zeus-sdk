@@ -109,10 +109,15 @@ describe(`LiquidStorage Test`, () => {
         const key = keys.active.privateKey;
         const data = Buffer.from("test1234", "utf8");
         const permission = "active";
+        const options = {
+          rawLeaves: true
+        };
         const result = await storageClient.upload_public_file(
           data,
           key,
-          permission
+          permission,
+          null,
+          options
         );
         assert.equal(
           result.uri,
@@ -139,10 +144,15 @@ describe(`LiquidStorage Test`, () => {
         const key = keys.active.privateKey;
         const data = Buffer.from("test1234read", "utf8");
         const permission = "active";
+        const options = {
+          rawLeaves: true
+        };
         const result = await storageClient.upload_public_file(
           data,
           key,
-          permission
+          permission,
+          null,
+          options
         );
         const res = await fetch('http://localhost:13015/v1/dsp/liquidstorag/get_uri', {
           method: 'POST',
@@ -177,10 +187,16 @@ describe(`LiquidStorage Test`, () => {
         const boxDir = getBoxesDir();
         const path = `${boxDir}test/utils/YourTarBall.tar`;
         const content = fs.readFileSync(path);
+        const options = {
+          rawLeaves: true
+        };
         const result = await storageClient.upload_public_archive(
           content,
           key,
-          permission
+          permission,
+          'tar',
+          null,
+          options
         );
         assert.equal(
           result.uri,
@@ -220,11 +236,17 @@ describe(`LiquidStorage Test`, () => {
             authorization: `${code}@active`
           }
         );
-
-        result = await storageClient.upload_public_file_from_vaccount(data, {
-          name: vAccount1,
-          key: privateKeyWif
-        });
+        const options = {
+          rawLeaves: true
+        };
+        result = await storageClient.upload_public_file_from_vaccount(
+          data, 
+          {
+            name: vAccount1,
+            key: privateKeyWif
+          },
+          options
+        );
         assert.equal(
           result.uri,
           "ipfs://zb2rhga33kcyDrMLZDacqR7wLwcBRVgo6sSvLbzE7XSw1fswH"
@@ -232,20 +254,27 @@ describe(`LiquidStorage Test`, () => {
 
         const hugeData = Buffer.concat([data, data]);
         try {
-          await storageClient.upload_public_file_from_vaccount(hugeData, {
-            name: vAccount1,
-            key: privateKeyWif
-          });
+          await storageClient.upload_public_file_from_vaccount(
+            hugeData, 
+            {
+              name: vAccount1,
+              key: privateKeyWif
+            },
+            options
+          );
           return done(new Error(`should fail because file size > max file size`))
         } catch (error) {
           assert.match(error.json.error, /max file size/);
         }
 
         try {
-          await storageClient.upload_public_file_from_vaccount(data, {
+          await storageClient.upload_public_file_from_vaccount(data, 
+            {
             name: vAccount1,
             key: privateKeyWif
-          });
+            },
+            options
+          );
           return done(new Error(`should fail because vaccount reached daily limit`))
         } catch (error) {
           assert.match(error.json.error, /max vaccount/);
@@ -254,9 +283,11 @@ describe(`LiquidStorage Test`, () => {
         try {
           const data2 = Buffer.concat([data, new Uint8Array([0])])
           await storageClient.upload_public_file_from_vaccount(data2, {
-            name: vAccount2,
-            key: privateKeyWif
-          });
+              name: vAccount2,
+              key: privateKeyWif
+            },
+            options
+          );
           return done(new Error(`should fail because reached global daily limit`))
         } catch (error) {
           assert.match(error.json.error, /max global/);
@@ -283,11 +314,16 @@ describe(`LiquidStorage Test`, () => {
         // a key that doesn't mach vaccount1's key
         const wrongKey = (await ecc.PrivateKey.fromSeed(`wrongkey`)).toWif();
 
+        const options = {
+          rawLeaves: true
+        };
         try {
           await storageClient.upload_public_file_from_vaccount(data, {
-            name: vAccount1,
-            key: wrongKey
-          });
+              name: vAccount1,
+              key: wrongKey
+            },
+            options
+          );
         } catch (error) {
           assert.match(error.json.error, /signature not valid/);
           done();
@@ -312,10 +348,15 @@ describe(`LiquidStorage Test`, () => {
         const key = keys.active.privateKey;
         const data = Buffer.from("test1234", "utf8");
         const permission = "active";
+        const options = {
+          rawLeaves: true
+        };
         let result = await storageClient.upload_public_file(
           data,
           key,
-          permission
+          permission,
+          null,
+          options
         );
         assert.equal(
           result.uri,
