@@ -15,7 +15,7 @@ const actionHandlers = {
     if (!sidechain && meta && meta.sidechain) {
       sidechain = sidechainsDict[meta.sidechain.name];
     }
-    logger.debug(`service_request to: ${service}`)
+    logger.debug(`service_request to: ${service} ${JSON.stringify(act)}`)
 
     var payer = act.event.payer ? act.event.payer : act.receiver;
     let isReplay = act.replay;

@@ -6,12 +6,14 @@ const { hexToUint8Array, arrayToHex } = Serialize;
 const { TextDecoder, TextEncoder } = require('text-encoding');
 const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 const logger = requireBox('log-extensions/helpers/logger');
+const { getLinkedAccount } = requireBox('dapp-services/services/dapp-services-node/common');
+const sidechainName = process.env.SIDECHAIN;
 
 //dfuse settings
 const mainnetDfuseEnable = process.env.DFUSE_PUSH_ENABLE || false;
 const mainnetDfuseGuarantee = process.env.DFUSE_PUSH_GUARANTEE || 'in-block';
 const mainnetDfuseApiKey = process.env.DFUSE_API_KEY || '';
-const mainnetDfuseNetwork = process.env.DFUSE_NETWORK || 'mainnet';
+const mainnetDfuseNetwork = process.env.DFUSE_NETWORK || 'mainnet.eos.dfuse.io';
 
 const contractAccount = process.env.CONTRACT;
 const endpoint = process.env.DSP_ENDPOINT || 'http://127.0.0.1:13015';
@@ -81,7 +83,6 @@ let cnt = 0;
 let start = new Date();
 let passedTime, speed;
 async function clean({ hexData, url, contractAccount, service, action, replay, rollback }) {
-  //console.log( hexData, url, contractAccount, service, action, replay, rollback )
   if (hexData.length == 0) { return; }
   const buffer = new Serialize.SerialBuffer({
     textEncoder: new TextEncoder(),
@@ -95,11 +96,20 @@ async function clean({ hexData, url, contractAccount, service, action, replay, r
   const res = arrayToHex(bytes);
   const base64data = Buffer.from(res, 'hex').toString('base64');
   const txId = genRandomId();
-  const meta = { txId, blockNum: 1, eventNum: 1 };
+  const meta = { txId, blockNum: 1, eventNum: 1,   };
+  if(sidechainName) {
+    meta.sidechain = {
+      "dsp_port": process.env.SIDECHAIN_DSP_PORT,
+      "nodeos_endpoint": `${process.env.NODEOS_MAINNET_ENDPOINT}`,
+      "name": sidechainName
+    }
+  }
+  const dappservicesContract = sidechainName ? await getLinkedAccount(null, null, `dappservices`, sidechainName) : `dappservices`;
+  const actionName = sidechainName ? 'usagex' : 'usage';
   const body = {
-    'receiver': 'dappservices',
-    'method': 'usage',
-    'account': 'dappservices',
+    'receiver': dappservicesContract,
+    'method': actionName,
+    'account': contractAccount,
     'data': {
       'usage_report': {
         'quantity': '0.0001 QUOTA',
@@ -107,7 +117,7 @@ async function clean({ hexData, url, contractAccount, service, action, replay, r
         'payer': contractAccount,
         service,
         'package': 'default',
-        'success': 0
+        'success': true
       }
     },
     'event': { 'version': '1.0', 'etype': 'service_request', 'payer': contractAccount, service, action, 'provider': '', 'data': base64data, meta },
@@ -117,7 +127,7 @@ async function clean({ hexData, url, contractAccount, service, action, replay, r
       'elapsed': 275,
       'trx_id': txId,
       'receipt': {
-        'receiver': 'dappservices',
+        'receiver': dappservicesContract,
         'act_digest': '77f94e3cda1c581b9733654e649f2e970212749a3946c9bf1e2b1fbbc2a74247',
         'global_sequence': 684,
         'recv_sequence': 94,
@@ -138,7 +148,7 @@ async function clean({ hexData, url, contractAccount, service, action, replay, r
     replay,
     rollback
   };
-  let r = await fetch(url, { method: 'POST', body: JSON.stringify(body) });
+  await fetch(url, { method: 'POST', body: JSON.stringify(body) });
   totalSize += (hexData.length / 2) + 320;
   if (++cnt % 5 == 0) {
     passedTime = (new Date().getTime() - start.getTime()) / 1000.0;
@@ -178,7 +188,7 @@ async function cleanup(eosPrivate, { contractAccount, table, lower_bound, dataKe
   }
   if (res.more) {
     lower_bound = res.rows[res.rows.length - 1].id;
-    return cleanup({ contractAccount, table, lower_bound, dataKey, service });
+    return cleanup(eosPrivate, { contractAccount, table, lower_bound, dataKey, service, action, replay, rollback });
   }
 }
 
@@ -203,7 +213,6 @@ async function main() {
   const eosPrivate = await eosMainnet();
   const abi = await eosPrivate.getAbi(contractAccount);
   table = process.env.TABLE || abi.tables.find(table => Object.keys(tableConfig).includes(table.name)).name;
-
   const { dataKey, service, action, rollback, replay } = tableConfig[table];
   await cleanup(eosPrivate, { contractAccount, table, dataKey, service, action, replay, rollback });
 }
