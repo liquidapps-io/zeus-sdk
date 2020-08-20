@@ -1,15 +1,13 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "ignore": [
     "README.md"
   ],
   "commands": {
-    "Test token peg": "zeus compile && zeus test token peg"
+    "test tokenpeg": "zeus compile && zeus test tokenpeg"
   },
   "dependencies": {
-    "oracle-dapp-service": "^1.0.0",
-    "cron-dapp-service": "^1.0.0",
-    "liquidx": "^1.0.0"
+    "link": "^1.0.0"
   },
   "install": {
     "contracts": {

@@ -1,0 +1,19 @@
+{
+    "version": "1.0.0",
+    "ignore": [
+      "README.md"
+    ],
+    "commands": {
+      "test linkconsumer": "zeus compile && zeus test linkconsumer"
+    },
+    "dependencies": {
+      "liquidx": "^1.0.0"
+    },
+    "install": {
+      "contracts": {
+        "linkconsumer": true,
+        "linkconsumerx": true
+      }
+    }
+  }
+  

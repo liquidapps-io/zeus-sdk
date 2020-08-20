@@ -136,32 +136,32 @@ describe(`Token bridge Test`, () => {
         await testcontractX.init({
           sister_code: codeXMainnet,
           sister_chain_name: "localmainnet",
-          token_contract: tokenAccSidechain,
-          token_symbol: "4,TKN",
           processing_enabled: true,
-          transfers_enabled: true,
-          last_irreversible_block_num: 0,
-          can_issue: true,
+          last_irreversible_block_time: 0,
           last_received_releases_id: 0,
           last_received_receipts_id: 0,
-          last_confirmed_block_id: 0,
-          last_received_transfer_block_id: 0
+          last_confirmed_messages_id: 0,
+          last_pending_messages_id: 0,
+          token_contract: tokenAccSidechain,
+          token_symbol: "4,TKN",
+          transfers_enabled: true,
+          can_issue: true,
         }, {
           authorization: `${codeXSidechain}@active`
         });
         await testcontract.init({
           sister_code: codeXSidechain,
           sister_chain_name: "test1",
-          token_contract: tokenAccMainnet,
-          token_symbol: "4,TKN",
           processing_enabled: true,
-          transfers_enabled: true,
-          last_irreversible_block_num: 0,
-          can_issue: false,
+          last_irreversible_block_time: 0,
           last_received_releases_id: 0,
           last_received_receipts_id: 0,
-          last_confirmed_block_id: 0,
-          last_received_transfer_block_id: 0
+          last_confirmed_messages_id: 0,
+          last_pending_messages_id: 0,
+          token_contract: tokenAccMainnet,
+          token_symbol: "4,TKN",
+          transfers_enabled: true,
+          can_issue: false,
         }, {
           authorization: `${codeXMainnet}@active`
         });

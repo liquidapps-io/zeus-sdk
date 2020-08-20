@@ -155,7 +155,7 @@ const loggingJson = {
   ],
   "loggers": [{
     "name": "default",
-    "level": "debug",
+    "level": "info",
     "enabled": true,
     "additivity": false,
     "appenders": [
@@ -165,7 +165,7 @@ const loggingJson = {
   },
   {
     "name": "net_plugin_impl",
-    "level": "debug",
+    "level": "info",
     "enabled": true,
     "additivity": false,
     "appenders": [

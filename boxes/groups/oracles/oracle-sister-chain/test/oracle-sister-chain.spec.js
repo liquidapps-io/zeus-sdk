@@ -32,7 +32,7 @@ describe(`Sister Chain Oracle Service Test`, () => {
 
   var account = code;
 
-  it('Oracle IBC Block Fetch', done => {
+  it.skip('Oracle IBC Block Fetch', done => {
     (async () => {
       try {
         var res = await testcontract.testget({
