@@ -51,6 +51,7 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
     var endpoint;
     var endpointMain;
     var chainId;
+    var chainIdMain;
     var testcontract;
     const mainnet_code = 'sidetest1v';
     const sister_code = 'sidetest1vx';
@@ -110,7 +111,12 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
                     chainId: selectedNetwork.chainId,
                     httpEndpoint: endpoint
                 };
-
+                var configMain = {
+                    expireInSeconds: 120,
+                    sign: true,
+                    chainId: selectedNetwork.chainId,
+                    httpEndpoint: endpointMain
+                };
                 var keys = await getCreateKeys(sister_code, getDefaultArgs(), false, sidechain);
                 var keys2 = await getCreateKeys(sister_code2, getDefaultArgs(), false, sidechain);
                 var keys3 = await getCreateKeys(sister_host_code, getDefaultArgs(), false, sidechain);
@@ -124,10 +130,12 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
                 eosconsumer3 = getEosWrapper(config);
                 config.keyProvider = keys4.active.privateKey;
                 eosconsumer4 = getEosWrapper(config);
-
+                configMain.keyProvider = keys4.active.privateKey;
+                const eosMainConsumer = getEosWrapper(configMain);
                 let info = await eosconsumer.get_info();
                 chainId = info.chain_id;
-
+                let info2 = await eosMainConsumer.get_info();
+                chainIdMain = info2.chain_id;
                 const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechain.name && m.mainnet_account === 'dappservices');
                 if (!mapEntry)
                     throw new Error('mapping not found')
@@ -170,7 +178,7 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
                     authorization: `${sister_code2}@active`,
                 });
                 await deployedHost.contractInstance.xvinit({
-                    chainid: chainId,
+                    chainid: chainId, // chainIdMain?
                     hostchain: 'mainnet',
                     hostcode: mainnet_code
                 }, {
@@ -182,7 +190,7 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
                     authorization: `${sister_sub_code}@active`,
                 });
                 await deployedMain.contractInstance.xvinit({
-                    chainid: chainId
+                    chainid: chainIdMain
                 }, {
                     authorization: `${mainnet_code}@active`,
                 });

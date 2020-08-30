@@ -38,6 +38,7 @@ module.exports = {
                 "sleep-promise": "^8.0.1",
                 "stream-buffers": "^3.0.1",
                 "temp": "^0.8.3",
+                "add-dependencies": "^1.1.0",                
                 "whatwg-fetch": "^2.0.4",
                 "yargs": "^12.0.2",
                 "fcbuffer": "^2.2.2"

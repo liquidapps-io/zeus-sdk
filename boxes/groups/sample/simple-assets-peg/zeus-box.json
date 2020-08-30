@@ -1,0 +1,19 @@
+{
+  "version": "1.0.0",
+  "ignore": [
+    "README.md"
+  ],
+  "commands": {
+    "test simple-assets-peg": "zeus compile && zeus test simple-assets-peg"
+  },
+  "dependencies": {
+    "link": "^1.0.0"
+  },
+  "install": {
+    "contracts": {
+      "sareject": true,
+      "sanftpeg": true,
+      "sanftpegx": true
+    }
+  }
+}

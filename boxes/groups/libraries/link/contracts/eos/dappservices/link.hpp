@@ -18,8 +18,18 @@
 #define ORACLE_HOOK_FILTER(uri, data) filter_result(uri, data);
 #define emptyentry() vector<char>()
 
+#ifndef LINK_PROCESSING_TIMEOUT
+#define LINK_PROCESSING_TIMEOUT 60
+#endif
+
+#ifndef LINK_PROVIDER_THRESHOLD
+#define LINK_PROVIDER_THRESHOLD 1
+#endif
+
 #define MESSAGE_RECEIVED_HOOK(message) dummy_received(message);
+#define MESSAGE_RECEIVED_FAILURE_HOOK(message) dummy_received(message);
 #define MESSAGE_RECEIPT_HOOK(receipt) dummy_receipt(receipt);
+#define MESSAGE_RECEIPT_FAILURE_HOOK(receipt) dummy_receipt(receipt);
 
 struct message_payload {
     vector<char> data;
@@ -38,12 +48,15 @@ void dummy_receipt(message_receipt) {}
 TABLE settings_t {
     name sister_code; // name of corresponding bridge for oracle queries
     string sister_chain_name;
+    string this_chain_name;
     bool processing_enabled;
     uint64_t last_irreversible_block_time; // number is preferred...
     uint64_t last_received_releases_id;
     uint64_t last_received_receipts_id;
     uint64_t last_confirmed_messages_id;
     uint64_t last_pending_messages_id;
+    uint64_t last_confirmed_receipts_id; //TODO: Do we need?
+    uint64_t last_pending_receipts_id; //TODO: Do we need?
 };
 typedef eosio::singleton<"settings"_n, settings_t> settings_table;
 typedef eosio::multi_index<"settings"_n, settings_t> settings_table_abi;
@@ -67,10 +80,18 @@ TABLE confirmed_messages_t {
 typedef eosio::multi_index<"pmessages"_n, pending_messages_t> pending_messages_table_t;
 typedef eosio::multi_index<"cmessages"_n, confirmed_messages_t> confirmed_messages_table_t;
 
+TABLE pending_receipts_t {
+    uint64_t id;
+    std::vector<message_receipt> message_receipts;
+    uint64_t received_block_time; // time instead of block
+    uint64_t primary_key()const { return id; }
+};
+
 TABLE messages_receipt_t {
     uint64_t id;
     std::vector<message_receipt> message_receipts;
     uint64_t received_block_time; // time instead of block
+    uint64_t last_success_block_time; //increment this with each successful hndlreceipt //TODO: use this?
     uint64_t primary_key()const { return id; }
 };
 TABLE compressed_messages_receipt_t {
@@ -79,6 +100,17 @@ TABLE compressed_messages_receipt_t {
     uint64_t received_block_time; // time instead of block
     uint64_t primary_key()const { return id; }
 };
+TABLE failed_receipt_t {
+    uint64_t id;
+    uint64_t receipts_id;
+    message_receipt failed_receipt;
+    uint64_t failed_block_time;
+    uint64_t primary_key()const { return id; }
+};
+
+typedef eosio::multi_index<"preceipts"_n, pending_receipts_t> pending_receipts_table_t;
+typedef eosio::multi_index<"creceipts"_n, compressed_messages_receipt_t> confirmed_receipts_table_t;
+
 // local receipts vs foreign receipts
 typedef eosio::multi_index<"lreceipts"_n, compressed_messages_receipt_t> compressed_local_receipts_table_t;
 typedef eosio::singleton<"clreceipts"_n, messages_receipt_t> current_local_receipts_table_t;
@@ -87,12 +119,16 @@ typedef eosio::multi_index<"freceipts"_n, compressed_messages_receipt_t> compres
 // current receipts being processed (always uncompressed singleton)
 typedef eosio::singleton<"cfreceipts"_n, messages_receipt_t> current_foreign_receipts_table_t;
 typedef eosio::multi_index<"cfreceipts"_n, messages_receipt_t> current_foreign_receipts_table_abi;
+// receipts that failed to be resolved
+typedef eosio::multi_index<"ffreceipts"_n, failed_receipt_t> failed_foreign_receipts_table_t;
+
 
 // in case of failed transfers and for 2 way bridge
 TABLE releases_t {
     uint64_t id;
     std::vector<message_payload> releases;
     uint64_t received_block_time; // time instead of block
+    uint64_t last_success_block_time; //increment this with each successful hndlrelease
 };
 TABLE compressed_releases_t {
     uint64_t id;
@@ -124,20 +160,13 @@ uint64_t get_last_irreversible_block(string chain_name) {
     string last_irreversible_uri_string = "sister_chain_last_irreversible://" + chain_name;
     vector<char> last_irreversible_uri(last_irreversible_uri_string.begin(), last_irreversible_uri_string.end());
     vector<char> last_irreversible_string = oracle_svc_helper::getURI(last_irreversible_uri, [&]( auto& results ) {
-    //eosio::check(results.size() >= dsp_threshold, "total amount of DSP responses received are less than minimum threshold specified");
+        check(results.size() >= LINK_PROVIDER_THRESHOLD, "total amount of DSP responses received are less than minimum threshold specified");
         return results[0].result;
     });
-    // need to check casting works as expected
     uint64_t last_irreversible = *reinterpret_cast<uint64_t *>(&last_irreversible_string);
     return last_irreversible;
 }
 
-//TODO: handle failures
-//bool handle_failed_release() {}
-
-
-
-// may need to modify uri to request lrrid+1
 bool handle_get_releases() {
     auto _self = name(current_receiver());
     settings_table settings_singleton(_self, _self.value);
@@ -152,10 +181,8 @@ bool handle_get_releases() {
         + fc::to_string(next_releases_id) + "/"
         + "messages_uri/";
     vector<char> uri(uri_string.begin(), uri_string.end());
-
-
     vector<char> releases_uri = oracle_svc_helper::getURI(uri, [&]( auto& results ) {
-        //eosio::check(results.size() >= dsp_threshold, "total amount of DSP responses received are less than minimum threshold specified");
+        check(results.size() >= LINK_PROVIDER_THRESHOLD, "total amount of DSP responses received are less than minimum threshold specified");
         return results[0].result;
     });
     string releases_uri_string(releases_uri.begin(), releases_uri.end());
@@ -180,12 +207,11 @@ bool handle_get_receipts() {
         "sister_chain_table_row://"
         + settings.sister_chain_name + "/"
         + settings.sister_code.to_string() + "/"
-        + "lreceipts/"
+        + "creceipts/"
         + settings.sister_code.to_string() + "/"
         + fc::to_string(next_receipts_id) + "/"
         + "receipts_uri/";
     vector<char> uri(uri_string.begin(), uri_string.end());
-
     vector<char> receipts_uri = oracle_svc_helper::getURI(uri, [&]( auto& results ) {
         //eosio::check(results.size() >= dsp_threshold, "total amount of DSP responses received are less than minimum threshold specified");
         return results[0].result;
@@ -206,28 +232,50 @@ bool handle_get_receipts() {
 bool handle_confirm_block() {
     auto _self = name(current_receiver());
     settings_table settings_singleton(_self, _self.value);
-    settings_t settings = settings_singleton.get_or_default();
-    settings.last_confirmed_messages_id += 1;
+    settings_t settings = settings_singleton.get_or_default();    
     pending_messages_table_t pending_messages(_self, _self.value);
-    auto p_messages = pending_messages.find(settings.last_confirmed_messages_id);
+    pending_receipts_table_t pending_receipts(_self, _self.value);
+    auto p_messages = pending_messages.find(settings.last_confirmed_messages_id + 1);
+    auto p_receipts = pending_receipts.find(settings.last_confirmed_receipts_id + 1);
     // check there exists pending transfers, otherwise abort cron
-    eosio::check(p_messages != pending_messages.end(), "{abort_service_request}");
+    eosio::check(p_messages != pending_messages.end() || p_receipts != pending_receipts.end(), "{abort_service_request}");
     // mismatch between block num and timestamp :/
-    if(settings.last_irreversible_block_time <= p_messages->received_block_time) {
-        uint64_t last_irreversible_block_time = get_last_irreversible_block(settings.sister_chain_name);
-        settings.last_irreversible_block_time = last_irreversible_block_time;
-        settings_singleton.set(settings, _self);
+    if(p_messages != pending_messages.end()) {
+        if(settings.last_irreversible_block_time <= p_messages->received_block_time) {
+            uint64_t last_irreversible_block_time = get_last_irreversible_block(settings.this_chain_name);
+            settings.last_irreversible_block_time = last_irreversible_block_time;        
+        }
+        if(settings.last_irreversible_block_time > p_messages->received_block_time) {
+            settings.last_confirmed_messages_id += 1;
+            auto messages_uri = ipfs_svc_helper::setData(p_messages->messages);
+            confirmed_messages_table_t confirmed_transfers(_self, _self.value);
+            confirmed_transfers.emplace(_self, [&](auto& a){
+                a.id = p_messages->id;
+                a.received_block_time = p_messages-> received_block_time;
+                a.messages_uri = messages_uri;
+            });
+            pending_messages.erase(p_messages);
+        }
     }
-    if(settings.last_irreversible_block_time > p_messages->received_block_time) {
-        auto messages_uri = ipfs_svc_helper::setData(p_messages->messages);
-        confirmed_messages_table_t confirmed_transfers(_self, _self.value);
-        confirmed_transfers.emplace(_self, [&](auto& a){
-            a.id = p_messages->id;
-            a.received_block_time = p_messages-> received_block_time;
-            a.messages_uri = messages_uri;
-        });
-        pending_messages.erase(p_messages);
-    }
+    if(p_receipts != pending_receipts.end()) {
+        if(settings.last_irreversible_block_time <= p_receipts->received_block_time) {
+            uint64_t last_irreversible_block_time = get_last_irreversible_block(settings.this_chain_name);
+            settings.last_irreversible_block_time = last_irreversible_block_time;        
+        }
+        if(settings.last_irreversible_block_time > p_receipts->received_block_time) {
+            settings.last_confirmed_receipts_id += 1;
+            auto receipts_uri = ipfs_svc_helper::setData(p_receipts->message_receipts);
+            confirmed_receipts_table_t confirmed_receipts(_self, _self.value);
+            confirmed_receipts.emplace(_self, [&](auto& a){
+                a.id = p_receipts->id;
+                a.received_block_time = p_messages-> received_block_time;
+                a.receipts_uri = receipts_uri;
+            });
+            pending_receipts.erase(p_receipts);
+        }
+    }    
+    
+    settings_singleton.set(settings, _self);
     return settings.processing_enabled;
 }
 
@@ -237,6 +285,40 @@ void filter_result(std::vector<char> uri, std::vector<char> data) {
     // need to hardcode for optimization?
     std::vector emptyDataHash = uri_to_ipfsmultihash(ipfs_svc_helper::setRawData(emptyentry(), true));
     check(data != emptyDataHash, "{abort_service_request}");
+}
+
+void push_receipt(message_receipt receipt) {
+    auto _self = name(current_receiver());
+    pending_receipts_table_t pending_receipts(_self, _self.value);
+    settings_table settings_singleton(_self, _self.value);
+    settings_t settings = settings_singleton.get_or_default();
+    uint64_t last_pending_receipts_id = settings.last_pending_receipts_id; 
+    auto p_receipts = pending_receipts.find(last_pending_receipts_id);
+    if(p_receipts == pending_receipts.end()) {
+        settings.last_pending_receipts_id += 1;
+        settings_singleton.set(settings, _self);
+        vector<message_receipt> message_receipts{ receipt };
+        pending_receipts.emplace(_self, [&]( auto& a ){
+            a.id = last_pending_receipts_id + 1;
+            a.message_receipts = message_receipts;
+            a.received_block_time = eosio::current_time_point().sec_since_epoch();
+        });
+    }
+    else if (p_receipts->received_block_time < eosio::current_time_point().sec_since_epoch()) {
+        settings.last_pending_receipts_id += 1;
+        settings_singleton.set(settings, _self);
+        vector<message_receipt> message_receipts{ receipt };
+        pending_receipts.emplace(_self, [&]( auto& a ){
+            a.id = last_pending_receipts_id + 1;
+            a.message_receipts = message_receipts;
+            a.received_block_time = eosio::current_time_point().sec_since_epoch();
+        });
+    }
+    else {
+        pending_receipts.modify(p_receipts, _self, [&]( auto& a ){
+            a.message_receipts.emplace_back(receipt);
+        });
+    }
 }
 
 template<typename T>
@@ -284,12 +366,15 @@ void pushMessage(T obj) {
 TABLE settings_t { \
     name sister_code; \
     string sister_chain_name; \
+    string this_chain_name; \
     bool processing_enabled; \
     uint64_t last_irreversible_block_time; \
     uint64_t last_received_releases_id; \
     uint64_t last_received_receipts_id; \
     uint64_t last_confirmed_messages_id; \
     uint64_t last_pending_messages_id; \
+    uint64_t last_confirmed_receipts_id;\
+    uint64_t last_pending_receipts_id;\
 }; \
 TABLE pending_messages_t { \
     uint64_t id; \
@@ -307,8 +392,15 @@ TABLE messages_receipt_t { \
     uint64_t id; \
     std::vector<message_receipt> message_receipts; \
     uint64_t received_block_time; \
+    uint64_t last_success_block_time; \
     uint64_t primary_key()const { return id; } \
 }; \
+TABLE pending_receipts_t {\
+    uint64_t id;\
+    std::vector<message_receipt> message_receipts;\
+    uint64_t received_block_time;\
+    uint64_t primary_key()const { return id; }\
+};\
 TABLE compressed_messages_receipt_t { \
     uint64_t id; \
     string receipts_uri; \
@@ -319,6 +411,7 @@ TABLE releases_t { \
     uint64_t id; \
     std::vector<message_payload> releases; \
     uint64_t received_block_time; \
+    uint64_t last_success_block_time; \
 }; \
 TABLE compressed_releases_t { \
     uint64_t id; \
@@ -326,6 +419,13 @@ TABLE compressed_releases_t { \
     uint64_t received_block_time; \
     uint64_t primary_key()const {return id;} \
 }; \
+TABLE failed_receipt_t {\
+    uint64_t id;\
+    uint64_t receipts_id;\
+    message_receipt failed_receipt;\
+    uint64_t failed_block_time;\
+    uint64_t primary_key()const { return id; } \
+};\
 typedef eosio::singleton<"settings"_n, settings_t> settings_table; \
 typedef eosio::multi_index<"settings"_n, settings_t> settings_table_abi; \
 typedef eosio::multi_index<"lreceipts"_n, compressed_messages_receipt_t> compressed_local_receipts_table_t; \
@@ -334,14 +434,18 @@ typedef eosio::multi_index<"clreceipts"_n, messages_receipt_t> current_local_rec
 typedef eosio::multi_index<"freceipts"_n, compressed_messages_receipt_t> compressed_foreign_receipts_table_t; \
 typedef eosio::singleton<"cfreceipts"_n, messages_receipt_t> current_foreign_receipts_table_t; \
 typedef eosio::multi_index<"cfreceipts"_n, messages_receipt_t> current_foreign_receipts_table_abi; \
+typedef eosio::multi_index<"ffreceipts"_n, failed_receipt_t> failed_foreign_receipts_table_t; \
 typedef eosio::multi_index<"releases"_n, compressed_releases_t> compressed_releases_table_t; \
 typedef eosio::singleton<"creleases"_n, releases_t> current_releases_table_t; \
 typedef eosio::multi_index<"creleases"_n, releases_t> current_releases_table_abi; \
 typedef eosio::multi_index<"cmessages"_n, confirmed_messages_t> confirmed_messages_table_t; \
 typedef eosio::multi_index<"pmessages"_n, pending_messages_t> pending_messages_table_t; \
+typedef eosio::multi_index<"preceipts"_n, pending_receipts_t> pending_receipts_table_t;\
+typedef eosio::multi_index<"creceipts"_n, compressed_messages_receipt_t> confirmed_receipts_table_t;\
 void initlink( \
   name sister_code, \
   string sister_chain_name, \
+  string this_chain_name, \
   bool processing_enabled, \
   uint64_t last_irreversible_block_time, \
   uint64_t last_received_releases_id, \
@@ -355,6 +459,7 @@ void initlink( \
   settings_t settings = settings_singleton.get_or_default(); \
   settings.sister_code = sister_code; \
   settings.sister_chain_name = sister_chain_name; \
+  settings.this_chain_name = sister_chain_name; \
   settings.processing_enabled = processing_enabled; \
   settings.last_irreversible_block_time = last_irreversible_block_time; \
   settings.last_received_releases_id = last_received_releases_id; \
@@ -400,6 +505,7 @@ bool timer_callback(name timer, std::vector<char> payload, uint32_t seconds){ \
 }\
 bool handle_receipt() {\
     auto _self = name(current_receiver());\
+    auto current_block_time = eosio::current_time_point().sec_since_epoch();\
     settings_table settings_singleton(_self, _self.value);\
     settings_t settings = settings_singleton.get_or_default();\
     current_foreign_receipts_table_t foreign_receipts_singleton(_self, _self.value);\
@@ -410,59 +516,60 @@ bool handle_receipt() {\
         auto cf_receipts = compressed_foreign_receipts.find(current_receipts.id + 1);\
         eosio::check(cf_receipts != compressed_foreign_receipts.end(), "no pending receipts");\
         pending_receipts = ipfs_svc_helper::getData<vector<message_receipt>>(cf_receipts->receipts_uri);\
-        current_receipts.id += 1;        \
-    }\
-    if(pending_receipts.size() > 0) {\
+        current_receipts.id += 1;\
+        current_receipts.received_block_time = cf_receipts->received_block_time;\
+    } else {\
         auto current_receipt = pending_receipts[0];\
-        MESSAGE_RECEIPT_HOOK(current_receipt)\
         pending_receipts.erase(pending_receipts.begin());\
-    }    \
+        if(current_receipts.last_success_block_time + LINK_PROCESSING_TIMEOUT <= current_block_time) {\
+            MESSAGE_RECEIPT_FAILURE_HOOK(current_receipt)\
+            failed_foreign_receipts_table_t failed_foreign_receipts(_self, _self.value);\
+            failed_foreign_receipts.emplace(_self, [&]( auto& a ){\
+                a.id = failed_foreign_receipts.available_primary_key();\
+                a.failed_receipt = current_receipt;\
+                a.receipts_id = current_receipts.id;\
+                a.failed_block_time = current_block_time;\
+            });\
+        } else {\
+            MESSAGE_RECEIPT_HOOK(current_receipt)\
+        }\
+    }\
     current_receipts.message_receipts = pending_receipts;\
+    current_receipts.last_success_block_time = current_block_time;\
     foreign_receipts_singleton.set(current_receipts, _self);\
     return settings.processing_enabled;\
 }\
 bool handle_release() {\
     auto _self = name(current_receiver());\
+    auto current_block_time = eosio::current_time_point().sec_since_epoch();\
     current_releases_table_t releases_singleton(_self, _self.value);\
     releases_t current_releases = releases_singleton.get_or_default();\
-    current_local_receipts_table_t receipts_singleton(_self, _self.value);\
-    messages_receipt_t current_receipts = receipts_singleton.get_or_default();\
     settings_table settings_singleton(_self, _self.value);\
     settings_t settings = settings_singleton.get_or_default();\
     vector<message_payload> pending_releases = current_releases.releases;\
-    vector<message_receipt> release_receipts;\
-    message_payload current_release;\
-    message_receipt current_receipt;\
     if (pending_releases.size() == 0) {\
         compressed_releases_table_t compressed_releases(_self, _self.value);\
         auto c_release = compressed_releases.find(current_releases.id + 1);\
-        eosio::check(c_release != compressed_releases.end(), "no pending releases");\
-        compressed_local_receipts_table_t compressed_local_receipts(_self, _self.value);\
-        string compressed_current_receipts_uri = ipfs_svc_helper::setData(current_receipts.message_receipts);\
-        compressed_local_receipts.emplace(_self, [&]( auto& a ){\
-            a.receipts_uri = compressed_current_receipts_uri;\
-            a.id = current_receipts.id + 1;\
-            a.received_block_time = eosio::current_time_point().sec_since_epoch();\
-        });\
+        bool retrieve_release = c_release != compressed_releases.end();\
+        eosio::check(retrieve_release, "no pending releases");\
         pending_releases = ipfs_svc_helper::getData<vector<message_payload>>(c_release->releases_uri);\
         current_releases.id = c_release->id;\
         current_releases.received_block_time = c_release->received_block_time;\
-        current_release = pending_releases[0];\
-        current_receipts.message_receipts = vector<message_receipt>();\
-        current_receipts.id += 1;\
+    } else { \
+        message_receipt current_receipt;\
+        auto current_release = pending_releases[0];\
+        pending_releases.erase(pending_releases.begin());\
+        if(current_releases.last_success_block_time + LINK_PROCESSING_TIMEOUT <= current_block_time) {\
+            vector<char> hook_response = MESSAGE_RECEIVED_FAILURE_HOOK(current_release)\
+            current_receipt = {current_release.data,hook_response,false};\
+        } else {\
+            vector<char> hook_response = MESSAGE_RECEIVED_HOOK(current_release)\
+            current_receipt = {current_release.data,hook_response,true};\
+        }\
+        push_receipt(current_receipt);\
     }\
-    release_receipts = current_receipts.message_receipts;\
-    current_release = pending_releases[0];\
-    pending_releases.erase(pending_releases.begin());\
-    vector<char> hook_response = MESSAGE_RECEIVED_HOOK(current_release)\
-    current_receipt = {\
-        current_release.data,\
-        hook_response,\
-        true\
-    };\
-    release_receipts.push_back(current_receipt);\
-    current_receipts.message_receipts = release_receipts;\
+    current_releases.releases = pending_releases;\
+    current_releases.last_success_block_time = current_block_time;\
     releases_singleton.set(current_releases, _self);\
-    receipts_singleton.set(current_receipts, _self);\
     return settings.processing_enabled;\
 }

@@ -15,7 +15,7 @@ module.exports = async (args) => {
 
   // add logging.json if doesnt exist
   await addLoggingConfig();
-
+  await addGenesisConfig();
   var nodeosArgs = [
     '-e',
     '-p eosio',
@@ -39,18 +39,21 @@ module.exports = async (args) => {
     '--trace-history-debug-mode',
     '--delete-state-history',
     '--wasm-runtime=eos-vm',
-    '--chain-threads=4'
+    '--max-irreversible-block-age=-1',
+    `--genesis-json=${os.homedir()}/.zeus/nodeos/config/genesis.json`,
+    '--chain-threads=2'
   ];
   var ports = [
     '-p 8888:8888',
     '-p 9876:9876'
   ];
+
   // check OS name, if Mac, does not support --eos-vm-oc-enable
   const isMac = await execPromise(`uname`);
   if(!isMac.includes(`Darwin`)){
     nodeosArgs = [...nodeosArgs,
       '--eos-vm-oc-enable',
-      '--eos-vm-oc-compile-threads=4'
+      '--eos-vm-oc-compile-threads=2'
     ];
   }
   if (dappservices) {
@@ -119,7 +122,56 @@ const addLoggingConfig = async () => {
   if (!fs.existsSync(loggingJsonPath))
     fs.writeFileSync(loggingJsonPath, JSON.stringify(loggingJson));
 };
+function pad(number) {
+  if (number < 10) {
+    return '0' + number;
+  }
+  return number;
+}
+Date.prototype.toISOString2 = function() {
+      return this.getUTCFullYear() +
+        '-' + pad(this.getUTCMonth() + 1) +
+        '-' + pad(this.getUTCDate()) +
+        'T' + pad(this.getUTCHours()) +
+        ':' + pad(this.getUTCMinutes()) +
+        ':' + pad(this.getUTCSeconds()) +
+        '.' + (this.getUTCMilliseconds() / 1000).toFixed(3).slice(2, 5)
+};
 
+  
+
+const addGenesisConfig = async () => {
+  const configPath = `${os.homedir()}/.zeus/nodeos/config/`;
+  const genJsonPath = `${configPath}/genesis.json`;
+  if (!fs.existsSync(configPath))
+    await execPromise(`mkdir -p ${configPath}`);
+  if (!fs.existsSync(genJsonPath))
+    fs.writeFileSync(genJsonPath, JSON.stringify({      
+        "initial_timestamp": new Date().toISOString2(),
+        "initial_key": "EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV",
+        "initial_configuration": {
+          "max_block_net_usage": 1048576,
+          "target_block_net_usage_pct": 1000,
+          "max_transaction_net_usage": 524288,
+          "base_per_transaction_net_usage": 12,
+          "net_usage_leeway": 500,
+          "context_free_discount_net_usage_num": 20,
+          "context_free_discount_net_usage_den": 100,
+          "max_block_cpu_usage": 100000,
+          "target_block_cpu_usage_pct": 500,
+          "max_transaction_cpu_usage": 50000,
+          "min_transaction_cpu_usage": 100,
+          "max_transaction_lifetime": 3600,
+          "deferred_trx_expiration_window": 600,
+          "max_transaction_delay": 3888000,
+          "max_inline_action_size": 4096,
+          "max_inline_action_depth": 4,
+          "max_authority_depth": 6
+        },
+        "initial_chain_id": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    ));
+};
 const loggingJson = {
   "includes": [],
   "appenders": [{
