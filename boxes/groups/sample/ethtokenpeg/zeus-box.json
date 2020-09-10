@@ -4,16 +4,19 @@
     "README.md"
   ],
   "commands": {
-    "Test eth message bridge": "zeus compile && zeus test eth-message-bridge"
+    "Test eth message bridge": "zeus compile && zeus test ethtokenpeg"
   },
   "dependencies": {
     "oracle-dapp-service": "^1.0.0",
     "cron-dapp-service": "^1.0.0",
-    "sign-dapp-service": "^1.0.0"
+    "sign-dapp-service": "^1.0.0",
+    "link": "^1.0.0",
+    "eth-extensions": "^1.0.0",
+    "ethmessagebridge": "^1.0.0"
   },
   "install": {
     "contracts": {
-      "ethmessagebridge": true
+      "ethtokenpeg": true
     }
   }
 }

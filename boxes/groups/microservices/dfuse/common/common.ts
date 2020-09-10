@@ -1,11 +1,13 @@
+import * as types from  "../types/index";
+
 const { getDappClient } = require("../client/dapp-client");
 const { requireBox } = require('@liquidapps/box-utils');
 const logger = requireBox('log-extensions/helpers/logger');
 const nodeFetch = require("node-fetch");
 const serviceResponseTimeout = parseInt(process.env.SERVICE_RESPONSE_TIMEOUT_MS || '10000');
-const { loggerHelper } = requireBox('dapp-services/services/dapp-services-node/common');
-import * as types from  "../types/index";
-
+const { loggerHelper, getTableRowsSec } = requireBox('dapp-services/services/dapp-services-node/common');
+const { JsonRpc } = require('eosjs');
+const rpc = new JsonRpc(process.env.NODEOS_MAINNET_ENDPOINT, { nodeFetch });
 
 export function printBlock(blockId: string, blockNum: number): string {
   return `${blockId.slice(0, 8)}...${blockId.slice(-8)} (${blockNum})`
@@ -25,6 +27,14 @@ export const fetchAccountextTable = async (client, limit: number) => {
 
 export const fetchAccountextTableByAccountServiceProvider = async (client, account: string, service: string, provider: string, limit: number) => {
   return await client.get_table_accountext_by_account_service_provider(account, service, provider, {limit});
+}
+
+export const fetchAllTableRows = async (code: string, table: string, scope: string) => {
+  const mainnetAccountList = await getTableRowsSec(rpc, code, table, scope, [], 9999999999);
+  return {
+    more: false,
+    rows: mainnetAccountList
+  }
 }
 
 const handleInnerStaking = async (account: string, client, action, thisObject) => {
@@ -79,7 +89,7 @@ export const handleStakingAction = async (action, client, blockId: string, block
 
 export const fetchStaking = async () => {
     const client = await (await getDappClient()).dappNetwork;
-    const response = await fetchAccountextTable(client, 9999999);
+    const response = await fetchAllTableRows("dappservices","accountext","DAPP");
     let accounts = response.rows
        // check if account staked to this DSP
       .filter(el => el.provider === process.env.DSP_ACCOUNT)
@@ -95,6 +105,8 @@ export const fetchStaking = async () => {
     }
     // map from array of objects to array of accounts
     newAccounts = newAccounts.map(el => el.account);
+    // remove duplicates 
+    newAccounts = Array.from(new Set(newAccounts));
       
     logger.info(`accounts: ${newAccounts}`)
     if(!newAccounts) logger.warn(`No newAccounts staked to ${process.env.DSP_ACCOUNT}`);

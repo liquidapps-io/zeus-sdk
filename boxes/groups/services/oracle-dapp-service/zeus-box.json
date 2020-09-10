@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "ignore": [
     "README.md"
   ],
@@ -11,7 +11,8 @@
     "oracle-echo": "^1.0.0",
     "oracle-self-history": "^1.0.0",
     "oracle-random": "^1.0.0",
-    "oracle-sister-chain": "^1.0.0"
+    "oracle-sister-chain": "^1.0.0",
+    "oracle-ethereum": "^1.0.0"
   },
   "install": {
     "contracts": {

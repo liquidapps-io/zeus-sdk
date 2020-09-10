@@ -53,6 +53,7 @@
     "node-fetch": "^2.3.0",
     "nodemon": "^1.18.5",
     "pako": "^1.0.10",
+    "promise.allsettled": "^1.0.2",
     "prompt": "^1.0.0",
     "raw-body": "^2.3.3",
     "readline-sync": "^1.4.9",
@@ -77,6 +78,7 @@
     "toml": "^3.0.0",
     "sequelize": "^5.19.0",
     "pg": "^7.12.1",
+    "web3": "^1.2.11",
     "winston-daily-rotate-file": "^4.1.0",
     "winston": "^3.2.1"
   },

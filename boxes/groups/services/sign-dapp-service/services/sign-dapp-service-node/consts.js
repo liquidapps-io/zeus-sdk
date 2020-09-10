@@ -1,8 +1,3 @@
-if (process.env.PRODUCTION) {
-  // assert certain env vars are defined, don't want DSP's
-  // falling back to invalid keys/accounts
-}
-
 module.exports = {
   // eos stuff
   eosSignerAccount: process.env.EOS_SIGNER_ACCOUNT || 'eosio',
@@ -17,8 +12,7 @@ module.exports = {
   web3Provider: process.env.WEB3_PROVIDER || 'http://localhost:8545',
   ethCreatorKey: process.env.ETH_CREATOR_KEY || '0xa966a4df8f4ad2c5938fce96b46391e45ab6eade06848608020a50938b5dc3a2',
   ethPrivateKey: process.env.ETH_PRIVATE_KEY || '0xa966a4df8f4ad2c5938fce96b46391e45ab6eade06848608020a50938b5dc3a2',
-  ethAddress: process.env.ETH_ADDRESS || '0x69ddf61ebae5d5917565f9ae2ae7c4d6bba2944f',
   newEthAccountFundAmount: process.env.ETH_FUND_AMOUNT || '1000000000000000000',
-  ethGasPrice: process.env.ETH_GAS_PRICE || '1000000',
-  ethGasLimit: process.env.ETH_GAS_LIMIT || '5000000',
+  ethGasPrice: process.env.ETH_GAS_PRICE || '2000000000',
+  ethGasLimit: process.env.ETH_GAS_LIMIT || '500000',
 }

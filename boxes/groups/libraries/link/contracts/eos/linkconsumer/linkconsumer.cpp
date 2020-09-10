@@ -1,4 +1,3 @@
-
 #include "../dappservices/link.hpp"
 #define CONTRACT_NAME() linkconsumer
 
@@ -30,23 +29,15 @@ typedef eosio::multi_index<"parcels"_n, parcels> parcels_table;
 void init(
   name sister_code,
   string sister_chain_name,
-  bool processing_enabled,
-  uint64_t last_irreversible_block_time,
-  uint64_t last_received_releases_id,
-  uint64_t last_received_receipts_id,
-  uint64_t last_confirmed_messages_id,
-  uint64_t last_pending_messages_id
+  string this_chain_name,
+  bool processing_enabled
   )
 {
     initlink(
         sister_code,
         sister_chain_name,
-        processing_enabled,
-        last_irreversible_block_time,
-        last_received_releases_id,
-        last_received_receipts_id,
-        last_confirmed_messages_id,
-        last_pending_messages_id
+        this_chain_name,
+        processing_enabled
     );
     //Add additional init logic as neccessary
 }
@@ -94,7 +85,8 @@ void emit(uint64_t id, string message) {
       a.remote = false;
       a.original_message = message;
   });
-  pushMessage(obj);
+  auto data = eosio::pack<parcel_t>(obj);
+  pushMessage(data);
 }
 
 CONTRACT_END((init)(enable)(emit))

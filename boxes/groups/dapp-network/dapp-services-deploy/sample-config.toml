@@ -63,6 +63,12 @@ protocol = "http"
 host = "localhost"
 port = 5001
 
+[eth] # if using LiquidLink (link) service 
+private_key = ""
+endpoint = ""
+eth_gas_price = '2000000'
+eth_gas_limit = '500000'
+
 # sidechain section, if no sidechains, leave as [sidechains], can add additional sidechains with [sidechains.newchain] ...
 [sidechains]
   [sidechains.test1]

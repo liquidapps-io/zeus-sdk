@@ -499,7 +499,14 @@ const dfuseEndpoints = {
   'testnet': 'https://testnet.eos.dfuse.io',
   'kylin': 'https://kylin.eos.dfuse.io',
   'worbli': 'https://worbli.eos.dfuse.io',
-  'wax': 'https://mainnet.wax.dfuse.io'
+  'wax': 'https://mainnet.wax.dfuse.io',
+  'local': 'http://localhost:8081',
+  'localliquidx': 'http://localhost:8083',
+  'mainnet.eos.dfuse.io': 'https://mainnet.eos.dfuse.io',
+  'testnet.eos.dfuse.io': 'https://testnet.eos.dfuse.io',
+  'kylin.eos.dfuse.io': 'https://kylin.eos.dfuse.io',
+  'worbli.eos.dfuse.io': 'https://worbli.eos.dfuse.io',
+  'wax.eos.dfuse.io': 'https://mainnet.wax.dfuse.io'
 }
 const testTransaction = async(sidechain, uri, body) => {
   const key = mainnetDfuseApiKey ? await getDfuseJwt() : '';

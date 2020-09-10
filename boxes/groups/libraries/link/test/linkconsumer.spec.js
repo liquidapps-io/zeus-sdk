@@ -135,24 +135,16 @@ describe(`LiquidBrinX BlockchainRPC`, () => {
         await testcontractX.init({
           sister_code: codeXMainnet,
           sister_chain_name: "localmainnet",
-          processing_enabled: true,
-          last_irreversible_block_time: 0,
-          last_received_releases_id: 0,
-          last_received_receipts_id: 0,
-          last_confirmed_messages_id: 0,
-          last_pending_messages_id: 0
+          this_chain_name: "test1",
+          processing_enabled: true
         }, {
           authorization: `${codeXSidechain}@active`
         });
         await testcontract.init({
           sister_code: codeXSidechain,
           sister_chain_name: "test1",
-          processing_enabled: true,
-          last_irreversible_block_time: 0,
-          last_received_releases_id: 0,
-          last_received_receipts_id: 0,
-          last_confirmed_messages_id: 0,
-          last_pending_messages_id: 0
+          this_chain_name: "localmainnet",
+          processing_enabled: true
         }, {
           authorization: `${codeXMainnet}@active`
         });

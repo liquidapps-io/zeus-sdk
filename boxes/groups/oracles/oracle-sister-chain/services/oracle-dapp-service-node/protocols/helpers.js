@@ -3,7 +3,7 @@ const endpoints = {
     'mainnet': 'http://api.eossweden.se',
     'bos': 'https://api.bos.eostribe.io',
     'telos': 'https://api.telos.eostribe.io',
-    'kylin': 'https://kylin.eoscanada.com',
+    'kylin': 'https://kylin.eosn.io',
     'worbli': 'https://api.worbli.eostribe.io',
     'jungle': 'https://junglehistory.cryptolions.io:4433',
     'meetone': 'https://fullnode.meet.one',

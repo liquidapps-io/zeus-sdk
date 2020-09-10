@@ -4,7 +4,7 @@ const os = require("os");
 var toml = require('toml');
 const { getBoxName, getBoxesDir, requireBox } = require('@liquidapps/box-utils');
 const { loadModels } = requireBox('seed-models/tools/models');
-const disabledServices = ["sign", "log", "history"];
+const disabledServices = ["log", "history"];
 var configPath = process.env.DSP_CONFIG_FILE || path.join(os.homedir(), '.dsp', "config.toml");
 if (!fs.existsSync(configPath))
   throw new Error(`Config file missing. please copy sample-config.toml to ${configPath}`);
@@ -123,6 +123,11 @@ const DFUSE_PUSH_GUARANTEE = globalEnv.DFUSE_PUSH_GUARANTEE || 'in-block';
 const DFUSE_ENABLE = globalEnv.DFUSE_ENABLE || false;
 const DFUSE_API_KEY = globalEnv.DFUSE_API_KEY;
 const DFUSE_NETWORK = globalEnv.DFUSE_NETWORK || 'mainnet';
+const ETH_PRIVATE_KEY = globalEnv.ETH_PRIVATE_KEY || '';
+const ETH_ENDPOINT = globalEnv.ETH_ENDPOINT || '';
+const ETH_GAS_PRICE = globalEnv.ETH_GAS_PRICE || '2000000';
+const ETH_GAS_LIMIT = globalEnv.ETH_GAS_LIMIT || '500000';
+const WEB3_PROVIDER = ETH_ENDPOINT;
 
 // Assert .env
 if (['state_history_plugin'].indexOf(DEMUX_BACKEND) === -1) throw new Error("DEMUX_BACKEND must be 'state_history_plugin'");
@@ -137,6 +142,9 @@ const serviceNames = (loadModels('dapp-services')).map(file => file.name).filter
 
 const DSP_SERVICES_ENABLED = globalEnv.DSP_SERVICES_ENABLED || serviceNames.join(',');
 const services = DSP_SERVICES_ENABLED.split(',');
+
+if (services.includes('link') && !globalEnv.ETH_PRIVATE_KEY) throw new Error("ETH_PRIVATE_KEY is required to run link service");
+if (services.includes('link') && !globalEnv.ETH_ENDPOINT) throw new Error("ETH_ENDPOINT is required to run link service");
 
 const port = NODEOS_PORT ? ':' + NODEOS_PORT : '';
 const host = NODEOS_HOST ? NODEOS_HOST : '';
@@ -169,7 +177,12 @@ let commonEnv = {
   DFUSE_PUSH_GUARANTEE,
   DFUSE_API_KEY,
   DFUSE_NETWORK,
-  DEBUG: globalEnv.DFUSE_DEBUG ? "dfuse:*" : ""
+  DEBUG: globalEnv.DFUSE_DEBUG ? "dfuse:*" : "",
+  ETH_PRIVATE_KEY,
+  ETH_ENDPOINT,
+  WEB3_PROVIDER,
+  ETH_GAS_PRICE,
+  ETH_GAS_LIMIT
 };
 
 const createDSPSidechainServices = (sidechain) => {

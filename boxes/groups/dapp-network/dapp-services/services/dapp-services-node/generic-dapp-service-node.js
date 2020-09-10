@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 if (process.env.DAEMONIZE_PROCESS) { require('daemonize-process')(); }
+const allSettled = require('promise.allsettled');
 const path = require('path');
 const fs = require('fs');
 const { requireBox, getBoxesDir } = require('@liquidapps/box-utils');
@@ -12,8 +13,10 @@ const { deserialize, generateABI, genNode, paccount, forwardEvent,
   detectXCallback, getTableRowsSec, getLinkedAccount, 
   parseEvents, pushTransaction, getEosForSidechain, 
   eosMainnet, mainnetDfuseEnable, loggerHelper } = require('./common');
+const { json } = require('body-parser');
 
 var sidechainsDict = {};
+allSettled.shim();
 
 const actionHandlers = {
   'service_request': async (act, simulated, serviceName, handlers) => {
@@ -53,13 +56,14 @@ const actionHandlers = {
       act.event.broadcasted = true;
       let providers = await resolveProviderPackage(payer, service, false, sidechain, true);
       logger.debug(`providers: ${JSON.stringify(providers)}`)
-      const dspResponses = await Promise.all(providers.map(async (prov) => {
+      const dspResponses = await Promise.allSettled(providers.map(async (prov) => {
         // could return just promise if no need to log
         const eventRes = await forwardEvent(act, prov.data.endpoint, false);
         return eventRes;
       }));
-      // maybe check for consistency?
-      return dspResponses[0] || 'retry';
+
+      var goodResponse = dspResponses.find(x => x.status == "fulfilled");
+      return goodResponse ? goodResponse.value || 'retry' : 'retry';
     }
     provider = await resolveProvider(payer, service, provider, sidechain);
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider, sidechain);
@@ -131,12 +135,25 @@ const extractUsageQuantity = async (e) => {
   let jsons;
   // if pending console does not contain usage report, use assertion message
   if(!JSON.stringify(details[details.length - 1]).includes('usage_report')) {
-    jsons = details[details.length - 2].message.split(': ', 2)[1].split(`'`).join(`"`).split('\n').filter(a => a.trim() != '');
+    if(details[details.length - 2] && details[details.length - 2].message) {
+      jsons = details[details.length - 2].message.split(': ', 2)[1].split(`'`).join(`"`).split('\n').filter(a => a.trim() != '');
+    } else {
+      logger.error(`usage event not found: ${typeof(jsons) == "object" ? JSON.stringify(jsons) : jsons}`)
+      if (!jsons.length) throw new Error('usage event not found');
+    }
   } else {
-    jsons = details[details.length - 1].message.split(': ', 2)[1].split('\n').filter(a => a.trim() != '');
+    if(details[details.length - 1] && details[details.length - 1].message) {
+      jsons = details[details.length - 1].message.split(': ', 2)[1].split('\n').filter(a => a.trim() != '');
+    } else {
+      logger.error(`usage event not found: ${typeof(jsons) == "object" ? JSON.stringify(jsons) : jsons}`)
+      if (!jsons.length) throw new Error('usage event not found');
+    }
   }
   if(!jsons && mainnetDfuseEnable) logger.warn('usage event not found, network may need to update to latest dappservices contract');
-  if (!jsons.length) throw new Error('usage event not found');
+  if (!jsons.length) {
+    logger.error(`usage event not found: ${typeof(jsons) == "object" ? JSON.stringify(jsons) : jsons}`)
+    throw new Error('usage event not found');
+  } 
   const events = (await parseEvents(jsons.join('\n'))).filter(e => e.etype === 'usage_report');
   if (!events.length) {
     logger.warn(`is verbose-http-errors = true enabled in the nodeos config.ini?`);

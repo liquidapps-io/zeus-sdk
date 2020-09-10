@@ -1,4 +1,3 @@
-
 #include "../dappservices/link.hpp"
 #define CONTRACT_NAME() tokenpeg
 
@@ -32,12 +31,8 @@ CONTRACT_START()
   void init(
     name sister_code,
     string sister_chain_name,
+    string this_chain_name,
     bool processing_enabled,
-    uint64_t last_irreversible_block_time,
-    uint64_t last_received_releases_id,
-    uint64_t last_received_receipts_id,
-    uint64_t last_confirmed_messages_id,
-    uint64_t last_pending_messages_id,
     name token_contract,
     symbol token_symbol,
     bool transfers_enabled,
@@ -48,12 +43,8 @@ CONTRACT_START()
       initlink(
           sister_code,
           sister_chain_name,
-          processing_enabled,
-          last_irreversible_block_time,
-          last_received_releases_id,
-          last_received_receipts_id,
-          last_confirmed_messages_id,
-          last_pending_messages_id
+          this_chain_name,
+          processing_enabled
       );
       
       token_settings_table settings_singleton(_self, _self.value);
@@ -116,6 +107,7 @@ CONTRACT_START()
       }
     }
   }
+  
   vector<string> split(const string& str, const string& delim) {
     vector<string> tokens;
     size_t prev = 0, pos = 0;
@@ -145,7 +137,8 @@ CONTRACT_START()
     vector<string> split_memo = split(memo, ",");
     transfer_t current_transfer = { from, split_memo[0], split_memo[1], quantity };
 
-    pushMessage(current_transfer);
+    auto data = eosio::pack<transfer_t>(current_transfer);
+    pushMessage(data);
   }
 
 };//closure for CONTRACT_START

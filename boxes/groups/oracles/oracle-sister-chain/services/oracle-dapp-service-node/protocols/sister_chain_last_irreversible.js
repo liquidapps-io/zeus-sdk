@@ -22,7 +22,7 @@ module.exports = async({ proto, address }) => {
         body: JSON.stringify(body)
     });
     const resBlock = await rBlock.json();
-    const timestamp = resBlock.timestamp;
-    const secSinceEpoch = Math.floor(new Date(timestamp).getTime()/1000).toString();
+    const timestamp = resBlock.timestamp + "Z";
+    const secSinceEpoch = Buffer.from(Math.floor(new Date(timestamp).getTime()/1000).toString(), 'utf8');
     return secSinceEpoch; 
 };

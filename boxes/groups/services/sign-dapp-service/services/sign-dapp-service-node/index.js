@@ -3,7 +3,6 @@ const logger = requireBox('log-extensions/helpers/logger');
 var { nodeFactory } = requireBox('dapp-services/services/dapp-services-node/generic-dapp-service-node');
 const ecc = require('eosjs-ecc');
 const os = require('os');
-const Tx = require('ethereumjs-tx').Transaction;
 const consts = require('./consts');
 const { getWeb3 } = require('./helpers/ethereum/web3Provider');
 const { getNonce, incrementNonce } = require('./helpers/ethereum/nonce');
@@ -31,7 +30,10 @@ const getCreateKeypair = {
   },
   "ethereum": (trx, chain, account, allowCreate) => {
     // for now only 1 key for ethereum
-    return { privateKey: consts.ethPrivateKey, publicKey: consts.ethAddress };
+    return {
+      privateKey: consts.ethPrivateKey,
+      publicKey: web3.eth.accounts.privateKeyToAccount(consts.ethPrivateKey).address
+    };
 
   }
 }
@@ -48,6 +50,7 @@ const postFn = {
     // for the provisioning layer (quota usage and whatnot)
     logger.info('posting tx ', signedTx);
     const tx = await web3.eth.sendSignedTransaction(signedTx);
+    logger.info(`posted tx, got txHash: ${tx.transactionHash}`);
     return tx.transactionHash;
   }
 }
@@ -61,24 +64,20 @@ const signFn = {
     // to not overwrite them - tricky business
     trx_data = trx_data.startsWith('0x') ? trx_data : `0x${trx_data}`;
     const nonce = await getNonce(keypair.publicKey);
-    const key = keypair.privateKey.startsWith('0x') ? 
+    const privateKey = keypair.privateKey.startsWith('0x') ? 
       keypair.privateKey.slice(2) : keypair.privateKey;
-    const privateKey = new Buffer(key, 'hex');
+
+    logger.debug(`destination: ${destination}, trx_data: ${JSON.stringify(trx_data)}, chain: ${chain}, account: ${account}, value: ${numberToHex(0)}, numberToHex(nonce): ${numberToHex(nonce)}, nonce: ${nonce}, gasPrice: ${consts.ethGasPrice}, gasLimit: ${consts.ethGasLimit}`);
     const rawTx = {
       nonce: numberToHex(nonce),
       to: destination,
       data: trx_data,
       value: numberToHex(0),
       gasPrice: numberToHex(consts.ethGasPrice),
-      gasLimit: numberToHex(consts.ethGasLimit)// We should ideally use
-      // web3.eth.estimateGas, but for that we need the abi of the contract
-      // we're sending the transaction to. hmmm....
+      gasLimit: numberToHex(consts.ethGasLimit)
     }
-    const tx = new Tx(rawTx);
-    tx.sign(privateKey);
-    const serializedTx = tx.serialize();
-
-    return '0x' + serializedTx.toString('hex');
+    const tx = await web3.eth.accounts.signTransaction(rawTx, privateKey);
+    return tx.rawTransaction;
   }
 }
 
@@ -157,6 +156,17 @@ nodeFactory('sign', {
         // todo: use auth service
         var { chain, chain_type, account } = body;
         var keypair = await getCreateKeypair[chain_type](chain, chain_type, account, true);
+        res.send(JSON.stringify({ public_key: keypair.publicKey }));
+      }
+      catch (e) {
+        res.status(400);
+        res.send(JSON.stringify({ error: e.toString() }));
+      }
+    },
+    getkey: async ({ body }, res) => {
+      try {
+        var { chain, chain_type, account } = body;
+        var keypair = await getCreateKeypair['ethereum'](chain, chain_type, account, true);
         res.send(JSON.stringify({ public_key: keypair.publicKey }));
       }
       catch (e) {

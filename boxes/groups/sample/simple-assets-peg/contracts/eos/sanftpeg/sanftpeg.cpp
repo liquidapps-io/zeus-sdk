@@ -146,11 +146,6 @@ CONTRACT_START()
     name sister_code,
     string sister_chain_name,
     bool processing_enabled,
-    uint64_t last_irreversible_block_time,
-    uint64_t last_received_releases_id,
-    uint64_t last_received_receipts_id,
-    uint64_t last_confirmed_messages_id,
-    uint64_t last_pending_messages_id,
     string this_chain_name,
     name asset_contract,
     name asset_author,
@@ -162,12 +157,7 @@ CONTRACT_START()
           sister_code,
           sister_chain_name,
           this_chain_name,
-          processing_enabled,
-          last_irreversible_block_time,
-          last_received_releases_id,
-          last_received_receipts_id,
-          last_confirmed_messages_id,
-          last_pending_messages_id
+          processing_enabled
       );
       
       asset_settings_table settings_singleton(_self, _self.value);
@@ -349,7 +339,8 @@ CONTRACT_START()
       check(token->containerf.size() == 0, "Asset id: " + std::to_string(assetids[i]) + " has attached tokens. These must be detached");
       mini_sasset current_asset = { token->id, token->category, token->idata, token->mdata };
       transfer_t current_transfer = { from, to_account, to_chain, current_asset };
-      pushMessage(current_transfer);
+      auto data = eosio::pack<transfer_t>(current_transfer);
+      pushMessage(data);
     }
   }
 
