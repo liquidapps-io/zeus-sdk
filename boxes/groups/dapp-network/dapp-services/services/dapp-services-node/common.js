@@ -227,6 +227,7 @@ const resolveBackendServiceData = async (service, provider, packageid, sidechain
     const packages = await getTableRowsSec(eos.rpc, dappServicesContract, "package", dappServicesContract, [null, packageid, service, provider], 1, 'sha256', 2);
     const result = packages.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service);
     if (result.length === 0) throw new Error(`resolveBackendServiceData failed ${provider} ${service} ${packageid}`);
+    if (!result[0].enabled) throw new Error(`Provider: ${provider} Service: ${service} Package ${packageid}: Packages must be enabled for DSP services to function. The enablepkg command must be run by the DSP to enable this package.`);
     if (Number(balance.substring(0, balance.length - 5)) < Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)))
       logger.warn(`DAPP Balance is less than minimum stake quantity for provider: ${provider}, service: ${service}, packageid: ${packageid}: ${Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)) - Number(balance.substring(0, balance.length - 5))} more DAPP must be staked to meet threshold`);
   }

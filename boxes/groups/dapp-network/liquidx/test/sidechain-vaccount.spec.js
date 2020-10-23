@@ -18,15 +18,15 @@ const { createClient } = requireBox("client-lib-base/client/dist/src/dapp-client
 
 global.fetch = fetch; //assign global fetch for client
 
-var contractCode = 'vaccountsx';
-var contractCodeSub = 'vaccntxremx';
-var contractCodeHost = 'vaccntxrem';
-var contractCodeMain = 'vaccountsconsumer';
+let contractCode = 'vaccountsx';
+let contractCodeSub = 'vaccntxremx';
+let contractCodeHost = 'vaccntxrem';
+let contractCodeMain = 'vaccountsconsumer';
 
-var ctrt = artifacts.require(`./${contractCode}/`);
-var ctrtSub = artifacts.require(`./${contractCodeSub}/`);
-var ctrtHost = artifacts.require(`./${contractCodeHost}/`);
-var ctrtMain = artifacts.require(`./${contractCodeMain}/`);
+let ctrt = artifacts.require(`./${contractCode}/`);
+let ctrtSub = artifacts.require(`./${contractCodeSub}/`);
+let ctrtHost = artifacts.require(`./${contractCodeHost}/`);
+let ctrtMain = artifacts.require(`./${contractCodeMain}/`);
 
 function postData(url = ``, data = {}) {
     // Default options are marked with *
@@ -48,11 +48,10 @@ function postData(url = ``, data = {}) {
 
 
 describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
-    var endpoint;
-    var endpointMain;
-    var chainId;
-    var chainIdMain;
-    var testcontract;
+    let endpoint;
+    let endpointMain;
+    let chainId;
+    let chainIdMain;
     const mainnet_code = 'sidetest1v';
     const sister_code = 'sidetest1vx';
     const mainnet_code2 = 'sidetest2v';
@@ -61,14 +60,16 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
     const sister_host_code = 'xchain1vx';  
     const mainnet_sub_code = 'xchain2v';
     const sister_sub_code = 'xchain2vx';
-    var eosconsumer;
-    var eosconsumer2;
-    var sidechainName = 'test1';
-    var sidechain;
+    let eosconsumer;
+    let eosconsumer2;
+    let eosconsumer3;
+    let eosconsumer4;
+    let sidechainName = 'test1';
+    let sidechain;
     before(done => {
         (async () => {
             try {
-                var sidechains = await loadModels('eosio-chains');
+                let sidechains = await loadModels('eosio-chains');
                 sidechain = sidechains.find(a => a.name === sidechainName);
 
                 await getCreateAccount(sister_code, null, false, sidechain);
@@ -80,11 +81,11 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
                 await getCreateAccount(sister_sub_code, null, false, sidechain);
                 await getCreateAccount(mainnet_sub_code, null, false);
 
-                var deployedContract = await deployer.deploy(ctrt, sister_code, null, sidechain);
-                var deployedContract2 = await deployer.deploy(ctrt, sister_code2, null, sidechain);
-                var deployedHost = await deployer.deploy(ctrtHost, sister_host_code, null, sidechain);
-                var deployedSub = await deployer.deploy(ctrtSub, sister_sub_code, null, sidechain);
-                var deployedMain = await deployer.deploy(ctrtMain, mainnet_code);
+                let deployedContract = await deployer.deploy(ctrt, sister_code, null, sidechain);
+                let deployedContract2 = await deployer.deploy(ctrt, sister_code2, null, sidechain);
+                let deployedHost = await deployer.deploy(ctrtHost, sister_host_code, null, sidechain);
+                let deployedSub = await deployer.deploy(ctrtSub, sister_sub_code, null, sidechain);
+                let deployedMain = await deployer.deploy(ctrtMain, mainnet_code);
 
                 await genAllocateDAPPTokens({ address: mainnet_code }, 'vaccounts', '', 'default');
                 await genAllocateDAPPTokens({ address: mainnet_code2 }, 'vaccounts', '', 'default');
@@ -100,27 +101,27 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
                 await createLiquidXMapping(sidechain.name, mainnet_host_code, sister_host_code);
                 await createLiquidXMapping(sidechain.name, mainnet_sub_code, sister_sub_code);
 
-                var selectedNetwork = getNetwork(getDefaultArgs(), sidechain);
+                let selectedNetwork = getNetwork(getDefaultArgs(), sidechain);
 
                 endpoint = `http://localhost:${sidechain.dsp_port}`;
                 endpointMain = `http://localhost:13015`;
 
-                var config = {
+                let config = {
                     expireInSeconds: 120,
                     sign: true,
                     chainId: selectedNetwork.chainId,
                     httpEndpoint: endpoint
                 };
-                var configMain = {
+                let configMain = {
                     expireInSeconds: 120,
                     sign: true,
                     chainId: selectedNetwork.chainId,
                     httpEndpoint: endpointMain
                 };
-                var keys = await getCreateKeys(sister_code, getDefaultArgs(), false, sidechain);
-                var keys2 = await getCreateKeys(sister_code2, getDefaultArgs(), false, sidechain);
-                var keys3 = await getCreateKeys(sister_host_code, getDefaultArgs(), false, sidechain);
-                var keys4 = await getCreateKeys(sister_sub_code, getDefaultArgs(), false, sidechain);
+                let keys = await getCreateKeys(sister_code, getDefaultArgs(), false, sidechain);
+                let keys2 = await getCreateKeys(sister_code2, getDefaultArgs(), false, sidechain);
+                let keys3 = await getCreateKeys(sister_host_code, getDefaultArgs(), false, sidechain);
+                let keys4 = await getCreateKeys(sister_sub_code, getDefaultArgs(), false, sidechain);
 
                 config.keyProvider = keys.active.privateKey;
                 eosconsumer = getEosWrapper(config);
@@ -141,7 +142,6 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
                     throw new Error('mapping not found')
                 const dappservicex = mapEntry.chain_account;
 
-                //testcontract = await eosconsumer.contract(account);
                 const dappservicexInstance = await eosconsumer.contract(dappservicex);
                 const dappservicexInstance2 = await eosconsumer2.contract(dappservicex);
                 const dappservicexInstance3 = await eosconsumer3.contract(dappservicex);
@@ -162,7 +162,13 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
                     await dappservicexInstance3.adddsp({ owner: sister_host_code, dsp: 'xprovider1' }, {
                         authorization: `${sister_host_code}@active`,
                     });
+                    await dappservicexInstance3.adddsp({ owner: sister_host_code, dsp: 'xprovider2' }, {
+                        authorization: `${sister_host_code}@active`,
+                    });
                     await dappservicexInstance4.adddsp({ owner: sister_sub_code, dsp: 'xprovider1' }, {
+                        authorization: `${sister_sub_code}@active`,
+                    });
+                    await dappservicexInstance4.adddsp({ owner: sister_sub_code, dsp: 'xprovider2' }, {
                         authorization: `${sister_sub_code}@active`,
                     });
                 }
@@ -259,7 +265,7 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
                 if (res.error)
                     console.error("reserror", res.error.details[0]);
                 // console.log(res.result.processed.action_traces);
-                var outputLines = res.result.processed.action_traces[0].console.split('\n');
+                let outputLines = res.result.processed.action_traces[0].console.split('\n');
                 assert.equal(outputLines[outputLines.length - 2], "hello from vaccount1 3", "wrong content");
 
                 done();
@@ -300,7 +306,7 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
                 if (res.error)
                     console.error("reserror", res.error.details[0]);
                 // console.log(res.result.processed.action_traces);
-                var outputLines = res.result.processed.action_traces[0].console.split('\n');
+                let outputLines = res.result.processed.action_traces[0].console.split('\n');
                 assert.equal(outputLines[outputLines.length - 2], "hello from vaccount2 3", "wrong content");
 
                 done();
@@ -310,7 +316,7 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
             }
         })();
     });
-    it('Hello world - Cross chain', done => {
+    it.skip('Hello world - Cross chain', done => {
         (async () => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();
@@ -379,7 +385,7 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
                 if (res.error)
                     console.error("reserror", res.error.details[0]);
                 // console.log(res.result.processed.action_traces);
-                var outputLines = res.result.processed.action_traces[0].console.split('\n');
+                let outputLines = res.result.processed.action_traces[0].console.split('\n');
                 assert.equal(outputLines[outputLines.length - 2], "hello from vaccount1 3", "wrong content");
 
                 done();
@@ -393,7 +399,7 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
         (async () => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();
-                var res = await postVirtualTx({
+                let res = await postVirtualTx({
                     contract_code: sister_code,
                     wif: privateWif,
                     // 00409E9 A226498BA 00409E9 A226498BA 000008796 A8A90D9
@@ -451,7 +457,7 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
         (async () => {
             try {
                 let privateWif = (await PrivateKey.randomKey()).toWif();
-                var res = await postVirtualTx({
+                let res = await postVirtualTx({
                     contract_code: "test1vx",
                     wif: privateWif,
                     payload: "8468635b7f379feeb95500000000010000000000ea305500409e9a2264b89a010000000000ea305500000000a8ed3232660000000000ea305500a6823403ea30550100000001000240cc0bf90a5656c8bb81f0eb86f49f89613c5cd988c018715d4646c6bd0ad3d8010000000100000001000240cc0bf90a5656c8bb81f0eb86f49f89613c5cd988c018715d4646c6bd0ad3d80100000000"
@@ -465,6 +471,4 @@ describe(`LiquidX Sidechain vAccounts Service Test Contract`, () => {
             }
         })();
     });
-
-
 });
