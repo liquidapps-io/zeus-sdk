@@ -184,6 +184,8 @@ module.exports = async (args) => {
       printErrCB: processStdOut,
       printOutCB: processStdOut
     });
+    // copy compile contracts folder to root
+    await execPromise(`cp -rf zeus_boxes/contracts contracts`);
   } catch (e) {
     if (e.stderr && e.stderr.includes('No rule to make target')) throw new Error(`${emojMap.white_frowning_face} ${args.contract} was not found, please ensure the file exists`);
     throw emojMap.white_frowning_face + 'eos contracts compile failed';
