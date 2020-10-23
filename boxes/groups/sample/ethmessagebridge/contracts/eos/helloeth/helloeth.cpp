@@ -4,14 +4,14 @@
 #define CONTRACT_NAME() helloeth
 
 #undef MESSAGE_RECEIVED_HOOK
-#define MESSAGE_RECEIVED_HOOK(message) message_received(message);
+#define MESSAGE_RECEIVED_HOOK(message) message_received(message)
 
 #undef MESSAGE_RECEIPT_HOOK
-#define MESSAGE_RECEIPT_HOOK(receipt) receipt_received(receipt);
+#define MESSAGE_RECEIPT_HOOK(receipt) receipt_received(receipt)
 
 CONTRACT_START()
 
-  LINK_BOOTSTRAP()
+LINK_BOOTSTRAP()
 
   [[eosio::action]]
   void init(
@@ -41,19 +41,20 @@ CONTRACT_START()
     
   }
 
-  vector<char> message_received(message_payload message) {
-    string message_str(message.data.begin(), message.data.end());
-    eosio::print("Received message: " + message_str + "\n");
+  vector<char> message_received(const std::vector<char>& message) {
+    //string message_str(message.data.begin(), message.data.end());
+    //eosio::print("Received message: " + message_str + "\n");
     return vector<char>();
   } 
 
-  void receipt_received(message_receipt receipt) {
-    string response(receipt.response.begin(), receipt.response.end());
-    if (receipt.success) {
-      eosio::print("Success! Response: " + response + "\n");
-    } else {
-      eosio::print("Failure! Response: " + response + "\n");
-    }
+  void receipt_received(const std::vector<char>& receipt) {
+    return;
+    //string response(receipt.data.begin(), receipt.data.end());
+    //if (receipt.success) {
+      //eosio::print("Success! Response: " + response + "\n");
+    //} else {
+      //eosio::print("Failure! Response: " + response + "\n");
+    //}
   }
 
 CONTRACT_END((init)(pushmsg))

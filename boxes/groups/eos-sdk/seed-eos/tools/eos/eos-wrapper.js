@@ -4,20 +4,6 @@ const { Api, JsonRpc, RpcError } = require('eosjs');
 const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig'); // development only
 const fetch = require('node-fetch'); // node only; not needed in browsers
 const { TextEncoder, TextDecoder } = require('util'); // node only; native TextEncoder/Decoder
-const dfuseEndpoints = {
-    'mainnet': 'https://mainnet.eos.dfuse.io',
-    'testnet': 'https://testnet.eos.dfuse.io',
-    'kylin': 'https://kylin.eos.dfuse.io',
-    'worbli': 'https://worbli.eos.dfuse.io',
-    'wax': 'https://mainnet.wax.dfuse.io',
-    'local': 'http://localhost:8081',
-    'localliquidx': 'http://localhost:8083',
-    'mainnet.eos.dfuse.io': 'https://mainnet.eos.dfuse.io',
-    'testnet.eos.dfuse.io': 'https://testnet.eos.dfuse.io',
-    'kylin.eos.dfuse.io': 'https://kylin.eos.dfuse.io',
-    'worbli.eos.dfuse.io': 'https://worbli.eos.dfuse.io',
-    'wax.eos.dfuse.io': 'https://mainnet.wax.dfuse.io'
-}
 
 function getEosWrapper(config) {
     const defaults = {
@@ -33,8 +19,9 @@ function getEosWrapper(config) {
         let json;        
         try {
             if((path == '/v1/chain/push_transaction' || path == '/v1/chain/send_transaction') && (config.dfuseEnable === "true" || config.dfuseEnable === true)) {
-                logger.debug(`Pushing to dFuse ${config.dfuseNetwork} with Guarantee ${config.dfuseGuarantee} Wrapper`)
-                response = await fetch(dfuseEndpoints[config.dfuseNetwork] + path, {
+                const endpoint = config.dfuseNetwork === 'local' || config.dfuseNetwork === 'localliquidx' ? `http://${config.dfuseNetwork}${path}` : `https://${config.dfuseNetwork}${path}`
+                logger.debug(`Pushing to dFuse ${endpoint} with Guarantee ${config.dfuseGuarantee} Wrapper`)
+                response = await fetch(endpoint, {
                     body: JSON.stringify(body),
                     method: 'POST',
                     headers: {

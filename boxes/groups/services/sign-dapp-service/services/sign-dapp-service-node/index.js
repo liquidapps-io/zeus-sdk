@@ -10,7 +10,7 @@ const { getNonce, incrementNonce } = require('./helpers/ethereum/nonce');
 const web3 = getWeb3();
 
 const getCreateKeypair = {
-  "eosio": async (trx, chain, account, allowCreate) => {
+  "eosio": async (trx, chain, account, allowCreate, consumer) => {
     const storagePath = getStoragePath(chain, account);
 
     if (!allowCreate && !fs.existsSync(storagePath))
@@ -28,11 +28,12 @@ const getCreateKeypair = {
 
     return { privateKey, publicKey };
   },
-  "ethereum": (trx, chain, account, allowCreate) => {
+  "ethereum": (trx, chain, account, allowCreate, consumer) => {
     // for now only 1 key for ethereum
+    const ethPrivateKey = consts.getEthPrivateKey(consumer);
     return {
-      privateKey: consts.ethPrivateKey,
-      publicKey: web3.eth.accounts.privateKeyToAccount(consts.ethPrivateKey).address
+      privateKey: ethPrivateKey,
+      publicKey: web3.eth.accounts.privateKeyToAccount(ethPrivateKey).address
     };
 
   }
@@ -56,7 +57,7 @@ const postFn = {
 }
 
 const signFn = {
-  "eosio": (destination, trx_data, chain, account, keypair) => {
+  "eosio": async (destination, trx_data, chain, account, keypair) => {
 
   },
   "ethereum": async (destination, trx_data, chain, account, keypair) => {
@@ -64,7 +65,7 @@ const signFn = {
     // to not overwrite them - tricky business
     trx_data = trx_data.startsWith('0x') ? trx_data : `0x${trx_data}`;
     const nonce = await getNonce(keypair.publicKey);
-    const privateKey = keypair.privateKey.startsWith('0x') ? 
+    const privateKey = keypair.privateKey.startsWith('0x') ?
       keypair.privateKey.slice(2) : keypair.privateKey;
 
     logger.debug(`destination: ${destination}, trx_data: ${JSON.stringify(trx_data)}, chain: ${chain}, account: ${account}, value: ${numberToHex(0)}, numberToHex(nonce): ${numberToHex(nonce)}, nonce: ${nonce}, gasPrice: ${consts.ethGasPrice}, gasLimit: ${consts.ethGasLimit}`);
@@ -87,7 +88,7 @@ const signFn = {
 // signatures need to be collected and only once there are enough
 // can the transaction be sent.
 const signHandlers = {
-  "eosio": async (id, destination, trx_data, chain, chain_type, sigs, account, sigs_required) => {
+  "eosio": async (id, destination, trx_data, chain, chain_type, sigs, account, sigs_required, consumer) => {
     // get key from storage
     var keypair = await getCreateKeypair['eosio'](chain, chain_type, account);
 
@@ -115,9 +116,9 @@ const signHandlers = {
       id, trx, chain, chain_type, sigs, account, sigs_required, trx_id
     };
   },
-  "ethereum": async (id, destination, trx_data, chain, chain_type, sigs, account, sigs_required) => {
-    // get key from storage
-    var keypair = await getCreateKeypair['ethereum'](chain, chain_type, account);
+  "ethereum": async (id, destination, trx_data, chain, chain_type, sigs, account, sigs_required, consumer) => {
+      // get key from storage
+      var keypair = getCreateKeypair['ethereum'](chain, chain_type, account, consumer);
 
       // sign with internal keys and return sig
       const signedTx = await signFn['ethereum'](destination, trx_data, chain, account, keypair);
@@ -132,7 +133,9 @@ const signHandlers = {
 }
 
 nodeFactory('sign', {
-  signtrx: async ({ event, rollback }, { id, destination, trx_data, chain, chain_type, sigs, account, sigs_required }) => {
+  signtrx: async (obj1, { id, destination, trx_data, chain, chain_type, sigs, account, sigs_required }) => {
+    const { event, rollback } = obj1;
+    const consumer = obj1.account;
     if (rollback) {
       // rollback warmup
       event.action = 'sgcleanup';
@@ -147,7 +150,7 @@ nodeFactory('sign', {
         return;
       }
 
-      return signHandlers[chain_type](id, destination, trx_data, chain, chain_type, sigs, account, sigs_required);
+      return signHandlers[chain_type](id, destination, trx_data, chain, chain_type, sigs, account, sigs_required, consumer);
     }
   },
   api: {
@@ -166,7 +169,7 @@ nodeFactory('sign', {
     getkey: async ({ body }, res) => {
       try {
         var { chain, chain_type, account } = body;
-        var keypair = await getCreateKeypair['ethereum'](chain, chain_type, account, true);
+        var keypair = getCreateKeypair['ethereum'](chain, chain_type, account, true);
         res.send(JSON.stringify({ public_key: keypair.publicKey }));
       }
       catch (e) {

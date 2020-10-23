@@ -66,8 +66,9 @@ port = 5001
 [eth] # if using LiquidLink (link) service 
 private_key = ""
 endpoint = ""
-eth_gas_price = '2000000'
-eth_gas_limit = '500000'
+gas_price = '2000000'
+gas_limit = '500000'
+keys_per_consumer = '{"ETH_PRIVATE_KEY_CONSUMER1":"PRIVATE_KEY_HERE"},{"ETH_PRIVATE_KEY_CONSUMER2":"PRIVATE_KEY_HERE"}'
 
 # sidechain section, if no sidechains, leave as [sidechains], can add additional sidechains with [sidechains.newchain] ...
 [sidechains]

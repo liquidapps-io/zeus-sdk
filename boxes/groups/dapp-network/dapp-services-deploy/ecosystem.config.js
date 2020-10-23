@@ -127,6 +127,7 @@ const ETH_PRIVATE_KEY = globalEnv.ETH_PRIVATE_KEY || '';
 const ETH_ENDPOINT = globalEnv.ETH_ENDPOINT || '';
 const ETH_GAS_PRICE = globalEnv.ETH_GAS_PRICE || '2000000';
 const ETH_GAS_LIMIT = globalEnv.ETH_GAS_LIMIT || '500000';
+const ETH_KEYS_PER_CONSUMER = globalEnv.ETH_KEYS_PER_CONSUMER || '';
 const WEB3_PROVIDER = ETH_ENDPOINT;
 
 // Assert .env
@@ -184,6 +185,12 @@ let commonEnv = {
   ETH_GAS_PRICE,
   ETH_GAS_LIMIT
 };
+
+if(ETH_KEYS_PER_CONSUMER) {
+  ETH_KEYS_PER_CONSUMER.split(',').forEach(item => {
+    Object.assign(commonEnv, JSON.parse(item));
+  })
+}
 
 const createDSPSidechainServices = (sidechain) => {
   // Assert .env

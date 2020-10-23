@@ -24,18 +24,20 @@ describe(`Token bridge Test`, () => {
   // cpp contract, sol contract instances
   const codeEos = 'ethtokenpeg';
   const testAccEos = 'testpegmn';
-  const testAccEosHex = '0x746573747065676d6e0000000000000000000000000000000000000000000000';
-  let tokenMainnet = 'sometoken';
+  const testAccEosHex = 167755678134730;
+  const tokenMainnet = 'sometoken';
   let tokenMainnetContract;
   let testAddressEth;
   let tokenpegCpp;
   let dspeos;
   let ethToken, ethTokenpeg;
+  const quantity = "2.0000 TKN"
   before(done => {
     (async () => {
       try {
         const accounts = await web3.eth.getAccounts();
         testAddressEth = accounts[5];
+        console.log("Sending tokens to: ", testAddressEth);
 
         // staking to 2 DSPs for the oracle and cron services for mainnet contract
         const deployedContract = await deployer.deploy(ctrt, codeEos);
@@ -64,7 +66,7 @@ describe(`Token bridge Test`, () => {
         }, {
             authorization: `${tokenMainnet}@active`,
         });
-        
+
         await genAllocateDAPPTokens(deployedContract, "oracle", "pprovider1", "default");
         await genAllocateDAPPTokens(deployedContract, "oracle", "pprovider2", "foobar");
         await genAllocateDAPPTokens(deployedContract, "ipfs", "pprovider1", "default");
@@ -74,7 +76,6 @@ describe(`Token bridge Test`, () => {
         await genAllocateDAPPTokens(deployedContract, "cron", "pprovider1", "default");
         await genAllocateDAPPTokens(deployedContract, "cron", "pprovider2", "default");
         dspeos = await getLocalDSPEos(codeEos);
-        helloEthCpp = deployedContract.contractInstance;
 
         const { token, tokenpeg } = await deployEthContracts();
         ethToken = token;
@@ -92,7 +93,13 @@ describe(`Token bridge Test`, () => {
           token_symbol: "4,TKN",
           min_transfer: "10000",
           transfers_enabled: true,
-          can_issue: false // true if token is being bridged to this chain, else false 
+          can_issue: false // true if token is being bridged to this chain, else false
+        }, {
+          authorization: `${codeEos}@active`
+        });
+        await tokenpegCpp.enable({
+          processing_enabled: true,
+          transfers_enabled: true
         }, {
           authorization: `${codeEos}@active`
         });
@@ -107,50 +114,41 @@ describe(`Token bridge Test`, () => {
   it('Transfers tokens from eos to eth', done => {
     (async () => {
       try {
-        res = await dspeos.getTableRows({
+        await dspeos.getTableRows({
           'json': true,
           'scope': testAccEos,
           'code': tokenMainnet,
           'table': 'accounts',
           'limit': 1
         });
-        const prevEosBalance = parseInt(res.rows[0].balance.split(" ")[0]);
-        //console.log(prevEosBalance);  
-
-        await tokenMainnetContract.transfer({ 
+        console.log("First transfer");
+        await tokenMainnetContract.transfer({
           from: testAccEos,
           to: codeEos,
-          quantity: "2.0000 TKN",
+          quantity,
           memo: testAddressEth
         }, {
           authorization: `${testAccEos}@active`
         });
-
         await delay(2000);
-
         await tokenMainnetContract.transfer({ 
           from: testAccEos,
           to: codeEos,
-          quantity: "2.0000 TKN",
+          quantity,
           memo: testAddressEth
         }, {
           authorization: `${testAccEos}@active`
         });
-
-        res = await dspeos.getTableRows({
+        await dspeos.getTableRows({
           'json': true,
           'scope': testAccEos,
           'code': tokenMainnet,
           'table': 'accounts',
           'limit': 1
         });
-        const postEosBalance = parseInt(res.rows[0].balance.split(" ")[0]);
-        //console.log(postEosBalance);
-
         await delay(35000);
         const ethBalance = (await ethToken.balanceOf(testAddressEth)).toString();
-        //console.log(ethBalance);
-        assert.equal(ethBalance, "20000");
+        assert.equal(ethBalance, "40000");
         done();
       } catch(e) {
         done(e);
@@ -170,10 +168,10 @@ describe(`Token bridge Test`, () => {
           'limit': 1
         });
         const prevEosBalance = parseInt(res.rows[0].balance.split(" ")[0]);
-        await tokenMainnetContract.transfer({ 
+        await tokenMainnetContract.transfer({
           from: testAccEos,
           to: codeEos,
-          quantity: "2.0000 TKN",
+          quantity,
           memo: "0x0" // address doesn't exist, gotta make sure deserialization works tho
         }, {
           authorization: `${testAccEos}@active`
@@ -187,7 +185,7 @@ describe(`Token bridge Test`, () => {
         });
         const midEosBalance = parseInt(res.rows[0].balance.split(" ")[0]);
         assert.equal(prevEosBalance - midEosBalance, 2);
-        await delay(10000);
+        await delay(35000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': testAccEos,
@@ -208,14 +206,12 @@ describe(`Token bridge Test`, () => {
     (async () => {
       try {
         const prevBalance = (await ethToken.balanceOf(testAddressEth)).toString();
-        //console.log(prevBalance);
-        await ethTokenpeg.sendToken("10000", '0x3333333333333333330000000000000000000000000000000000000000000000', {
+        await ethTokenpeg.sendToken("10000", 12345, {
           from: testAddressEth
         });
         const midBalance = (await ethToken.balanceOf(testAddressEth)).toString();
-        //console.log(midBalance);
-        assert.equal(parseInt(prevBalance) - parseInt(midBalance), 20000);
-        await delay(10000);
+        assert.equal(parseInt(prevBalance) - parseInt(midBalance), 30000);
+        await delay(35000);
         const postBalance = (await ethToken.balanceOf(testAddressEth)).toString();
         assert.equal(parseInt(postBalance) - parseInt(prevBalance), 0);
       } catch(e) {
@@ -236,7 +232,6 @@ describe(`Token bridge Test`, () => {
           'limit': 1
         });
         const prevEosBalance = parseInt(res.rows[0].balance.split(" ")[0]);
-        //console.log(prevEosBalance);
         await ethTokenpeg.sendToken("10000", testAccEosHex, {
           from: testAddressEth
         });
@@ -249,7 +244,6 @@ describe(`Token bridge Test`, () => {
           'limit': 1
         });
         const postEosBalance = parseInt(res.rows[0].balance.split(" ")[0]);
-        //console.log(postEosBalance);
         assert.equal(postEosBalance - prevEosBalance, 1);
         done();
       } catch(e) {
@@ -264,14 +258,11 @@ async function deployEthContracts() {
   const tokenpegBin = fs.readFileSync(path.resolve('./zeus_boxes/contracts/eth/build/tokenpeg.bin'), 'utf8');
   const tokenAbi = JSON.parse(fs.readFileSync(path.resolve('./zeus_boxes/test/eth-build/tokenAbi.json')));
   const tokenBin = fs.readFileSync(path.resolve('./zeus_boxes/test/eth-build/token.bin'), 'utf8');
-
   const availableAccounts = await web3.eth.getAccounts();
   const masterAccount = availableAccounts[0];
   const dsp1 = availableAccounts[2];
   const dsp2 = availableAccounts[3];
-
   const signers = [dsp1, dsp2];
-
   const tokenContract = contract({
     abi: tokenAbi,
     unlinked_binary: tokenBin
@@ -282,18 +273,15 @@ async function deployEthContracts() {
   });
   tokenContract.setProvider(web3.currentProvider);
   tokenpegContract.setProvider(web3.currentProvider);
-
   const deployedToken = await tokenContract.new('Test Token', 'TST', '0x0', {
     from: masterAccount,
     gas: '5000000'
   });
-
   console.log(`Token address: ${deployedToken.address}`);
   const deployedTokenpeg = await tokenpegContract.new(signers, 2, deployedToken.address, {
     from: masterAccount,
     gas: '5000000'
   });
-  
   await deployedToken.transferOwnership(deployedTokenpeg.address, {
     from: masterAccount,
     gas: '5000000'
@@ -302,6 +290,5 @@ async function deployEthContracts() {
     from: masterAccount,
     gas: '5000000'
   });
-
   return { token: deployedToken, tokenpeg: deployedTokenpeg };
 }
