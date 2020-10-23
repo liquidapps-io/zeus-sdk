@@ -57,6 +57,7 @@ push_guarantee = "in-block" # handoff:1, handoffs:2, handoffs:9, irreversible
 enable = false # enables dfuse demux, not related to push_enable
 api_key = "" # long-lived API key, see https://docs.dfuse.io/guides/core-concepts/authentication/, e.g. (server_abcdef123123123000000000000000000)
 debug = false # enable web socket debug messages in pm2 logs
+authorization = false # if using community edition of dfuse, set to true so dfuse client does not specify API key and authorization:false
 
 [ipfs]
 protocol = "http"

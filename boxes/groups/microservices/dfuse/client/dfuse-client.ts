@@ -33,9 +33,11 @@ async function webSocketFactory(url: string, protocols: string[] = []) {
   
     return webSocket
 }
+const dfuseClientAuth = process.env.DFUSE_AUTHORIZATION ? true : false
 
 export const dfuseClient: DfuseClient = createDfuseClient({
-    apiKey: process.env.DFUSE_API_KEY,
+    apiKey: process.env.DFUSE_AUTHORIZATION ? process.env.DFUSE_API_KEY : '',
+    authorization: dfuseClientAuth
     network: process.env.DFUSE_NETWORK,
     httpClientOptions: {
       fetch: nodeFetch

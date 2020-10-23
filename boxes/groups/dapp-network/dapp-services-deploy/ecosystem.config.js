@@ -123,6 +123,7 @@ const DFUSE_PUSH_GUARANTEE = globalEnv.DFUSE_PUSH_GUARANTEE || 'in-block';
 const DFUSE_ENABLE = globalEnv.DFUSE_ENABLE || false;
 const DFUSE_API_KEY = globalEnv.DFUSE_API_KEY;
 const DFUSE_NETWORK = globalEnv.DFUSE_NETWORK || 'mainnet';
+const DFUSE_AUTHORIZATION = globalEnv.DFUSE_AUTHORIZATION || false;
 const ETH_PRIVATE_KEY = globalEnv.ETH_PRIVATE_KEY || '';
 const ETH_ENDPOINT = globalEnv.ETH_ENDPOINT || '';
 const ETH_GAS_PRICE = globalEnv.ETH_GAS_PRICE || '2000000';
@@ -178,6 +179,7 @@ let commonEnv = {
   DFUSE_PUSH_GUARANTEE,
   DFUSE_API_KEY,
   DFUSE_NETWORK,
+  DFUSE_AUTHORIZATION,
   DEBUG: globalEnv.DFUSE_DEBUG ? "dfuse:*" : "",
   ETH_PRIVATE_KEY,
   ETH_ENDPOINT,

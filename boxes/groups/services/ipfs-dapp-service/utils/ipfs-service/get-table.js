@@ -203,6 +203,8 @@ async function getIpfsData(uri, dspEndpoint, contractName, ipfsCache) {
 
 const flattenArray = array => [].concat.apply([], array);
 
+// example()
+
 module.exports = {
   parseTable
 }

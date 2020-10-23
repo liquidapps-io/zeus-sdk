@@ -49,7 +49,9 @@ async function webSocketFactory(url, protocols) {
   return webSocket
 }
 
-const client = mainnetDfuseApiKey ? createDfuseClient({ apiKey: mainnetDfuseApiKey, network: mainnetDfuseNetwork,
+const dfuseClientAuth = process.env.DFUSE_AUTHORIZATION ? true : false
+
+const client = mainnetDfuseApiKey ? createDfuseClient({ authorization: dfuseClientAuth, apiKey: mainnetDfuseApiKey, network: mainnetDfuseNetwork,
   httpClientOptions: {
     fetch
   },
