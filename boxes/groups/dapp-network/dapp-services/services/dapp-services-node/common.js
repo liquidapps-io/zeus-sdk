@@ -22,6 +22,7 @@ if (!mainnetDspKey) console.warn('must provide DSP_PRIVATE_KEY if not using util
 const nodeosMainnetEndpoint = process.env.NODEOS_MAINNET_ENDPOINT || 'http://localhost:8888';
 const dspGatewayMainnetEndpoint = process.env.DSP_GATEWAY_MAINNET_ENDPOINT || 'http://localhost:13015';
 const nodeosLatest = process.env.NODEOS_LATEST || true;
+const maxReqRetries = parseInt(process.env.DSP_MAX_REQUEST_RETRIES || 50);
 
 //dfuse settings
 const mainnetDfuseEnable = process.env.DFUSE_PUSH_ENABLE || false;
@@ -569,7 +570,7 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
 
   let trys = 0;
   const garbage = []; 
-  while (trys < 10) {    
+  while (trys < maxReqRetries) {    
     let r = await testTransaction(sidechain, uri, body);
     let resText = await r.text();
     let rText;
