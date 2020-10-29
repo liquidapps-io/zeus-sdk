@@ -31,7 +31,7 @@ var generateModel = (commandNames, cost_per_action = 1) => {
   return model;
 };
 
-async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccount = null, package_id = 'default', quota = '1.0000', min_stake_quantity = '1.0000', min_unstake_period = 2, package_period = 5, cost_per_action = 1, provider = 'pprovider1' }) {
+async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccount = null, package_id = 'default', quota = '1.0000', min_stake_quantity = '1.0000', min_unstake_period = 2, package_period = 5, cost_per_action = 1, provider = 'pprovider1', inflation = 2.71 }) {
   var models = await loadModels('dapp-services');
   var serviceModel = models.find(a => a.name == serviceName);
   await deployer.deploy(servicesC, servicescontract);
@@ -44,7 +44,7 @@ async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccou
     newpackage: {
       id: 0,
       provider,
-      api_endpoint: `oopshttp://localhost:${serviceModel.port}`,
+      api_endpoint: `http://localhost:${serviceModel.port}`,
       package_json_uri: 'http://someuri/dsp-package1.json',
       enabled: true,
       service: serviceContract,
@@ -53,7 +53,8 @@ async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccou
       min_stake_quantity: `${min_stake_quantity} DAPP`,
       min_unstake_period: min_unstake_period,
       package_period: package_period
-    }
+    },
+    annual_inflation: inflation,
   }, {
     authorization: `${provider}@active`,
   });
@@ -902,7 +903,100 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
     })();
   });
 
+  it('Inflation tuning', done => {
+    (async () => {
+      const convertInflation = (inflation_per_block) => {
+        let blocks_per_year = 7200 * 24 * 365;
+        let inflation = 100.0 * (Math.pow(1.0 + parseFloat(inflation_per_block), blocks_per_year) - 1.0);
+        return inflation;
+      }
+      try {
+        var eos = await getEos('pprovider1');
+        let table = await eos.getTableRows({
+          code: dappServicesContract,
+          scope: 'DAPP',
+          table: 'statext',
+          json: true,
+        });
 
+        let totalStake = Number(table.rows[0].staked.replace(" DAPP", ""));
+        let prevInflation = convertInflation(table.rows[0].inflation_per_block)
+        let prevAvgInflation = parseFloat(prevInflation.toFixed(2));
+        console.log(`Starting inflation: ${prevInflation} with ${totalStake} staked`);
+
+        let expectedInflation = ((prevInflation * totalStake) + 500000.0) / (totalStake + 100000.0);
+        let expectedAvgInflation = parseFloat(expectedInflation.toFixed(2));
+        console.log(`Expected inflation: ${expectedInflation}`);
+
+        var selectedPackage = 'inflate5';
+        var testContractAccount = 'whale1';
+        var package_period = 5;
+        var deployedContract = await deployPayer(testContractAccount);
+        await allocateDAPPTokens(deployedContract,'100000.0000 DAPP');
+        await deployServicePackage({ package_id: selectedPackage, package_period, inflation: 5.0});
+        await selectPackage({ deployedContract, selectedPackage });
+        await stake({ deployedContract, selectedPackage, amount: '100000.0000'});
+
+        table = await eos.getTableRows({
+          code: dappServicesContract,
+          scope: 'DAPP',
+          table: 'statext',
+          json: true,
+        });
+        
+        let updatedStake = Number(table.rows[0].staked.replace(" DAPP", ""));
+        let nextInflation = convertInflation(table.rows[0].inflation_per_block);
+        let nextAvgInflation = parseFloat(nextInflation.toFixed(2));
+        console.log(`Next inflation: ${nextInflation} with ${updatedStake} staked`);
+        assert.equal(nextAvgInflation, expectedAvgInflation, "inflation did not update correctly");
+
+        expectedInflation = ((nextInflation * updatedStake) - 250000.0) / (updatedStake - 50000.0);
+        expectedAvgInflation = parseFloat(expectedInflation.toFixed(2));
+        console.log(`Expected inflation: ${expectedInflation}`);
+
+        await unstake({ deployedContract, selectedPackage, amount: '50000.0000' });
+        await delaySec(package_period + 1);
+        await refund({ deployedContract, selectedPackage });
+        await delaySec(package_period + 1);
+
+        table = await eos.getTableRows({
+          code: dappServicesContract,
+          scope: 'DAPP',
+          table: 'statext',
+          json: true,
+        });
+        
+        updatedStake = Number(table.rows[0].staked.replace(" DAPP", ""));
+        nextInflation = convertInflation(table.rows[0].inflation_per_block);
+        nextAvgInflation = parseFloat(nextInflation.toFixed(2));
+        console.log(`Next inflation: ${nextInflation} with ${updatedStake} staked`);
+        assert.equal(nextAvgInflation, expectedAvgInflation, "inflation did not update correctly");
+
+        await unstake({ deployedContract, selectedPackage, amount: '50000.0000' });
+        await delaySec(package_period + 1);
+        await refund({ deployedContract, selectedPackage });
+        await delaySec(package_period + 1);
+
+        table = await eos.getTableRows({
+          code: dappServicesContract,
+          scope: 'DAPP',
+          table: 'statext',
+          json: true,
+        });
+        
+        updatedStake = Number(table.rows[0].staked.replace(" DAPP", ""));
+        nextInflation = convertInflation(table.rows[0].inflation_per_block);
+        nextAvgInflation = parseFloat(nextInflation.toFixed(2));
+        console.log(`Next inflation: ${nextInflation} with ${updatedStake} staked`);
+        assert.equal(nextAvgInflation, prevAvgInflation, "inflation did not update correctly");
+
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
   it('Custom action quota pricing', done => {
     (async () => {
       try {

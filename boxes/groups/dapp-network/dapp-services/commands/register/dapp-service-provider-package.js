@@ -30,6 +30,9 @@ module.exports = {
       describe: 'Minimum Stake',
       type: 'string',
       default: '10.0000'
+    }).option('inflation', {
+      describe: 'Package annual inflation tuning value',
+      default: 2.71
     }).option('dappservices-contract', {
       describe: 'dappservices contract account (only for testing)',
       default: 'dappservices'
@@ -67,7 +70,8 @@ module.exports = {
           min_stake_quantity: `${args['min-stake-quantity']} DAPP`,
           min_unstake_period: args['min-unstake-period'],
           package_period: args['package-period']
-        }
+        },
+        annual_inflation: args['inflation'],
       }, {
         authorization: `${args['provider']}@active`,
         broadcast: true,
