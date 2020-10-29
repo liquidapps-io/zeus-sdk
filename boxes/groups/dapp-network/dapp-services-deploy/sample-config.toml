@@ -13,7 +13,9 @@ services_enabled = "ipfs,vaccounts,oracle,cron,auth,storage"
 # however, if they don't have the correct permission setup, everything will fail
 # review consumer pays documentation prior to setting this to true
 consumer_pays = false
+allow_api_non_broadcast = false # enable to use the replay script or the cleanup script, be sure to disable afterwards to prevent gaming the endpoint
 max_request_retries = 50 # max retries to fetch an oracle request or ipfs warmup, or any other blocking DSP service action
+
 [database]
 # url syntax: postgres://user:pass@example.com:5432/dbname
 url = "postgres://user:pass@example.com:5432/dbname"

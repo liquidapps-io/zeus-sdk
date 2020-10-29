@@ -60,6 +60,7 @@ module.exports = async (args) => {
       WEBHOOK_DAPP_PORT: 8812 * (pi + 1),
       DSP_PRIVATE_KEY: keys.active.privateKey,
       NODEOS_LATEST: true,
+      DSP_ALLOW_API_NON_BROADCAST: false,
       ...servicesPorts
     });
   }

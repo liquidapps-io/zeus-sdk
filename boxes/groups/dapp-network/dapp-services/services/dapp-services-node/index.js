@@ -31,8 +31,8 @@ const actionHandlers = {
 
     const models = await loadModels('dapp-services');
     const model = models.find(m => m.contract == service);
-    if(!model.commands[action].broadcast && isExternal) {
-      logger.warn(`Attempt to broadcast event for non broadcastable request - ${JSON.stringify(act.event)}`);
+    if(process.env.DSP_ALLOW_API_NON_BROADCAST.toString() === "false" && !model.commands[action].broadcast && isExternal) {
+      logger.warn(`Attempt to broadcast event for non broadcastable request, not processing trx, to enable non-broadcast events, set the DSP_ALLOW_API_NON_BROADCAST env var to true - ${JSON.stringify(act.event)}`);
       return;
     }
   
