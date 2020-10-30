@@ -5,11 +5,12 @@ const { unpack, saveDirToIPFS, saveToIPFS } = requireBox('storage-dapp-service/s
 const logger = requireBox('log-extensions/helpers/logger');
 
 module.exports = async (body, state, model, { account, permission, clientCode }) => {
-    let { data, archive, sidechain, contract } = body;
+    let { data, archive, sidechain, contract, options } = body;
 
     if (account !== contract) throw new Error('not allowed');
     let uri;
     var length = 0;
+    const rawLeaves = options.rawLeaves;
     if (archive) {
         // unpack
         var archiveData = Buffer.from(archive.data, `base64`);
@@ -21,7 +22,7 @@ module.exports = async (body, state, model, { account, permission, clientCode })
     }
     else {
         data = Buffer.from(data, `base64`);
-        uri = await saveToIPFS(data);
+        uri = await saveToIPFS(data, rawLeaves);
         length = data.byteLength;
     }
     await emitUsage(sidechain ? await getLinkedAccount(null, null, contract, sidechain.name) : contract, getContractAccountFor(model), length, { uri })

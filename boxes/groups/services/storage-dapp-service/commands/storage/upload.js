@@ -19,6 +19,10 @@ module.exports = {
         alias: 'p',
         default: 'active'
       })
+      .option('raw-leaves', {
+        describe: 'returns raw leaves URI for IPFS instead of pointer to all leaves',
+        default: true
+      })
       .example(`$0 storage upload 5jqee4kl1ns1 package.json 5J5hLqZrc3DvURBtwapKjpYH676QMmoZvFUy2NGkyeYv4ZuxxhK`)
       .example(`$0 storage upload 5jqee4kl1ns1 logs 5J5hLqZrc3DvURBtwapKjpYH676QMmoZvFUy2NGkyeYv4ZuxxhK`)
       .example(`$0 storage upload 5jqee4kl1ns1 YourTarBall.tar 5J5hLqZrc3DvURBtwapKjpYH676QMmoZvFUy2NGkyeYv4ZuxxhK`)
@@ -35,6 +39,9 @@ module.exports = {
       const permission = args.permission;
       const getClient = () => createClient({ httpEndpoint: endpoint, fetch });
       const service = await (await getClient()).service('storage', args.contract);
+      const options = {
+        rawLeaves: args.rawLeaves
+      }
       // check if file exists
       if (!fs.existsSync(args.path)) {
         throw (`${args.path} does not exist\n`);
@@ -48,7 +55,8 @@ module.exports = {
         response = await service.upload_public_archive(
           data,
           key,
-          permission
+          permission,
+          options
         );
         // rm archive
         await execPromise(`rm ${archiveName}`);
@@ -62,7 +70,8 @@ module.exports = {
           response = await service.upload_public_archive(
             data,
             key,
-            permission
+            permission,
+            options
           );
         } else {
           // else is file, upload with file option
@@ -71,7 +80,8 @@ module.exports = {
           response = await service.upload_public_file(
             data,
             key,
-            permission
+            permission,
+            options
           );
         }
       }

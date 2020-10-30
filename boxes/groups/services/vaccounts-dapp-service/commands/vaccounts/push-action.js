@@ -45,6 +45,12 @@ module.exports = {
         alias: 's',
         default: `${home}/.zeus/networks`
       })
+      .option('time-to-live', {
+        describe: 'time in seconds before transaction expires',
+        type: 'number',
+        alias: 't',
+        default: 120
+      })
       .example(`$0 vaccounts push-action test1v regaccount '{"vaccount":"vaccount1"}'`)
       .example(`$0 vaccounts push-action vacctstst123 regaccount '{"vaccount":"testing11"}' --private-key 5KJL... -u https://kylin-dsp-1.liquidapps.io`)
       .example(`$0 vaccounts push-action vacctstst123 regaccount '{"vaccount":"t2"}' -u http://kylin-dsp-2.liquidapps.io/ --encrypted --network=kylin --password=password`)
@@ -108,7 +114,10 @@ module.exports = {
         args.contract,
         args.privateKey,
         args.action,
-        args.payload
+        args.payload,
+        {
+          time_to_live: args.timeToLive
+        }
       );
       console.log(emojMap.ok + 'Transaction successful');
     }

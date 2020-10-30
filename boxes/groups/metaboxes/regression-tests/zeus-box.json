@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.4",
   "ignore": [
     "README.md"
   ],
@@ -11,8 +11,8 @@
     "vgrab": "^1.0.0",
     "deepfreeze": "^1.0.0",
     "airdrop": "^1.0.0",
-    "chess": "^1.0.0",
     "liquidx": "^1.0.0",
-    "combined": "^1.0.0"
+    "combined": "^1.0.0",
+    "sign-dapp-service": "^1.0.0"
   }
 }

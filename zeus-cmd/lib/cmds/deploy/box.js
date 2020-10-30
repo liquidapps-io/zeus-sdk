@@ -45,6 +45,8 @@ module.exports = {
     }).option('prefix', {
       // describe: '',
       default: 'boxes/'
+    }).option('endpoint', {
+      // describe: '',
     }).option('update-mapping', {
       // describe: '',
       default: true
@@ -138,7 +140,10 @@ module.exports = {
         break;
       case 's3':
         args.invalidate = false;
-        const s3 = new AWS.S3({ apiVersion: '2006-03-01' });
+        const s3 = new AWS.S3({ apiVersion: '2006-03-01', endpoint: args.endpoint,
+          s3ForcePathStyle: true, // needed with minio?
+          signatureVersion: 'v4'
+        });
         var data = fs.readFileSync(path.join(stagingPath, './box.zip'));
         hash = sha256(data);
 
@@ -151,7 +156,7 @@ module.exports = {
           ACL: 'public-read',
           Body: binaryData
         }).promise();
-        uri = `https://s3.us-east-2.amazonaws.com/${args.bucket}/${s3Key}`;
+        uri = `${args.endpoint ? args.endpoint : 'https://s3.us-east-2.amazonaws.com'}/${args.bucket}/${s3Key}`;
         break;
       case 'local':
       default:

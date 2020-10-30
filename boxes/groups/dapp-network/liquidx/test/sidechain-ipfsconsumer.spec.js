@@ -267,6 +267,41 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
     })();
   });
 
+  it('sidechain - read from other chain', done => {
+    (async () => {
+      try {
+        await testcontract.testindexa({
+          id: 99999
+        }, {
+          authorization: `${sister_code}@active`,
+        });
+        await testcontractMain.testindexa({
+          id: 33333
+        }, {
+          authorization: `${mainnet_code}@active`,
+        });
+        await testcontractMain.testchain({
+          remote: sister_code,
+          id: 99999,
+          chain: "test1"
+        }, {
+          authorization: `${mainnet_code}@active`,
+        });
+        await testcontract.testchain({
+          remote: mainnet_code,
+          id: 33333,
+          chain: "mainnet"
+        }, {
+          authorization: `${sister_code}@active`,
+        });
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
   it('sidechain - third party read', done => {
     (async () => {
       try {
@@ -296,45 +331,6 @@ describe(`LiquidX Sidechain IPFS Service Test Contract`, () => {
         await testcontract.testremote({
           remote: sister_code2,
           id: 77777
-        }, {
-          authorization: `${sister_code}@active`,
-        });
-
-        done();
-      }
-      catch (e) {
-        done(e);
-      }
-    })();
-  });
-
-  it('sidechain - read from other chain', done => {
-    (async() => {
-      try {
-        await testcontract.testindexa({
-          id: 99999
-        }, {
-          authorization: `${sister_code}@active`,
-        });
-
-        await testcontractMain.testindexa({
-          id: 33333
-        }, {
-          authorization: `${mainnet_code}@active`,
-        });
-
-        await testcontractMain.testchain({
-          remote: sister_code,
-          id: 99999,
-          chain: "test1"
-        }, {
-          authorization: `${mainnet_code}@active`,
-        });
-
-        await testcontract.testchain({
-          remote: mainnet_code,
-          id: 33333,
-          chain: "mainnet"
         }, {
           authorization: `${sister_code}@active`,
         });

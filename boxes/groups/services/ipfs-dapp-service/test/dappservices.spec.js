@@ -46,7 +46,7 @@ async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccou
       provider,
       api_endpoint: `oopshttp://localhost:${serviceModel.port}`,
       package_json_uri: 'http://someuri/dsp-package1.json',
-      enabled: false,
+      enabled: true,
       service: serviceContract,
       package_id,
       quota: `${quota} QUOTA`,
@@ -63,6 +63,13 @@ async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccou
     package_json_uri: '',
     service: serviceContract,
     package_id
+  }, {
+    authorization: `${provider}@active`,
+  });
+  await contractInstance.enablepkg({
+    provider,
+    package_id,
+    service: serviceContract
   }, {
     authorization: `${provider}@active`,
   });

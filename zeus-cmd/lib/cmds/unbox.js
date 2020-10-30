@@ -171,16 +171,17 @@ const handler = async (args, globalCopyList = []) => {
 
   if (boxName in boxesMapping) {
     var versions = (Object.keys(boxesMapping[boxName]));
-    var version = semver.maxSatisfying(versions, versionRange);
+    const includePrerelease = true; // only relevant in non production mapping
+    var version = semver.maxSatisfying(versions, versionRange, {includePrerelease});
     if (version) {
       boxUri = boxesMapping[boxName][version];
     } else {
       console.log(`Given version '${versionRange}' for Box '${boxName}' is not in mapping`);
-      return;
+      process.exit(1);
     }
   } else {
     console.log(`Box '${boxName}' not found. Perhaps your mapping file is not updated?`);
-    return;
+    process.exit(1);
   }
 
   // If this is not a second-level dependency
@@ -334,7 +335,15 @@ const handler = async (args, globalCopyList = []) => {
   // run install script
   try {
     await runHook('post-install', args, zeusBoxJson, extractPath);
-
+    if (!args.no_sample) {
+        console.log(emojMap.eight_pointed_black_star + 'NPM Install');
+        await execPromise(`npm install --loglevel error`, {
+          cwd: path.resolve('.'),
+          env: {
+            ...process.env,
+          }
+        });
+    }
     if (args.test && !args.no_sample) {
       console.log('testing');
       stdout = await execPromise(`${process.env.ZEUS_CMD || 'zeus'} test`, {

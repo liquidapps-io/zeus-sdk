@@ -7,6 +7,8 @@ var tar = require('tar-stream');
 var streamBuffers = require('stream-buffers');
 const { requireBox } = require('@liquidapps/box-utils');
 const logger = requireBox('log-extensions/helpers/logger');
+const fs = require('fs');
+const fetch = require("node-fetch");
 
 BigNumber.config({ ROUNDING_MODE: BigNumber.ROUND_FLOOR }); // equivalent
 
@@ -26,21 +28,34 @@ const convertToUri = (hash) => {
     return 'ipfs://z' + address;
 };
 
-const saveToIPFS = async (data) => {
-    // console.log('writing data: ' +data);
+const saveToIPFS = async (data, rawLeaves = true) => {
     let bufData = data
     if (!Buffer.isBuffer(bufData)) {
         bufData = Buffer.from(data, `base64`);
     }
-    const hash = hashData256(bufData);
-    const uri = convertToUri("01551220" + hash);
-
-    const filesAdded = await ipfs.files.add(bufData, { 'raw-leaves': true, 'cid-version': 1, 'cid-base': 'base58btc' });
-    var theHash = filesAdded[0].hash;
-    const resUri = `ipfs://${theHash}`;
-    if (resUri != uri)
-        throw new Error(`uris mismatch ${resUri} != ${uri}`);
-    return uri;
+    let ipfsUri = ``;
+    if(rawLeaves) {
+      const fileSizeInBytes = bufData.byteLength;
+      const AVAILABLE_CHUNKS_SIZES = [0, 262144, 2 * 262144, 4 * 262144]
+      let chunkSize = 0
+      // pick smallest chunk size that still fits file
+      for(let i = 0; i < AVAILABLE_CHUNKS_SIZES.length - 1; i++) {
+        if(fileSizeInBytes > AVAILABLE_CHUNKS_SIZES[i] && fileSizeInBytes <= AVAILABLE_CHUNKS_SIZES[i + 1]) {
+          chunkSize = AVAILABLE_CHUNKS_SIZES[i + 1]
+          break;
+        }
+      }
+      if(!chunkSize) throw new Error(`file is too big to be uploaded with 'rawLeaves' option`)
+      const hash = hashData256(bufData);
+      const expectedUri = convertToUri("01551220" + hash);
+      const filesAdded = await ipfs.files.add(bufData, { 'raw-leaves': true, 'cid-version': 1, 'cid-base': 'base58btc', chunker: `size-${chunkSize}` });
+      ipfsUri = `ipfs://${filesAdded[0].hash}`;
+      if (ipfsUri != expectedUri) throw new Error(`uris mismatch ${ipfsUri} != ${expectedUri}`);
+    } else {
+      const filesAdded = await ipfs.files.add(bufData, { 'raw-leaves': false, 'cid-version': 1, 'cid-base': 'base58btc' });
+      ipfsUri = `ipfs://${filesAdded[0].hash}`;
+    }
+    return ipfsUri;
 };
 
 const saveDirToIPFS = async (files) => {
@@ -130,7 +145,7 @@ const unpack = async (archiveData, format) => {
             break;
 
         default:
-            throw new Error(`archive format not implemented yet (${format})`)
+            throw new Error(`archive format not implemented yet (${typeof(format) == "object" ? JSON.stringify(format) : format})`)
     }
 
     return files;
@@ -153,10 +168,7 @@ const getIpfsFileAsBuffer = async (ipfsUriOrHash) => {
 
     if (!response.ok) {
         throw new Error(
-            `Could not fetch file "${this.getIpfsHash(ipfsUri).slice(
-                0,
-                16
-            )}..." from IPFS. ${response.statusText}`
+            `Could not fetch file "${ipfsUriOrHash}..." from IPFS. ${response.statusText}`
         );
     }
 

@@ -38,7 +38,7 @@ describe(`Random Oracle Service Test`, () => {
       try {
         var id = 100;
         var res = await testcontract.testrnd({
-          uri: Buffer.from(`random://1024/${id}`, 'utf8'),
+          uri: Buffer.from(`random://${id}`, 'utf8'),
         }, {
           authorization: `${code}@active`,
           broadcast: true,

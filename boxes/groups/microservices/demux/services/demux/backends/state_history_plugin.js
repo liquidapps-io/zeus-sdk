@@ -153,7 +153,7 @@ const handlers = {
 };
 async function recursiveHandle({ txid, account, method, code, actData, events }, depth = 0, currentHandlers = handlers, eventNum = 0, blockInfo, cbevent) {
   if (depth == 3) {
-    console.log('not supposed to get here')
+    logger.error(`Depth exceeded capacity: ${depth}`)
     return;
   }
 
@@ -480,8 +480,9 @@ async function getDatabaseBlockNumber() {
 }
 
 async function getNonDatabaseStartBlock() {
-  if (process.env.DEMUX_HEAD_BLOCK)
+  if (process.env.DEMUX_HEAD_BLOCK && process.env.DEMUX_HEAD_BLOCK !== "0") {
     return process.env.DEMUX_HEAD_BLOCK;
+  }
 
   const headBlock = await getHeadBlockInfo();
   return headBlock.head_block_num;

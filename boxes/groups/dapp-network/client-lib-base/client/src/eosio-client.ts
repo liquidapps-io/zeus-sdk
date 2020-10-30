@@ -14,6 +14,8 @@ import { HttpClient, Fetch } from "./http-client";
  * @param {object} [options={}] optional params
  * @param {endpoint} [options.endpoint] dsp endpoint
  * @param {Fetch} [options.fetch=global.fetch] fetch
+ * @param {string} [options.dfuse_key=""] Dfuse API key
+ * @param {string} [options.dfuse_guarantee="in-block"] Dfuse Push Guarantee
  * @example
  *
  * const network = "kylin"
@@ -24,7 +26,9 @@ export class EosioClient extends HttpClient {
     constructor( network: string, options: {
         endpoint?: string,
         fetch?: Fetch,
-        api?: any
+        api?: any,
+        dfuse_key?: string
+        dfuse_guarantee?: string
     } = {} ) {
         super( network, options );
     }

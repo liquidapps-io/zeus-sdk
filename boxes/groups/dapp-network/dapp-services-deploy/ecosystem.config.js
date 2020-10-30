@@ -4,7 +4,7 @@ const os = require("os");
 var toml = require('toml');
 const { getBoxName, getBoxesDir, requireBox } = require('@liquidapps/box-utils');
 const { loadModels } = requireBox('seed-models/tools/models');
-const disabledServices = ["sign", "log", "history"];
+const disabledServices = ["log", "history"];
 var configPath = process.env.DSP_CONFIG_FILE || path.join(os.homedir(), '.dsp', "config.toml");
 if (!fs.existsSync(configPath))
   throw new Error(`Config file missing. please copy sample-config.toml to ${configPath}`);
@@ -85,6 +85,7 @@ globalEnv = { ...globalEnv, ...process.env };
 if (!globalEnv.DSP_ACCOUNT) throw new Error("DSP_ACCOUNT is required");
 if (!globalEnv.DSP_PRIVATE_KEY) throw new Error("DSP_PRIVATE_KEY is required");
 if (!globalEnv.DATABASE_URL) throw new Error("DATABASE_URL is required");
+if (globalEnv.DFUSE_ENABLE && !globalEnv.DFUSE_API_KEY) throw new Error("DFUSE_API_KEY is required if DFUSE_ENABLE true");
 const DSP_ACCOUNT = globalEnv.DSP_ACCOUNT;
 const DSP_PRIVATE_KEY = globalEnv.DSP_PRIVATE_KEY;
 const DATABASE_URL = globalEnv.DATABASE_URL;
@@ -117,6 +118,16 @@ const IPFS_PROTOCOL = globalEnv.IPFS_PROTOCOL || 'http';
 const NODEOS_CHAINID = globalEnv.NODEOS_CHAINID || 'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906';
 const NODEOS_WEBSOCKET_PORT = globalEnv.NODEOS_WEBSOCKET_PORT || 8887;
 const DSP_LIQUIDX_CONTRACT = globalEnv.DSP_LIQUIDX_CONTRACT || 'liquidx.dsp';
+const DFUSE_PUSH_ENABLE = globalEnv.DFUSE_PUSH_ENABLE || false;
+const DFUSE_PUSH_GUARANTEE = globalEnv.DFUSE_PUSH_GUARANTEE || 'in-block';
+const DFUSE_ENABLE = globalEnv.DFUSE_ENABLE || false;
+const DFUSE_API_KEY = globalEnv.DFUSE_API_KEY;
+const DFUSE_NETWORK = globalEnv.DFUSE_NETWORK || 'mainnet';
+const ETH_PRIVATE_KEY = globalEnv.ETH_PRIVATE_KEY || '';
+const ETH_ENDPOINT = globalEnv.ETH_ENDPOINT || '';
+const ETH_GAS_PRICE = globalEnv.ETH_GAS_PRICE || '2000000';
+const ETH_GAS_LIMIT = globalEnv.ETH_GAS_LIMIT || '500000';
+const WEB3_PROVIDER = ETH_ENDPOINT;
 
 // Assert .env
 if (['state_history_plugin'].indexOf(DEMUX_BACKEND) === -1) throw new Error("DEMUX_BACKEND must be 'state_history_plugin'");
@@ -131,6 +142,9 @@ const serviceNames = (loadModels('dapp-services')).map(file => file.name).filter
 
 const DSP_SERVICES_ENABLED = globalEnv.DSP_SERVICES_ENABLED || serviceNames.join(',');
 const services = DSP_SERVICES_ENABLED.split(',');
+
+if (services.includes('link') && !globalEnv.ETH_PRIVATE_KEY) throw new Error("ETH_PRIVATE_KEY is required to run link service");
+if (services.includes('link') && !globalEnv.ETH_ENDPOINT) throw new Error("ETH_ENDPOINT is required to run link service");
 
 const port = NODEOS_PORT ? ':' + NODEOS_PORT : '';
 const host = NODEOS_HOST ? NODEOS_HOST : '';
@@ -158,7 +172,17 @@ let commonEnv = {
   DATABASE_URL,
   DATABASE_NODE_ENV,
   DATABASE_TIMEOUT,
-  DSP_LIQUIDX_CONTRACT
+  DSP_LIQUIDX_CONTRACT,
+  DFUSE_PUSH_ENABLE,
+  DFUSE_PUSH_GUARANTEE,
+  DFUSE_API_KEY,
+  DFUSE_NETWORK,
+  DEBUG: globalEnv.DFUSE_DEBUG ? "dfuse:*" : "",
+  ETH_PRIVATE_KEY,
+  ETH_ENDPOINT,
+  WEB3_PROVIDER,
+  ETH_GAS_PRICE,
+  ETH_GAS_LIMIT
 };
 
 const createDSPSidechainServices = (sidechain) => {
@@ -167,9 +191,16 @@ const createDSPSidechainServices = (sidechain) => {
   for (const field of reqFields) {
     if (!sidechain[field]) throw new Error(`sidechain ${field} required`);
   }
+  const dfuseFields = ['dfuse_api_key', 'dfuse_network'];
+  for (const field of dfuseFields) {
+    if ((sidechain.dfuse_enable || sidechain.dfuse_push_enabl) && !sidechain[field]) throw new Error(`sidechain ${field} required`);
+  }
   commonEnv = {
     ...commonEnv,
-    [`DSP_PRIVATE_KEY_${sidechain.name.toUpperCase()}`]: sidechain.dsp_private_key
+    [`DSP_PRIVATE_KEY_${sidechain.name.toUpperCase()}`]: sidechain.dsp_private_key,
+    [`DFUSE_PUSH_ENABLE_${sidechain.name.toUpperCase()}`]: sidechain.dfuse_push_enable || false,
+    [`DFUSE_PUSH_GUARANTEE_${sidechain.name.toUpperCase()}`]: sidechain.dfuse_push_guarantee || 'in-block',
+    [`DFUSE_NETWORK_${sidechain.name.toUpperCase()}`]: sidechain.dfuse_network
   }
   const sidechainCommonEnv = {
     NODEOS_HOST: sidechain.nodeos_host || 'localhost',
@@ -196,29 +227,47 @@ const createDSPSidechainServices = (sidechain) => {
         LOGFILE_NAME:`${sidechain.name}-dapp-services-node`
       }
     },
-    {
-      name: `${sidechain.name}-demux`,
-      script: path.join(getBoxesDir(), 'demux',  'services', 'demux', 'index.js'),
-      autorestart: true,
-      cwd: __dirname,
-      log_date_format: "YYYY-MM-DDTHH:mm:ss",
-      env: {
-        ...commonEnv,
-        ...sidechainCommonEnv,
-        PORT: sidechain.demux_webhook_port || 3196,
-        NODEOS_WEBSOCKET_PORT: sidechain.nodeos_websocket_port || 8887,
-        DEMUX_BACKEND: sidechain.demux_backend || 'state_history_plugin',
-        DEMUX_HEAD_BLOCK: sidechain.demux_head_block || 1,
-        DEMUX_BYPASS_DATABASE_HEAD_BLOCK: sidechain.demux_bypass_database_head_block || false,
-        DEMUX_MAX_PENDING_MESSAGES: sidechain.demux_max_pending_messages || 5000,
-        DEMUX_PROCESS_BLOCK_CHECKPOINT: sidechain.demux_process_block_checkpoint || 1000,
-        SOCKET_MODE: sidechain.demux_socket_mode || 'sub',
-        LOGFILE_NAME: `${sidechain.name}-demux`
-      },  
-      "node_args": [
-        `--max_old_space_size=${sidechain.demux_max_memory_mb || 8196}`
-      ]
-    }
+    sidechain.dfuse_enable ?  
+      {
+        name: `${sidechain.name}-dfuse`,
+        script: path.join(getBoxesDir(), 'dfuse', `dist`, 'services', 'dfuse', 'index.js'),
+        autorestart: true,
+        cwd: __dirname,
+        log_date_format: "YYYY-MM-DDTHH:mm:ss",
+        env: {
+          ...commonEnv,
+          ...sidechainCommonEnv,
+          WEBHOOK_DAPP_PORT,
+          PORT: WEBHOOK_DEMUX_PORT,
+          LOGFILE_NAME: `${sidechain.name}-dfuse`,
+          DFUSE_API_KEY: sidechain.dfuse_api_key,
+          DFUSE_NETWORK: sidechain.dfuse_network
+        }
+      }
+    :
+      {
+        name: `${sidechain.name}-demux`,
+        script: path.join(getBoxesDir(), 'demux',  'services', 'demux', 'index.js'),
+        autorestart: true,
+        cwd: __dirname,
+        log_date_format: "YYYY-MM-DDTHH:mm:ss",
+        env: {
+          ...commonEnv,
+          ...sidechainCommonEnv,
+          PORT: sidechain.demux_webhook_port || 3196,
+          NODEOS_WEBSOCKET_PORT: sidechain.nodeos_websocket_port || 8887,
+          DEMUX_BACKEND: sidechain.demux_backend || 'state_history_plugin',
+          DEMUX_HEAD_BLOCK: sidechain.demux_head_block || 0,
+          DEMUX_BYPASS_DATABASE_HEAD_BLOCK: sidechain.demux_bypass_database_head_block || false,
+          DEMUX_MAX_PENDING_MESSAGES: sidechain.demux_max_pending_messages || 5000,
+          DEMUX_PROCESS_BLOCK_CHECKPOINT: sidechain.demux_process_block_checkpoint || 1000,
+          SOCKET_MODE: sidechain.demux_socket_mode || 'sub',
+          LOGFILE_NAME: `${sidechain.name}-demux`
+        },  
+        "node_args": [
+          `--max_old_space_size=${sidechain.demux_max_memory_mb || 8196}`
+        ]
+      }
   ] 
 }
 
@@ -243,45 +292,65 @@ const sidechainServicesApps = Array.prototype.concat.apply(
 );
 
 const servicesApps = services.map(createDSPServiceApp);
-module.exports = {
-  force: true,
-  apps: [{
-      name: 'dapp-services-node',
-      script: path.join(getBoxesDir(), getBoxName(`services/dapp-services-node/index.js`),  'services', `dapp-services-node`, 'index.js'),
-      autorestart: true,
-      cwd: __dirname,
-      log_date_format: "YYYY-MM-DDTHH:mm:ss",
-      env: {
-        PORT: DSP_PORT,
-        WEBHOOK_DAPP_PORT,
-        ...commonEnv,
-        LOGFILE_NAME: 'dapp-services-node' 
-      }
-    },
+const apps = [
+  {
+    name: 'dapp-services-node',
+    script: path.join(getBoxesDir(), getBoxName(`services/dapp-services-node/index.js`),  'services', `dapp-services-node`, 'index.js'),
+    autorestart: true,
+    cwd: __dirname,
+    log_date_format: "YYYY-MM-DDTHH:mm:ss",
+    env: {
+      PORT: DSP_PORT,
+      WEBHOOK_DAPP_PORT,
+      ...commonEnv,
+      LOGFILE_NAME: 'dapp-services-node' 
+    }
+  },
+  ...servicesApps,
+  ...sidechainServicesApps
+]
+if(DFUSE_ENABLE) {
+  apps.push(
     {
-      name: 'demux',
-      script: path.join(getBoxesDir(), 'demux',  'services', `demux`, 'index.js'),
+      name: 'dfuse',
+      script: path.join(getBoxesDir(), 'dfuse', `dist`, 'services', 'dfuse', 'index.js'),
       autorestart: true,
       cwd: __dirname,
       log_date_format: "YYYY-MM-DDTHH:mm:ss",
       env: {
         ...commonEnv,
-        NODEOS_WEBSOCKET_PORT,
-        SOCKET_MODE,
-        DEMUX_BACKEND,
-        DEMUX_HEAD_BLOCK,
-        DEMUX_BYPASS_DATABASE_HEAD_BLOCK,
-        DEMUX_MAX_PENDING_MESSAGES,
-        DEMUX_PROCESS_BLOCK_CHECKPOINT,
         WEBHOOK_DAPP_PORT,
         PORT: WEBHOOK_DEMUX_PORT,
-        LOGFILE_NAME: 'demux' 
-      },  
-      "node_args": [
-        `--max_old_space_size=${DEMUX_MAX_MEMORY_MB}`
-      ]
-    },
-    ...servicesApps,
-    ...sidechainServicesApps
-  ]
+        LOGFILE_NAME: 'dfuse'
+      }
+    })
+} else {
+  apps.push({
+    name: 'demux',
+    script: path.join(getBoxesDir(), 'demux',  'services', `demux`, 'index.js'),
+    autorestart: true,
+    cwd: __dirname,
+    log_date_format: "YYYY-MM-DDTHH:mm:ss",
+    env: {
+      ...commonEnv,
+      NODEOS_WEBSOCKET_PORT,
+      SOCKET_MODE,
+      DEMUX_BACKEND,
+      DEMUX_HEAD_BLOCK,
+      DEMUX_BYPASS_DATABASE_HEAD_BLOCK,
+      DEMUX_MAX_PENDING_MESSAGES,
+      DEMUX_PROCESS_BLOCK_CHECKPOINT,
+      WEBHOOK_DAPP_PORT,
+      PORT: WEBHOOK_DEMUX_PORT,
+      LOGFILE_NAME: 'demux' 
+    },  
+    "node_args": [
+      `--max_old_space_size=${DEMUX_MAX_MEMORY_MB}`
+    ]
+  })
+}
+
+module.exports = {
+  force: true,
+  apps
 };

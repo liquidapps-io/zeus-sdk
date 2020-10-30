@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "ignore": [
+    "README.md"
+  ],
+  "commands": {
+  },
+  "dependencies": {
+    "core-extensions": "^1.0.0"
+  },
+  "install": {
+    "npm": {
+      "solc": true,
+      "glob": true
+    }
+  }
+}

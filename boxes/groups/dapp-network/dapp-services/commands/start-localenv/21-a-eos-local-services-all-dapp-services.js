@@ -8,6 +8,8 @@ const { dappServicesContract, getContractAccountFor, testProvidersList } = requi
 const servicescontract = dappServicesContract;
 var servicesC = artifacts.require(`./dappservices/`);
 
+const ethPrivateKeys = ["0xa966a4df8f4ad2c5938fce96b46391e45ab6eade06848608020a50938b5dc3a2", "0xd06197723d79371d8b9e60c89ef16b8efe89b819adb623c4d9233027a7c6c599"];
+
 async function deployLocalService(serviceModel, provider = 'pprovider1', gatewayPort) {
   var eos = await getEos(provider);
   var contractInstance = await eos.contract(servicescontract)
@@ -31,6 +33,13 @@ async function deployLocalService(serviceModel, provider = 'pprovider1', gateway
   }, {
     authorization: `${provider}@active`,
   });
+  await contractInstance.enablepkg({
+    provider,
+    package_id,
+    service: serviceContract
+  }, {
+    authorization: `${provider}@active`,
+  });
 
   //create the service contract accounts, but don't load them with code
   await getCreateAccount(serviceContract);
@@ -51,6 +60,7 @@ module.exports = async (args) => {
       var key = await getCreateAccount(testProvider);
       await serviceRunner(`/dummy/${serviceModel.name}-dapp-service-node.js`, serviceModel.port * (pi + 1)).handler(args, {
         DSP_PRIVATE_KEY: key.active.privateKey,
+        ETH_PRIVATE_KEY: ethPrivateKeys[pi],
         DSP_GATEWAY_MAINNET_ENDPOINT: `http://localhost:${13015 * (pi + 1)}`, // mainnet gateway
         DSP_ACCOUNT: testProvider,
         NODEOS_LATEST: true,

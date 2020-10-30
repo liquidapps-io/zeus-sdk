@@ -33,3 +33,10 @@ void pricefeed::stopstart(bool stopstart_bool) {
   new_callback_bool_settings.callbackbool = stopstart_bool;
   callback_bool_singleton.set(new_callback_bool_settings, _self);
 }
+
+void pricefeed::testfetch(std::vector<char> uri) {
+  // require auth of contract
+  require_auth(_self);
+  // request price feed fetch once
+  timer_callback(_self, uri, 1);
+}

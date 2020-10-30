@@ -53,7 +53,7 @@ nodeFactory('cron', {
         if (sidechain) {
           let loadedExtensions = await loadModels("dapp-services");
           let service = loadedExtensions.find(a => a.name == "cron").contract;
-          let mainnet_account = getLinkedAccount(null, null, payer, sidechain.name);
+          let mainnet_account = await getLinkedAccount(null, null, payer, sidechain.name);
           await emitUsage(mainnet_account, service);
         }
         //TODO: verify usage, emit if sidechain

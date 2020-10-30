@@ -1,0 +1,18 @@
+{
+  "version": "1.0.3",
+  "ignore": [
+    "README.md"
+  ],
+  "commands": {
+    "test tokenpeg": "zeus compile && zeus test tokenpeg"
+  },
+  "dependencies": {
+    "link": "^1.0.0"
+  },
+  "install": {
+    "contracts": {
+      "tokenpeg": true,
+      "tokenpegx": true
+    }
+  }
+}

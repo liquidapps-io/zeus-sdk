@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "ignore": [
     "README.md"
   ],
@@ -13,7 +13,7 @@
       "chai": true
     },
     "npm-scripts": {
-      "test-ci": "mocha --require=dotenv/config --exit --timeout 1000000 --reporter mocha-junit-and-console-reporter --reporter-options mochaFile=./test-reports/junit.xml --color",
+      "test-ci": "mocha --require=dotenv/config --exit --timeout 1000000 --reporter mocha-junit-and-console-reporter --reporter-options mochaFile=./test-reports/junit.xml --color --retries 3",
       "test": "mocha --require=dotenv/config --exit --timeout 1000000 --color"
     }
   },

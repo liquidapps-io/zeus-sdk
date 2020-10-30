@@ -41,7 +41,8 @@ module.exports = {
         let modules = [
           'dapp-services/commands/compile/dapp-services-eos',
           //'eos-extensions/commands/compile/npm',
-          'eos-extensions/commands/compile/eos'
+          'eos-extensions/commands/compile/eos',
+          'eth-extensions/commands/compile/eth'
         ];
         for (let moduleDir of modules) {
           if (fs.existsSync(path.join(boxesDir, moduleDir + '.js'))) {

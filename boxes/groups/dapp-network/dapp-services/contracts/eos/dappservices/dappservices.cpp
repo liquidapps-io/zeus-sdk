@@ -803,16 +803,19 @@ public:
 
   [[eosio::action]] void xfail() {
     lastlog_t lastlog_singleton(_self,_self.value);
+    string assertion_message;
     if(lastlog_singleton.exists()){
       auto lastlog_inst = lastlog_singleton.get();
       auto it = lastlog_inst.usage_reports.begin();
       while(it != lastlog_inst.usage_reports.end()) {
         EMIT_USAGE_REPORT_EVENT(*it);
+        string success = it->success?"true":"false";
+        assertion_message += std::string("{'version':'1.4','etype':'usage_report','payer':'") + (*it).payer.to_string() + std::string("','service':'") + (*it).service.to_string() + std::string("','provider':'") + (*it).provider.to_string() + std::string("','quantity':'") + (*it).quantity.to_string() + std::string("','success':'") + success + std::string("','package':'") + (*it).package.to_string() + std::string("'}\n");
         ++it;
       }
       lastlog_singleton.remove();      
     }
-    eosio::check( false, "always false assert");
+    eosio::check( false, assertion_message);
   }
 
 private: 

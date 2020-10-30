@@ -39,7 +39,7 @@ websocket_port = 8887
 socket_mode = "sub"
 # a head block may be specified to sync demux from a specific block, the bypass_database_head_block must be set to true for this
 # if bypass_database_head_block is set to true and the head_block is commented out, the head block from the chain will automatically be used
-# head_block = 35000000
+# head_block = 0 # set to 0 to autmatically use head block of chain
 
 # demux defaults to first pulling head block from toml file if postgres database is not set
 # after database is set, defaults to databse, to overwrite and default to toml file or the current head block, pass true
@@ -48,10 +48,26 @@ max_pending_messages = 5000 # amount of pending messages to add to the stack bef
 process_block_checkpoint = 1000 # amount of blocks to pass before updating PostgreSQL database with the last processed block
 # max_memory_mb = # max amount of memory to be consumed by demux, defaults to 8196
 
+[dfuse]
+network = "mainnet" # testnet (eosio testnet), kylin, worbli, wax
+# for push_transaction ability
+push_enable = false # push_enable may be true, even if enable is false
+push_guarantee = "in-block" # handoff:1, handoffs:2, handoffs:9, irreversible
+# for using dfuse instead of demux
+enable = false # enables dfuse demux, not related to push_enable
+api_key = "" # long-lived API key, see https://docs.dfuse.io/guides/core-concepts/authentication/, e.g. (server_abcdef123123123000000000000000000)
+debug = false # enable web socket debug messages in pm2 logs
+
 [ipfs]
 protocol = "http"
 host = "localhost"
 port = 5001
+
+[eth] # if using LiquidLink (link) service 
+private_key = ""
+endpoint = ""
+eth_gas_price = '2000000'
+eth_gas_limit = '500000'
 
 # sidechain section, if no sidechains, leave as [sidechains], can add additional sidechains with [sidechains.newchain] ...
 [sidechains]
@@ -72,13 +88,21 @@ port = 5001
     # demux
     demux_webhook_port = 3196 # port demux runs on, must be unique per new chain
     demux_socket_mode = "sub"
-    # demux_head_block = 1
+    # demux_head_block = 0 # set to 0 to autmatically use head block of chain
     # demux defaults to first pulling head block from toml file if postgres database is not set
     # after database is set, defaults to database, to overwrite and default to toml file, pass true
     demux_bypass_database_head_block = false
     demux_max_pending_messages = 5000 # amount of pending messages to add to the stack before disconnecting the demux websocket to allow pending messages to process
     demux_process_block_checkpoint = 1000 # amount of blocks to pass before updating PostgreSQL database with the last processed block
     # demux_max_memory_mb = # max amount of memory to be consumed by demux, defaults to 8196
+    # dfuse
+    dfuse_network = "mainnet" # testnet (eosio testnet), kylin, worbli, wax
+    # for push_transaction ability
+    dfuse_push_enable = false # push_enable may be true, even if enable is false
+    dfuse_push_guarantee = "in-block" # handoff:1, handoffs:2, handoffs:3, irreversible
+    # for using dfuse instead of demux
+    dfuse_enable = false # enables dfuse demux, not related to push_enable
+    dfuse_api_key = "" # long-lived API key, see https://docs.dfuse.io/guides/core-concepts/authentication/, e.g. (server_abcdef123123123000000000000000000)
     # sidechain 
     name = "test1" # CHAIN_NAME - contract on the EOS mainnet that registered the new chain
     # the mapping below contains the dappservices:dappservicex and mainnet DSP account to the new chain's DSP account mapping

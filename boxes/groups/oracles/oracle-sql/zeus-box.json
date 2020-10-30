@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "ignore": [
     "README.md"
   ],
@@ -9,11 +9,8 @@
   "install": {
     "npm": {
       "fs-extra": true,
-      "sequelize": true,
-      "sqlite3": true,
       "mysql2": true,
       "mariadb": true,
-      "pg": true,
       "pg-hstore": true
     }
   }

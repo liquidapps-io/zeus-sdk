@@ -97,12 +97,12 @@ const converToUri = (hash) => {
 const readPointer = async (hashWithPrefix, contract, sidechain) => {
   var hash = hashWithPrefix.toString('hex').slice(8);
   var matchHash = hash;
+  if(matchHash.includes(',')) matchHash = Buffer.from(matchHash).toString('hex');
   if (nodeosLatest.toString() === "true") {
     matchHash = matchHash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('');
   } else {
     matchHash = matchHash.match(/.{16}/g).map(a => a.match(/.{2}/g).reverse().join('')).join('').match(/.{32}/g).reverse().join('').match(/.{2}/g).reverse().join('');
   }
-
   const payload = {
     'json': true,
     'scope': contract,
@@ -124,6 +124,8 @@ const readPointer = async (hashWithPrefix, contract, sidechain) => {
     var myHash = hashData256(Buffer.from(a.data, 'hex'));
     return myHash == hash
   });
+  
+  let data;
   if (!result) {
     try {
       data = await readFromIPFS(uri);
@@ -396,8 +398,8 @@ const getRequiredIpfsData = async (
   logger.debug(`got bucket uri ${bucketIpfsUri}`);
   uris.push({ uri: bucketIpfsUri, data: bucketRawData });
 
-  formattedScope = stringToNameInner(stringToName(scope,'number')).toString();
-  formattedKey = stringToNameInner(stringToName(refKey, keyType, keysize), keysize).toString();
+  const formattedScope = stringToNameInner(stringToName(scope,'number')).toString();
+  const formattedKey = stringToNameInner(stringToName(refKey, keyType, keysize), keysize).toString();
   let tableEntryUri = bucketData[`${formattedScope}.${formattedKey}`];
   if (tableEntryUri) {
     tableEntryUri = tableEntryUri.toString('hex');
@@ -445,7 +447,7 @@ const readRemoteIPFS = async (contract, uri, sidechain) => {
   let mainnet_account = contract;
   if (sidechain)
     mainnet_account = await getLinkedAccount(null, null, contract, sidechain.name);
-  const remoteProviders = await getProviders(contract, service, false, false);
+  const remoteProviders = await getProviders(contract, service, false, sidechain);
   //iterate over these providers
   for (let i = 0; i < remoteProviders.length; i++) {
     const provider = remoteProviders[i].provider;

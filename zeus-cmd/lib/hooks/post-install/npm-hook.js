@@ -12,9 +12,9 @@ module.exports = async (args, zeusbox, cwd) => {
       }
       return `${pkg}@${ver}`;
     }).join(' ');
-    console.log(emojMap.eight_pointed_black_star + 'NPM Install', packages.yellow);
+    console.log(emojMap.eight_pointed_black_star + 'add NPM dependencies', packages.yellow);
     try {
-      await execPromise(`npm install --loglevel error ${packages}`, {
+      await execPromise(`${path.resolve(cwd,'node_modules/add-dependencies/index.js')} ./package.json ${packages}`, {
         cwd: cwd,
         env: {
           ...process.env,

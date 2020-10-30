@@ -19,8 +19,10 @@ import {getTableBoundsForName} from './dapp-common'
  * @param {string} network network
  * @param {object} [options={}] optional params
  * @param {string} [options.endpoint] dsp endpoint
- * @param {string} [options.dappservices="dappservices"] DAPP Services contract
  * @param {Fetch} [options.fetch=global.fetch] fetch
+ * @param {string} [options.dappservices="dappservices"] DAPP Services contract
+ * @param {string} [options.dfuse_key=""] Dfuse API key
+ * @param {string} [options.dfuse_guarantee="in-block"] Dfuse Push Guarantee
  * @example
  *
  * const endpoint = "https://kylin-dsp-2.liquidapps.io"
@@ -34,7 +36,9 @@ export class DappClient extends EosioClient {
         endpoint?: string,
         fetch?: Fetch,
         dappservices?: string,
-        api?: any
+        api?: any,
+        dfuse_key?: string
+        dfuse_guarantee?: string
     } = {} ) {
         super( network, options );
         this.dappservices = options.dappservices || this.dappservices;

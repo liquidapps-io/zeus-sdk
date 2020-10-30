@@ -21,7 +21,8 @@ module.exports = async (args) => {
                 NODEOS_WEBSOCKET_PORT: sidechain.nodeos_state_history_port,
                 DSP_ACCOUNT: mapEntry.chain_account,
                 SIDECHAIN: sidechain.name,
-                LOGFILE_NAME: `${sidechain.name}-demux`
+                LOGFILE_NAME: `${sidechain.name}-demux`,
+                DATABASE_URL: false
             });
         }
     }

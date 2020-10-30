@@ -78,6 +78,7 @@ module.exports = async (args) => {
         SIDECHAIN: sidechain.name,
         LOGFILE_NAME: `${sidechain.name}-dapp-services-node`,
         NODEOS_LATEST: true,
+        DATABASE_URL: false,
         ...config
       });
     }

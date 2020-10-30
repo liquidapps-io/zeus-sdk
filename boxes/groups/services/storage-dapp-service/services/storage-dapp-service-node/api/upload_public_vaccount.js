@@ -156,7 +156,8 @@ module.exports = async (body, res, model, state) => {
     hash,
     hashSignature,
     vaccountName,
-    contract
+    contract,
+    options
   } = body;
   try {
     if (archive) throw new Error(`vaccount archive uploads not yet supported`);
@@ -181,7 +182,7 @@ module.exports = async (body, res, model, state) => {
 
     let uri;
     var length = data.byteLength;
-    uri = await saveToIPFS(data);
+    uri = await saveToIPFS(data, options.rawLeaves);
 
     updateLimits({ data, stateDailyLimits, vaccountName });
     await emitUsage(sidechain ? await getLinkedAccount(null, null, contract, sidechain.name) : contract, getContractAccountFor(model), length, sidechain, {

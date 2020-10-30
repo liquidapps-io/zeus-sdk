@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.3",
   "ignore": [
     "README.md"
   ],
@@ -13,10 +13,9 @@
       "signer": true
     },
     "npm": {
-      "web3@1.0.0-beta.36": true,
+      "web3": "^1.2.11",
       "ganache-cli": true,
-      "truffle-contract": true,
-      "ethereumjs-tx": true
+      "truffle-contract": true
     }
   }
 }

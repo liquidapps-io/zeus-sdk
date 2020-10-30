@@ -1,0 +1,21 @@
+{
+  "version": "1.0.1",
+  "ignore": [
+    "README.md"
+  ],
+  "commands": {
+    "Test eth message bridge": "zeus compile && zeus test ethmessagebridge"
+  },
+  "dependencies": {
+    "oracle-dapp-service": "^1.0.0",
+    "cron-dapp-service": "^1.0.0",
+    "sign-dapp-service": "^1.0.0",
+    "link": "^1.0.0",
+    "eth-extensions": "^1.0.0"
+  },
+  "install": {
+    "contracts": {
+      "helloeth": true
+    }
+  }
+}

@@ -22,8 +22,55 @@ if (!mainnetDspKey) console.warn('must provide DSP_PRIVATE_KEY if not using util
 const nodeosMainnetEndpoint = process.env.NODEOS_MAINNET_ENDPOINT || 'http://localhost:8888';
 const dspGatewayMainnetEndpoint = process.env.DSP_GATEWAY_MAINNET_ENDPOINT || 'http://localhost:13015';
 const nodeosLatest = process.env.NODEOS_LATEST || true;
-const proxy = httpProxy.createProxyServer();
 
+//dfuse settings
+const mainnetDfuseEnable = process.env.DFUSE_PUSH_ENABLE || false;
+const mainnetDfuseGuarantee = process.env.DFUSE_PUSH_GUARANTEE || 'in-block';
+const mainnetDfuseApiKey = process.env.DFUSE_API_KEY || '';
+const mainnetDfuseNetwork = process.env.DFUSE_NETWORK || 'mainnet';
+
+const WebSocketClient = require("ws");
+const { createDfuseClient } = require("@dfuse/client");
+
+
+async function webSocketFactory(url, protocols) {
+  const webSocket = new WebSocketClient(url, protocols, {
+    handshakeTimeout: 30 * 1000, // 30s
+    maxPayload: 200 * 1024 * 1000 * 1000 // 200Mb
+  })
+  const onUpgrade = (response) => {
+    logger.debug(`Socket upgrade response status code. ${response.statusCode}`)
+
+    // You need to remove the listener at some point since this factory
+    // is called at each reconnection with the remote endpoint!
+    webSocket.removeListener("upgrade", onUpgrade)
+  }
+  webSocket.on("upgrade", onUpgrade)
+  return webSocket
+}
+
+const client = mainnetDfuseApiKey ? createDfuseClient({ apiKey: mainnetDfuseApiKey, network: mainnetDfuseNetwork,
+  httpClientOptions: {
+    fetch
+  },
+  graphqlStreamClientOptions: {
+    socketOptions: {
+      // The WebSocket factory used for GraphQL stream must use this special protocols set
+      // We intend on making the library handle this for you automatically in the future,
+      // for now, it's required otherwise, the GraphQL will not connect correctly.
+      webSocketFactory: (url) => webSocketFactory(url, ["graphql-ws"]),
+      reconnectDelayInMs: 250 // document every 5s
+    }
+  },
+  streamClientOptions: {
+    socketOptions: {
+      // webSocketFactory: (url) => webSocketFactory(url)
+      webSocketFactory: (url) => webSocketFactory(url)
+    }
+  }
+}) : '';
+
+const proxy = httpProxy.createProxyServer();
 proxy.on('error', function (err, req, res) {
   if (err) {
     logger.error('proxy error:');
@@ -124,7 +171,11 @@ function decodeName(value, littleEndian = true) {
 const eosMainnet = async () => {
   const mainnetConfig = {
     httpEndpoint: nodeosMainnetEndpoint,
-    keyProvider: mainnetDspKey
+    keyProvider: mainnetDspKey,
+    dfuseEnable: mainnetDfuseEnable,
+    dfuseGuarantee: mainnetDfuseGuarantee,
+    dfusePushApiKey: mainnetDfuseApiKey ? await getDfuseJwt() : '',
+    dfuseNetwork: mainnetDfuseNetwork
   }
   return getEosWrapper(mainnetConfig);
 }
@@ -146,7 +197,21 @@ const getEosForSidechain = async (sidechain, account = paccount, dspEndpoint = n
     httpEndpoint: dspEndpoint ? `http://localhost:${sidechain.dsp_port}` : sidechain.nodeos_endpoint, //TODO: do we need to check for https?
     keyProvider: process.env[`DSP_PRIVATE_KEY_${sidechain.name.toUpperCase()}`] || (await getCreateKeys(account, null, nodeosLatest.toString() === "true" ? true : false, sidechain)).active.privateKey //TODO: any reason not to include authorization here?
   }
+  if(!dspEndpoint) {
+    config = {
+      ...config,
+      dfuseEnable: [`DFUSE_PUSH_ENABLE_${sidechain.name.toUpperCase()}`],
+      dfuseGuarantee: [`DFUSE_PUSH_GUARANTEE_${sidechain.name.toUpperCase()}`] || 'in-block',
+      dfusePushApiKey: mainnetDfuseApiKey ? await getDfuseJwt() : '',
+      dfuseNetwork: [`DFUSE_NETWORK_${sidechain.name.toUpperCase()}`]
+    }
+  }
   return getEosWrapper(config);
+}
+
+const getDfuseJwt = async () => {
+  const jwtApiKey = await client.getTokenInfo();
+  return jwtApiKey.token
 }
 
 const forwardEvent = async (act, endpoint, redirect) => {
@@ -162,6 +227,7 @@ const resolveBackendServiceData = async (service, provider, packageid, sidechain
     const packages = await getTableRowsSec(eos.rpc, dappServicesContract, "package", dappServicesContract, [null, packageid, service, provider], 1, 'sha256', 2);
     const result = packages.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service);
     if (result.length === 0) throw new Error(`resolveBackendServiceData failed ${provider} ${service} ${packageid}`);
+    if (!result[0].enabled) throw new Error(`Provider: ${provider} Service: ${service} Package ${packageid}: Packages must be enabled for DSP services to function. The enablepkg command must be run by the DSP to enable this package.`);
     if (Number(balance.substring(0, balance.length - 5)) < Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)))
       logger.warn(`DAPP Balance is less than minimum stake quantity for provider: ${provider}, service: ${service}, packageid: ${packageid}: ${Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)) - Number(balance.substring(0, balance.length - 5))} more DAPP must be staked to meet threshold`);
   }
@@ -185,7 +251,7 @@ const resolveExternalProviderData = async (service, provider, packageid, sidecha
   logger.debug(`resolveExternalProviderData packages: ${JSON.stringify(packages)}`);
   const result = packages.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service);
   if (result.length === 0) throw new Error(`resolveExternalProviderData failed ${provider} ${service} ${packageid}`);
-  if (!result[0].enabled) console.log(`DEPRECATION WARNING for ${provider} ${service} ${packageid}: Packages must be enabled for DSP services to function in the future.`); //TODO: Throw error instead
+  if (!result[0].enabled) throw new Error(`Provider: ${provider} Service: ${service} Package ${packageid}: Packages must be enabled for DSP services to function. The enablepkg command must be run by the DSP to enable this package.`);
   if (balance !== undefined)
     if (Number(balance.substring(0, balance.length - 5)) < Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)))
       logger.warn(`DAPP Balance is less than minimum stake quantity for provider: ${provider}, service: ${service}, packageid: ${packageid}: ${Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)) - Number(balance.substring(0, balance.length - 5))} more DAPP must be staked to meet threshold`);
@@ -428,6 +494,53 @@ const sendError = (res, e) => {
     }
   }));
 }
+
+const dfuseEndpoints = {
+  'mainnet': 'https://mainnet.eos.dfuse.io',
+  'testnet': 'https://testnet.eos.dfuse.io',
+  'kylin': 'https://kylin.eos.dfuse.io',
+  'worbli': 'https://worbli.eos.dfuse.io',
+  'wax': 'https://mainnet.wax.dfuse.io',
+  'local': 'http://localhost:8081',
+  'localliquidx': 'http://localhost:8083',
+  'mainnet.eos.dfuse.io': 'https://mainnet.eos.dfuse.io',
+  'testnet.eos.dfuse.io': 'https://testnet.eos.dfuse.io',
+  'kylin.eos.dfuse.io': 'https://kylin.eos.dfuse.io',
+  'worbli.eos.dfuse.io': 'https://worbli.eos.dfuse.io',
+  'wax.eos.dfuse.io': 'https://mainnet.wax.dfuse.io'
+}
+const testTransaction = async(sidechain, uri, body) => {
+  const key = mainnetDfuseApiKey ? await getDfuseJwt() : '';
+  let result;
+  const network = sidechain ? [`DFUSE_NETWORK_${sidechain.name.toUpperCase()}`] : mainnetDfuseNetwork 
+  const currentNodeosEndpoint = sidechain ? sidechain.nodeos_endpoint : nodeosMainnetEndpoint;
+  const pushEnable = sidechain ? [`DFUSE_PUSH_ENABLE_${sidechain.name.toUpperCase()}`] : mainnetDfuseEnable
+  if(pushEnable.toString() === "true") {
+    logger.debug(`Pushing to dFuse ${dfuseEndpoints[network]} with Guarantee ${mainnetDfuseGuarantee}`)
+    result = await fetch(dfuseEndpoints[network] + uri, { 
+      method: 'POST', 
+      body: JSON.stringify(body),
+      headers: {
+        'Authorization': `Bearer ${key}`,
+        'X-Eos-Push-Guarantee': `${mainnetDfuseGuarantee}`
+      }
+    });
+    logger.debug(`result: ${typeof(result) == "object" ? JSON.stringify(result) : result}`)
+  } else {
+    result = await fetch(currentNodeosEndpoint + uri, { method: 'POST', body: JSON.stringify(body) });
+    logger.debug(`result: ${typeof(result) == "object" ? JSON.stringify(result) : result}`)
+  }  
+  return result;
+}
+
+const loggerHelper = (element) => {
+  if(typeof(element) == "object") {
+    return JSON.stringify(element)
+  } else {
+    return element
+  }
+}
+
 const processRequestWithBody = async (req, res, body, actionHandlers, serviceName, handlers) => {
   var uri = req.originalUrl;
   var sidechain = body.sidechain;
@@ -466,28 +579,39 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
   }
 
   let trys = 0;
-  const garbage = [];
-  const currentNodeosEndpoint = sidechain ? sidechain.nodeos_endpoint : nodeosMainnetEndpoint;
-  while (trys < 10) {
-    let r = await fetch(currentNodeosEndpoint + uri, { method: 'POST', body: JSON.stringify(body) });
+  const garbage = []; 
+  while (trys < 10) {    
+    let r = await testTransaction(sidechain, uri, body);
     let resText = await r.text();
     let rText;
     if (r.status !== 500) {
       res.status(r.status);
       return res.send(resText);
-
     }
     try {
+      let detailsAssertionSvcReq;
       rText = JSON.parse(resText);
-      const details = rText.error.details;
-      const detailMsg = details.find(d => d.message.indexOf(': required service') != -1);
-      if (!detailMsg) {
+      const detailMsg = rText.error.details;
+      const detailsAssertion = detailMsg.find(d => d.message.indexOf(': required service') != -1);
+      if(detailsAssertion) {
+        detailsAssertionSvcReq = detailMsg.find(d => d.message.indexOf(': required service') != -1).message.replace('assertion failure with message: required service','') 
+      } else {
+        detailsAssertionSvcReq = '';
+      }
+      const detailsPendingConsole = detailMsg.find(d => d.message.indexOf('pending console output:') != -1).message.replace('pending console output: ', '');
+      let jsons;
+      if (!detailsAssertion || (!detailsPendingConsole && !detailsAssertionSvcReq)) {
+        if(mainnetDfuseEnable.toString() == "true") logger.warn('unable to parse service request using dfuse push guarantee, must update consumer contract to use new dappservices contract');
         await rollBack(garbage, actionHandlers, serviceName, handlers);
         res.status(r.status);
         return res.send(resText);
+      } else if(mainnetDfuseEnable.toString() == "true") {
+        jsons = detailsAssertion.message.replace('required service: ','').split(': ', 2)[1].split(`'`).join(`"`).split('\n').filter(a => a.trim() != '');
+      } else {
+        jsons = detailsPendingConsole.split('\n').filter(a => a.trim() != '');
       }
-
-      const jsons = details[details.indexOf(detailMsg) + 1].message.split(': ', 2)[1].split('\n').filter(a => a.trim() != '');
+      logger.debug(loggerHelper(jsons));
+      
       let currentEvent;
       for (var i = 0; i < jsons.length; i++) {
         try {
@@ -515,10 +639,10 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
       };
 
       const endpoint = await processFn(actionHandlers, actionObject, true, serviceName, handlers);
-      logger.info(`endpoint shouldAbort: ${endpoint} typeof: ${typeof (endpoint)}`);
+      logger.debug(`endpoint shouldAbort: ${endpoint} typeof: ${typeof (endpoint)}`);
       try {
         if (endpoint.includes(`shouldAbort`) && JSON.parse(endpoint).shouldAbort) {
-          logger.info(`shouldAbort detected`);
+          logger.debug(`shouldAbort detected`);
           return res.send(endpoint);
         }
       } catch (e) {
@@ -904,5 +1028,6 @@ module.exports = {
   resolveProviderPackage, eosDSPGateway, paccountPermission,
   encodeName, decodeName, getProviders, getEosForSidechain,
   emitUsage, detectXCallback, getTableRowsSec, getLinkedAccount,
-  parseEvents, pushTransaction, eosDSPEndpoint
+  parseEvents, pushTransaction, eosDSPEndpoint, dfuseEndpoints,
+  loggerHelper, getDfuseJwt, mainnetDfuseEnable
 };

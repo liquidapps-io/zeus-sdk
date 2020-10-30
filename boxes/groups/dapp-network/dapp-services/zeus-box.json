@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.7",
   "ignore": [
     "README.md"
   ],
@@ -8,6 +8,7 @@
     "seed-microservices": "^1.0.0",
     "core-extensions": "^1.0.0",
     "demux": "^1.0.0",
+    "dfuse": "^1.0.0",
     "seed-eos": "^1.0.0",
     "events": "^1.0.0",
     "seed-models": "^1.0.0",
@@ -21,6 +22,7 @@
       "allservices": true
     },
     "npm": {
+      "@dfuse/client": "^0.3.0",
       "big-integer": "^1.6.36",
       "bytebuffer": "^5.0.1",
       "cors": "^2.8.4",
@@ -36,7 +38,8 @@
       "sequelize": "5.19.0",
       "pg": "7.12.1",
       "minipass@2.7.0": true,
-      "sqlite3": "4.1.0"
+      "sqlite3": "4.1.0",
+      "promise.allsettled": "^1.0.2"
     }
   }
 }
