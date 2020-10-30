@@ -1,4 +1,6 @@
 #define USE_ADVANCED_IPFS
+#define IPFS_FEATURE_PRIMKEY
+#define IPFS_FEATURE_MANIFEST
 #include "../dappservices/ipfs.hpp"
 #include "../dappservices/multi_index.hpp"
 
@@ -40,15 +42,6 @@ CONTRACT_START()
       uint64_t primary_key() const { return shard; }
   };
 
-  typedef dapp::advanced_multi_index<"test2"_n, bigentry, checksum256> testindex_big_t;   
-  typedef dapp::advanced_multi_index<"test3"_n, medentry, uint128_t> testindex_med_t;   
-
-  typedef eosio::multi_index<".test2"_n, bigentry> testindex_bt_v_abi;
-  typedef eosio::multi_index<"test2"_n, testindex_shardbucket> testindex_bt_abi;
-
-  typedef eosio::multi_index<".test3"_n, medentry> testindex_mt_v_abi;
-  typedef eosio::multi_index<"test3"_n, testindex_shardbucket> testindex_mt_abi;
-
   typedef dapp::multi_index<"test"_n, testindex> testindex_t;
   typedef eosio::multi_index<".test"_n, testindex> testindex_t_v_abi;
   typedef eosio::multi_index<"test"_n, testindex_shardbucket> testindex_t_abi;
@@ -56,6 +49,13 @@ CONTRACT_START()
   typedef eosio::multi_index<".test1"_n, testindex> testindex1_t_v_abi;
   typedef eosio::multi_index<"test1"_n, testindex_shardbucket> testindex1_t_abi;
 
+  #ifdef IPFS_FEATURE_PRIMKEY
+  typedef dapp::advanced_multi_index<"test2"_n, bigentry, checksum256> testindex_big_t;   
+  typedef dapp::advanced_multi_index<"test3"_n, medentry, uint128_t> testindex_med_t;
+  typedef eosio::multi_index<".test2"_n, bigentry> testindex_bt_v_abi;
+  typedef eosio::multi_index<"test2"_n, testindex_shardbucket> testindex_bt_abi;
+  typedef eosio::multi_index<".test3"_n, medentry> testindex_mt_v_abi;
+  typedef eosio::multi_index<"test3"_n, testindex_shardbucket> testindex_mt_abi;   
   [[eosio::action]] void testbig(checksum256 id, uint64_t value) {
     testindex_big_t testset(_self,_self.value);
     testset.emplace(_self, [&]( auto& a ){
@@ -83,6 +83,12 @@ CONTRACT_START()
     auto const& data = testset.get(id,"data not found");
     check(data.sometestnumber == value, "value does not match");
   }
+  #else
+  [[eosio::action]] void testbig(checksum256 id, uint64_t value) {}
+  [[eosio::action]] void checkbig(checksum256 id, uint64_t value) {}
+  [[eosio::action]] void testmed(uint128_t id, uint64_t value) {}
+  [[eosio::action]] void checkmed(uint128_t id, uint64_t value) {}
+  #endif
 
 
   [[eosio::action]] void testfind(uint64_t id) {
@@ -93,10 +99,21 @@ CONTRACT_START()
     testindex_t testset(_self,_self.value);
     testset.clear();
   }
+  
+  #ifndef IPFS_FEATURE_MANIFEST
+  struct manifest {
+      checksum256 next_available_key;
+      uint32_t shards;
+      uint32_t buckets_per_shard;
+      std::map<uint64_t,std::vector<char>> shardbuckets;
+  };
+  [[eosio::action]] void testman(manifest man) {}
+  #else
   [[eosio::action]] void testman(dapp::manifest man) {
     testindex_t testset(_self,_self.value);
-    testset.load_manifest(man,"Test");
+    testset.load_manifest(man,"Test");    
   }
+  #endif
   [[eosio::action]] void testindex(uint64_t id, uint64_t sometestnumber) {
     testindex_t testset(_self,_self.value);
     testset.emplace(_self, [&]( auto& a ){

@@ -529,7 +529,13 @@ struct kv_t{
     ipfsmultihash_t value;
 };
 
+#ifndef IPFS_FEATURE_PRIMKEY
+#define PrimKey uint64_t
+#endif
+
+#ifdef IPFS_FEATURE_PRIMKEY
 template <typename PrimKey>
+#endif
 struct bucketParsedParts_t{
     vector<char> after;
     vector<char> before;
@@ -542,8 +548,12 @@ struct bucketParsedParts_t{
 
 #define emptyentry() vector<char>()
 
+#ifdef IPFS_FEATURE_PRIMKEY
 template <typename PrimKey>
-static std::vector<char> _combineParsedBucketParts(bucketParsedParts_t<PrimKey> parts)
+static std::vector<char> _combineParsedBucketParts(bucketParsedParts_t<PrimKey> parts)  
+#else
+static std::vector<char> _combineParsedBucketParts(bucketParsedParts_t parts)
+#endif
 {
   auto result = parts.before;
   uint8_t keyLength = std::max<uint8_t>(sizeof(PrimKey),8);
@@ -562,11 +572,17 @@ static std::vector<char> _combineParsedBucketParts(bucketParsedParts_t<PrimKey> 
   return result;
 }
 // todo: improve with binary search
+#ifdef IPFS_FEATURE_PRIMKEY
 template <typename PrimKey>
 static bucketParsedParts_t<PrimKey> _parseCacheBucket(vector<char> dictStr, uint64_t scope, PrimKey key)
 {
+    bucketParsedParts_t<PrimKey> bucketParsedParts;    
+#else
+static bucketParsedParts_t _parseCacheBucket(vector<char> dictStr, uint64_t scope, uint64_t key)
+{
+    bucketParsedParts_t bucketParsedParts;
+#endif     
     auto bucketSize = dictStr.size();
-    bucketParsedParts_t<PrimKey> bucketParsedParts;
     auto bucketBegin = dictStr.begin();
     auto bucketEnd = bucketBegin + bucketSize;
     
@@ -577,8 +593,8 @@ static bucketParsedParts_t<PrimKey> _parseCacheBucket(vector<char> dictStr, uint
     bucketParsedParts.key = key;
     bucketParsedParts.scope = scope;
     auto currentIter = bucketBegin;
-    uint8_t scopeLength = 8;
     uint8_t keyLength = std::max<uint8_t>(sizeof(PrimKey),8);
+    uint8_t scopeLength = 8;    
     uint8_t dataLength = 36;
     while(currentIter < bucketEnd)
     {
@@ -642,14 +658,6 @@ uint64_t _calcBucket(vector<char> fullKey){
     return res;
 }
 
-
-template <typename PrimKey>
-struct bucket_t{
-    uint32_t bucket;
-    uint32_t shard;
-    PrimKey  key;
-    uint64_t scope;
-};
 static inline vector<char> decode(string value){
     auto str = value;
   vector<char> data(str.begin(), str.end());
@@ -663,6 +671,16 @@ struct shardbucket_data {
 //scope is the table name, index is the table scope
 //default everything to zero for uninitialized
 checksum256 empty256;
+
+
+#ifdef IPFS_FEATURE_PRIMKEY
+template <typename PrimKey>
+struct bucket_t{
+    uint32_t bucket;
+    uint32_t shard;
+    PrimKey  key;
+    uint64_t scope;
+};
 
 template <typename PrimKey>
 inline checksum256 primary_to_key(PrimKey primary) {
@@ -702,6 +720,27 @@ template <>
 inline checksum256 key_to_primary<checksum256>(checksum256 key) {
     return key;
 }
+#else
+struct bucket_t{
+    uint32_t bucket;
+    uint32_t shard;
+    uint64_t  key;
+    uint64_t scope;
+};
+inline checksum256 primary_to_key(uint64_t primary) {
+    std::array<uint128_t,2> arr = {0,primary};
+    return checksum256(arr);
+}
+
+inline uint64_t key_to_primary(checksum256 key) {
+    auto data = key.data();
+    return static_cast<uint64_t>(data[1]);
+}
+
+inline std::string primary_to_string(uint64_t primary) {
+    return name(primary).to_string();
+}
+#endif
 
 inline checksum256 increment256(checksum256 key) {
     auto data = key.data();
@@ -729,6 +768,7 @@ TABLE shardbucket {
     uint64_t primary_key() const { return shard; }
 };
 
+#ifdef IPFS_FEATURE_MANIFEST
 TABLE manifest {
     checksum256 next_available_key;
     uint32_t shards;
@@ -745,8 +785,13 @@ TABLE backup {
     string description;
     uint64_t primary_key() const { return id; }    
 };
+#endif
 
+#ifdef IPFS_FEATURE_PRIMKEY
 template<name::raw TableName, typename PrimKey>
+#else
+template<name::raw TableName>
+#endif
 class sharded_hashtree_t{
     name     _code;
     name     _self;
@@ -771,7 +816,9 @@ class sharded_hashtree_t{
     uint32_t get_shards()const  { return _shards; }
     uint32_t get_buckets()const { return _buckets_per_shard; }      
 
-    typedef eosio::singleton<".vmanifest"_n, manifest> vmanifest_sgt; 
+    #ifdef IPFS_FEATURE_MANIFEST
+    typedef eosio::singleton<".vmanifest"_n, manifest> vmanifest_sgt;
+    #endif 
     typedef eosio::singleton<".vconfig"_n, vconfig> vconfig_sgt; 
     typedef eosio::multi_index<TableName, shardbucket> shardbucket_t;
     
@@ -836,6 +883,7 @@ class sharded_hashtree_t{
     
     
   private:
+    #ifdef IPFS_FEATURE_PRIMKEY
     bucket_t<PrimKey>& getBucketShard(PrimKey primary) const{
         bucket_t<PrimKey> result;
         result.key = primary;
@@ -847,7 +895,21 @@ class sharded_hashtree_t{
         result.shard = (hash >> 6) & (_shards-1);
         result.scope = _scope;
         return *(new bucket_t(result));
-    }    
+    }
+    #else
+    bucket_t& getBucketShard(uint64_t primary) const{
+        bucket_t result;
+        result.key = primary;
+        // concate with scope
+        std::string keystring = name(_scope).to_string() + "-" + primary_to_string(primary);
+        auto fullkey = decode(keystring);
+        auto hash = _calcBucket(fullkey);
+        result.bucket = hash & (_buckets_per_shard-1);
+        result.shard = (hash >> 6) & (_shards-1);
+        result.scope = _scope;
+        return *(new bucket_t(result));
+    }
+    #endif    
 
     ipfsmultihash_t makeShardPointer() const{
         auto emptyDataHash = uri_to_ipfsmultihash(ipfs_svc_helper::setRawData(emptyentry(), true));
@@ -861,10 +923,17 @@ class sharded_hashtree_t{
     }
     
     // add cache for shard data and bucket
+    #ifdef IPFS_FEATURE_PRIMKEY
     std::vector<char> getBucket(bucket_t<PrimKey>& sb, bool pin = false) const{        
         //TODO: we need a mechanism to get a shard pointer when its requesting from another chain
         if(_crosschain) { 
             auto castedKey = primary_to_key<PrimKey>(sb.key);
+    #else
+    std::vector<char> getBucket(bucket_t& sb, bool pin = false) const{        
+        //TODO: we need a mechanism to get a shard pointer when its requesting from another chain
+        if(_crosschain) { 
+            auto castedKey = primary_to_key(sb.key);
+    #endif                
             uint8_t keySize = std::max<uint8_t>(sizeof(PrimKey),8);
             uint8_t index_position = 1;
             auto bucket_data = ipfs_svc_helper::getCrosschainTreeData<shardbucket_data>(sb.shard, name(_code), name(TableName), name(_chain), _scope, index_position, castedKey, keySize);            
@@ -883,6 +952,7 @@ class sharded_hashtree_t{
 
         //we skip manifest handling if this is an external vram table
         //TODO: load the external manifest version of shard, but do not save the changes
+        #ifdef IPFS_FEATURE_MANIFEST
         if(!_external) {
             vmanifest_sgt vmanifestsgt(_code,name(TableName).value);
             auto manifest = vmanifestsgt.get_or_default();
@@ -909,7 +979,8 @@ class sharded_hashtree_t{
                 manifest.shardbuckets.erase(loading);
                 vmanifestsgt.set(manifest,_self);
             }
-        }        
+        }
+        #endif        
 
         //emplace and return empty if no existing data
         if(shardData == _shardbucket_table.end() && !_crosschain){  
@@ -937,8 +1008,12 @@ class sharded_hashtree_t{
         }
         else //existing data and no revision change
         {            
-            auto shard_uri = shardData->shard_uri;    
+            auto shard_uri = shardData->shard_uri;
+            #ifdef IPFS_FEATURE_PRIMKEY    
             auto castedKey = primary_to_key<PrimKey>(sb.key);
+            #else
+            auto castedKey = primary_to_key(sb.key);
+            #endif
             uint8_t keySize = std::max<uint8_t>(sizeof(PrimKey),8);
             uint8_t index_position = 1;
             // get data with optimistic loading
@@ -951,8 +1026,11 @@ class sharded_hashtree_t{
             return bucket_raw_data;
         }
     }
-    
+    #ifdef IPFS_FEATURE_PRIMKEY
     void setBucket(bucket_t<PrimKey>& sb, std::vector<char> data){
+    #else
+    void setBucket(bucket_t& sb, std::vector<char> data){    
+    #endif    
         //getBucket is always called before setBucket so we don't
         //need to place any revision logic here
         eosio::check(!_external, "cannot modify objects in vram of another contract");
@@ -977,8 +1055,11 @@ class sharded_hashtree_t{
     }
 };
 
-
+#ifdef IPFS_FEATURE_PRIMKEY
 template <name::raw TableName,typename T, typename PrimKey = uint64_t, typename... Indices>
+#else
+template <name::raw TableName,typename T, typename... Indices>
+#endif
 class advanced_multi_index{
     static_assert( sizeof...(Indices) <= 16, "advanced_multi_index only supports a maximum of 16 secondary indices" );
     
@@ -997,11 +1078,18 @@ class advanced_multi_index{
     uint64_t _scope;  
     uint32_t _cleanup_delay; 
     
-    typedef eosio::singleton<".vmanifest"_n, manifest> vmanifest_sgt; 
+    
     typedef eosio::singleton<".vconfig"_n, vconfig> vconfig_sgt; 
     typedef eosio::multi_index<TableName, shardbucket> shardbucket_t;    
+    #ifdef IPFS_FEATURE_MANIFEST
     typedef eosio::multi_index<".vbackups"_n, backup> backups_t;
+    typedef eosio::singleton<".vmanifest"_n, manifest> vmanifest_sgt; 
+    #endif
+    #ifdef IPFS_FEATURE_PRIMKEY
     sharded_hashtree_t<TableName, PrimKey> primary_hashtree;
+    #else
+    sharded_hashtree_t<TableName> primary_hashtree;
+    #endif
 
   struct item : public T
   {
@@ -1202,6 +1290,7 @@ typedef h_const_iterator const_iterator;
         commit();
     }
 
+    #ifdef IPFS_FEATURE_MANIFEST
     ipfsmultihash_t makeManifestPointer(manifest manifest) const{
         auto new_manifest_pointer = uri_to_ipfsmultihash(ipfs_svc_helper::setData(manifest, false, _cleanup_delay));
         return new_manifest_pointer;
@@ -1211,6 +1300,7 @@ typedef h_const_iterator const_iterator;
         manifest result = ipfs_svc_helper::getData<manifest>(uri, false);
         return result;
     }
+    #endif
       
       
 
@@ -1230,8 +1320,12 @@ typedef h_const_iterator const_iterator;
       
       PrimKey available_primary_key()const {
           vconfig_sgt vconfigsgt(_code,name(TableName).value);
-          auto config = vconfigsgt.get_or_default();       
+          auto config = vconfigsgt.get_or_default();
+          #ifdef IPFS_FEATURE_PRIMKEY       
           return key_to_primary<PrimKey>(config.next_available_key);
+          #else
+          return key_to_primary(config.next_available_key);
+          #endif
       }
 
       template<typename Lambda>
@@ -1247,7 +1341,11 @@ typedef h_const_iterator const_iterator;
             //this will fail automatically for an external contract
             vconfig_sgt vconfigsgt(_code,name(TableName).value);
             auto config = vconfigsgt.get_or_default();
+            #ifdef IPFS_FEATURE_PRIMKEY
             auto incrpk = increment256(primary_to_key<PrimKey>(pk));
+            #else
+            auto incrpk = increment256(primary_to_key(pk));
+            #endif
             if(config.next_available_key < incrpk) //dont decrease next_available_key
                 config.next_available_key = incrpk; //increment the key
             if(config.shards == 0 && config.buckets_per_shard == 0) {
@@ -1331,8 +1429,9 @@ typedef h_const_iterator const_iterator;
         config.revision++;    
         config.next_available_key = empty256; //reset the next available key
         vconfigsgt.set(config,_code);
-      } 
+      }
 
+      #ifdef IPFS_FEATURE_MANIFEST
       void create_manifest(string description) {
           vmanifest_sgt vmanifestsgt(_code,name(TableName).value);
           auto manifest = vmanifestsgt.get_or_default();
@@ -1401,6 +1500,7 @@ typedef h_const_iterator const_iterator;
           eosio::check(it != backups.end(), "invalid backup id");
           load_manifest(it->manifest_uri, description);
       }
+      #endif
 };
 }
 #endif
