@@ -22,6 +22,7 @@ if (!mainnetDspKey) console.warn('must provide DSP_PRIVATE_KEY if not using util
 const nodeosMainnetEndpoint = process.env.NODEOS_MAINNET_ENDPOINT || 'http://localhost:8888';
 const dspGatewayMainnetEndpoint = process.env.DSP_GATEWAY_MAINNET_ENDPOINT || 'http://localhost:13015';
 const nodeosLatest = process.env.NODEOS_LATEST || true;
+const maxReqRetries = parseInt(process.env.DSP_MAX_REQUEST_RETRIES || 50);
 
 //dfuse settings
 const mainnetDfuseEnable = process.env.DFUSE_PUSH_ENABLE || false;
@@ -49,7 +50,9 @@ async function webSocketFactory(url, protocols) {
   return webSocket
 }
 
-const client = mainnetDfuseApiKey ? createDfuseClient({ apiKey: mainnetDfuseApiKey, network: mainnetDfuseNetwork,
+const dfuseClientAuth = process.env.DFUSE_AUTHORIZATION ? true : false
+
+const client = mainnetDfuseApiKey ? createDfuseClient({ authorization: dfuseClientAuth, apiKey: mainnetDfuseApiKey, network: mainnetDfuseNetwork,
   httpClientOptions: {
     fetch
   },
@@ -416,11 +419,11 @@ const resolveProvider = async (payer, service, provider, sidechain) => {
   return intersectLists[Math.floor(Math.random() * intersectLists.length)];
 };
 
-const processFn = async (actionHandlers, actionObject, simulated, serviceName, handlers) => {
+const processFn = async (actionHandlers, actionObject, simulated, serviceName, handlers, isExternal) => {
   var actionHandler = actionHandlers[actionObject.event.etype];
   if (!actionHandler) { return; }
   try {
-    return await actionHandler(actionObject, simulated, serviceName, handlers);
+    return await actionHandler(actionObject, simulated, serviceName, handlers, isExternal);
   }
   catch (e) {
     logger.error('error processing processFn')
@@ -495,20 +498,6 @@ const sendError = (res, e) => {
   }));
 }
 
-const dfuseEndpoints = {
-  'mainnet': 'https://mainnet.eos.dfuse.io',
-  'testnet': 'https://testnet.eos.dfuse.io',
-  'kylin': 'https://kylin.eos.dfuse.io',
-  'worbli': 'https://worbli.eos.dfuse.io',
-  'wax': 'https://mainnet.wax.dfuse.io',
-  'local': 'http://localhost:8081',
-  'localliquidx': 'http://localhost:8083',
-  'mainnet.eos.dfuse.io': 'https://mainnet.eos.dfuse.io',
-  'testnet.eos.dfuse.io': 'https://testnet.eos.dfuse.io',
-  'kylin.eos.dfuse.io': 'https://kylin.eos.dfuse.io',
-  'worbli.eos.dfuse.io': 'https://worbli.eos.dfuse.io',
-  'wax.eos.dfuse.io': 'https://mainnet.wax.dfuse.io'
-}
 const testTransaction = async(sidechain, uri, body) => {
   const key = mainnetDfuseApiKey ? await getDfuseJwt() : '';
   let result;
@@ -516,8 +505,9 @@ const testTransaction = async(sidechain, uri, body) => {
   const currentNodeosEndpoint = sidechain ? sidechain.nodeos_endpoint : nodeosMainnetEndpoint;
   const pushEnable = sidechain ? [`DFUSE_PUSH_ENABLE_${sidechain.name.toUpperCase()}`] : mainnetDfuseEnable
   if(pushEnable.toString() === "true") {
-    logger.debug(`Pushing to dFuse ${dfuseEndpoints[network]} with Guarantee ${mainnetDfuseGuarantee}`)
-    result = await fetch(dfuseEndpoints[network] + uri, { 
+    const endpoint = network == 'local' || network == 'localliquidx' ? `http://` + network + uri : `https://` + network + uri
+    logger.debug(`Pushing to dFuse ${endpoint} with Guarantee ${mainnetDfuseGuarantee}`)
+    result = await fetch(endpoint, { 
       method: 'POST', 
       body: JSON.stringify(body),
       headers: {
@@ -550,7 +540,7 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
   if (isServiceRequest) {
     try {
 
-      const ret = await processFn(actionHandlers, body, false, serviceName, handlers);
+      const ret = await processFn(actionHandlers, body, false, serviceName, handlers, true);
       const retTxt = typeof (ret) === "object" ? JSON.stringify(ret) : ret;
       res.send(retTxt);
     }
@@ -580,7 +570,7 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
 
   let trys = 0;
   const garbage = []; 
-  while (trys < 10) {    
+  while (trys < maxReqRetries) {    
     let r = await testTransaction(sidechain, uri, body);
     let resText = await r.text();
     let rText;
@@ -1028,6 +1018,6 @@ module.exports = {
   resolveProviderPackage, eosDSPGateway, paccountPermission,
   encodeName, decodeName, getProviders, getEosForSidechain,
   emitUsage, detectXCallback, getTableRowsSec, getLinkedAccount,
-  parseEvents, pushTransaction, eosDSPEndpoint, dfuseEndpoints,
+  parseEvents, pushTransaction, eosDSPEndpoint,
   loggerHelper, getDfuseJwt, mainnetDfuseEnable
 };

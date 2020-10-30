@@ -30,11 +30,16 @@ var ctrtAuth = artifacts.require(`./${authContractCode}/`);
 const vAccount1 = `vaccount1`;
 const vAccount2 = `vaccount2`;
 
-describe(`LiquidStorage Test`, () => {
+describe(`LiquidStorage Test`, async () => {
   var testcontract;
   const code = "test1";
   let privateKeyWif;
   let dappClient;
+  let storageClient
+  const boxDir = getBoxesDir();
+  const permission = "active";
+  const keys = await getCreateKeys(code);
+  const key = keys.active.privateKey;
 
   const regVAccount = async name => {
     const vaccountClient = await dappClient.service("vaccounts", code);
@@ -55,6 +60,7 @@ describe(`LiquidStorage Test`, () => {
           httpEndpoint: endpoint,
           fetch,
         });
+        storageClient = await dappClient.service("storage", code);
         var deployedStorage = await deployer.deploy(ctrtStorage, code);
         var deployedAuth = await deployer.deploy(ctrtAuth, "authentikeos");
 
@@ -103,12 +109,7 @@ describe(`LiquidStorage Test`, () => {
   it('Upload File (authenticated)', done => {
     (async () => {
       try {
-        const storageClient = await dappClient.service("storage", code);
-        //var authClient = new AuthClient(apiID, 'authentikeos', null, endpoint);
-        const keys = await getCreateKeys(code);
-        const key = keys.active.privateKey;
         const data = Buffer.from("test1234", "utf8");
-        const permission = "active";
         const options = {
           rawLeaves: true
         };
@@ -134,16 +135,7 @@ describe(`LiquidStorage Test`, () => {
   it('Upload File and read', done => {
     (async () => {
       try {
-        const dappClient = await createClient({
-          httpEndpoint: endpoint,
-          fetch
-        });
-        const storageClient = await dappClient.service("storage", code);
-        //var authClient = new AuthClient(apiID, 'authentikeos', null, endpoint);
-        const keys = await getCreateKeys(code);
-        const key = keys.active.privateKey;
         const data = Buffer.from("test1234read", "utf8");
-        const permission = "active";
         const options = {
           rawLeaves: true
         };
@@ -162,7 +154,91 @@ describe(`LiquidStorage Test`, () => {
         const resJson = await res.json();
         assert.equal(
           Buffer.from(resJson.data, 'base64').toString(),
-          'test1234read'
+          data
+        );
+        done();
+      } catch (e) {
+        console.log(e);
+        done(e);
+      }
+    })();
+  })
+
+  it('Upload File and read small photo', done => {
+    (async () => {
+      try {
+        const path = `${boxDir}test/utils/smash.jpeg`;
+        const data = fs.readFileSync(path, { encoding: 'utf8' });
+        const result = await storageClient.upload_public_file(
+          data,
+          key,
+          permission
+        );
+        const res = await fetch('http://localhost:13015/v1/dsp/liquidstorag/get_uri', {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify({ uri: result.uri })
+        });
+        const resJson = await res.json();
+        assert.equal(
+          resJson.uri,
+          "ipfs://zb2rhgvn5m2modL2ECgv1jgt7CSng52xkwwz6N9WtGkVr3wzz"
+        );
+        done();
+      } catch (e) {
+        console.log(e);
+        done(e);
+      }
+    })();
+  })
+
+  it('Upload File and read large photo', done => {
+    (async () => {
+      try {
+        const path = `${boxDir}test/utils/shockley.jpg`;
+        const data = fs.readFileSync(path,{ encoding: 'utf8' });
+        const result = await storageClient.upload_public_file(
+          data,
+          key,
+          permission
+        );
+        const res = await fetch('http://localhost:13015/v1/dsp/liquidstorag/get_uri', {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify({ uri: result.uri })
+        });
+        const resJson = await res.json();
+        assert.equal(
+          resJson.uri,
+          "ipfs://zb2rhcfhwVN5Q9KnmXvWpMnqziSE4ZBFQP4HzfgrciV5Gi7YU"
+        );
+        done();
+      } catch (e) {
+        console.log(e);
+        done(e);
+      }
+    })();
+  })
+
+  it('Upload File and read short mp4 movie', done => {
+    (async () => {
+      try {
+        const path = `${boxDir}test/utils/end-of-z-world.mp4`;
+        const data = fs.readFileSync(path,{ encoding: 'utf8' });
+        const result = await storageClient.upload_public_file(
+          data,
+          key,
+          permission
+        );
+        const res = await fetch('http://localhost:13015/v1/dsp/liquidstorag/get_uri', {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify({ uri: result.uri })
+        });
+        const resJson = await res.json();
+        assert.equal(
+          resJson.uri,
+          "ipfs://zb2rhhsTKUBetitsSFDVTMYqavfa8mSibDeJdKoBTzwzFxaku"
         );
         done();
       } catch (e) {
@@ -175,16 +251,6 @@ describe(`LiquidStorage Test`, () => {
   it('Upload Archive', done => {
     (async () => {
       try {
-        const dappClient = await createClient({
-          httpEndpoint: endpoint,
-          fetch
-        });
-        const storageClient = await dappClient.service("storage", code);
-        //var authClient = new AuthClient(apiID, 'authentikeos', null, endpoint);
-        const keys = await getCreateKeys(code);
-        const key = keys.active.privateKey;
-        const permission = "active";
-        const boxDir = getBoxesDir();
         const path = `${boxDir}test/utils/YourTarBall.tar`;
         const content = fs.readFileSync(path);
         const options = {
@@ -219,11 +285,6 @@ describe(`LiquidStorage Test`, () => {
   it("Upload Files as vaccount user", done => {
     (async () => {
       try {
-        const dappClient = await createClient({
-          httpEndpoint: endpoint,
-          fetch
-        });
-        const storageClient = await dappClient.service("storage", code);
         const data = Buffer.from("test1234", `utf8`);
 
         let result = await testcontract.setstoragecfg(
@@ -304,12 +365,6 @@ describe(`LiquidStorage Test`, () => {
   it("Upload File with wrong signature should fail", done => {
     (async () => {
       try {
-        const dappClient = await createClient({
-          httpEndpoint: endpoint,
-          fetch
-        });
-        const storageClient = await dappClient.service("storage", code);
-
         const data = Buffer.from("test1234", `utf8`);
         // a key that doesn't mach vaccount1's key
         const wrongKey = (await ecc.PrivateKey.fromSeed(`wrongkey`)).toWif();
@@ -342,12 +397,7 @@ describe(`LiquidStorage Test`, () => {
   it("Unpin file", done => {
     (async () => {
       try {
-        const storageClient = await dappClient.service("storage", code);
-        //var authClient = new AuthClient(apiID, 'authentikeos', null, endpoint);
-        const keys = await getCreateKeys(code);
-        const key = keys.active.privateKey;
         const data = Buffer.from("test1234", "utf8");
-        const permission = "active";
         const options = {
           rawLeaves: true
         };

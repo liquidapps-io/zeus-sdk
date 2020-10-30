@@ -10,8 +10,8 @@ const logger = requireBox('log-extensions/helpers/logger');
 const { loadModels } = requireBox('seed-models/tools/models');
 
 const actionHandlers = {
-  'service_request': async (act, simulated) => {
-    let { service, provider, sidechain, meta } = act.event;
+  'service_request': async (act, simulated, serviceName, handlers, isExternal) => {
+    let { service, provider, sidechain, meta, action } = act.event;
     if (!sidechain && meta && meta.sidechain) {
       sidechain = sidechainsDict[meta.sidechain.name];
     }
@@ -28,6 +28,14 @@ const actionHandlers = {
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider, sidechain);
     if (sidechain)
       service = await getLinkedAccount(null, null, service, sidechain.name, true);
+
+    const models = await loadModels('dapp-services');
+    const model = models.find(m => m.contract == service);
+    if(process.env.DSP_ALLOW_API_NON_BROADCAST.toString() === "false" && !model.commands[action].broadcast && isExternal) {
+      logger.warn(`Attempt to broadcast event for non broadcastable request, not processing trx, to enable non-broadcast events, set the DSP_ALLOW_API_NON_BROADCAST env var to true - ${JSON.stringify(act.event)}`);
+      return;
+    }
+  
     var providerData = await resolveProviderData(service, provider, packageid, sidechain);
     if (!providerData) { throw new Error('provider data not found'); }
     if (!act.exception && paccount !== provider)

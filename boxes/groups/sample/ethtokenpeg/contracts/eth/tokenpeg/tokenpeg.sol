@@ -5,7 +5,9 @@ import "../IERC20/IERC20.sol";
 import "../IOwned/IOwned.sol";
 
 contract tokenpeg is link {
-  event Refund(address recipient, uint256 amount, bytes reason);
+  event Refund(uint256 id, address recipient, uint256 amount, bytes reason);
+  event Failure(bytes reason);
+  event Receipt(address recipient, uint256 amount, bytes reason);
 
   IERC20 public tokenContract;
   
@@ -32,12 +34,10 @@ contract tokenpeg is link {
     * @param amount message
     * @param recipient message
     */
-  function sendToken(uint256 amount, bytes32 recipient) public {
+  function sendToken(uint256 amount, uint64 recipient) public {
     tokenContract.destroy(msg.sender, amount);
-    // encode rather than encodePacked, so msg.sender is padded to 32 bytes
-    // we encode msg.sender,amount,recipient
-    bytes memory message = abi.encode(recipient, amount, msg.sender);
-    pushLocalMessage(message);
+    bytes memory message = abi.encodePacked(bool(true), recipient, uint64(amount), msg.sender);
+    pushMessage(message);
   }
 
   /**
@@ -46,12 +46,15 @@ contract tokenpeg is link {
     * @param amount message
     * @param recipient message
     */
-  function mintTokens(uint256 amount, address recipient, bytes memory message) internal {
+  function mintTokens(uint256 amount, address recipient, uint256 id, bytes memory message) internal {
+    bytes memory receipt = message;
     try tokenContract.issue(recipient, amount) {
-      pushLocalReceipt(message, message, true);
-    } catch(bytes memory failureMessage) {
-      pushLocalReceipt(message, failureMessage, false);
+      receipt[0] = 0x01;
+    } catch(bytes memory failureMessage) {      
+      receipt[0] = 0x00;
+      emit Failure(failureMessage);
     }
+    pushReceipt(id, receipt);
   }
 
   /**
@@ -59,44 +62,29 @@ contract tokenpeg is link {
     *
     * @param _message message
     */
-  function onMessage(bytes memory _message) internal override {
-    // deserialize message into sender,amount,recipient then issue
-    uint256 amount;
-    uint256 recipientAsUint256;
-    assembly {
-      // sender is mload(add(_message, 32))
-      amount := mload(add(_message, 64))
-      recipientAsUint256 := mload(add(_message, 96))
-    }
-    address recipient = address(uint160(recipientAsUint256));
-    mintTokens(amount, recipient, _message);
+  function onMessage(uint256 id, bytes memory _message) internal override {
+    //byte 0, status
+    //byte 1-8, eos account
+    //byte 9-17, amount
+    //byte 17-27 address
+    uint256 amount = readMessage(_message, 9, 8);
+    address recipient = address(uint160(readMessage(_message, 17, 20)));
+    mintTokens(amount, recipient, id, _message);
   }
 
   /**
     * @dev on receipt hook, unique implementation per consumer
     *
     * @param _message message
-    * @param _response response
-    * @param _success success
     */
-  function onReceipt(
-    bytes memory _message,
-    bytes memory _response,
-    bool _success
-  ) internal override {
-    if (_success) {
+  function onReceipt(uint256 id, bytes memory _message) internal override {
+    uint256 success = readMessage(_message, 0, 1);
+    if (success > 0) {
       return;
     }
-    // _message was encoded as msg.sender,amount,recipient where recipient
-    // was an eos account
-    uint256 senderAsUint256;
-    uint256 amount;
-    assembly {
-      amount := mload(add(_message, 64))
-      senderAsUint256 := mload(add(_message, 96))
-    }
-    address sender = address(uint160(senderAsUint256));
+    uint256 amount = readMessage(_message, 9, 8);
+    address sender = address(uint160(readMessage(_message, 17, 20)));
     tokenContract.issue(sender, amount);
-    emit Refund(sender, amount, _response);
+    emit Refund(id, sender, amount, _message);
   }
 }

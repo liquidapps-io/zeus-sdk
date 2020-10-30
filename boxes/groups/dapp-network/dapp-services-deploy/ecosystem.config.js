@@ -90,6 +90,8 @@ const DSP_ACCOUNT = globalEnv.DSP_ACCOUNT;
 const DSP_PRIVATE_KEY = globalEnv.DSP_PRIVATE_KEY;
 const DATABASE_URL = globalEnv.DATABASE_URL;
 const DSP_ACCOUNT_PERMISSIONS = globalEnv.DSP_ACCOUNT_PERMISSIONS || 'active';
+const DSP_ALLOW_API_NON_BROADCAST = globalEnv.DSP_ALLOW_API_NON_BROADCAST || false;
+const DSP_MAX_REQUEST_RETRIES = globalEnv.DSP_MAX_REQUEST_RETRIES || 50;
 const DATABASE_NODE_ENV = globalEnv.DATABASE_NODE_ENV || 'production';
 const DATABASE_TIMEOUT = globalEnv.DATABASE_TIMEOUT || 10000;
 
@@ -123,10 +125,12 @@ const DFUSE_PUSH_GUARANTEE = globalEnv.DFUSE_PUSH_GUARANTEE || 'in-block';
 const DFUSE_ENABLE = globalEnv.DFUSE_ENABLE || false;
 const DFUSE_API_KEY = globalEnv.DFUSE_API_KEY;
 const DFUSE_NETWORK = globalEnv.DFUSE_NETWORK || 'mainnet';
+const DFUSE_AUTHORIZATION = globalEnv.DFUSE_AUTHORIZATION || false;
 const ETH_PRIVATE_KEY = globalEnv.ETH_PRIVATE_KEY || '';
 const ETH_ENDPOINT = globalEnv.ETH_ENDPOINT || '';
 const ETH_GAS_PRICE = globalEnv.ETH_GAS_PRICE || '2000000';
 const ETH_GAS_LIMIT = globalEnv.ETH_GAS_LIMIT || '500000';
+const ETH_KEYS_PER_CONSUMER = globalEnv.ETH_KEYS_PER_CONSUMER || '';
 const WEB3_PROVIDER = ETH_ENDPOINT;
 
 // Assert .env
@@ -166,6 +170,8 @@ let commonEnv = {
   IPFS_PROTOCOL,
   DSP_ACCOUNT,
   DSP_ACCOUNT_PERMISSIONS,
+  DSP_ALLOW_API_NON_BROADCAST,
+  DSP_MAX_REQUEST_RETRIES,
   DSP_PRIVATE_KEY,
   DSP_PORT,
   DSP_CONSUMER_PAYS,
@@ -177,6 +183,7 @@ let commonEnv = {
   DFUSE_PUSH_GUARANTEE,
   DFUSE_API_KEY,
   DFUSE_NETWORK,
+  DFUSE_AUTHORIZATION,
   DEBUG: globalEnv.DFUSE_DEBUG ? "dfuse:*" : "",
   ETH_PRIVATE_KEY,
   ETH_ENDPOINT,
@@ -184,6 +191,12 @@ let commonEnv = {
   ETH_GAS_PRICE,
   ETH_GAS_LIMIT
 };
+
+if(ETH_KEYS_PER_CONSUMER) {
+  ETH_KEYS_PER_CONSUMER.split(',').forEach(item => {
+    Object.assign(commonEnv, JSON.parse(item));
+  })
+}
 
 const createDSPSidechainServices = (sidechain) => {
   // Assert .env

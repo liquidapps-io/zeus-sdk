@@ -168,7 +168,10 @@ const getIpfsFileAsBuffer = async (ipfsUriOrHash) => {
 
     if (!response.ok) {
         throw new Error(
-            `Could not fetch file "${ipfsUriOrHash}..." from IPFS. ${response.statusText}`
+            `Could not fetch file "${this.getIpfsHash(ipfsUriOrHash).slice(
+                0,
+                16
+            )}..." from IPFS. ${response.statusText}`
         );
     }
 

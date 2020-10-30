@@ -1,5 +1,5 @@
 {
-    "version": "1.0.1",
+    "version": "1.0.2",
     "ignore": [
       "README.md"
     ],
@@ -7,7 +7,8 @@
       "test linkconsumer": "zeus compile && zeus test linkconsumer"
     },
     "dependencies": {
-      "liquidx": "^1.0.0"
+      "liquidx": "^1.0.0",
+      "eth-extensions": "^1.0.0"
     },
     "install": {
       "contracts": {

@@ -2,10 +2,10 @@
 #define CONTRACT_NAME() linkconsumer
 
 #undef MESSAGE_RECEIVED_HOOK
-#define MESSAGE_RECEIVED_HOOK(message) emit_released(message);
+#define MESSAGE_RECEIVED_HOOK(message) emit_released(message)
 
 #undef MESSAGE_RECEIPT_HOOK
-#define MESSAGE_RECEIPT_HOOK(receipt) emit_receipt(receipt);
+#define MESSAGE_RECEIPT_HOOK(receipt) emit_receipt(receipt)
 
 CONTRACT_START()
 
@@ -49,8 +49,8 @@ void enable(bool processing_enabled)
     //Add additional enabling logic as neccessary
 }
 
-vector<char> emit_released(message_payload message) {
-  auto current_release = eosio::unpack<parcel_t>(message.data);
+vector<char> emit_released(vector<char> message) {
+  auto current_release = eosio::unpack<parcel_t>(message);
   parcels_table parcels(_self,_self.value);
   auto this_parcel = parcels.find(current_release.id);
   check(this_parcel == parcels.end(),"that id already exists");
@@ -64,8 +64,8 @@ vector<char> emit_released(message_payload message) {
   return data;
 } 
 
-void emit_receipt(message_receipt receipt) {  
-    auto current_release = eosio::unpack<parcel_t>(receipt.response);
+void emit_receipt(vector<char> receipt) {  
+    auto current_release = eosio::unpack<parcel_t>(receipt);
     parcels_table parcels(_self,_self.value);
     auto this_parcel = parcels.find(current_release.id);
     check(this_parcel != parcels.end(),"that id does not exists");

@@ -75,6 +75,8 @@ module.exports = {
     console.log(emojMap.zap + 'Running tests');
     try {
       createDir('test', 'test');
+      // copy unit testing files over to root test folder
+      await execPromise(`cp -rf zeus_boxes/test test`)
       const preNpmCommand = process.env.NPM || 'npm';
       const npmCommand = process.env.CI === 'true' ? 'run test-ci' : 'test';
       const subContractCommand = `-- zeus_boxes/test/${args.contract}.spec.js`;

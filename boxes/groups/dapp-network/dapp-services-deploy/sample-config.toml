@@ -13,6 +13,8 @@ services_enabled = "ipfs,vaccounts,oracle,cron,auth,storage"
 # however, if they don't have the correct permission setup, everything will fail
 # review consumer pays documentation prior to setting this to true
 consumer_pays = false
+allow_api_non_broadcast = false # enable to use the replay script or the cleanup script, be sure to disable afterwards to prevent gaming the endpoint
+max_request_retries = 50 # max retries to fetch an oracle request or ipfs warmup, or any other blocking DSP service action
 
 [database]
 # url syntax: postgres://user:pass@example.com:5432/dbname
@@ -57,6 +59,7 @@ push_guarantee = "in-block" # handoff:1, handoffs:2, handoffs:9, irreversible
 enable = false # enables dfuse demux, not related to push_enable
 api_key = "" # long-lived API key, see https://docs.dfuse.io/guides/core-concepts/authentication/, e.g. (server_abcdef123123123000000000000000000)
 debug = false # enable web socket debug messages in pm2 logs
+authorization = false # if using community edition of dfuse, set to true so dfuse client does not specify API key and authorization:false
 
 [ipfs]
 protocol = "http"
@@ -66,8 +69,9 @@ port = 5001
 [eth] # if using LiquidLink (link) service 
 private_key = ""
 endpoint = ""
-eth_gas_price = '2000000'
-eth_gas_limit = '500000'
+gas_price = '2000000'
+gas_limit = '500000'
+keys_per_consumer = '{"ETH_PRIVATE_KEY_CONSUMER1":"PRIVATE_KEY_HERE"},{"ETH_PRIVATE_KEY_CONSUMER2":"PRIVATE_KEY_HERE"}'
 
 # sidechain section, if no sidechains, leave as [sidechains], can add additional sidechains with [sidechains.newchain] ...
 [sidechains]
