@@ -18,6 +18,7 @@ const url = `${endpoint}/event`;
 if(!token) throw new Error(`must set DFUSE_API_KEY`);
 if(!endpoint) throw new Error(`must set DSP_ENDPOINT`);
 if(!contractAccount) throw new Error(`must set CONTRACT`);
+let res;
 
 const handleTrace = async(action_trace) => {
   res.push(action_trace);
@@ -142,15 +143,15 @@ function chunk(arr, len) {
 
   return chunks;
 }
-var res = [];
+var resArr = [];
 var tempToken = null;
 async function run (lower_bound) {
   const response = await rpc.auth_issue(token);
   tempToken = response.token;
   rpc = new JsonRpc(`https://${dfuse_endpoint}`, { fetch, token: tempToken });
-
   while (true) {
     var found = false;
+
     await getTransactions(async trx => {
       const curLastBlock = parseInt(trx.execution_trace.block_num);
       if (curLastBlock >= lastBlock) { lastBlock = curLastBlock + 1; }
