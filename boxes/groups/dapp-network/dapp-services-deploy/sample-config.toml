@@ -16,6 +16,9 @@ consumer_pays = false
 allow_api_non_broadcast = false # enable to use the replay script or the cleanup script, be sure to disable afterwards to prevent gaming the endpoint
 max_request_retries = 50 # max retries to fetch an oracle request or ipfs warmup, or any other blocking DSP service action
 
+# LiquidStorage params
+liquidstorage_upload_limit = "10mb" # upload limit for LiquidStorage
+
 [database]
 # url syntax: postgres://user:pass@example.com:5432/dbname
 url = "postgres://user:pass@example.com:5432/dbname"

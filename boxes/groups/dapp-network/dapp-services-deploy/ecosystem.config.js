@@ -104,6 +104,9 @@ const NODEOS_PORT = globalEnv.NODEOS_PORT || 8888;
 const NODEOS_SECURED = globalEnv.NODEOS_SECURED || false;
 const NODEOS_LATEST = globalEnv.NODEOS_LATEST || true;
 
+// Liquidstorage
+const DSP_LIQUIDSTORAGE_UPLOAD_LIMIT = globalEnv.DSP_LIQUIDSTORAGE_UPLOAD_LIMIT || "10mb";
+
 // Optional .env
 const WEBHOOK_DAPP_PORT = globalEnv.WEBHOOK_DAPP_PORT || 8812;
 const DEMUX_BACKEND = globalEnv.DEMUX_BACKEND || 'state_history_plugin';
