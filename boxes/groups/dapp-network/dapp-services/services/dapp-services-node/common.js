@@ -473,9 +473,11 @@ const handleAction = async (actionHandlers, action, simulated, serviceName, hand
 const rollBack = async (garbage, actionHandlers, serviceName, handlers) => {
   return await Promise.all(garbage.map(async rollbackAction => {
     try {
-      return processFn(actionHandlers, rollbackAction, true, serviceName, handlers);
+      return await processFn(actionHandlers, rollbackAction, true, serviceName, handlers);
     }
-    catch (e) { }
+    catch (e) { 
+      logger.error(e)
+     }
   }));
 };
 const notFound = (res, message = 'bad endpoint') => {
