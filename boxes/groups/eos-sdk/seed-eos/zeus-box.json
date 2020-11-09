@@ -8,6 +8,7 @@
   },
   "install": {
     "npm": {
+      "async/queue": true,
       "mkdirp": true,
       "which": true
     },

@@ -9,7 +9,7 @@ import * as provider_info from "./types/dsp/provider_info";
 import { Fetch } from "./http-client";
 import { EosioClient } from "./eosio-client";
 import * as names from "./types/names";
-import {getTableBoundsForName} from './dapp-common'
+import {getTableBoundsForName, pushGuaranteeQue} from './dapp-common'
 
 /**
  * Dapp Network Client
@@ -349,6 +349,12 @@ export class DappClient extends EosioClient {
         return this.get_table_accountext_by_account_service_provider_logic( account, service, provider );
     }
 
+    public push_action( endpoint: string, account: string, actor:string, action: string, data: object, private_key: string, options: {
+        push_guarantee?: string
+    } = {} ) {
+        return this.push_action_hander( endpoint, account, actor, action, data, private_key, options);
+    }
+
     public get_package_info = async ( contract: string, service: string) => {
         const provider_info: provider_info.Package = {
             api_endpoint: "",
@@ -432,5 +438,11 @@ export class DappClient extends EosioClient {
         options.lower_bound = `${`0`.repeat(16)}${accountHexLE}${serviceBounds}${providerBounds.lower_bound.match(/.{2}/g).reverse().join('')}`;
         options.upper_bound = `${`0`.repeat(16)}${accountHexLE}${serviceBounds}${providerBounds.upper_bound.match(/.{2}/g).reverse().join('')}`;
         return this.get_table_rows<Accountext>( this.dappservices, names.DAPP, "accountext", options );
+    }
+
+    private push_action_hander(endpoint: string, account: string, actor:string, action: string, data: object, private_key: string, options: {
+        push_guarantee?: string
+    } = {}) {
+        pushGuaranteeQue.push({endpoint, account, actor, action, data, private_key, push_guarantee: options.push_guarantee});
     }
 }
