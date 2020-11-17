@@ -19,10 +19,10 @@ module.exports = {
 
             fs.copyFileSync(path.join(__dirname, '../resources/sample.gitignore'), './.gitignore');
 
-            const goIpfs = {
-                "version": "v0.4.20",
-                "distUrl": "https://s3.us-east-2.amazonaws.com/liquidapps.artifacts"
-            }
+            // const goIpfs = {
+            //     "version": "v0.4.20",
+            //     "distUrl": "https://s3.us-east-2.amazonaws.com/liquidapps.artifacts"
+            // }
             const dependencies = {
                 "is-wsl": "^2.0.0",
                 "big-integer": "^1.6.36",
@@ -30,7 +30,6 @@ module.exports = {
                 "bytebuffer": "^5.0.1",
                 "chalk": "^2.4.1",
                 "dotenv": "^6.1.0",
-                "go-ipfs-dep": "^0.4.20",
                 "node-emoji": "^1.8.1",
                 "nodemon": "^1.18.5",
                 "prompt": "^1.0.0",
@@ -51,7 +50,7 @@ module.exports = {
             } else {
                 packageJson.dependencies = dependencies;
             }
-            packageJson["go-ipfs"] = goIpfs;
+            // packageJson["go-ipfs"] = goIpfs;
             fs.writeFileSync(`./package.json`, JSON.stringify(packageJson, null, 4), function (err) { if (err) throw err; });
 
             // default zeus-box.json options
