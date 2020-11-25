@@ -8,7 +8,6 @@
   },
   "install": {
     "npm": {
-      "async/queue": true,
       "eosio-push-guarantee": true,
       "mkdirp": true,
       "which": true
