@@ -1,6 +1,6 @@
 {
   "name": "@liquidapps/dsp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -33,6 +33,7 @@
     "dotenv": "^6.1.0",
     "eosjs-ecc": "^4.0.4",
     "eosjs": "^20.0.0",
+    "eosio-push-guarantee": "^1.3.21",
     "express": "^4.16.4",
     "fcbuffer": "^2.2.2",
     "go-ipfs-dep": "^0.4.19",

@@ -212,12 +212,10 @@ const uploadContract = async (args, name, contract, sidechain) => {
   }
   catch (e) {
     var eobj = e.json;
-
     if (eobj && eobj.code == 500 && eobj.error.name == 'set_exact_code') {
-
+      
     }
     else {
-
       throw e;
     }
   }

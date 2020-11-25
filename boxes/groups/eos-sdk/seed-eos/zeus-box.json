@@ -1,5 +1,5 @@
 {
-  "version": "1.0.2",
+  "version": "1.0.3",
   "ignore": [
     "README.md"
   ],
@@ -9,6 +9,7 @@
   "install": {
     "npm": {
       "async/queue": true,
+      "eosio-push-guarantee": true,
       "mkdirp": true,
       "which": true
     },

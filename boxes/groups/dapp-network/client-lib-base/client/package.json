@@ -1,6 +1,6 @@
 {
   "name": "@liquidapps/dapp-client",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "JS library for interacting with DAPP network services.",
   "main": "dist/src/dapp-client-lib.js",
   "types": "dist/src/dapp-client-lib.d.ts",

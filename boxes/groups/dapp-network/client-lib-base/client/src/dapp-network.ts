@@ -9,7 +9,8 @@ import * as provider_info from "./types/dsp/provider_info";
 import { Fetch } from "./http-client";
 import { EosioClient } from "./eosio-client";
 import * as names from "./types/names";
-import {getTableBoundsForName, pushGuaranteeQue} from './dapp-common'
+import {getTableBoundsForName} from './dapp-common'
+import { PushGuarantee } from "eosio-push-guarantee";
 
 /**
  * Dapp Network Client
@@ -349,10 +350,14 @@ export class DappClient extends EosioClient {
         return this.get_table_accountext_by_account_service_provider_logic( account, service, provider );
     }
 
-    public push_action( endpoint: string, account: string, actor:string, action: string, data: object, private_key: string, options: {
-        push_guarantee?: string
+    public push_action( rpc: any, serializedTrx: any, options: {
+        pushGuarantee?: string, // push guarantee level for trx
+        readRetries?: number, // amount of times to try and verify trx before retrying trx
+        pushRetries?: number, // amount of times to retry trx before failing
+        backoff?: number, // time in ms between readRetries
+        backoffExponent?: number // multiplier backoff time for backoff (if 500ms and 1.1 multiplier then 550ms backoff next time, etc)
     } = {} ) {
-        return this.push_action_hander( endpoint, account, actor, action, data, private_key, options);
+        return this.push_action_hander( rpc, serializedTrx, options);
     }
 
     public get_package_info = async ( contract: string, service: string) => {
@@ -440,9 +445,14 @@ export class DappClient extends EosioClient {
         return this.get_table_rows<Accountext>( this.dappservices, names.DAPP, "accountext", options );
     }
 
-    private push_action_hander(endpoint: string, account: string, actor:string, action: string, data: object, private_key: string, options: {
-        push_guarantee?: string
+    private push_action_hander(rpc: any, serializedTrx: any, options: {
+        pushGuarantee?: string, // push guarantee level for trx
+        readRetries?: number, // amount of times to try and verify trx before retrying trx
+        pushRetries?: number, // amount of times to retry trx before failing
+        backoff?: number, // time in ms between readRetries
+        backoffExponent?: number // multiplier backoff time for backoff (if 500ms and 1.1 multiplier then 550ms backoff next time, etc)
     } = {}) {
-        pushGuaranteeQue.push({endpoint, account, actor, action, data, private_key, push_guarantee: options.push_guarantee});
+        const push_guarantee_rpc = new PushGuarantee(rpc, options);
+        return push_guarantee_rpc.push_transaction(serializedTrx, options);
     }
 }

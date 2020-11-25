@@ -19,6 +19,33 @@ max_request_retries = 50 # max retries to fetch an oracle request or ipfs warmup
 # LiquidStorage params
 liquidstorage_upload_limit = "10mb" # upload limit for LiquidStorage
 
+# Push push guarantee
+push_guarantee = 'handoffs:2' # transaction guarantee (none, in-block, handoffs:1, handoffs:2, handoffs:3, irreversible)
+read_retries = 20 # number of times to attempt to verify transaction has satisfied push guarantee
+push_retries = 3 # number of times to retry pushing the transaction
+backoff_exponent = 1 # backoff multiplier for exponential backoff to prevent rate limiting
+backoff = 500 # time between checking status of transaction
+
+# push_guarantee = 'in-block'
+# read_retries = 5
+# push_retries = 3
+# backoff_exponent = 1
+# backoff = 500
+
+# push_guarantee = 'handoffs:1|2|3'
+# read_retries = 10 | 20 | 30
+# push_retries = 3
+# backoff_exponent = 1
+# backoff = 500
+
+# push_guarantee = 'irreversible'
+# read_retries = 150
+# push_retries = 3
+# backoff_exponent = 1
+# backoff = 500
+
+
+
 [database]
 # url syntax: postgres://user:pass@example.com:5432/dbname
 url = "postgres://user:pass@example.com:5432/dbname"
