@@ -1,5 +1,5 @@
 {
-  "version": "1.0.2",
+  "version": "1.0.3",
   "ignore": [
     "README.md"
   ],
@@ -11,10 +11,7 @@
     "templates-emptycontract-eos-cpp": "^1.0.0",
     "frontend-react": "^1.0.0"
   },
-  "hooks": {},
-  "install": {
-    "npm": {
-      "js-yaml": true
-    }
+  "hooks": {
+    "post-unpack": "npm install"
   }
 }
