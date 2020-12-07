@@ -331,7 +331,6 @@ async function deployConsumerContract(code) {
   return { testcontract, deployedContract };
 }
 
-
 describe(`DAPP Services Provider & Packages Tests`, () => {
   const invokeService = async (code, testcontract) => {
     var keys = await getCreateKeys(code);
@@ -911,11 +910,9 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         let totalStake = Number(table.rows[0].staked.replace(" DAPP", ""));
         let prevInflation = convertInflation(table.rows[0].inflation_per_block)
         let prevAvgInflation = parseFloat(prevInflation.toFixed(2));
-        console.log(`Starting inflation: ${prevInflation} with ${totalStake} staked`);
 
         let expectedInflation = ((prevInflation * totalStake) + 500000.0) / (totalStake + 100000.0);
         let expectedAvgInflation = parseFloat(expectedInflation.toFixed(2));
-        console.log(`Expected inflation: ${expectedInflation}`);
 
         var selectedPackage = 'inflate5';
         var testContractAccount = 'whale1';
@@ -936,12 +933,10 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         let updatedStake = Number(table.rows[0].staked.replace(" DAPP", ""));
         let nextInflation = convertInflation(table.rows[0].inflation_per_block);
         let nextAvgInflation = parseFloat(nextInflation.toFixed(2));
-        console.log(`Next inflation: ${nextInflation} with ${updatedStake} staked`);
         assert.equal(nextAvgInflation, expectedAvgInflation, "inflation did not update correctly");
 
         expectedInflation = ((nextInflation * updatedStake) - 250000.0) / (updatedStake - 50000.0);
         expectedAvgInflation = parseFloat(expectedInflation.toFixed(2));
-        console.log(`Expected inflation: ${expectedInflation}`);
 
         await unstake({ deployedContract, selectedPackage, amount: '50000.0000' });
         await delaySec(package_period + 1);
@@ -958,7 +953,6 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         updatedStake = Number(table.rows[0].staked.replace(" DAPP", ""));
         nextInflation = convertInflation(table.rows[0].inflation_per_block);
         nextAvgInflation = parseFloat(nextInflation.toFixed(2));
-        console.log(`Next inflation: ${nextInflation} with ${updatedStake} staked`);
         assert.equal(nextAvgInflation, expectedAvgInflation, "inflation did not update correctly");
 
         await unstake({ deployedContract, selectedPackage, amount: '50000.0000' });
@@ -976,7 +970,6 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         updatedStake = Number(table.rows[0].staked.replace(" DAPP", ""));
         nextInflation = convertInflation(table.rows[0].inflation_per_block);
         nextAvgInflation = parseFloat(nextInflation.toFixed(2));
-        console.log(`Next inflation: ${nextInflation} with ${updatedStake} staked`);
         assert.equal(nextAvgInflation, prevAvgInflation, "inflation did not update correctly");
 
         done();
@@ -1017,6 +1010,28 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         let third = Number(table[0].quota.replace(" QUOTA", ""));
         assert(third <= (second - 0.0005), "quota must decrease by 5");
 
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it('Max supply equals supply', done => {
+    (async () => {
+      try {
+        var testContractAccount = 'testsupply1';
+        var { deployedContract } = await deployConsumerContract(testContractAccount);
+        let table = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: 'DAPP',
+          table: 'stat',
+          json: true,
+        });
+        let maxSupply = table.rows[0].max_supply;
+        let supply = table.rows[0].supply;
+        assert((supply === maxSupply), 'supply should equal max supply');
         done();
       }
       catch (e) {

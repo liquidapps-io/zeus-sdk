@@ -441,8 +441,6 @@ public:
 
     eosio::check(quantity.symbol == st.supply.symbol,
                  "symbol precision mismatch");
-    eosio::check(quantity.amount <= st.max_supply.amount - st.supply.amount,
-                 "quantity exceeds available supply");
 
     statstable.modify(st, eosio::same_payer,
                       [&](auto &s) { s.supply += quantity; });
@@ -839,7 +837,6 @@ public:
         .send();
   }
 
-
   TABLE lastlog {
     std::vector<usage_t> usage_reports; // owner account on mainnet
   };
@@ -1140,8 +1137,8 @@ private:
                       });
   }
 
-
   void applyInflation() {
+    updateMaxSupply();
     auto sym = DAPPSERVICES_SYMBOL;
     stats_ext statsexts(_self, sym.code().raw());
     stats statstable(_self, sym.code().raw());
@@ -1185,6 +1182,7 @@ private:
                       [&](auto &s) {
                         s.last_inflation_ts = current_time_ms;
                       });
+    updateMaxSupply();
   }
   uint64_t getUnstakeRemaining(name payer, name provider, name service) {
 
@@ -1330,9 +1328,6 @@ private:
 
     eosio::check(quantity.symbol == st.supply.symbol,
                  "symbol precision mismatch");
-    eosio::check(quantity.amount <= st.max_supply.amount - st.supply.amount,
-                 "quantity exceeds available supply");
-
 
     rewards_t rewards(_self, provider.value);
     auto reward = rewards.find(DAPPSERVICES_SYMBOL.code().raw());
@@ -1435,6 +1430,17 @@ private:
     eosio::check(existing != statstable.end(),
                  "token with symbol does not exist");
     return *existing;
+  }
+
+  void updateMaxSupply() {
+    auto sym = DAPPSERVICES_SYMBOL;
+    stats statstable(_self, sym.code().raw());
+    auto existing = statstable.find(sym.code().raw());
+    if (existing->max_supply != existing->supply) {
+      statstable.modify(existing, _self, [&](auto &s) {
+        s.max_supply = s.supply;
+      });
+    }
   }
 };
 
