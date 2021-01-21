@@ -1,6 +1,6 @@
 {
   "name": "liquidchess",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "dependencies": {
     "@liquidapps/dapp-client": "^2.0.0",

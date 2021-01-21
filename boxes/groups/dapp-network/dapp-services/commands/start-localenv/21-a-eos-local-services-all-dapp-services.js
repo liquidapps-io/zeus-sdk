@@ -52,7 +52,7 @@ module.exports = async (args) => {
   if (args.creator !== 'eosio') { return; } // only local
   var models = await loadModels('dapp-services');
   const gatewayPort = args.gatewayPort || '13015';
-  var deployedServices = await deployer.deploy(servicesC, servicescontract);
+  await deployer.deploy(servicesC, servicescontract);
   for (var i = 0; i < models.length; i++) {
     var serviceModel = models[i];
     var testProviders = testProvidersList;

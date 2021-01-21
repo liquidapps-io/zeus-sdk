@@ -10,7 +10,9 @@
   "install": {
     "npm-in-dirs": {
       "client": {
-        "npm": {}
+        "npm": {
+          "eosio-push-guarantee": true
+        }
       }
     }
   }

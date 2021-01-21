@@ -473,9 +473,11 @@ const handleAction = async (actionHandlers, action, simulated, serviceName, hand
 const rollBack = async (garbage, actionHandlers, serviceName, handlers) => {
   return await Promise.all(garbage.map(async rollbackAction => {
     try {
-      return processFn(actionHandlers, rollbackAction, true, serviceName, handlers);
+      return await processFn(actionHandlers, rollbackAction, true, serviceName, handlers);
     }
-    catch (e) { }
+    catch (e) { 
+      logger.error(e)
+     }
   }));
 };
 const notFound = (res, message = 'bad endpoint') => {
@@ -735,9 +737,11 @@ const genNode = async (actionHandlers, port, serviceName, handlers, abi, sidecha
   return app;
 };
 const genApp = () => {
+  const limit = process.env.DSP_LIQUIDSTORAGE_UPLOAD_LIMIT || "10mb";
   const app = express();
   app.use(cors());
-  app.use(bodyParser.json());
+  app.use(bodyParser.json({ limit }));
+  app.use(bodyParser.urlencoded({ limit, extended: true, parameterLimit: 10000 }));
   return app;
 };
 const fullabi = (abi) => {

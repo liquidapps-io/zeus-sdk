@@ -60,7 +60,7 @@ const saveToIPFS = async (data, rawLeaves = true) => {
 
 const saveDirToIPFS = async (files) => {
     // console.log('writing data: ' +data);
-    const filesAdded = await ipfs.add(files, { wrapWithDirectory: true });
+    const filesAdded = await ipfs.files.add(files, { wrapWithDirectory: true });
     // last added "file" is that of wrapping dir
     var theHash = filesAdded[filesAdded.length - 1].hash;
     const resUri = `ipfs://${theHash}`;

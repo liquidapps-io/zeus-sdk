@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "ignore": [
     "README.md"
   ],
@@ -10,9 +10,9 @@
   },
   "install": {
     "npm": {
+      "go-ipfs": true,
       "ipfs": true,
-      "go-ipfs-dep": true,
-      "ipfsd-ctl": "^0.47.4"
+      "ipfsd-ctl": "4.1.1"
     }
   }
 }
