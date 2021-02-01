@@ -1,6 +1,6 @@
 
 const endpoints = {
-    'mainnet': 'http://api.eossweden.se',
+    'mainnet': process.env.NODEOS_MAINNET_ENDPOINT || 'http://localhost:8888',
     'bos': 'https://api.bos.eostribe.io',
     'telos': 'https://api.telos.eostribe.io',
     'kylin': 'https://kylin.eosn.io',

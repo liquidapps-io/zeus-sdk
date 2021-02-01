@@ -139,6 +139,7 @@ const ETH_ENDPOINT = globalEnv.ETH_ENDPOINT || '';
 const ETH_GAS_PRICE = globalEnv.ETH_GAS_PRICE || '2000000';
 const ETH_GAS_LIMIT = globalEnv.ETH_GAS_LIMIT || '500000';
 const ETH_KEYS_PER_CONSUMER = globalEnv.ETH_KEYS_PER_CONSUMER || '';
+const ETH_GAS_PRICE_MULT = Number(globalEnv.ETH_KEYS_PER_CONSUMER) || 1.2;
 const WEB3_PROVIDER = ETH_ENDPOINT;
 
 // Assert .env
@@ -203,7 +204,8 @@ let commonEnv = {
   ETH_ENDPOINT,
   WEB3_PROVIDER,
   ETH_GAS_PRICE,
-  ETH_GAS_LIMIT
+  ETH_GAS_LIMIT,
+  ETH_GAS_PRICE_MULT
 };
 
 if(ETH_KEYS_PER_CONSUMER) {

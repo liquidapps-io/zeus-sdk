@@ -14,7 +14,7 @@ function getEosWrapper(config) {
         sign: true,
         broadcast: true,
         blocksBehind: 3,
-        pushGuarantee: process.env.DSP_PUSH_GUARANTEE || 'in-block',
+        pushGuarantee: process.env.DSP_PUSH_GUARANTEE || 'none',
         readRetries: process.env.DSP_READ_RETRIES ||  10,
         pushRetries: process.env.DSP_PUSH_RETRIES ||  3,
         backoffExponent: process.env.DSP_BACKOFF_EXPONENT ||  1.5,
