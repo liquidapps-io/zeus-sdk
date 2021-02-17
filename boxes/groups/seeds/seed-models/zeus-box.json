@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "ignore": [
     "README.md"
   ],
@@ -10,5 +10,8 @@
     "npm": {
       "js-yaml": true
     }
+  },
+  "hooks": {
+    "post-unpack": "npm install js-yaml"
   }
 }
