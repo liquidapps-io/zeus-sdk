@@ -741,7 +741,7 @@ const genApp = () => {
   const app = express();
   app.use(cors());
   app.use(bodyParser.json({ limit }));
-  app.use(bodyParser.urlencoded({ limit, extended: true, parameterLimit: 10000 }));
+  // app.use(bodyParser.urlencoded({ limit, extended: true, parameterLimit: 10000 }));
   return app;
 };
 const fullabi = (abi) => {
