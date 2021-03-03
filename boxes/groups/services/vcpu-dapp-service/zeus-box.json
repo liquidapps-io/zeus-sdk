@@ -11,6 +11,7 @@
   "install": {
     "npm": {
       "assemblyscript": "github:AssemblyScript/assemblyscript",
+      "esm": true,
       "node-fetch": "^2.6.0"
     },
     "contracts": {
