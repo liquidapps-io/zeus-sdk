@@ -84,7 +84,6 @@ describe(`Sign DAPP Service Test Contract`, () => {
       try {
         const token = await deployErc20Token(ethMultiSig.address, 100);
         const prevBalance = (await token.balanceOf(randomEthAddress)).toString();
-        console.log(prevBalance)
         await testcontract.sendtoken({
           multisig_address: ethMultiSig.address,
           token_address: token.address,
@@ -97,7 +96,6 @@ describe(`Sign DAPP Service Test Contract`, () => {
         });
         await sleep(2000)
         const postBalance = (await token.balanceOf(randomEthAddress)).toString();
-        console.log(postBalance)
         assert.equal(postBalance - prevBalance, 1, 'eth address balance should be 1');
         done();
       }

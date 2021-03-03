@@ -11,11 +11,14 @@ const querystring = require("querystring");
 
 const contractAccount = process.env.CONTRACT || "";
 const endpoint = process.env.DSP_ENDPOINT || "";
-let lastBlock = process.env.LAST_BLOCK || 35000000;
+let lastBlock = process.env.LAST_BLOCK || 0;
+const delay = ms => new Promise(res => setTimeout(res, ms));
+const delayTimeInMs = process.env.HYPERION_DELAY_PER_FETCH || 5000;
 
 const hyperionEndpoint =
   process.env.HYPERION_ENDPOINT || "https://api-wax.maltablock.org";
 const sidechainName = process.env.SIDECHAIN;
+const sort = process.env.HYPERION_SORT_DIRECTION || 'asc'
 const url = `${endpoint}/event`;
 if (!endpoint) throw new Error(`must set DSP_ENDPOINT`);
 if (!contractAccount) throw new Error(`must set CONTRACT`);
@@ -133,19 +136,20 @@ async function run() {
   const LIMIT = 100;
 
   while (true) {
-    const qs = querystring.encode({
+    let qs = querystring.encode({
       code: contractAccount,
       scope: contractAccount,
       table: `ipfsentry`,
+      sort,
       skip,
-      limit: LIMIT,
+      limit: LIMIT
     });
     const url = `${hyperionEndpoint}/v2/history/get_deltas?${qs}`;
-    console.log(`fetching `, url);
+    await delay(delayTimeInMs);
     const response = await fetch(url).then((resp) => resp.json());
     const commits = response.deltas;
+    lastBlock = commits[commits.length-1].block_num-1;
     skip += commits.length;
-
     const chunks = chunk(commits, 5);
     for (const chunk of chunks) {
       await Promise.all(chunk.map(c => {

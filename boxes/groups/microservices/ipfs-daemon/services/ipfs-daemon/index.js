@@ -9,7 +9,7 @@ const Ctl = require('ipfsd-ctl')
 
 function error(e) {
   console.error(e);
-  fs.writeFileSync('.out.txt', e);
+  fs.writeFileSync('./logs/ipfs.log', e);
   process.exit(1);
 }
 
@@ -30,7 +30,7 @@ async function run() {
   ipfsd.api.idAsync = promisify(ipfsd.api.id);
   const id = await ipfsd.api.id()
   const appWebHookListener = genApp();
-  fs.writeFileSync('.out.txt', JSON.stringify(ipfsd));
+  fs.writeFileSync('./logs/ipfs.log', JSON.stringify(ipfsd));
   appWebHookListener.listen(process.env.PORT || 3199, () => console.log(`ipfs daemon controller listening on port ${process.env.PORT || 3199}!`));
 }
 

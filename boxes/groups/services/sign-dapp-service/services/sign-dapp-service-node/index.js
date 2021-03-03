@@ -6,6 +6,35 @@ const os = require('os');
 const consts = require('./consts');
 const { getWeb3 } = require('./helpers/ethereum/web3Provider');
 const { getNonce, incrementNonce } = require('./helpers/ethereum/nonce');
+const async = require('async');
+let totalTrx = 0;
+const delay = ms => new Promise(res => setTimeout(res, ms));
+const maxEthNodeTrxLimit = 64;
+
+const q = async.queue(async (signedTx, callback) => {
+  totalTrx++;
+  while( totalTrx >= maxEthNodeTrxLimit ) {
+    logger.warn('passed pending queue limit, sleeping');
+    await delay(5000);
+  }
+  const tx = web3.eth.sendSignedTransaction(signedTx);
+  let txHash;
+  tx.once('transactionHash', function(hash) {
+    logger.debug(`got txHash ${hash}`);
+    txHash = hash;
+  });
+  tx.once('receipt', function(receipt){ 
+      logger.info(`got receipt ${JSON.stringify(receipt)}`);
+      totalTrx--;
+      callback();
+  });
+  callback();
+}, 1);
+
+// assign a callback
+q.drain = function() {
+  logger.debug('all items have been processed');
+}
 
 const web3 = getWeb3();
 
@@ -46,13 +75,12 @@ const postFn = {
     // const eos = getEos(privateKey, chain);
     // return eos.Api.transact
   },
-  "ethereum": async (signedTx, chain, account, sigs) => {
+  "ethereum": (signedTx, chain, account, sigs) => {
     // post-alpha we want to monitor the transaction for gas usage,
     // for the provisioning layer (quota usage and whatnot)
-    logger.info('posting tx ', signedTx);
-    const tx = await web3.eth.sendSignedTransaction(signedTx);
-    logger.info(`posted tx, got txHash: ${tx.transactionHash}`);
-    return tx.transactionHash;
+    // check for 10% change and increase by amount 
+    //logger.info('david ' + q.length())
+    q.push(signedTx);
   }
 }
 
@@ -74,7 +102,7 @@ const signFn = {
       to: destination,
       data: trx_data,
       value: numberToHex(0),
-      gasPrice: numberToHex(consts.ethGasPrice),
+      gasPrice: numberToHex(Math.round(Number(await web3.eth.getGasPrice()) * (Number(process.env.ETH_GAS_PRICE_MULT) || 1.2))),
       gasLimit: numberToHex(consts.ethGasLimit)
     }
     const tx = await web3.eth.accounts.signTransaction(rawTx, privateKey);

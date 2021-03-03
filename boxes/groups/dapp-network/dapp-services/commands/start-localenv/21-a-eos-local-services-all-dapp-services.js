@@ -62,6 +62,7 @@ module.exports = async (args) => {
       await serviceRunner(`/dummy/${serviceModel.name}-dapp-service-node.js`, serviceModel.port * (pi + 1)).handler(args, {
         DSP_PRIVATE_KEY: key.active.privateKey,
         ETH_PRIVATE_KEY: ethPrivateKeys[pi],
+        ETH_GAS_PRICE_MULT: 1.2,
         DSP_GATEWAY_MAINNET_ENDPOINT: `http://localhost:${13015 * (pi + 1)}`, // mainnet gateway
         DSP_ACCOUNT: testProvider,
         NODEOS_LATEST: true,

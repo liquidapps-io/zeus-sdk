@@ -1,5 +1,5 @@
 {
-  "version": "1.1.2",
+  "version": "1.1.4",
   "ignore": [
     "README.md"
   ],
@@ -27,7 +27,7 @@
       "bytebuffer": "^5.0.1",
       "cors": "^2.8.4",
       "eosjs@20.0.0": true,
-      "express": "^4.16.3",
+      "express": "^4.17.1",
       "ipfs-api": "^24.0.2",
       "http-proxy": true,
       "raw-body": true,
@@ -38,7 +38,7 @@
       "sequelize": "5.19.0",
       "pg": "7.12.1",
       "minipass@2.7.0": true,
-      "sqlite3": "4.1.0",
+      "sqlite3": true,
       "promise.allsettled": "^1.0.2"
     }
   }
