@@ -224,6 +224,10 @@ const forwardEvent = async (act, endpoint, redirect) => {
   return rtxt;
 };
 
+const seconaryServicePorts = {
+  
+}
+
 const resolveBackendServiceData = async (service, provider, packageid, sidechain, balance) => {
   if (balance !== undefined) {
     const eos = await eosMainnet();
@@ -241,7 +245,7 @@ const resolveBackendServiceData = async (service, provider, packageid, sidechain
   var host = process.env[`DAPPSERVICE_HOST_${loadedExtension.name.toUpperCase()}`];
   var port = process.env[`DAPPSERVICE_PORT_${loadedExtension.name.toUpperCase()}`];
   if (!host) host = 'localhost';
-  if (!port) port = loadedExtension.port;
+  if (!port || provider === 'pprovider2') port = provider === 'pprovider2' ? loadedExtension.alt : loadedExtension.port;
   return {
     internal: true,
     endpoint: `http://${host}:${port}`
