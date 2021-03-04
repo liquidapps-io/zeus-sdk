@@ -269,7 +269,7 @@ const resolveExternalProviderData = async (service, provider, packageid, sidecha
 };
 
 const resolveProviderData = async (service, provider, packageid, sidechain, balance) =>
-  ((paccount === provider) ? resolveBackendServiceData : resolveExternalProviderData)(service, provider, packageid, sidechain, balance);
+  ((paccount === provider || provider === 'pprovider2') ? resolveBackendServiceData : resolveExternalProviderData)(service, provider, packageid, sidechain, balance);
 
 const toBound = (numStr, bytes) =>
   `${(new Array(bytes * 2 + 1).join('0') + numStr).substring(numStr.length).toUpperCase()}`;
