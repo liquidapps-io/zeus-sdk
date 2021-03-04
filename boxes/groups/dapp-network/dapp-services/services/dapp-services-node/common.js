@@ -575,7 +575,7 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
   }
 
   let trys = 0;
-  const garbage = []; 
+  let garbage = []; 
   while (trys < maxReqRetries) {    
     let r = await testTransaction(sidechain, uri, body);
     let resText = await r.text();
@@ -645,22 +645,25 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
         logger.error(`error parsing endpoint.shouldAbort`);
         logger.error(e);
       }
-      if (endpoint === 'retry') {
-        garbage.push({ ...actionObject, rollback: true });
+      if (endpoint === 'success') {
         logger.debug(`Service request done: ${trys++}`);
         continue;
-      }
-
-      if (endpoint) {
+      } else if (endpoint === 'retry') {
+        logger.debug(`Rolling back previous trx and retrying service request: ${trys++}`);
+        garbage.push({ ...actionObject, rollback: true });
+        const rollbackRes = await rollBack(garbage, actionHandlers, serviceName, handlers);
+        if(rollbackRes && rollbackRes.uri) {
+          logger.debug(`rollback successful, resetting garbage`)
+          garbage = [];
+        } else {
+          logger.debug(`rollback unsuccessful,`)
+        }
+        continue;
+      } else {
         r = await fetch(endpoint + uri, { method: 'POST', body: JSON.stringify(body) });
         resText = await r.text();
         rText = JSON.parse(resText);
       }
-      if (r.status === 500) await rollBack(garbage, actionHandlers, serviceName, handlers);
-      res.status(r.status);
-      return res.send(resText);
-
-
     }
     catch (e) {
       await rollBack(garbage, actionHandlers, serviceName, handlers);
