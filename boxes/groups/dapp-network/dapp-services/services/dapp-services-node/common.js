@@ -224,10 +224,6 @@ const forwardEvent = async (act, endpoint, redirect) => {
   return rtxt;
 };
 
-const seconaryServicePorts = {
-  
-}
-
 const resolveBackendServiceData = async (service, provider, packageid, sidechain, balance) => {
   if (balance !== undefined) {
     const eos = await eosMainnet();
@@ -269,7 +265,7 @@ const resolveExternalProviderData = async (service, provider, packageid, sidecha
 };
 
 const resolveProviderData = async (service, provider, packageid, sidechain, balance) =>
-  ((paccount === provider || provider === 'pprovider2') ? resolveBackendServiceData : resolveExternalProviderData)(service, provider, packageid, sidechain, balance);
+  ((paccount === provider) ? resolveBackendServiceData : resolveExternalProviderData)(service, provider, packageid, sidechain, balance);
 
 const toBound = (numStr, bytes) =>
   `${(new Array(bytes * 2 + 1).join('0') + numStr).substring(numStr.length).toUpperCase()}`;
@@ -575,7 +571,7 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
   }
 
   let trys = 0;
-  let garbage = []; 
+  const garbage = []; 
   while (trys < maxReqRetries) {    
     let r = await testTransaction(sidechain, uri, body);
     let resText = await r.text();
@@ -645,25 +641,22 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
         logger.error(`error parsing endpoint.shouldAbort`);
         logger.error(e);
       }
-      if (endpoint === 'success') {
+      if (endpoint === 'retry') {
+        garbage.push({ ...actionObject, rollback: true });
         logger.debug(`Service request done: ${trys++}`);
         continue;
-      } else if (endpoint === 'retry') {
-        logger.debug(`Rolling back previous trx and retrying service request: ${trys++}`);
-        garbage.push({ ...actionObject, rollback: true });
-        const rollbackRes = await rollBack(garbage, actionHandlers, serviceName, handlers);
-        if(rollbackRes && rollbackRes.uri) {
-          logger.debug(`rollback successful, resetting garbage`)
-          garbage = [];
-        } else {
-          logger.debug(`rollback unsuccessful,`)
-        }
-        continue;
-      } else {
+      }
+
+      if (endpoint) {
         r = await fetch(endpoint + uri, { method: 'POST', body: JSON.stringify(body) });
         resText = await r.text();
         rText = JSON.parse(resText);
       }
+      if (r.status === 500) await rollBack(garbage, actionHandlers, serviceName, handlers);
+      res.status(r.status);
+      return res.send(resText);
+
+      
     }
     catch (e) {
       await rollBack(garbage, actionHandlers, serviceName, handlers);

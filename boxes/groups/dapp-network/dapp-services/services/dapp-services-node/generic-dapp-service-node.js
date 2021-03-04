@@ -61,9 +61,8 @@ const actionHandlers = {
         const eventRes = await forwardEvent(act, prov.data.endpoint, false);
         return eventRes;
       }));
-      logger.debug(`dspResponses: ${JSON.stringify(dspResponses)}`);
       var goodResponse = dspResponses.find(x => x.status == "fulfilled");
-      return goodResponse ? 'success' : 'retry';
+      return goodResponse ? goodResponse.value || 'retry' : 'retry';
     }
     provider = await resolveProvider(payer, service, provider, sidechain);
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider, sidechain);
@@ -80,7 +79,7 @@ const actionHandlers = {
       return res;
     }
     if (!act.exception) { 
-      logger.debug(`!act.exception`);
+      if (!act.exception) { return; }
       return; 
     }
     if (getContractAccountFor(model, sidechain) == service && handler) {
@@ -91,7 +90,7 @@ const actionHandlers = {
       if (res) {
         return res;
       } else {
-        logger.warn(`retry after handle ${action}`); 2000)
+        logger.warn(`retry after handle ${action}`);
         return 'retry';
       }
     }
