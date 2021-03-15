@@ -84,7 +84,6 @@ describe(`LiquidX Sidechain Cron Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        console.log(JSON.stringify(res));
         await delay(5000);
         res = await eosconsumer.getTableRows({
           'json': true,
