@@ -38,7 +38,7 @@
     "fcbuffer": "^2.2.2",
     "go-ipfs-dep": "^0.4.19",
     "http-proxy": "^1.17.0",
-    "ipfs": "^0.34.4",
+    "ipfs": "^0.54.2",
     "ipfs-api": "^26.1.2",
     "ipfsd-ctl": "^0.42.1",
     "is-wsl": "^2.0.0",
