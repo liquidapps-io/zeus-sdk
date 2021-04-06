@@ -29,8 +29,9 @@ async function deployLocalService(serviceModel, provider = 'pprovider1', gateway
       min_stake_quantity: '1.0000 DAPP',
       min_unstake_period: 10,
       package_period: 10,
+      annual_inflation: 2.71,
+      pricing: []
     },
-    annual_inflation: 2.71,
   }, {
     authorization: `${provider}@active`,
   });

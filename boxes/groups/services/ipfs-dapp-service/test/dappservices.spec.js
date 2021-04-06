@@ -31,11 +31,22 @@ var generateModel = (commandNames, cost_per_action = 1) => {
   return model;
 };
 
-async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccount = null, package_id = 'default', quota = '1.0000', min_stake_quantity = '1.0000', min_unstake_period = 2, package_period = 5, cost_per_action = 1, provider = 'pprovider1', inflation = 2.71 }) {
+async function deployServicePackage({ 
+  serviceName = 'ipfs', 
+  serviceContractAccount = null, 
+  package_id = 'default', 
+  quota = '1.0000', 
+  min_stake_quantity = '1.0000', 
+  min_unstake_period = 2, 
+  package_period = 5, 
+  cost_per_action = 1, 
+  provider = 'pprovider1', 
+  inflation = 2.71
+}) {
   var models = await loadModels('dapp-services');
   var serviceModel = models.find(a => a.name == serviceName);
   await deployer.deploy(servicesC, servicescontract);
-  var eos = await getEos(provider)
+  var eos = await getEos(provider);
   var contractInstance = await eos.contract(servicescontract);
   var serviceContract = serviceContractAccount || serviceModel.contract;
 
@@ -52,9 +63,10 @@ async function deployServicePackage({ serviceName = 'ipfs', serviceContractAccou
       quota: `${quota} QUOTA`,
       min_stake_quantity: `${min_stake_quantity} DAPP`,
       min_unstake_period: min_unstake_period,
-      package_period: package_period
+      package_period: package_period,
+      annual_inflation: inflation,
+      pricing: []
     },
-    annual_inflation: inflation,
   }, {
     authorization: `${provider}@active`,
   });
@@ -718,17 +730,16 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         await deployServicePackage({ serviceName: 'log', package_id: nextPackage, packagePeriod, provider: 'pprovider2' });
         await deployServicePackage({ package_id: nextPackage, packagePeriod });
         await selectPackage({ deployedContract, selectedPackage });
-        await staketo({ deployedPayer, deployedContract, selectedPackage });
-
+        await staketo({ deployedPayer, deployedContract });
         var failed = true;
         try {
-          await selectPackage({ deployedContract, nextPackage, serviceName: 'log', provider: 'pprovider2' });
+          await selectPackage({ deployedContract, selectedPackage: nextPackage, serviceName: 'log', provider: 'pprovider2' });
         }
         catch (e) {
           failed = false;
         }
         assert(failed, 'should have succeeded because selecting different provider/service pair, no need to clear third party stakes');
-        await staketo({ serviceName: 'log', deployedPayer: deployedPayer2, deployedContract, selectedPackage, provider: 'pprovider2' });
+        await staketo({ serviceName: 'log', deployedPayer: deployedPayer2, deployedContract, provider: 'pprovider2' });
         done();
       }
       catch (e) {
@@ -891,7 +902,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
     })();
   });
 
-  it('Inflation tuning', done => {
+  it.skip('Inflation tuning', done => {
     (async () => {
       const convertInflation = (inflation_per_block) => {
         let blocks_per_year = 7200 * 24 * 365;
@@ -1032,6 +1043,33 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         let maxSupply = table.rows[0].max_supply;
         let supply = table.rows[0].supply;
         assert((supply === maxSupply), 'supply should equal max supply');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it('Try inflation exceeds/under limit', done => {
+    (async () => {
+      try {
+        var testContractAccount = 'testinflate1';
+        var selectedPackage = 'testpay123';
+        var { deployedContract } = await deployConsumerContract(testContractAccount);
+        let failed = false;
+        try {
+          await deployServicePackage({ package_id: selectedPackage, inflation: 9999.0 });
+        } catch(e) {
+          failed = true
+        }
+        failed = false
+        try {
+          await deployServicePackage({ package_id: selectedPackage, inflation: -10 });
+        } catch(e) {
+          failed = true
+        }
+        assert(failed, "should have failed, inflation must be between 0 and 5 %")
         done();
       }
       catch (e) {
