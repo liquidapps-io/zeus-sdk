@@ -6,7 +6,7 @@ const { getTestContract, getLocalDSPEos } = requireBox('seed-eos/tools/eos/utils
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
 const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 
 // setup nodeos RPC
 const fetch = require('node-fetch');

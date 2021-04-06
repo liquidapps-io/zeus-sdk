@@ -11,7 +11,7 @@ const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
 const { genAllocateDAPPTokens, readVRAMData } = requireBox('dapp-services/tools/eos/dapp-services');
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 const delaySec = sec => delay(sec * 1000);
 
 var contractCode = 'oldipfscons';

@@ -64,10 +64,10 @@ async function get_config() {
         backup.manifest.next_available_key = config.next_available_key;
         backup.manifest.shards = config.shards;
         backup.manifest.buckets_per_shard = config.buckets_per_shard;
-        console.log('Configuration found');
+        // console.log('Configuration found');
     } catch (e) {
         console.error(`Unable to get vram config: .vconfig must be exposed in ABI or you are using an old version of dapp:multi_index`);
-        console.log('Default configuration being used');
+        // console.log('Default configuration being used');
     }
 }
 
@@ -82,7 +82,7 @@ async function get_shards(lower_bound) {
             'lower_bound': lower_bound,
             'limit': 100
         });
-        console.log(`Fetched ${res.rows.length} shardbuckets`);
+        // console.log(`Fetched ${res.rows.length} shardbuckets`);
         if (res.rows.length == 0) { return; }
         lower_bound = res.rows[res.rows.length - 1].shard;
         push_shardbuckets(res.rows);
@@ -100,15 +100,15 @@ function write_backup() {
     let path = filename ? filename : `vram-backup-${backup.contract}-${backup.table}-${backup.revision}-${ts}.json`;
     let data = JSON.stringify(backup);
     fs.writeFileSync(path, data);
-    console.log(`Wrote backup to ${path}`);
+    // console.log(`Wrote backup to ${path}`);
 }
 
 async function run() {
     prepare_backup();
-    console.log(`Backing up vram for Contract '${backup.contract}', Table '${backup.table}'`);
+    // console.log(`Backing up vram for Contract '${backup.contract}', Table '${backup.table}'`);
     await get_config();
     await get_shards();
-    console.log(`Backed up ${backup.manifest.shardbuckets.length} shardbuckets`);
+    // console.log(`Backed up ${backup.manifest.shardbuckets.length} shardbuckets`);
     write_backup();
 }
 

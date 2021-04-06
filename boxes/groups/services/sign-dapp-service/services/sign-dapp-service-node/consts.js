@@ -15,5 +15,5 @@ module.exports = {
   getEthPrivateKey: (consumerName) =>  process.env[`ETH_PRIVATE_KEY_${consumerName}`] || process.env.ETH_PRIVATE_KEY || '0xa966a4df8f4ad2c5938fce96b46391e45ab6eade06848608020a50938b5dc3a2',
   newEthAccountFundAmount: process.env.ETH_FUND_AMOUNT || '1000000000000000000',
   ethGasPrice: process.env.ETH_GAS_PRICE || '2000000000',
-  ethGasLimit: process.env.ETH_GAS_LIMIT || '500000',
+  ethGasLimit: process.env.ETH_GAS_LIMIT || '1000000',
 }

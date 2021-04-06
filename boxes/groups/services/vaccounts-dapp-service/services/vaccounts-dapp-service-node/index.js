@@ -105,12 +105,12 @@ nodeFactory('vaccounts', {
             };
             try {
                 let result = await pushTransaction(gateway, dapp, contract_code, provider, "xvexec", data);
-                logger.debug("Signed tx: %s", JSON.stringify(result));
+                logger.info("Signed tx: %s", result.transaction_id);
                 if (sidechain) await emitUsage(mainnet_account, service);
                 res.send(JSON.stringify({ result }));
             }
             catch (e) {
-                console.error("error:", e);
+                // console.error("error:", e);
                 logger.error(`Error executing vaccount transaction: ${e.json ? JSON.stringify(e.json) : JSON.stringify(e)}`);
                 var x = e;
                 if (e.json)

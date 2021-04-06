@@ -9,6 +9,7 @@ nodeFactory('oracle', {
   geturi: async ({ event, rollback }, { uri }) => {
     if (rollback) {
       event.action = 'orcclean';
+      logger.debug('orcclean after failed transaction', uri);
       console.log('orcclean after failed transaction', uri);
       return {
         size: 0,
@@ -24,16 +25,19 @@ nodeFactory('oracle', {
     const proto = payloadParts[partIdx++];
     const address = payloadParts[partIdx++];
     let handler = handlers[proto];
-    logger.debug(`req ${trxId} ${tapos} ${proto} ${address}`);
+    logger.info(`oracle request for ${proto}://${address} | payer: ${payer} | package: ${packageid} | DSP: ${current_provider} | sidechain ${typeof(sidechain) === "object" ? JSON.stringify(sidechain) : sidechain}`);
     try {
       if (!handler) {
-
         handler = requireBox(`protocols/${proto}`);
         if (!handler)
           throw new Error(`unsupported protocol ${proto}`);
         handlers[proto] = handler;
       }
       let data = await handler({ proto, address, sidechain, contract: payer });
+      if(!data || !data.length) {
+        logger.warn(`no data returned for ${proto}://${address} | payer: ${payer} | package: ${packageid} | DSP: ${current_provider} | sidechain ${typeof(sidechain) === "object" ? JSON.stringify(sidechain) : sidechain}`);
+        return;
+      }
       return {
         uri,
         data: data,
@@ -41,6 +45,7 @@ nodeFactory('oracle', {
       };
     }
     catch (e) {
+      logger.error(`error fetching oracle request for: ${proto}://${address} | payer: ${payer} | package: ${packageid} | DSP: ${current_provider} | sidechain ${typeof(sidechain) === "object" ? JSON.stringify(sidechain) : sidechain}`);
       logger.error(e.toString());
       throw e;
     }

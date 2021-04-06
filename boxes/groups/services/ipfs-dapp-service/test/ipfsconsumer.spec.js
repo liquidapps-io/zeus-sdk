@@ -1,17 +1,15 @@
 require('mocha');
-
-
 const { assert } = require('chai'); // Using Assert style
 const { requireBox } = require('@liquidapps/box-utils');
 const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
 const { getNetwork } = requireBox('seed-eos/tools/eos/utils');
 const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
-
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { generateBackup } = requireBox('ipfs-dapp-service/utils/ipfs-service/backup');
 const { genAllocateDAPPTokens, readVRAMData } = requireBox('dapp-services/tools/eos/dapp-services');
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 const delaySec = sec => delay(sec * 1000);
 
 var contractCode = 'ipfsconsumer';
@@ -89,7 +87,7 @@ describe(`IPFS Service Test Contract`, () => {
   });
 
   // important no vram actions done before this test
-  it.skip('Cleanup', done => {
+  it('Cleanup', done => {
     (async () => {
       try {
         await delaySec(15);
@@ -542,10 +540,10 @@ describe(`IPFS Service Test Contract`, () => {
 
   var backup = {};
 
-  it.skip('IPFS Save Manifest', done => {
+  it('IPFS Save Manifest', done => {
     (async () => {
       try {
-        //backup = await generateBackup(code,"test");            
+        backup = await generateBackup(code,"test");            
         done();
       } catch (e) {
         done(e);
@@ -593,7 +591,7 @@ describe(`IPFS Service Test Contract`, () => {
     })();
   });
 
-  it.skip('IPFS Load Manifest', done => {
+  it('IPFS Load Manifest', done => {
     (async () => {
       try {
         // let shardbuckets = pastbuckets.map((data) => {

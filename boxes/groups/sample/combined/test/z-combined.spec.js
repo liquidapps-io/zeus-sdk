@@ -23,7 +23,7 @@ global.fetch = fetch;
 var contractCode = 'combined';
 var ctrt = artifacts.require(`./${contractCode}/`);
 
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 const delaySec = sec => delay(sec * 1000);
 
 
@@ -164,9 +164,6 @@ describe(`Combined Services Test Contract`, () => {
                     scope: code
                 });
                 assert(tableRes.row.seed == "78901", "table was not created or updated");
-
-
-
                 if (res.error)
                     console.error("reserror", res.error.details[0]);
 
@@ -188,7 +185,6 @@ describe(`Combined Services Test Contract`, () => {
                     "vaccounts", code
                 );
 
-                console.log("Reg1");
                 let res = await vaccClient.push_liquid_account_transaction(
                     code,
                     privateWif1,
@@ -197,7 +193,6 @@ describe(`Combined Services Test Contract`, () => {
                         vaccount: "vaccount1"
                     }
                 );
-                console.log("Reg2");
                 res = await vaccClient.push_liquid_account_transaction(
                     code,
                     privateWif2,
@@ -206,7 +201,6 @@ describe(`Combined Services Test Contract`, () => {
                         vaccount: "vaccount2"
                     }
                 );
-                console.log("Add1");
                 res = await vaccClient.push_liquid_account_transaction(
                     code,
                     privateWif1,
@@ -215,7 +209,6 @@ describe(`Combined Services Test Contract`, () => {
                         vaccount: "vaccount1"
                     }
                 );
-                console.log("Add2");
                 res = await vaccClient.push_liquid_account_transaction(
                     code,
                     privateWif2,
@@ -225,7 +218,6 @@ describe(`Combined Services Test Contract`, () => {
                     }
                 );
 
-                console.log("Issue");
                 res = await vaccClient.push_liquid_account_transaction(
                     code,
                     privateWif1,
@@ -236,7 +228,6 @@ describe(`Combined Services Test Contract`, () => {
                         quantity: "100.0000 EOS"
                     }
                 );
-                console.log("Transfer1");
                 res = await vaccClient.push_liquid_account_transaction(
                     code,
                     privateWif1,
@@ -247,7 +238,6 @@ describe(`Combined Services Test Contract`, () => {
                         quantity: "75.0000 EOS"
                     }
                 );
-                console.log("Transfer2");
                 res = await vaccClient.push_liquid_account_transaction(
                     code,
                     privateWif2,

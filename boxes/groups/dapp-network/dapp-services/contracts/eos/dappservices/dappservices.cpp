@@ -2,6 +2,7 @@
 #include <cmath>
 #include <eosio/eosio.hpp>
 #include <eosio/transaction.hpp>
+#include <eosio/binary_extension.hpp>
 using namespace eosio;
 using namespace std;
 
@@ -31,9 +32,6 @@ public:
   using contract::contract;
 
   const name HODL_ACCOUNT = "dappairhodl1"_n;
-  const double MIN_INFLATION = 0.0;
-  const double MAX_INFLATION = 5.0;
-  const double AVG_INFLATION = 2.71;
   
   struct usage_t {
     asset quantity;
@@ -106,6 +104,14 @@ public:
   };
   //END THIRD PARTY STAKING MODS
 
+  struct pricing {
+    name action;
+    uint64_t cost_per_action;
+  };
+
+  struct packagext {
+    std::vector<pricing> pricing;
+  };
 
   TABLE package {
     uint64_t id;
@@ -123,32 +129,7 @@ public:
     asset min_stake_quantity;
     uint32_t min_unstake_period; // commitment
     bool enabled;
-
-    uint64_t primary_key() const { return id; }
-    checksum256 by_package_service_provider() const {
-      return _by_package_service_provider(package_id, service, provider);
-    }
-    static checksum256 _by_package_service_provider(
-        name package_id, name service, name provider) {
-      return checksum256::make_from_word_sequence<uint64_t>(
-          0ULL, package_id.value, service.value, provider.value);
-    }
-  };
-
-  struct pricing {
-    name action;
-    uint64_t cost_per_action;
-  };
-
-  TABLE packagext {
-    uint64_t id;
-
-    name package_id;
-    name service;
-    name provider;
-
-    double annual_inflation;
-    std::vector<pricing> pricing;
+    eosio::binary_extension<packagext> ext;
 
     uint64_t primary_key() const { return id; }
     checksum256 by_package_service_provider() const {
@@ -223,13 +204,6 @@ public:
                                &package::by_package_service_provider>>>
       packages_t;
 
-  typedef eosio::multi_index<
-      "packagext"_n, packagext,
-      indexed_by<"bypkg"_n,
-                 const_mem_fun<packagext, checksum256,
-                               &packagext::by_package_service_provider>>>
-      package_ext;
-
   typedef eosio::multi_index<"stat"_n, currency_stats> stats;
   typedef eosio::multi_index<"statext"_n, currency_stats_ext> stats_ext;
   typedef eosio::multi_index<"accounts"_n, account> accounts;
@@ -285,7 +259,7 @@ public:
       s.issuer = issuer;
     });
   }
- [[eosio::action]] void regpkg(package newpackage, double annual_inflation) {
+ [[eosio::action]] void regpkg(package newpackage) {
     require_auth(newpackage.provider);
 
     packages_t packages(_self, _self.value);
@@ -297,8 +271,7 @@ public:
 
     eosio::check(newpackage.quota.symbol == DAPPSERVICES_QUOTA_SYMBOL, "wrong symbol (QUOTA) or precision (.0000)");
     eosio::check(newpackage.min_stake_quantity.symbol == DAPPSERVICES_SYMBOL, "wrong symbol (DAPP) or precision (.0000)");
-    eosio::check(MIN_INFLATION <= annual_inflation <= MAX_INFLATION, "invalid annual inflation - must be between 0.0 and 5.0");
-    
+
     packages.emplace(newpackage.provider, [&](package &r) {
       // start disabled.
       //r.enabled = true;
@@ -312,15 +285,6 @@ public:
       r.package_json_uri = newpackage.package_json_uri;
       r.api_endpoint = newpackage.api_endpoint;
       r.package_period = newpackage.package_period;
-    });
-
-    package_ext packagexts(_self, _self.value);
-    packagexts.emplace(newpackage.provider, [&](auto &r) {
-      r.id = packagexts.available_primary_key();
-      r.provider = newpackage.provider;
-      r.service = newpackage.service;
-      r.package_id = newpackage.package_id;
-      r.annual_inflation = annual_inflation;
     });
   }
 
@@ -387,41 +351,23 @@ public:
     auto cidx = packages.get_index<"bypkg"_n>();
     auto existing = cidx.find(idxKey);
     eosio::check(existing != cidx.end(), "missing package");
-
-    package_ext packagexts(_self, _self.value);
-    auto cidx2 = packagexts.get_index<"bypkg"_n>();
-    auto ext = cidx2.find(idxKey);
-
-    if(ext == cidx2.end()) {
-      std::vector<pricing> pricelist;
-      if(cost != 0) pricelist.push_back(pricing{action,cost});
-      packagexts.emplace(provider, [&](auto &r) {
-        r.id = packagexts.available_primary_key();
-        r.provider = provider;
-        r.service = service;
-        r.package_id = package_id;
-        r.annual_inflation = AVG_INFLATION;
-        r.pricing = pricelist;
-      });
-    } else {
-      auto pricelist = ext->pricing;
-      auto itr = pricelist.begin();
-      bool done = false;
-      while(itr != pricelist.end() && !done) {
-        if(itr->action == action) {
-          if(cost == 0) {
-            pricelist.erase(itr);          
-          } else {
-            *(itr) = pricing{action,cost};
-          }
-          done = true;
+    auto ext = existing->ext.value_or();
+    auto itr = ext.pricing.begin();
+    bool done = false;
+    while(itr != ext.pricing.end() && !done) {
+      if(itr->action == action) {
+        if(cost == 0) {
+          ext.pricing.erase(itr);          
+        } else {
+          *(itr) = pricing{action,cost};
         }
-        itr++;
+        done = true;
       }
-      if(!done && cost != 0) pricelist.push_back(pricing{action,cost});
-      cidx2.modify(ext, eosio::same_payer,
-                  [&](auto &r) { r.pricing = pricelist; });
-    }    
+      itr++;
+    }
+    if(!done && cost != 0) ext.pricing.push_back(pricing{action,cost});
+    cidx.modify(existing, eosio::same_payer,
+                [&](package &r) { r.ext.emplace(ext); });
   }
 
  [[eosio::action]] void issue(name to, asset quantity, string memo) {
@@ -914,16 +860,6 @@ private:
     rewards.modify(reward, _self, [&](auto &a) {
       a.total_staked -= quantity;
     });
-
-    double annual_inflation = AVG_INFLATION;
-    auto package_id = acct->package != ""_n ? acct->package : acct->pending_package;    
-    package_ext packagexts(_self, _self.value);
-    auto pidxKey = packagext::_by_package_service_provider(
-        package_id, service, provider);
-    auto pcidx = packagexts.get_index<"bypkg"_n>();
-    auto pexisting = pcidx.find(pidxKey);
-    if(pexisting != pcidx.end()) annual_inflation = pexisting->annual_inflation;
-    recalcInflation(annual_inflation, -quantity);
   }
 
   void add_provider_balance(name payer, name owner, name service, name provider,
@@ -986,16 +922,6 @@ private:
         a.balance.symbol = quantity.symbol;
       });
     }
-
-    double annual_inflation = AVG_INFLATION;
-    auto package_id = acct->package != ""_n ? acct->package : acct->pending_package;    
-    package_ext packagexts(_self, _self.value);
-    auto pidxKey = packagext::_by_package_service_provider(
-        package_id, service, provider);
-    auto pcidx = packagexts.get_index<"bypkg"_n>();
-    auto pexisting = pcidx.find(pidxKey);
-    if(pexisting != pcidx.end()) annual_inflation = pexisting->annual_inflation;
-    recalcInflation(annual_inflation, quantity);
   }
 
 
@@ -1109,36 +1035,7 @@ private:
     trx.send(defidx, _self, true);
   }
 
-  void recalcInflation(double inflation, asset delta) {
-    //applyInflation is always called before this
-    auto sym = DAPPSERVICES_SYMBOL;
-    stats_ext statsexts(_self, sym.code().raw());
-    auto existingx = statsexts.find(sym.code().raw());
-    eosio::check(existingx != statsexts.end(),
-                 "token with symbol does not exist");
-    const auto &stx = *existingx;
-    uint64_t blocks_per_year = 7200 * 24 * 365;
-    //convert inflation_per_block to annual_inflation
-    double annualized_inflation = 100.0 * (pow(1.0 + stx.inflation_per_block, blocks_per_year) - 1.0);
-    //total stake has not yet been updated
-    double inflation_sum = annualized_inflation * stx.staked.amount;
-    double inflation_delta = inflation * delta.amount; //should go negative if negative delta
-    double inflation_modified = inflation_sum + inflation_delta;
-    int64_t stake_modified = stx.staked.amount + delta.amount;
-    eosio::check(stake_modified > 0, "staking overflow error"); //just to be extra safe
-    double new_annualized_inflation = inflation_modified / stake_modified;
-    //convert back to inflation_to_block
-    double new_inflation_per_block = pow(1.0 + (new_annualized_inflation / 100.0), 1.0 / blocks_per_year) - 1.0; 
-
-    // save new inflation
-    statsexts.modify(stx, eosio::same_payer,
-                      [&](auto &s) {
-                        s.inflation_per_block = new_inflation_per_block;
-                      });
-  }
-
   void applyInflation() {
-    updateMaxSupply();
     auto sym = DAPPSERVICES_SYMBOL;
     stats_ext statsexts(_self, sym.code().raw());
     stats statstable(_self, sym.code().raw());
@@ -1156,12 +1053,16 @@ private:
 
     uint64_t last_inflation_ts = stx.last_inflation_ts;
 
-    if(current_time_ms <= last_inflation_ts + 500)
+    if(current_time_ms <= last_inflation_ts + 500) {
+      updateMaxSupply();
       return;
+    }
 
     int64_t passed_blocks = (current_time_ms - last_inflation_ts) / 500;
-    if(passed_blocks <= 0)
+    if(passed_blocks <= 0) {
+      updateMaxSupply();
       return;
+    }
 
 
     // calc global inflation
@@ -1169,8 +1070,10 @@ private:
     asset inflation_asset;
     inflation_asset.symbol = sym;
     inflation_asset.amount = total_inflation_amount;
-    if(inflation_asset.amount <= 0)
+    if(inflation_asset.amount <= 0) {
+      updateMaxSupply();
       return;
+    }
 
     // increase supply
     statstable.modify(st, eosio::same_payer,
@@ -1396,15 +1299,16 @@ private:
   }
 
   void calculateUsage(name service, name action, name provider, name package, std::vector<char> signalRawData) {
-    uint64_t amount = DAPPSERVICES_QUOTA_COST;
-
-    package_ext packagexts(_self, _self.value);
-    auto idxKey = packagext::_by_package_service_provider(package, service, provider);
-    auto cidx = packagexts.get_index<"bypkg"_n>();
+    packages_t packages(_self, _self.value);
+    auto idxKey = package::_by_package_service_provider(package, service, provider);
+    auto cidx = packages.get_index<"bypkg"_n>();
     auto existing = cidx.find(idxKey);
-    if(existing != cidx.end()) {
-      auto itr = existing->pricing.begin();
-      while(itr != existing->pricing.end()) {
+    eosio::check(existing != cidx.end(), "package not found");
+    uint64_t amount = DAPPSERVICES_QUOTA_COST;
+    if(existing->ext.has_value()) {
+      auto ext = existing->ext.value();
+      auto itr = ext.pricing.begin();
+      while(itr != ext.pricing.end()) {
         if(itr->action == action) {
           amount = itr->cost_per_action;
           break;

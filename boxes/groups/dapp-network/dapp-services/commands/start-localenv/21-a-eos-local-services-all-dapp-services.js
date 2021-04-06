@@ -29,8 +29,9 @@ async function deployLocalService(serviceModel, provider = 'pprovider1', gateway
       min_stake_quantity: '1.0000 DAPP',
       min_unstake_period: 10,
       package_period: 10,
+      annual_inflation: 2.71,
+      pricing: []
     },
-    annual_inflation: 2.71,
   }, {
     authorization: `${provider}@active`,
   });
@@ -55,6 +56,13 @@ module.exports = async (args) => {
   await deployer.deploy(servicesC, servicescontract);
   for (var i = 0; i < models.length; i++) {
     var serviceModel = models[i];
+    let runService = false;
+    if(args.services) {
+      for(const el of args.services){
+        if(el === serviceModel.name) runService = true;
+      }
+      if(!runService) continue;
+    }
     var testProviders = testProvidersList;
     for (var pi = 0; pi < testProviders.length; pi++) {
       var testProvider = testProviders[pi];
@@ -67,7 +75,7 @@ module.exports = async (args) => {
         DSP_ACCOUNT: testProvider,
         NODEOS_LATEST: true,
         SVC_PORT: serviceModel.port * (pi + 1),
-        DSP_PORT: 13015 * (pi + 1),
+        DSP_PORT: 13015 * (pi + 1)
       });
       await deployLocalService(serviceModel, testProvider, gatewayPort * (pi + 1));
     }

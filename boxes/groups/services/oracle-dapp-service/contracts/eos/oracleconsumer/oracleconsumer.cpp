@@ -46,6 +46,16 @@ CONTRACT_START()
       return results[0].result;
     });
   }
+  
+  // test multiple oracle requests within 1 trx
+  [[eosio::action]] void testmult(std::vector<char> uri_one, std::vector<char> uri_two) {
+    auto res1 = getURI(uri_one, [&]( auto& results ) { 
+      return results[0].result;
+    });
+    auto res2 = getURI(uri_two, [&]( auto& results ) { 
+      return results[0].result;
+    });
+  }
 
   // sets the threshold of DSPs that must return a response
   [[eosio::action]] void setthreshold(uint32_t new_threshold_val) {
@@ -57,4 +67,4 @@ CONTRACT_START()
       new_threshold.threshold = new_threshold_val;
       threshold_singleton.set(new_threshold, _self);
   }
-CONTRACT_END((testget)(testrnd)(setthreshold))
+CONTRACT_END((testget)(testrnd)(testmult)(setthreshold))

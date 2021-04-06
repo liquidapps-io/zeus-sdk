@@ -26,7 +26,7 @@ const actionHandlers = {
     if (!sidechain && meta && meta.sidechain) {
       sidechain = sidechainsDict[meta.sidechain.name];
     }
-    logger.info(`service_request ${provider} ${service} ${payer} ${sidechain ? sidechain.name : ""}`)
+    logger.info(`service_request ${provider} | ${service}:${serviceName} | ${payer} | ${sidechain ? sidechain.name : ""} | ${broadcasted} | ${isReplay}`)
     var handler = handlers[action];
     var models = await loadModels('dapp-services');
     var serviceContractForLookup = service;
@@ -55,15 +55,27 @@ const actionHandlers = {
       //including ourselves
       act.event.broadcasted = true;
       let providers = await resolveProviderPackage(payer, service, false, sidechain, true);
-      logger.debug(`providers: ${JSON.stringify(providers)}`)
+      // logger.debug(`providers: ${JSON.stringify(providers)}`)
       const dspResponses = await Promise.allSettled(providers.map(async (prov) => {
-        // could return just promise if no need to log
-        const eventRes = await forwardEvent(act, prov.data.endpoint, false);
-        return eventRes;
+        return new Promise(async (resolve, reject) =>  {
+          setTimeout(reject, process.env.DSP_BROADCAST_EVENT_TIMEOUT || 10000, 'DSP failed to respond within timeout window');
+          try {
+            resolve({provider: prov.provider, result: await forwardEvent(act, prov.data.endpoint, false)});
+          } catch(e) {
+            reject(e);
+          }
+        });
       }));
-
-      var goodResponse = dspResponses.find(x => x.status == "fulfilled");
-      return goodResponse ? goodResponse.value || 'retry' : 'retry';
+      // logger.debug(`dspResponses: ${JSON.stringify(dspResponses)}`);
+      const goodResponse = dspResponses.find(x => x.status == "fulfilled");
+      const localSuccessResponse = dspResponses.find(x => x.status == 'fulfilled' && x.value && x.value.provider === paccount);
+      if(localSuccessResponse) {
+        return 'local_success';
+      } else if(goodResponse) {
+        return 'success';
+      } else {
+        return 'retry';
+      }
     }
     provider = await resolveProvider(payer, service, provider, sidechain);
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider, sidechain);
@@ -79,13 +91,16 @@ const actionHandlers = {
       const res = await handleRequest(handler, act, packageid, model.name, handlers.abi);
       return res;
     }
-    if (!act.exception) { return; }
+    if (!act.exception) { 
+      logger.debug(`!act.exception`);
+      return; 
+    }
     if (getContractAccountFor(model, sidechain) == service && handler) {
       const res = await handleRequest(handler, act, packageid, model.name, handlers.abi);
       if (res) {
         return res;
       } else {
-        logger.warn(`retry after handle ${action}`);
+        logger.warn(`retry after handle ${action} ${res}`);
         return 'retry';
       }
     }
@@ -136,14 +151,24 @@ const extractUsageQuantity = async (e) => {
   // if pending console does not contain usage report, use assertion message
   if(!JSON.stringify(details[details.length - 1]).includes('usage_report')) {
     if(details[details.length - 2] && details[details.length - 2].message) {
-      jsons = details[details.length - 2].message.split(': ', 2)[1].split(`'`).join(`"`).split('\n').filter(a => a.trim() != '');
+      try {
+        jsons = details[details.length - 2].message.split(': ', 2)[1].split(`'`).join(`"`).split('\n').filter(a => a.trim() != '');
+      } catch(e) {
+        logger.error(`unable to parse usage event: ${typeof(details === "object" ? JSON.stringify(details) : details)}`);
+        throw e;
+      }
     } else {
       logger.error(`usage event not found: ${typeof(jsons) == "object" ? JSON.stringify(jsons) : jsons}`)
       if (!jsons.length) throw new Error('usage event not found');
     }
   } else {
     if(details[details.length - 1] && details[details.length - 1].message) {
-      jsons = details[details.length - 1].message.split(': ', 2)[1].split('\n').filter(a => a.trim() != '');
+      try {
+        jsons = details[details.length - 1].message.split(': ', 2)[1].split('\n').filter(a => a.trim() != '');
+      } catch(e) {
+        logger.error(`unable to parse usage event: ${typeof(details === "object" ? JSON.stringify(details) : details)}`);
+        throw e;
+      }
     } else {
       logger.error(`usage event not found: ${typeof(jsons) == "object" ? JSON.stringify(jsons) : jsons}`)
       if (!jsons.length) throw new Error('usage event not found');
@@ -160,6 +185,7 @@ const extractUsageQuantity = async (e) => {
     throw new Error('usage event not found');
   }
   var usage_report_event = events[0];
+  logger.info(`usage processed: ${usage_report_event.payer} used ${usage_report_event.quantity} for ${usage_report_event.provider} ${usage_report_event.service}`)
   return { usageQuantity: usage_report_event.quantity, service: usage_report_event.service, provider: usage_report_event.provider, payer: usage_report_event.payer };
 }
 
@@ -241,13 +267,12 @@ const handleRequest = async (handler, act, packageid, serviceName, abi) => {
         // update to 'abort' in contract and here, or something generic
         // returns at location 0, but may need to find dynamically if message is not at position 0
         if (details[0].message.includes('abort_service_request')) {
-          logger.info(`abort_service_request`);
           let abortError = new Error(`abort_service_request`);
           abortError.details = details;
           throw abortError;
         }
 
-        logger.info("CONFIRMING USAGE:\n%j", e);
+        // logger.info("CONFIRMING USAGE:\n%j", e);
 
         // verify transaction emits usage
         const usage_report = await extractUsageQuantity(e);
@@ -276,7 +301,7 @@ const handleRequest = async (handler, act, packageid, serviceName, abi) => {
           meta,
           false
         );
-        logger.debug("REQUEST\n%j\nRESPONSE: [%s]\n%j", act, tx.transaction_id, response);
+        logger.info(`processed ${act.event.etype} by ${act.event.current_provider} for ${act.event.service}:${act.event.action} for ${payer}:${response.action} trxid: ${tx.transaction_id}`);
       } catch (e) {
         if (e.json)
           e.error = e.json.error;
@@ -288,10 +313,10 @@ const handleRequest = async (handler, act, packageid, serviceName, abi) => {
       // dispatch on chain response - call response.action with params with paccount permissions
     }));
   } catch (e) {
-    logger.error(e);
     if (e.message.includes("abort_service_request")) {
       return { message: e.message, shouldAbort: true, details: e.details };
     }
+    logger.error(e);
     throw e;
   }
 };
@@ -315,7 +340,6 @@ const loadIfExists = async (serviceName, suffix) => {
 const nodeFactory = async (serviceName, handlers) => {
   var models = await loadModels('dapp-services');
   var model = models.find(m => m.name == serviceName);
-  logger.info(`nodeFactory starting ${serviceName}`);
   var sidechains = await loadModels('eosio-chains');
   for (var i = 0; i < sidechains.length; i++) {
     var sidechain = sidechains[i];
@@ -339,7 +363,7 @@ const nodeAutoFactory = async (serviceName) => {
     for (var i = 0; i < apiActions.length; i++) {
       var apiName = apiActions[i];
       var apiHandler = await loadIfExists(serviceName, `api/${apiName}`); // load from file
-      logger.debug(`registering api ${serviceName} ${apiName}`);
+      // logger.debug(`registering api ${serviceName} ${apiName}`);
       const authentication = model.api[apiName].authentication;
       let authClient, AuthClientSetup;
       if (authentication && authentication.type === 'payer') {

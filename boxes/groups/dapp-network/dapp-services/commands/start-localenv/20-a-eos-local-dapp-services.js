@@ -61,6 +61,7 @@ module.exports = async (args) => {
       DSP_PRIVATE_KEY: keys.active.privateKey,
       NODEOS_LATEST: true,
       DSP_ALLOW_API_NON_BROADCAST: false,
+      DSP_PORT: 13015 * (pi + 1),
       ...servicesPorts
     });
   }

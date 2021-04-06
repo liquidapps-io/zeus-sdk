@@ -69,9 +69,10 @@ module.exports = {
           quota: `${args['quota']} QUOTA`,
           min_stake_quantity: `${args['min-stake-quantity']} DAPP`,
           min_unstake_period: args['min-unstake-period'],
-          package_period: args['package-period']
+          package_period: args['package-period'],
+          annual_inflation: args['inflation'],
+          pricing: []
         },
-        annual_inflation: args['inflation'],
       }, {
         authorization: `${args['provider']}@active`,
         broadcast: true,
@@ -79,11 +80,11 @@ module.exports = {
         keyProvider: [key]
       });
       await contractInstance.enablepkg({
-        provider,
-        package_id,
+        provider: args['provider'],
+        package_id: args['package-id'],
         service: serviceContract
       }, {
-        authorization: `${provider}@active`,
+        authorization: `${args['provider']}@active`,
       });
     }
     catch (e) {

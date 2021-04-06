@@ -9,7 +9,7 @@ async function deployLocalService(serviceModel, provider = 'pprovider1', pi = 0,
   const liquidXMaps = loadModels('liquidx-mappings');
   const mapEntrySvc = liquidXMaps.find(m => m.sidechain_name === sidechain.name && m.mainnet_account === serviceModel.contract);
   if (!mapEntrySvc) {
-    console.log(`missing mapping for service ${serviceModel.contract} sidechain: ${sidechain.name}`);
+    // console.log(`missing mapping for service ${serviceModel.contract} sidechain: ${sidechain.name}`);
     return;
   }
 

@@ -10,7 +10,7 @@ const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-servi
 const { getTestContract, getLocalDSPEos } = requireBox('seed-eos/tools/eos/utils');
 const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
 
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 
 var contractCode = 'cronconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
@@ -337,6 +337,55 @@ describe(`Cron Service Test Contract`, () => {
           'limit': 100
         });
         assert.ok(res.rows[0].counter > second, 'second account counter did not increase');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  
+  it('Cron test - "{abort_service_request}"', done => {
+    (async () => {
+      const aborttest = `aborttest`
+      const deployedContractAbort = await deployer.deploy(ctrt, aborttest);
+      await genAllocateDAPPTokens(deployedContractAbort, 'cron');
+      const testcontractAboort = await getTestContract(aborttest);
+      try {
+        let res = await dspeos.getTableRows({
+          'json': true,
+          'scope': aborttest,
+          'code': aborttest,
+          'table': 'stat',
+          'limit': 100
+        });
+        let first, second
+        if(!res.rows.length) {
+          first = ''
+        } else {
+          first = res.rows[0].counter;
+        }
+        res = await testcontractAboort.testabort({
+          account: aborttest
+        }, {
+          authorization: `${aborttest}@active`,
+          broadcast: true,
+          sign: true
+        });
+        await delay(5000);
+        res = await dspeos.getTableRows({
+          'json': true,
+          'scope': aborttest,
+          'code': aborttest,
+          'table': 'stat',
+          'limit': 100
+        });
+        if(!res.rows.length) {
+          second = ''
+        } else {
+          second = res.rows[0].payload;
+        }
+        assert.equal(second, first, 'counter should never fire, always aborted');
         done();
       }
       catch (e) {

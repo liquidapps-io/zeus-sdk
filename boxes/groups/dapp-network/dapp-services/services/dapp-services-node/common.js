@@ -18,11 +18,10 @@ const { Serialize } = eosjs2;
 const { TextDecoder, TextEncoder } = require('text-encoding');
 const { Long } = require('bytebuffer')
 const mainnetDspKey = process.env.DSP_PRIVATE_KEY;
-if (!mainnetDspKey) console.warn('must provide DSP_PRIVATE_KEY if not using utils');
 const nodeosMainnetEndpoint = process.env.NODEOS_MAINNET_ENDPOINT || 'http://localhost:8888';
 const dspGatewayMainnetEndpoint = process.env.DSP_GATEWAY_MAINNET_ENDPOINT || 'http://localhost:13015';
 const nodeosLatest = process.env.NODEOS_LATEST || true;
-const maxReqRetries = parseInt(process.env.DSP_MAX_REQUEST_RETRIES || 50);
+const maxReqRetries = parseInt(process.env.DSP_MAX_REQUEST_RETRIES || 10);
 
 //dfuse settings
 const mainnetDfuseEnable = process.env.DFUSE_PUSH_ENABLE || false;
@@ -218,7 +217,12 @@ const getDfuseJwt = async () => {
 }
 
 const forwardEvent = async (act, endpoint, redirect) => {
-  if (redirect) { return endpoint; }
+  if (redirect) { 
+    logger.info(`redirecting ${act.event.payer}:${act.event.action} for service ${act.event.service} to ${endpoint} for DSP: ${act.event.provider}`)
+    return endpoint;
+  }
+  const msg = act.account ? `forwarding event ${act.account}:${act.method} to ${endpoint + '/event'}` : `forwarding ${act.event.etype} event ${act.event.payer}:${act.event.action} for service ${act.event.service} to ${endpoint + '/event'} for DSP: ${act.event.provider}`
+  logger.info(msg);
   const r = await fetch(endpoint + '/event', { method: 'POST', body: JSON.stringify(act) });
   const rtxt = await r.text();
   return rtxt;
@@ -232,16 +236,17 @@ const resolveBackendServiceData = async (service, provider, packageid, sidechain
     if (result.length === 0) throw new Error(`resolveBackendServiceData failed ${provider} ${service} ${packageid}`);
     if (!result[0].enabled) throw new Error(`Provider: ${provider} Service: ${service} Package ${packageid}: Packages must be enabled for DSP services to function. The enablepkg command must be run by the DSP to enable this package.`);
     if (Number(balance.substring(0, balance.length - 5)) < Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)))
-      logger.warn(`DAPP Balance is less than minimum stake quantity for provider: ${provider}, service: ${service}, packageid: ${packageid}: ${Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)) - Number(balance.substring(0, balance.length - 5))} more DAPP must be staked to meet threshold`);
+      throw new Error(`DAPP Balance is less than minimum stake quantity for provider: ${provider}, service: ${service}, packageid: ${packageid}: ${Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)) - Number(balance.substring(0, balance.length - 5))} more DAPP must be staked to meet threshold`);
   }
   // read from local service models
-  var loadedExtensions = await loadModels('dapp-services');
-  var loadedExtension = loadedExtensions.find(a => getContractAccountFor(a) == service);
+  const loadedExtensions = await loadModels('dapp-services');
+  const loadedExtension = loadedExtensions.find(a => getContractAccountFor(a) == service);
   if (!loadedExtension) return null;
-  var host = process.env[`DAPPSERVICE_HOST_${loadedExtension.name.toUpperCase()}`];
-  var port = process.env[`DAPPSERVICE_PORT_${loadedExtension.name.toUpperCase()}`];
+  let host = process.env[`DAPPSERVICE_HOST_${loadedExtension.name.toUpperCase()}`];
+  let port = process.env[`DAPPSERVICE_PORT_${loadedExtension.name.toUpperCase()}`];
   if (!host) host = 'localhost';
   if (!port) port = loadedExtension.port;
+  logger.info(`resolving internal endpoint: ${`http://${host}:${port}`} for provider: ${provider} | service: ${service} | package id: ${packageid}`);
   return {
     internal: true,
     endpoint: `http://${host}:${port}`
@@ -251,13 +256,14 @@ const resolveBackendServiceData = async (service, provider, packageid, sidechain
 const resolveExternalProviderData = async (service, provider, packageid, sidechain, balance) => {
   const eos = await eosMainnet();
   const packages = await getTableRowsSec(eos.rpc, dappServicesContract, "package", dappServicesContract, [null, packageid, service, provider], 1, 'sha256', 2);
-  logger.debug(`resolveExternalProviderData packages: ${JSON.stringify(packages)}`);
   const result = packages.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service);
   if (result.length === 0) throw new Error(`resolveExternalProviderData failed ${provider} ${service} ${packageid}`);
   if (!result[0].enabled) throw new Error(`Provider: ${provider} Service: ${service} Package ${packageid}: Packages must be enabled for DSP services to function. The enablepkg command must be run by the DSP to enable this package.`);
   if (balance !== undefined)
     if (Number(balance.substring(0, balance.length - 5)) < Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)))
-      logger.warn(`DAPP Balance is less than minimum stake quantity for provider: ${provider}, service: ${service}, packageid: ${packageid}: ${Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)) - Number(balance.substring(0, balance.length - 5))} more DAPP must be staked to meet threshold`);
+      throw new Error(`DAPP Balance is less than minimum stake quantity for provider: ${provider}, service: ${service}, packageid: ${packageid}: ${Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)) - Number(balance.substring(0, balance.length - 5))} more DAPP must be staked to meet threshold`);
+  
+  logger.info(`resolving external endpoint: ${result[0].api_endpoint} for provider: ${provider} | service: ${service} | package id: ${packageid} balance: ${balance} | sidechain ${sidechain}`);
   return {
     internal: false,
     endpoint: result[0].api_endpoint
@@ -312,7 +318,7 @@ const getTableRowsSec = async (rpc, code, table, scope, keys, limit = 1, key_typ
         encodedKeys = hexKeys.map(k => k.match(/.{2}/g).reverse().join(''));
         payload.lower_bound = encodedKeys[0] + encodedKeys[1] + encodedKeys[2] + encodedKeys[3];
       } else {
-        payload.lower_bound = encodedKey[1] + encodedKey[0] + encodedKey[3] + encodedKey[2];
+        payload.lower_bound = encodedKeys[1] + encodedKeys[0] + encodedKeys[3] + encodedKeys[2];
       }
       // for sha256/i128 where the keys are name we split them pairwise and reverse
       // this is how eosio internally encodes name values..
@@ -326,7 +332,7 @@ const getTableRowsSec = async (rpc, code, table, scope, keys, limit = 1, key_typ
         payload.lower_bound = "0x" + encodedKeys[0] + encodedKeys[1];
       } else {
         payload.encode_type = 'dec';
-        payload.lower_bound = "0x" + encodedKey[1] + encodedKey[0];
+        payload.lower_bound = "0x" + encodedKeys[1] + encodedKeys[0];
       }
       break;
     case 'i64':
@@ -373,11 +379,8 @@ const getProviders = async (payer, service, provider, sidechain) => {
 };
 
 const resolveProviderPackage = async (payer, service, provider, sidechain, getEvery = false) => {
-  logger.debug('resolving provider package');
-  logger.debug(JSON.stringify({ payer, service, provider, sidechain, getEvery }));
   let providers = [];
   const serviceWithStakingResult = await getProviders(payer, service, provider, sidechain);
-  logger.debug(`got svc with staking results - ${JSON.stringify(serviceWithStakingResult)}`)
   //we must iterate over staked packages and ensure they are enabled
   if (sidechain) {
     const sidechainName = sidechain.name;
@@ -399,12 +402,15 @@ const resolveProviderPackage = async (payer, service, provider, sidechain, getEv
       if (!getEvery) break;
     }
     catch (e) {
-      logger.error(`Provider ${checkProvider.provider} package ${checkPackage} does not exist or is disabled`);
       logger.error(e);
     }
   }
   if (!selectedPackage) { throw new Error(`resolveProviderPackage failed - no enabled packages - ${provider} ${service}`); }
-  if (getEvery) return providers;
+  if (getEvery) {
+    logger.info(`verifying provider(s) for payer: ${payer} service: ${service} provider: ${provider} providers: ${JSON.stringify(providers)}`)
+    return providers;
+  } 
+  logger.info(`verifying package for payer: ${payer} service: ${service} provider: ${provider}: package: ${selectedPackage}`)
   return selectedPackage;
 };
 
@@ -421,6 +427,7 @@ const resolveProvider = async (payer, service, provider, sidechain) => {
 
 const processFn = async (actionHandlers, actionObject, simulated, serviceName, handlers, isExternal) => {
   var actionHandler = actionHandlers[actionObject.event.etype];
+  logger.info(`processing ${actionObject.event.etype} for service name: ${serviceName} | service contract: ${actionObject.event.service} | simulated: ${simulated} | isExternal: ${isExternal}`)
   if (!actionHandler) { return; }
   try {
     return await actionHandler(actionObject, simulated, serviceName, handlers, isExternal);
@@ -480,6 +487,7 @@ const rollBack = async (garbage, actionHandlers, serviceName, handlers) => {
      }
   }));
 };
+
 const notFound = (res, message = 'bad endpoint') => {
   res.status(404);
   res.send(JSON.stringify({
@@ -517,10 +525,8 @@ const testTransaction = async(sidechain, uri, body) => {
         'X-Eos-Push-Guarantee': `${mainnetDfuseGuarantee}`
       }
     });
-    logger.debug(`result: ${typeof(result) == "object" ? JSON.stringify(result) : result}`)
   } else {
     result = await fetch(currentNodeosEndpoint + uri, { method: 'POST', body: JSON.stringify(body) });
-    logger.debug(`result: ${typeof(result) == "object" ? JSON.stringify(result) : result}`)
   }  
   return result;
 }
@@ -533,15 +539,10 @@ const loggerHelper = (element) => {
   }
 }
 
-const processRequestWithBody = async (req, res, body, actionHandlers, serviceName, handlers) => {
-  var uri = req.originalUrl;
+const processRequestWithBody = async (req, res, body, actionHandlers, serviceName, handlers, { uri, isServiceRequest, isServiceAPIRequest, isPushTransaction, uriParts, sidechain }) => {
   var sidechain = body.sidechain;
-  var isServiceRequest = uri.indexOf('/event') == 0;
-  var isServiceAPIRequest = uri.indexOf('/v1/dsp/') == 0;
-  var uriParts = uri.split('/');
   if (isServiceRequest) {
     try {
-
       const ret = await processFn(actionHandlers, body, false, serviceName, handlers, true);
       const retTxt = typeof (ret) === "object" ? JSON.stringify(ret) : ret;
       res.send(retTxt);
@@ -571,15 +572,19 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
   }
 
   let trys = 0;
-  const garbage = []; 
+  let garbage = []; 
+  let simulated = false;
+  let lastProcessedData = '';
   while (trys < maxReqRetries) {    
     let r = await testTransaction(sidechain, uri, body);
     let resText = await r.text();
     let rText;
     if (r.status !== 500) {
+      // logger.debug(`found it!!! ${r.status} ${typeof(resText) == "object" ? JSON.stringify(resText) : resText}`)
       res.status(r.status);
       return res.send(resText);
     }
+    let endpoint;
     try {
       let detailsAssertionSvcReq;
       rText = JSON.parse(resText);
@@ -602,7 +607,6 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
       } else {
         jsons = detailsPendingConsole.split('\n').filter(a => a.trim() != '');
       }
-      logger.debug(loggerHelper(jsons));
       
       let currentEvent;
       for (var i = 0; i < jsons.length; i++) {
@@ -618,7 +622,15 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
           sidechain,
           exception: true
         };
-        if (i < jsons.length - 1) await processFn(actionHandlers, currentActionObject, true, serviceName, handlers);
+        if(simulated && lastProcessedData === currentActionObject.event.data) {
+          // logger.debug(`unable to fulfill requested data`)
+          res.status(r.status);
+          return res.send(resText);
+        }
+        lastProcessedData = currentActionObject.event.data;
+        if (i < jsons.length - 1) {
+          await processFn(actionHandlers, currentActionObject, true, serviceName, handlers);
+        } 
       }
       const event = currentEvent;
       if (!event) 
@@ -630,8 +642,7 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
         exception: true
       };
 
-      const endpoint = await processFn(actionHandlers, actionObject, true, serviceName, handlers);
-      logger.debug(`endpoint shouldAbort: ${endpoint} typeof: ${typeof (endpoint)}`);
+      endpoint = await processFn(actionHandlers, actionObject, true, serviceName, handlers);
       try {
         if (endpoint.includes(`shouldAbort`) && JSON.parse(endpoint).shouldAbort) {
           logger.debug(`shouldAbort detected`);
@@ -641,13 +652,26 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
         logger.error(`error parsing endpoint.shouldAbort`);
         logger.error(e);
       }
-      if (endpoint === 'retry') {
-        garbage.push({ ...actionObject, rollback: true });
-        logger.debug(`Service request done: ${trys++}`);
+      // no garbage collection, local success
+      if(endpoint === 'local_success') {
+        simulated = true;
         continue;
       }
-
+      // handles response from generic service API service_request broadcast trx
+      if(endpoint === 'success') {
+        simulated = true;
+        logger.warn(`Service request completed, at least 1 DSP returned successful response, cleaning up RAM entries`);
+        garbage.push({ ...actionObject, rollback: true });
+        continue;
+      }
+      if (endpoint === 'retry') {
+        garbage.push({ ...actionObject, rollback: true });
+        logger.warn(`Service request completed, no successful broadcast, retrying: ${trys++}`);
+        continue;
+      }
+      // handles internal service request forwarding
       if (endpoint) {
+        logger.info(`forwarding internal service transaction: ${endpoint + uri}`)
         r = await fetch(endpoint + uri, { method: 'POST', body: JSON.stringify(body) });
         resText = await r.text();
         rText = JSON.parse(resText);
@@ -655,40 +679,37 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
       if (r.status === 500) await rollBack(garbage, actionHandlers, serviceName, handlers);
       res.status(r.status);
       return res.send(resText);
-
-
     }
     catch (e) {
       await rollBack(garbage, actionHandlers, serviceName, handlers);
-      logger.warn(`exception running push_transaction: ${e}`);
+      logger.error(`exception running push_transaction: ${e} for endpoint ${endpoint} and uri: ${uri}`);
       res.status(500);
       res.send(JSON.stringify({
         code: 500,
         error: {
-          details: [{ message: e.toString(), response: rText }]
+          details: [{ message: `${e.toString()}, endpoint: ${endpoint}`, response: rText }]
         }
       }));
     }
     return null;
   }
-  return notFound(res, `too many tries ${uri}`);
+  return notFound(res, `request retry failed for for ${serviceName} after ${trys} trys`);
 }
 const pjson = require('../../../../package.json');
 const genNode = async (actionHandlers, port, serviceName, handlers, abi, sidechain) => {
   if (handlers) handlers.abi = abi;
   const app = genApp();
   app.use(async (req, res, next) => {
-    var uri = req.originalUrl;
-    logger.debug("received request: %s\t[%s] - %s", uri, req.ip, sidechain ? sidechain.name : "main");
-
-    var isServiceRequest = uri.indexOf('/event') === 0;
-    var isServiceAPIRequest = uri.indexOf('/v1/dsp/') === 0;
-    var isPushTransaction = uri.indexOf('/v1/chain/push_transaction') === 0 || uri.indexOf('/v1/chain/send_transaction') === 0;
-    var uriParts = uri.split('/');
+    let uri = req.originalUrl;
+    const isServiceRequest = uri.indexOf('/event') === 0;
+    const isServiceAPIRequest = uri.indexOf('/v1/dsp/') === 0;
+    const isPushTransaction = uri.indexOf('/v1/chain/push_transaction') === 0 || uri.indexOf('/v1/chain/send_transaction') === 0;
+    const uriParts = uri.split('/');
     if (uri === '/v1/dsp/version')
       return res.send(pjson.version); // send response to contain the version
 
     if (!isPushTransaction && !isServiceRequest && !isServiceAPIRequest) {
+      logger.info(`proxying${uri.indexOf('/v1/chain/') ? ' nodeos': ''} request ${uri}`);
       return proxy.web(req, res, { target: sidechain ? sidechain.nodeos_endpoint : nodeosMainnetEndpoint });
     }
 
@@ -714,20 +735,16 @@ const genNode = async (actionHandlers, port, serviceName, handlers, abi, sidecha
     }, async function (err, string) {
       if (err) return next(err);
       const body = JSON.parse(string.toString());
-
       let currentSidechain = sidechain;
       if (body.sidechain)
         currentSidechain = body.sidechain;
       if (req.headers['sidechain'] && serviceName !== 'services') {
-
         var sidechainName = req.headers['sidechain'];
-        logger.info(`sidechain: ${sidechainName}`);
         const sidechains = await loadModels('eosio-chains');
         currentSidechain = sidechains.find(s => s.name == sidechainName);
       }
       body.sidechain = currentSidechain;
-      return processRequestWithBody(req, res, body, actionHandlers, serviceName, handlers);
-
+      return processRequestWithBody(req, res, body, actionHandlers, serviceName, handlers, { uri, isServiceRequest, isServiceAPIRequest, isPushTransaction, uriParts, sidechain });
     });
   });
   app.listen(port, () => {
@@ -894,7 +911,7 @@ const getPayerPermissions = async (endpoint, dappContract, payer, provider, perm
     if (!dsp) throw new Error('no dsp permission');
     let found = dsp.required_auth.accounts.find(a => a.permission.actor == provider && a.permission.permission == permission);
     if (!found) {
-      logger.warn("CONSUMER ISSUE: %s is not on the DSP permission for %s", provider, payer);
+      // logger.debug("CONSUMER: %s is not on the DSP permission for %s", provider, payer);
       throw new Error('this provider is not on the dsp permission list');
     }
     authorization = [{ actor: payer, permission: "dsp" }]; //if detected - we will use this
@@ -903,7 +920,7 @@ const getPayerPermissions = async (endpoint, dappContract, payer, provider, perm
     if (forcePayer) {
       throw e;
     } else {
-      logger.warn("CONSUMER ISSUE: %s does not have a valid DSP permission configured", payer);
+      // logger.debug("CONSUMER: %s does not have a valid DSP permission configured, thus DSP is paying for CPU", payer);
     }
   }
   return authorization;
@@ -973,8 +990,13 @@ const pushTransaction = async (endpoint, dappContract, payer, provider, action, 
   }
   catch (e) {
     if (fail) return e;
-    logger.debug("TRANSMITTING ACTION FAILED: \n%j\n", JSON.stringify(actions));
-    throw e;
+    if(JSON.stringify(e).includes('abort_service_request') || JSON.stringify(e).includes('required service')) {
+      throw e;
+    } else {
+      logger.error("TRANSMITTING ACTION FAILED: %j", JSON.stringify(actions));
+      logger.debug(e);
+      throw e;
+    }
   }
 }
 
@@ -1010,8 +1032,8 @@ const emitUsage = async (contract, service, quantity = 1, meta = {}, requestId =
   }
   catch (e) {
     // fail if fails
-    logger.warn(`provisioning failed ${JSON.stringify(e)}`);
-    throw new Error("provisioning failed");
+    logger.warn(`usagex event billing failed ${JSON.stringify(e)}`);
+    return e;
   }
 
 }

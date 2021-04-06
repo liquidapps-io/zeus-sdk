@@ -26,6 +26,8 @@ module.exports = (filePath, port) => {
         newEnv.DAEMONIZE_PROCESS = true;
       console.log(emojMap.cloud + 'Running service:', cmd.blue, "port:", port.toString().yellow);
       const box = getBoxName(`services/${cmd}/index.js`);
+      // nodejs command for running service independently
+      // console.log(`PORT=${port} node zeus_boxes/${box}/services/${cmd}/index.js`)
       var stdout = await execPromise(`PORT=${port} node zeus_boxes/${box}/services/${cmd}/index.js`, {
         env: newEnv,
         printErrCB: console.error,

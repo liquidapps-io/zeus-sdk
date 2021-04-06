@@ -48,6 +48,10 @@ module.exports = {
         default: '300.0000',
         alias: 's'
       })
+      .option('services', {
+        describe: 'service APIs to run',
+        default: ''
+      })
       .option('delete-logs', {
         describe: 'delete logs folder before starting test',
         default: false,
@@ -65,6 +69,9 @@ module.exports = {
       if (fs.existsSync(`logs`)) {
         await execPromise(`rm -rf logs`);
       }
+    }
+    if(args.services) {
+      args.services = args.services.split(',');
     }
     if (args.compile) {
       await compileCommand.handler(args);

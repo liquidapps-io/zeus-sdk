@@ -10,7 +10,7 @@ const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
 const { genAllocateDAPPTokens, createLiquidXMapping } = requireBox('dapp-services/tools/eos/dapp-services');
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 
 const contractCode = 'sanftpeg';
 const contractCodeX = 'sanftpegx';
@@ -88,15 +88,12 @@ describe(`Token bridge Test`, () => {
         });
 
         const dappservicexInstance = await eosconsumerX.contract(dappservicex);
-        try {
-          await dappservicexInstance.adddsp({ owner: codeXSidechain, dsp: 'xprovider1' }, {
-            authorization: `${codeXSidechain}@active`,
-          });
-          await dappservicexInstance.adddsp({ owner: codeXSidechain, dsp: 'xprovider2' }, {
-            authorization: `${codeXSidechain}@active`,
-          });
-        }
-        catch (e) { console.error(e) } // ???
+        await dappservicexInstance.adddsp({ owner: codeXSidechain, dsp: 'xprovider1' }, {
+          authorization: `${codeXSidechain}@active`,
+        });
+        await dappservicexInstance.adddsp({ owner: codeXSidechain, dsp: 'xprovider2' }, {
+          authorization: `${codeXSidechain}@active`,
+        });
         // create test account on mainnet and sidechain
         await getCreateAccount(testAccMainnet, null, false);
         await getCreateAccount(testAccSidechain, null, false, sidechain);

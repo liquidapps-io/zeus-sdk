@@ -71,12 +71,17 @@ module.exports = async ({ proto, address, sidechain, contract }) => {
   let buf = new Serialize.SerialBuffer({textDecoder: new TextDecoder(), textEncoder: new TextEncoder()});
   let localTypes = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), eosAbi);
   let thisType = localTypes.get(typeName);
-  logger.debug("\n\nETH->EOS REQUESTED TYPE: %j",thisType);
+  // logger.debug("\n\nETH->EOS REQUESTED TYPE: %j",thisType);
 
   try{
     const result = await contractEth.methods[methodName](input).call();
+    if(result.data === null) {
+      // no data, e.g. Error: missing message_payload.data (type=bytes)
+      // return
+      return;
+    }
     //if(result[0] == null) throw new Error(`No value for the provided input of: ${input}`);
-    logger.debug("\n\nETH TABLE RESULT: %j", result);
+    // logger.debug("\n\nETH TABLE RESULT: %j", result);
     let obj = {};
     thisType.fields.map(x => {
       let value = result[x.name];
@@ -87,10 +92,10 @@ module.exports = async ({ proto, address, sidechain, contract }) => {
         obj[x.name] = value;
       }
     })
-    logger.debug("\n\nEOS OUT RESULT: %j", obj);
+    // logger.debug("\n\nEOS OUT RESULT: %j", obj);
     thisType.serialize(buf, obj);
     let res = Buffer.from(buf.getUint8Array(buf.length));
-    logger.debug("\n\nORACLE RESULT: %j", res);
+    // logger.debug("\n\nORACLE RESULT: %j", res);
     return res;
   } catch(e) {
     logger.error(`Error fetching value: %s`, e);    

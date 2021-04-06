@@ -11,7 +11,7 @@ const { genAllocateDAPPTokens, readVRAMData } = requireBox('dapp-services/tools/
 var contractCode = 'dnsconsumer';
 var serviceName = 'dns'
 var ctrt = artifacts.require(`./${contractCode}/`);
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 const util = require('util');
 
 describe(`${contractCode} Contract`, () => {
@@ -28,7 +28,6 @@ describe(`${contractCode} Contract`, () => {
         var s = '111111111111' + fivenum;
         var prefix = 'test';
         s = prefix + s.substr(s.length - (12 - prefix.length));
-        console.log(s);
         return s;
     };
     const code = 'dnstable1';
@@ -74,7 +73,7 @@ describe(`${contractCode} Contract`, () => {
                     keyProvider: [testAccountKeys.active.privateKey],
                 });
                 var resdns = await resolve(`${subdomain}.${owner}.${code}.example.com`, 'A');
-                console.log('res', resdns);
+                // console.log('res', resdns);
 
                 done();
             }
