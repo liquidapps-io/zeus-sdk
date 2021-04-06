@@ -7,7 +7,7 @@ const { getNetwork, getCreateAccount } = requireBox('seed-eos/tools/eos/utils');
 const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 const fetch = require('node-fetch');
 const Web3 = require('web3');
-const contract = require('truffle-contract');
+const contract = require('@truffle/contract');
 const fs = require('fs');
 const path = require('path');
 

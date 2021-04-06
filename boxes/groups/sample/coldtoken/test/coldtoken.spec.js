@@ -9,7 +9,7 @@ const { genAllocateDAPPTokens, readVRAMData } = requireBox('dapp-services/tools/
 
 var contractCode = 'coldtoken';
 var ctrt = artifacts.require(`./${contractCode}/`);
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 
 const { parseTable } = requireBox('ipfs-dapp-service/utils/ipfs-service/get-table');
 

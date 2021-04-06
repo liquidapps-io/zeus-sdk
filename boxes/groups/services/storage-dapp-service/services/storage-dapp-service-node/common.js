@@ -48,11 +48,11 @@ const saveToIPFS = async (data, rawLeaves = true) => {
       if(!chunkSize) throw new Error(`file is too big to be uploaded with 'rawLeaves' option`)
       const hash = hashData256(bufData);
       const expectedUri = convertToUri("01551220" + hash);
-      const filesAdded = await ipfs.files.add(bufData, { 'raw-leaves': true, 'cid-version': 1, 'cid-base': 'base58btc', chunker: `size-${chunkSize}` });
+      const filesAdded = await ipfs.files.add(bufData, { 'raw-leaves': true, 'cid-version': 1, 'cid-base': 'base58btc', chunker: `size-${chunkSize}`, pin: true });
       ipfsUri = `ipfs://${filesAdded[0].hash}`;
       if (ipfsUri != expectedUri) throw new Error(`uris mismatch ${ipfsUri} != ${expectedUri}`);
     } else {
-      const filesAdded = await ipfs.files.add(bufData, { 'raw-leaves': false, 'cid-version': 1, 'cid-base': 'base58btc' });
+      const filesAdded = await ipfs.files.add(bufData, { 'raw-leaves': false, 'cid-version': 1, 'cid-base': 'base58btc', pin: true });
       ipfsUri = `ipfs://${filesAdded[0].hash}`;
     }
     return ipfsUri;
@@ -60,7 +60,7 @@ const saveToIPFS = async (data, rawLeaves = true) => {
 
 const saveDirToIPFS = async (files) => {
     // console.log('writing data: ' +data);
-    const filesAdded = await ipfs.files.add(files, { wrapWithDirectory: true });
+    const filesAdded = await ipfs.files.add(files, { wrapWithDirectory: true, pin: true });
     // last added "file" is that of wrapping dir
     var theHash = filesAdded[filesAdded.length - 1].hash;
     const resUri = `ipfs://${theHash}`;

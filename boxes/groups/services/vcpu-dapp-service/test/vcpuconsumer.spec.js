@@ -11,7 +11,7 @@ const { genAllocateDAPPTokens, readVRAMData } = requireBox('dapp-services/tools/
 var contractCode = 'vcpuconsumer';
 var serviceName = 'vcpu'
 var ctrt = artifacts.require(`./${contractCode}/`);
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 const util = require('util');
 
 describe(`${contractCode} Contract`, () => {

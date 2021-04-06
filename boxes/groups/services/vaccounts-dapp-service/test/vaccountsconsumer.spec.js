@@ -25,7 +25,7 @@ var contractCode2 = 'vaccountsremote';
 var ctrt = artifacts.require(`./${contractCode}/`);
 var ctrt2 = artifacts.require(`./${contractCode2}/`);
 
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 const delaySec = sec => delay(sec * 1000);
 
 function postData(url = ``, data = {}) {

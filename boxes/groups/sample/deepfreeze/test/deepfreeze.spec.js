@@ -12,7 +12,7 @@ const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-servi
 var contractCode = 'deepfreeze';
 var ctrt = artifacts.require(`./${contractCode}/`);
 var token_ctrt = artifacts.require(`./Token/`);
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 
 describe(`${contractCode} Contract`, () => {
   var testcontract;

@@ -1,6 +1,7 @@
 const { requireBox } = require('@liquidapps/box-utils');
 const { resolveHistoryEndpointForSisterChain, extractPath } = require('./helpers')
 const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
+const logger = requireBox('log-extensions/helpers/logger');
 
 module.exports = async({ proto, address }) => {
     // sister_chain_table_row://chain/code/table/scope/key/field
@@ -18,7 +19,7 @@ module.exports = async({ proto, address }) => {
 
     const historyEndpointUrl = await resolveHistoryEndpointForSisterChain(chain);
     const eos = getEosWrapper({ httpEndpoint: historyEndpointUrl });
-    const res = await eos.getTableRows({
+    const params = {
         'json': true,
         'scope': scope,
         'code': code,
@@ -26,6 +27,11 @@ module.exports = async({ proto, address }) => {
         'lower_bound': lower_bound,
         'upper_bound': upper_bound,
         'limit': limit
-    })
+    };
+    const res = await eos.getTableRows(params);
+    if(!res || !res.rows[0]) {
+        logger.info(`no rows available for ${proto}://${address}`);
+        return;
+    } 
     return extractPath(res.rows[0], field);
 };

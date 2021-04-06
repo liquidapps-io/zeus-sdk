@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "ignore": [
     "README.md"
   ],
@@ -10,8 +10,7 @@
   },
   "install": {
     "npm": {
-      "assemblyscript": "github:AssemblyScript/assemblyscript",
-      "esm": true,
+      "@assemblyscript/loader": true,
       "node-fetch": "^2.6.0"
     },
     "contracts": {

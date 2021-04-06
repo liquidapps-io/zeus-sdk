@@ -15,9 +15,8 @@ const actionHandlers = {
     if (!sidechain && meta && meta.sidechain) {
       sidechain = sidechainsDict[meta.sidechain.name];
     }
-    logger.debug(`service_request to: ${service} ${JSON.stringify(act)}`)
-
     var payer = act.event.payer ? act.event.payer : act.receiver;
+    // if we are replaying, skip processing package
     let isReplay = act.replay;
     if (isReplay && provider == '') {
       provider = paccount;
@@ -26,6 +25,9 @@ const actionHandlers = {
       provider = await resolveProvider(payer, service, provider, sidechain);
     }
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider, sidechain);
+    
+    logger.info(`received DSP API service request for ${service}:${action} payer ${payer} | DSP: ${provider}:${packageid} | exception: ${act.exception} | simulated: ${simulated} | service name: ${serviceName} | external: ${isExternal} | replay: ${isReplay}`)
+
     if (sidechain)
       service = await getLinkedAccount(null, null, service, sidechain.name, true);
 
@@ -50,7 +52,7 @@ const actionHandlers = {
         var serviceRequest = await dal.createServiceRequest(key);
 
         if (serviceRequest.request_block_num) {
-          logger.debug(`request already exists ${key}`);
+          logger.debug(`DSP API request already exists ${key}`);
           return;
         }
         // save the req block num and the request itself incase we need
@@ -66,17 +68,14 @@ const actionHandlers = {
             continue;
           else throw e;
         }
-        logger.info(`processing request: key: ${key} value: ${meta.blockNum}`);
+        logger.info(`processing DSP API request: ${account}:${act.event.action}`);
         break;
       }
       // TODO: if not synced, aggregate and dispatch pending requests when syncd.
       // todo: send events in recovery mode.
     }
-    logger.debug(`forwarding to: ${providerData.endpoint}`);
     act.sidechain = sidechain;
     return await forwardEvent(act, providerData.endpoint, act.exception && !act.event.broadcasted);
-
-
   },
   'service_signal': async (act, simulated) => {
     if (simulated) { return; }

@@ -9,11 +9,17 @@
 #undef MESSAGE_RECEIPT_HOOK
 #define MESSAGE_RECEIPT_HOOK(receipt) receipt_received(receipt)
 
+#undef MESSAGE_RECEIVED_FAILURE_HOOK	
+#define MESSAGE_RECEIVED_FAILURE_HOOK(message) message_received_failed(message)	
+
+#undef MESSAGE_RECEIPT_FAILURE_HOOK	
+#define MESSAGE_RECEIPT_FAILURE_HOOK(receipt) receipt_received_failed(receipt)
+
 CONTRACT_START()
 
   LINK_BOOTSTRAP()
 
-  struct message {
+  struct message_t {
     bool success;
     eosio::name account;            
     int64_t amount;
@@ -25,7 +31,7 @@ CONTRACT_START()
       uint64_t id;
       string type;
       vector<char> data;
-      message msg;
+      message_t msg;
       uint64_t primary_key()const { return id; }
     };
     typedef eosio::multi_index<"history"_n, history> history_table;
@@ -85,14 +91,14 @@ CONTRACT_START()
     return reversed;
   }
 
-  message unpack(const vector<char>& data) {
-    auto unpacked = eosio::unpack<message>(data);
+  message_t unpack(const vector<char>& data) {
+    auto unpacked = eosio::unpack<message_t>(data);
     auto _amount = unpacked.amount;
     unpacked.amount = reverse(_amount);
     return unpacked;
   }
 
-  vector<char> pack(const message& data) {
+  vector<char> pack(const message_t& data) {
     auto _data = data;
     _data.amount = reverse(_data.amount);
     auto packed = eosio::pack(_data);
@@ -171,7 +177,7 @@ CONTRACT_START()
     check(settings.transfers_enabled, "transfers disabled");
     
     // the memo should contain ONLY the eth address.
-    message new_transfer = { true, from, quantity.amount, HexToAddress(memo) };
+    message_t new_transfer = { true, from, quantity.amount, HexToAddress(memo) };
     auto transfer = pack(new_transfer);
 
     #ifdef LINK_DEBUG    
@@ -220,13 +226,19 @@ CONTRACT_START()
     return orig_data;
   } 
 
+  // mark message as failed and return
+  vector<char> message_received_failed(const std::vector<char>& message) {
+    auto failed_message = unpack(message);
+    failed_message.success = false;
+    auto packed_data = pack(failed_message);
+    return packed_data;
+  } 
+
   void receipt_received(const std::vector<char>& data) {
     // deserialize original message to get the quantity and original sender to refund
     token_settings_table settings_singleton(_self, _self.value);
     token_settings_t settings = settings_singleton.get_or_default();
     auto transfer_receipt = unpack(data);
-
-    
 
     std::string memo = "LiquidApps LiquidLink Transfer Failed - Attempted to send to Ethereum account 0x";// + AddressToHex(transfer_receipt.address);
     asset quantity = asset(transfer_receipt.amount, settings.token_symbol);
@@ -263,6 +275,23 @@ CONTRACT_START()
           a.type = "receiptSuccess";
         });
       #endif  
+    }
+  }
+
+  // mark receipt as failed and store in failed messages table
+  void receipt_received_failed(message_payload& receipt) { 
+    auto failed_receipt = unpack(receipt.data);
+    failed_receipt.success = false;
+    auto failed_receipt_packed = eosio::pack(failed_receipt);
+    receipt.data = failed_receipt_packed;
+    // add failed receipt to fmessages table
+    failed_messages_table_t failed_messages(_self, _self.value);
+    auto failed = failed_messages.find(receipt.id);
+    if(failed == failed_messages.end()) {
+        failed_messages.emplace(_self, [&](auto& a){
+            a.message = receipt;
+            a.received_block_time = eosio::current_time_point().sec_since_epoch();
+        });
     }
   }
 

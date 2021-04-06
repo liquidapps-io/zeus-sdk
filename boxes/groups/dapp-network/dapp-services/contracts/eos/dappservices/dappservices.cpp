@@ -1138,7 +1138,6 @@ private:
   }
 
   void applyInflation() {
-    updateMaxSupply();
     auto sym = DAPPSERVICES_SYMBOL;
     stats_ext statsexts(_self, sym.code().raw());
     stats statstable(_self, sym.code().raw());
@@ -1156,12 +1155,16 @@ private:
 
     uint64_t last_inflation_ts = stx.last_inflation_ts;
 
-    if(current_time_ms <= last_inflation_ts + 500)
+    if(current_time_ms <= last_inflation_ts + 500) {
+      updateMaxSupply();
       return;
+    }
 
     int64_t passed_blocks = (current_time_ms - last_inflation_ts) / 500;
-    if(passed_blocks <= 0)
+    if(passed_blocks <= 0) {
+      updateMaxSupply();
       return;
+    }
 
 
     // calc global inflation
@@ -1169,8 +1172,10 @@ private:
     asset inflation_asset;
     inflation_asset.symbol = sym;
     inflation_asset.amount = total_inflation_amount;
-    if(inflation_asset.amount <= 0)
+    if(inflation_asset.amount <= 0) {
+      updateMaxSupply();
       return;
+    }
 
     // increase supply
     statstable.modify(st, eosio::same_payer,

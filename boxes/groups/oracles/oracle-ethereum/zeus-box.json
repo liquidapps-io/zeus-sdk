@@ -1,11 +1,10 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "ignore": [
     "README.md"
   ],
   "dependencies": {
-    "oracle-dapp-service": "^1.0.0",
-    "storage-dapp-service": "^1.0.0"
+    "oracle-dapp-service": "^1.0.0"
   },
   "install": {
     "npm": {

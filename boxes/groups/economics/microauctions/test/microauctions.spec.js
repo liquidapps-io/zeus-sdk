@@ -8,7 +8,7 @@ const deployer = requireBox('seed-eos/tools/eos/deployer');
 const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
 const { getEos, getCreateAccount } = requireBox('seed-eos/tools/eos/utils');
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 
 var args = getDefaultArgs();
 var systemToken = (args.creator !== 'eosio') ? 'EOS' : 'SYS';

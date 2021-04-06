@@ -13,7 +13,7 @@ const contractAccount = process.env.CONTRACT || "";
 const endpoint = process.env.DSP_ENDPOINT || "";
 let lastBlock = process.env.LAST_BLOCK || 0;
 const delay = ms => new Promise(res => setTimeout(res, ms));
-const delayTimeInMs = process.env.HYPERION_DELAY_PER_FETCH || 5000;
+const delayTimeInMs = process.env.HYPERION_DELAY_PER_FETCH || 10000;
 
 const hyperionEndpoint =
   process.env.HYPERION_ENDPOINT || "https://api-wax.maltablock.org";
@@ -103,6 +103,8 @@ async function replay(hexData) {
     },
     replay: true,
   };
+  // prevent rate limit
+  await delay(10);
   var r = await fetch(url, { method: "POST", body: JSON.stringify(body) });
   await r.text();
   totalSize += hexData.length / 2 + 320;
@@ -134,20 +136,39 @@ function chunk(arr, len) {
 async function run() {
   let skip = 0;
   const LIMIT = 100;
+  const timeGapMs = process.env.HYPERION_TIME_GAP || 86400000 // 1 day
+  let after = new Date((Date.now() - timeGapMs)).toISOString()
+  let before = new Date().toISOString();
 
   while (true) {
     let qs = querystring.encode({
       code: contractAccount,
-      scope: contractAccount,
+      scope: contractAccount, 
       table: `ipfsentry`,
-      sort,
+      // sort,
       skip,
-      limit: LIMIT
+      limit: LIMIT,
+      // after, 
+      // before
     });
+    qs += `&after=${after}&before=${before}`
     const url = `${hyperionEndpoint}/v2/history/get_deltas?${qs}`;
+    console.log(`\nafter: ${after} | before: ${before} | url: ${url}`);
     await delay(delayTimeInMs);
     const response = await fetch(url).then((resp) => resp.json());
     const commits = response.deltas;
+    console.log(commits.length);
+    if(!commits.length) {
+      console.log('no commits, moving to next time gap');
+      after = Date.parse(new Date(after));
+      before = Date.parse(new Date(before));
+      after -= timeGapMs;
+      before -= timeGapMs;
+      after = new Date(after).toISOString();
+      before = new Date(before).toISOString();
+      skip = 0;
+      continue;
+    }
     lastBlock = commits[commits.length-1].block_num-1;
     skip += commits.length;
     const chunks = chunk(commits, 5);

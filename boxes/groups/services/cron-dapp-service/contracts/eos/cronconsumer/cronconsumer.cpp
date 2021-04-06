@@ -22,6 +22,7 @@ CONTRACT_START()
   typedef eosio::singleton<"payloadtbl"_n, payloadtbl> payload_def;
   
   bool timer_callback(name timer, std::vector<char> payload, uint32_t seconds){
+    if(timer.to_string() == "aborttest") eosio::check(false, "{abort_service_request}");
     stats_def statstable(_self, timer.value);
     stat newstats;
     if(!statstable.exists()){
@@ -67,4 +68,10 @@ CONTRACT_START()
   [[eosio::action]] void testpayload(name account, std::vector<char> payload, uint32_t seconds) {
       schedule_timer(account, payload, seconds);
   }
-CONTRACT_END((testschedule)(multitimer)(removetimer)(testpayload))
+
+  // test passing payload to timer_callback
+  [[eosio::action]] void testabort(name account) {
+      std::vector<char> payload;
+      schedule_timer(account, payload, 2);
+  }
+CONTRACT_END((testschedule)(multitimer)(removetimer)(testpayload)(testabort))

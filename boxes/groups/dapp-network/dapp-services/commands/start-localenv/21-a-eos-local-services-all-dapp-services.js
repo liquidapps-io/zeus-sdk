@@ -55,6 +55,13 @@ module.exports = async (args) => {
   await deployer.deploy(servicesC, servicescontract);
   for (var i = 0; i < models.length; i++) {
     var serviceModel = models[i];
+    let runService = false;
+    if(args.services) {
+      for(const el of args.services){
+        if(el === serviceModel.name) runService = true;
+      }
+      if(!runService) continue;
+    }
     var testProviders = testProvidersList;
     for (var pi = 0; pi < testProviders.length; pi++) {
       var testProvider = testProviders[pi];
@@ -67,7 +74,7 @@ module.exports = async (args) => {
         DSP_ACCOUNT: testProvider,
         NODEOS_LATEST: true,
         SVC_PORT: serviceModel.port * (pi + 1),
-        DSP_PORT: 13015 * (pi + 1),
+        DSP_PORT: 13015 * (pi + 1)
       });
       await deployLocalService(serviceModel, testProvider, gatewayPort * (pi + 1));
     }

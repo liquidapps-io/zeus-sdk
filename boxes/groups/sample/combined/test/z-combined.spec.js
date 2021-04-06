@@ -23,7 +23,7 @@ global.fetch = fetch;
 var contractCode = 'combined';
 var ctrt = artifacts.require(`./${contractCode}/`);
 
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 const delaySec = sec => delay(sec * 1000);
 
 

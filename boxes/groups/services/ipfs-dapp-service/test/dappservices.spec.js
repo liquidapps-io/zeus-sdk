@@ -18,7 +18,7 @@ var ctrt = artifacts.require(`./${contractCode}/`);
 
 const servicescontract = dappServicesContract;
 var servicesC = artifacts.require(`./dappservices/`);
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 const delaySec = sec => delay(sec * 1000);
 
 var generateModel = (commandNames, cost_per_action = 1) => {
@@ -587,7 +587,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
 
         await preSelectPackage({ deployedContract, selectedPackage, depth: 2 });
         await selectPackage({ deployedContract, selectedPackage: nextPackage });
-        await delaySec(packagePeriod * 2);
+        await delaySec(packagePeriod + 1);
         failed = false;
         try {
           await invokeService(testContractAccount, testcontract);
@@ -611,7 +611,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         assert(failed, 'should have failed for thid party stakes');
         await preSelectPackage({ deployedContract, selectedPackage: nextPackage, delegators: [testContractPayer, testContractPayer2] });
         await selectPackage({ deployedContract, selectedPackage });
-        await delaySec(packagePeriod * 2);
+        await delaySec(packagePeriod + 1);
 
         failed = false;
         try {

@@ -13,8 +13,9 @@ services_enabled = "ipfs,vaccounts,oracle,cron,auth,storage"
 # however, if they don't have the correct permission setup, everything will fail
 # review consumer pays documentation prior to setting this to true
 consumer_pays = false
+verbose_logs = false # enable for verbose logs
 allow_api_non_broadcast = false # enable to use the replay script or the cleanup script, be sure to disable afterwards to prevent gaming the endpoint
-max_request_retries = 50 # max retries to fetch an oracle request or ipfs warmup, or any other blocking DSP service action
+max_request_retries = 10 # max retries to fetch an oracle request or ipfs warmup, or any other blocking DSP service action
 
 # LiquidStorage params
 liquidstorage_upload_limit = "10mb" # upload limit for LiquidStorage
@@ -43,6 +44,13 @@ backoff = 500 # time between checking status of transaction
 # push_retries = 3
 # backoff_exponent = 1
 # backoff = 500
+
+# custom per service push guarantee level, note these are separated with '|'
+push_guarantee_per_service = '{"name":"ipfs","push_guarantee":"in-block","read_retries":"5"}|{"name":"oracle","push_guarantee":"in-block","read_retries":"5"}|{"name":"cron","push_guarantee":"handoffs:2","read_retries":"10"}|{"name":"vaccounts","push_guarantee":"in-block","read_retries":"5"}|{"name":"storage","push_guarantee":"in-block","read_retries":"5"}'
+
+# timeout for broadcast events such as oracle trxs, if a DSP does not respond within the given window, the promise rejects
+# dspResponses: [{"status":"fulfilled","value":""},{"status":"fulfilled","value":""},{"status":"rejected","reason":"DSP failed to respond within timeout window"}]
+broadcast_event_timeout = 10000
 
 [database]
 # url syntax: postgres://user:pass@example.com:5432/dbname

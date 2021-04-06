@@ -41,7 +41,9 @@ module.exports = async (args) => {
     '--wasm-runtime=eos-vm',
     '--max-irreversible-block-age=-1',
     `--genesis-json=${os.homedir()}/.zeus/nodeos/config/genesis.json`,
-    '--chain-threads=2'
+    '--chain-threads=2',
+    '--abi-serializer-max-time-ms=100',
+    '--max-block-cpu-usage-threshold-us=50000'
   ];
   var ports = [
     '-p 8888:8888',
@@ -157,9 +159,9 @@ const addGenesisConfig = async () => {
           "net_usage_leeway": 500,
           "context_free_discount_net_usage_num": 20,
           "context_free_discount_net_usage_den": 100,
-          "max_block_cpu_usage": 100000,
+          "max_block_cpu_usage": 1000000,
           "target_block_cpu_usage_pct": 500,
-          "max_transaction_cpu_usage": 50000,
+          "max_transaction_cpu_usage": 500000,
           "min_transaction_cpu_usage": 100,
           "max_transaction_lifetime": 3600,
           "deferred_trx_expiration_window": 600,

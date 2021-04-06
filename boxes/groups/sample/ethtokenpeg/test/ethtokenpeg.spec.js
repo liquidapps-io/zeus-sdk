@@ -3,7 +3,7 @@ const { requireBox } = require('@liquidapps/box-utils');
 const Web3 = require('web3');
 const fs = require('fs');
 const path = require('path');
-const contract = require('truffle-contract');
+const contract = require('@truffle/contract');
 const { assert } = require('chai'); // Using Assert style
 const { getLocalDSPEos, getCreateAccount, getNetwork } = requireBox('seed-eos/tools/eos/utils');
 const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
@@ -11,7 +11,7 @@ const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
 const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 
 const contractCode = 'ethtokenpeg';
 const ctrt = artifacts.require(`./${contractCode}/`);
@@ -20,7 +20,7 @@ const eosTokenContract = artifacts.require('./eosio.token/');
 const provider = new Web3.providers.HttpProvider('http://localhost:8545');
 const web3 = new Web3(provider);
 
-describe(`Token bridge Test`, () => {
+describe(`ETH Token bridge Test`, () => {
   // cpp contract, sol contract instances
   const codeEos = 'ethtokenpeg';
   const testAccEos = 'testpegmn';
@@ -37,7 +37,7 @@ describe(`Token bridge Test`, () => {
       try {
         const accounts = await web3.eth.getAccounts();
         testAddressEth = accounts[5];
-        console.log("Sending tokens to: ", testAddressEth);
+        // console.log("Sending tokens to: ", testAddressEth);
 
         // staking to 2 DSPs for the oracle and cron services for mainnet contract
         const deployedContract = await deployer.deploy(ctrt, codeEos);
@@ -121,7 +121,7 @@ describe(`Token bridge Test`, () => {
           'table': 'accounts',
           'limit': 1
         });
-        console.log("First transfer");
+        // console.log("First transfer");
         await tokenMainnetContract.transfer({
           from: testAccEos,
           to: codeEos,
@@ -146,7 +146,7 @@ describe(`Token bridge Test`, () => {
           'table': 'accounts',
           'limit': 1
         });
-        await delay(35000);
+        await delay(50000);
         const ethBalance = (await ethToken.balanceOf(testAddressEth)).toString();
         assert.equal(ethBalance, "40000");
         done();
@@ -185,7 +185,7 @@ describe(`Token bridge Test`, () => {
         });
         const midEosBalance = parseInt(res.rows[0].balance.split(" ")[0]);
         assert.equal(prevEosBalance - midEosBalance, 2);
-        await delay(35000);
+        await delay(50000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': testAccEos,
@@ -207,13 +207,15 @@ describe(`Token bridge Test`, () => {
       try {
         const prevBalance = (await ethToken.balanceOf(testAddressEth)).toString();
         await ethTokenpeg.sendToken("10000", 12345, {
-          from: testAddressEth
+          from: testAddressEth,
+          gasLimit: '1000000'
         });
         const midBalance = (await ethToken.balanceOf(testAddressEth)).toString();
-        assert.equal(parseInt(prevBalance) - parseInt(midBalance), 30000);
-        await delay(35000);
+        assert.equal(parseInt(prevBalance) - parseInt(midBalance), 10000);
+        await delay(150000);
         const postBalance = (await ethToken.balanceOf(testAddressEth)).toString();
         assert.equal(parseInt(postBalance) - parseInt(prevBalance), 0);
+        done();
       } catch(e) {
         done(e);
       }
@@ -233,9 +235,10 @@ describe(`Token bridge Test`, () => {
         });
         const prevEosBalance = parseInt(res.rows[0].balance.split(" ")[0]);
         await ethTokenpeg.sendToken("10000", testAccEosHex, {
-          from: testAddressEth
+          from: testAddressEth,
+          gasLimit: '1000000'
         });
-        await delay(35000);
+        await delay(50000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': testAccEos,
@@ -277,7 +280,7 @@ async function deployEthContracts() {
     from: masterAccount,
     gas: '5000000'
   });
-  console.log(`Token address: ${deployedToken.address}`);
+  // console.log(`Token address: ${deployedToken.address}`);
   const deployedTokenpeg = await tokenpegContract.new(signers, 2, deployedToken.address, {
     from: masterAccount,
     gas: '5000000'
@@ -290,5 +293,7 @@ async function deployEthContracts() {
     from: masterAccount,
     gas: '5000000'
   });
+  // console.log(`erc20 token address ${deployedToken.address}`)
+  // console.log(`ethtokenpeg contract address ${deployedTokenpeg.address}`)
   return { token: deployedToken, tokenpeg: deployedTokenpeg };
 }

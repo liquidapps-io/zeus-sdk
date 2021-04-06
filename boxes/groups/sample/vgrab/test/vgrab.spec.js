@@ -11,7 +11,7 @@ const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-servi
 
 var contractCode = 'vgrab';
 var ctrt = artifacts.require(`./${contractCode}/`);
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 
 describe(`${contractCode} Contract`, () => {
   var testcontract;

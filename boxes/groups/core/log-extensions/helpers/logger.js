@@ -10,6 +10,12 @@ var parts = thisProcess.split(path.sep)
 var processName = parts[parts.length - 2];
 const logfileName = process.env.LOGFILE_NAME || processName;
 
+// Ignore debug messages
+// const handleDebug = format((info, opts) => {
+//     if (info.level === "debug" && process.env.DSP_VERBOSE_LOGS.toString() === "false") { return false; }
+//     return info;
+// });
+
 // define the custom settings for each transport (file, console)
 const options = {
     file: {
@@ -31,18 +37,17 @@ const customFormat = printf((info) => {
     return `${ts} [${level}]: ${message}`;
 })
 
-
-
 // instantiate a new Winston Logger with the settings defined above
 let logger = new createLogger({
     format: combine(
+        // handleDebug(),
         timestamp(),
         splat(),
         colorize(),
         customFormat
     ),
     transports: [
-        new transports.DailyRotateFile(options.file),
+        new transports.DailyRotateFile(options.file)
     ]
 });
 

@@ -8,5 +8,10 @@
     "seed-microservices": "^1.0.0",
     "seed-models": "^1.0.0",
     "log-extensions": "^1.0.0"
+  },
+  "install": {
+    "npm": {
+      "@dfuse/client": true
+    }
   }
 }

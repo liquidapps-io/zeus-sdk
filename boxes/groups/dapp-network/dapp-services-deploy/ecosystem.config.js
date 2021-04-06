@@ -90,8 +90,9 @@ const DSP_ACCOUNT = globalEnv.DSP_ACCOUNT;
 const DSP_PRIVATE_KEY = globalEnv.DSP_PRIVATE_KEY;
 const DATABASE_URL = globalEnv.DATABASE_URL;
 const DSP_ACCOUNT_PERMISSIONS = globalEnv.DSP_ACCOUNT_PERMISSIONS || 'active';
+const DSP_VERBOSE_LOGS = globalEnv.DSP_VERBOSE_LOGS || false;
 const DSP_ALLOW_API_NON_BROADCAST = globalEnv.DSP_ALLOW_API_NON_BROADCAST || false;
-const DSP_MAX_REQUEST_RETRIES = globalEnv.DSP_MAX_REQUEST_RETRIES || 50;
+const DSP_MAX_REQUEST_RETRIES = globalEnv.DSP_MAX_REQUEST_RETRIES || 10;
 const DATABASE_NODE_ENV = globalEnv.DATABASE_NODE_ENV || 'production';
 const DATABASE_TIMEOUT = globalEnv.DATABASE_TIMEOUT || 10000;
 
@@ -123,11 +124,13 @@ const IPFS_PROTOCOL = globalEnv.IPFS_PROTOCOL || 'http';
 const NODEOS_CHAINID = globalEnv.NODEOS_CHAINID || 'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906';
 const NODEOS_WEBSOCKET_PORT = globalEnv.NODEOS_WEBSOCKET_PORT || 8887;
 const DSP_LIQUIDX_CONTRACT = globalEnv.DSP_LIQUIDX_CONTRACT || 'liquidx.dsp';
-const DSP_PUSH_GUARANTEE = globalEnv.DSP_PUSH_GUARANTEE || "handoffs:2";
-const DSP_READ_RETRIES = globalEnv.DSP_READ_RETRIES || 5;
+const DSP_PUSH_GUARANTEE = globalEnv.DSP_PUSH_GUARANTEE || 'in-block';
+const DSP_PUSH_GUARANTEE_PER_SERVICE = globalEnv.DSP_PUSH_GUARANTEE_PER_SERVICE || '';
+const DSP_READ_RETRIES = globalEnv.DSP_READ_RETRIES || 10;
 const DSP_PUSH_RETRIES = globalEnv.DSP_PUSH_RETRIES || 3;
-const DSP_BACKOFF_EXPONENT = globalEnv.DSP_BACKOFF_EXPONENT || 1;
+const DSP_BACKOFF_EXPONENT = globalEnv.DSP_BACKOFF_EXPONENT || 1.5;
 const DSP_BACKOFF = globalEnv.DSP_BACKOFF || 500;
+const DSP_BROADCAST_EVENT_TIMEOUT = globalEnv.DSP_BROADCAST_EVENT_TIMEOUT || 10000;
 const DFUSE_PUSH_ENABLE = globalEnv.DFUSE_PUSH_ENABLE || false;
 const DFUSE_PUSH_GUARANTEE = globalEnv.DFUSE_PUSH_GUARANTEE || 'in-block';
 const DFUSE_ENABLE = globalEnv.DFUSE_ENABLE || false;
@@ -179,6 +182,7 @@ let commonEnv = {
   IPFS_PROTOCOL,
   DSP_ACCOUNT,
   DSP_ACCOUNT_PERMISSIONS,
+  DSP_VERBOSE_LOGS,
   DSP_ALLOW_API_NON_BROADCAST,
   DSP_MAX_REQUEST_RETRIES,
   DSP_PRIVATE_KEY,
@@ -190,6 +194,7 @@ let commonEnv = {
   DSP_PUSH_RETRIES,
   DSP_BACKOFF_EXPONENT, 
   DSP_BACKOFF,
+  DSP_BROADCAST_EVENT_TIMEOUT,
   DATABASE_URL,
   DATABASE_NODE_ENV,
   DATABASE_TIMEOUT,
@@ -207,6 +212,14 @@ let commonEnv = {
   ETH_GAS_LIMIT,
   ETH_GAS_PRICE_MULT
 };
+
+const guaranteeLevels = [];
+
+if(DSP_PUSH_GUARANTEE_PER_SERVICE) {
+  DSP_PUSH_GUARANTEE_PER_SERVICE.split('|').forEach(item => {
+    guaranteeLevels.push(JSON.parse(item));
+  })
+}
 
 if(ETH_KEYS_PER_CONSUMER) {
   ETH_KEYS_PER_CONSUMER.split(',').forEach(item => {
@@ -300,17 +313,25 @@ const createDSPSidechainServices = (sidechain) => {
   ] 
 }
 
-const createDSPServiceApp = (name) => ({
-  name: `${name}-dapp-service-node`,
-  script: path.join(getBoxesDir(), getBoxName(`services/${name}-dapp-service-node/index.js`),  'services', `${name}-dapp-service-node`, 'index.js'),
-  autorestart: true,
-  cwd: __dirname,
-  log_date_format: "YYYY-MM-DDTHH:mm:ss",
-  env: {
-    ...commonEnv,
-    LOGFILE_NAME:`${name}-dapp-service-node`
-  }
-});
+const createDSPServiceApp = (name) => {
+  const guaranteeConfig = guaranteeLevels.find(i => i.name == name);
+  return {
+    name: `${name}-dapp-service-node`,
+    script: path.join(getBoxesDir(), getBoxName(`services/${name}-dapp-service-node/index.js`),  'services', `${name}-dapp-service-node`, 'index.js'),
+    autorestart: true,
+    cwd: __dirname,
+    log_date_format: "YYYY-MM-DDTHH:mm:ss",
+    env: {
+      ...commonEnv,
+      LOGFILE_NAME:`${name}-dapp-service-node`,
+      DSP_PUSH_GUARANTEE: guaranteeConfig ? guaranteeConfig.push_guarantee : DSP_PUSH_GUARANTEE,
+      DSP_READ_RETRIES: guaranteeConfig ? guaranteeConfig.read_retries : DSP_READ_RETRIES,
+      DSP_PUSH_RETRIES: guaranteeConfig ? guaranteeConfig.push_retries : DSP_PUSH_RETRIES,
+      DSP_BACKOFF_EXPONENT: guaranteeConfig ? guaranteeConfig.backoff_exponent : DSP_BACKOFF_EXPONENT,
+      DSP_BACKOFF: guaranteeConfig ? guaranteeConfig.backoff : DSP_BACKOFF
+    }
+  };
+}
 
 // map and flatten
 const sidechainServicesApps = Array.prototype.concat.apply(

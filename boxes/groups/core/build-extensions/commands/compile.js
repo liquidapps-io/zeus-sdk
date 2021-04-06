@@ -35,6 +35,10 @@ module.exports = {
         const module = requireBox('eos-extensions/commands/compile/eos');
         await module.call(module, args);
       }
+      else if (args.phase == 'eth') {
+        const module = requireBox('eth-extensions/commands/compile/eth');
+        await module.call(module, args);
+      }
     } else {
       var boxesDir = getBoxesDir();
       if (fs.existsSync(boxesDir)) {

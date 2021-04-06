@@ -19,7 +19,7 @@ const rpc = new JsonRpc(url, { fetch });
 
 const contractCode = '<%- contractname %>';
 const ctrt = artifacts.require(`./${contractCode}/`);
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 
 describe(`${contractCode} Contract`, () => {
     const getTestAccountName = (num) => {

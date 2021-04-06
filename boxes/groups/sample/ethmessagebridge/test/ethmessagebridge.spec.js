@@ -1,34 +1,26 @@
 require('mocha');
 const { requireBox } = require('@liquidapps/box-utils');
-// const Web3 = require('web3');
-// const contract = require('truffle-contract');
+const Web3 = require('web3');
+// const contract = require('@truffle/contract');
 const { assert } = require('chai'); // Using Assert style
 const { getLocalDSPEos, getCreateAccount, getNetwork } = requireBox('seed-eos/tools/eos/utils');
-// const { loadModels } = requireBox('seed-models/tools/models');
-// const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
-// const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
-// const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
 const { genAllocateDAPPTokens, createLiquidXMapping } = requireBox('dapp-services/tools/eos/dapp-services');
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 
 const contractCode = 'helloeth';
 const ctrt = artifacts.require(`./${contractCode}/`);
 
-// const provider = new Web3.providers.HttpProvider('http://localhost:8545');
-// const web3 = new Web3(provider);
+const provider = new Web3.providers.HttpProvider('http://localhost:8545');
+const web3 = new Web3(provider);
 
 describe(`Token bridge Test`, () => {
   // cpp contract, sol contract instances
   const codeEos = 'helloeth';
   let helloEthCpp, helloEosSol;
   let dspeos;
-  // let eostestMainnet, eostestSidechain;
-  // let maxDelay = 80000;
-  // TODO; set this address to be owner
-  const ethOwnerAccount; 
   before(done => {
     (async () => {
       try {
@@ -43,12 +35,13 @@ describe(`Token bridge Test`, () => {
         await genAllocateDAPPTokens(deployedContract, "sign", "pprovider1", "default");
         await genAllocateDAPPTokens(deployedContract, "sign", "pprovider2", "foobar");
         await genAllocateDAPPTokens(deployedContract, "cron", "pprovider1", "default");
+        await genAllocateDAPPTokens(deployedContract, "cron", "pprovider2", "foobar");
         dspeos = await getLocalDSPEos(codeEos);
         helloEthCpp = deployedContract.contractInstance;
 
         // set up bridge contracts
         await helloEthCpp.init({
-          sister_code: codeXSidechain,
+          sister_code: '',
           sister_chain_name: "test1",
           processing_enabled: true,
           last_irreversible_block_time: 0,
@@ -89,6 +82,8 @@ describe(`Token bridge Test`, () => {
   it('"Hello Eos" from eth to eos', done => {
     (async () => {
       try {
+        const availableAccounts = await web3.eth.getAccounts();
+        const ethOwnerAccount = availableAccounts[0];
         const message = "Hello Eos";
         await helloEosSol.pushMessage( message , {
           from: ethOwnerAccount 

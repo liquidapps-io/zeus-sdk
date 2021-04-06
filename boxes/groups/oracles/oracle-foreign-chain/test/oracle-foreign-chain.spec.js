@@ -31,7 +31,7 @@ describe(`foreign_chain Oracle Service Test`, () => {
   });
 
   var account = code;
-  it('Chain Oracle XIBC - ethereum', done => {
+  it.skip('Chain Oracle XIBC - ethereum', done => {
     (async () => {
       try {
         var res = await testcontract.testget({
@@ -67,7 +67,7 @@ describe(`foreign_chain Oracle Service Test`, () => {
       }
     })();
   });
-  it('Chain Oracle XIBC - cardano', done => {
+  it.skip('Chain Oracle XIBC - cardano', done => {
     (async () => {
       try {
         var res = await testcontract.testget({

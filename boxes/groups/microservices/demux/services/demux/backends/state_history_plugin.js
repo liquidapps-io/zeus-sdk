@@ -76,6 +76,9 @@ const handlers = {
     else if (method == 'newaccount') {
       // console.log(`new account: ${actData.name}`);
     }
+    else if (account == 'eidosonecoin' || code == 'eidosonecoin' || account == 'gravyhftdefi' || code == 'gravyhftdefi') { // 
+      // console.log(`new account: ${actData.name}`);
+    }
     else if (method == 'setabi') {
       const localTypes = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), abiabi);
       const buf = Buffer.from(actData.abi, 'hex');
@@ -87,7 +90,7 @@ const handlers = {
 
       const abi = localTypes.get('abi_def').deserialize(buffer);
       abis[actData.account] = abi;
-      logger.debug(`setabi for ${actData.account} - updating Serializer`);
+      // logger.debug(`setabi for ${actData.account} - updating Serializer`);
     }
     return eventNum;
     // else
@@ -100,9 +103,13 @@ const handlers = {
 
         let events = await loadEvents();
         let curr = events;
-        logger.debug(`handling ${txid} ${eventNum} ${account} ${code} ${JSON.stringify(event)} ${method} ${cbevent}`);
+        logger.info(`handling ${txid} ${eventNum} ${account} ${code} ${JSON.stringify(event)} ${method} ${cbevent}`);
 
         if (!curr[event.etype]) return eventNum;
+        if (account == 'eidosonecoin' || code == 'eidosonecoin' || account == 'gravyhftdefi' || code == 'gravyhftdefi') { // 
+          // console.log(`new account: ${actData.name}`);
+          return eventNum;
+        }
         curr = curr[event.etype];
         if (!curr[code]) { curr = curr['*']; }
         else { curr = curr[code]; }
@@ -142,7 +149,7 @@ const handlers = {
             })
           ])
           const resText = await r.text();
-          logger.debug(`fired hooks: ${account} ${method} ${JSON.stringify(event, null, 2)} ${code}`);
+          // logger.debug(`fired hooks: ${account} ${method} ${JSON.stringify(event, null, 2)} ${code}`);
         }
         return eventNum;
         //     else
@@ -164,7 +171,7 @@ async function recursiveHandle({ txid, account, method, code, actData, events },
       for (var i = 0; i < events.length; i++) {
         var currentEvent = events[i];
         var eventType = currentEvent.etype;
-        logger.debug(`event: ${JSON.stringify(currentEvent, null, 2)}`);
+        // logger.info(`event ${currentEvent.etype} | DSP ${currentEvent.provider} | payer :${currentEvent.payer} | service :${currentEvent.service} | action :${currentEvent.action} | package :${currentEvent.package} | data :${currentEvent.data}`);
         if (!eventType) { continue; }
         await recursiveHandle({ txid, account, method, code, actData, events: currentEvent }, depth, currentHandlers, eventNum + i, blockInfo, cbevent);
       }
@@ -399,7 +406,7 @@ const connect = () => {
       return;
     }
 
-    logger.info('got abi');
+    // logger.info('got abi');
     abi = JSON.parse(data);
     types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), abi);
 

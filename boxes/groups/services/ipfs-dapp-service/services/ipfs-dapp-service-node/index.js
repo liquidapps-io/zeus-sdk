@@ -47,13 +47,13 @@ const saveToIPFS = async (data) => {
 
   var cachedValue = cache.get(uri);
   if (cachedValue) {
-    logger.debug(`already cached ${uri}`);
+    logger.warn(`already cached ${uri}`);
     return uri;
   }
 
-  const filesAdded = await ipfs.files.add(bufData, { 'raw-leaves': true, 'cid-version': 1, "cid-base": 'base58btc' });
+  const filesAdded = await ipfs.files.add(bufData, { 'raw-leaves': true, 'cid-version': 1, "cid-base": 'base58btc', pin: true });
   var theHash = filesAdded[0].hash;
-  logger.info('commited to: ipfs://' + theHash);
+  logger.info(`vRAM data commited to: ipfs://${theHash}`);
   const resUri = `ipfs://${theHash}`;
   if (resUri != uri)
     throw new Error(`uris mismatch ${resUri} != ${uri}`);
@@ -64,7 +64,7 @@ const saveToIPFS = async (data) => {
 const readFromIPFS = async (uri) => {
   var cachedValue = cache.get(uri);
   if (cachedValue) {
-    logger.info(`getting from cache ${uri}`);
+    logger.info(`getting vRAM data from cache ${uri}`);
     return cachedValue;
   }
   logger.info(`getting ${uri}`);
@@ -135,7 +135,7 @@ const readPointer = async (hashWithPrefix, contract, sidechain) => {
       return data;
     }
   }
-  logger.debug(`uri: ${uri} from cache`);
+  logger.info(`retrieved uri: ${uri} from cache`);
   return Buffer.from(result.data, 'hex');
 };
 const hashData = (data) => {
@@ -170,7 +170,7 @@ const calculateBucketShard = (key, keytype, keysize, scope, buckets, shards, sco
   const fullkey = `${prepscope}-${prepkey}`;
   const hashedKey = hashData(fullkey).match(/.{2}/g).reverse().join('');
   var num = new BigNumber(hashedKey, 16);
-  logger.debug(`fullkey ${fullkey} num ${num.toString()}`);
+  // logger.debug(`fullkey ${fullkey} num ${num.toString()}`);
   var bucket = num.mod(buckets).toNumber();
   var shard = num.idiv(Math.pow(2, 6)).mod(shards).toNumber();
   return { shard, bucket };
@@ -283,7 +283,7 @@ const fetchBucket = async (bucketPointer, contract, sidechain, keysize) => {
 
 const extractRowFromBucket = async (bucketData, scope, key, contract, sidechain) => {
   const rowPointer = bucketData[`${scope}.${key}`];
-  logger.debug(`rowPointer ${rowPointer}`);
+  // logger.debug(`rowPointer ${rowPointer}`);
   if (rowPointer) { return await readPointer(rowPointer, contract, sidechain); }
 };
 
@@ -291,17 +291,17 @@ const extractRowFromShardData = async (shardData, bucket, scope, key, keysize, c
   if (!shardData) { return; }
   const bucketPointer = shardData[bucket];
   const bucketData = await fetchBucket(bucketPointer, contract, sidechain, keysize);
-  logger.debug(`bucketData ${JSON.stringify(bucketData)}`);
+  // logger.debug(`bucketData ${JSON.stringify(bucketData)}`);
   return await extractRowFromBucket(bucketData, scope, key, contract, sidechain);
 };
 
 const getRowRaw = async (contract, table, scope, key, keytype, keysize, buckets, shards, sidechain) => {
   const { shard, bucket } = calculateBucketShard(key, keytype, keysize, scope, buckets, shards);
-  logger.debug(`shard, bucket ${shard} ${bucket}`);
+  // logger.debug(`shard, bucket ${shard} ${bucket}`);
   let innerscope = stringToNameInner(stringToName(scope)).toString();
   let innerkey = stringToNameInner(stringToName(key, keytype, keysize), keysize).toString();
-  logger.debug(`scope, key ${innerscope} ${innerkey}`);
-  logger.debug(`sidechain ${JSON.stringify(sidechain)}`);
+  // logger.debug(`scope, key ${innerscope} ${innerkey}`);
+  // logger.debug(`sidechain ${JSON.stringify(sidechain)}`);
 
   const shardData = await fetchShard(contract, table, shard, sidechain);
   // console.log('shardData', shardData);
@@ -367,17 +367,17 @@ const getRequiredIpfsData = async (
   sidechain
 ) => {
   let uris = [];
-  logger.debug(`getting required ipfs data for ${account} ${table} ${scope} ${key}`);
+  logger.info(`getting required ipfs data for ${account} ${table} ${scope} ${key}`);
   const { shards, buckets_per_shard } = await getVconfig(account, table, sidechain);
-  logger.debug(`got #shards ${shards} #buckets-per-shard ${buckets_per_shard}`);
+  // logger.debug(`got #shards ${shards} #buckets-per-shard ${buckets_per_shard}`);
   // const { shards, buckets_per_shard, shard_selector } = await getVconfig(account, table, sidechain);
   //const refKey = (new BigNumber(uint64Key, 16)).toString();
   const refKey = (new BigNumber(key, 16)).toString(16); 
   const keyType = 'hex';
-  logger.info(refKey)
-  logger.info(scope)
+  // logger.info(refKey)
+  // logger.info(scope)
   const { bucket, shard } = calculateBucketShard(refKey, keyType, keysize, scope, buckets_per_shard, shards, 'number');
-  logger.debug(`got shard ${shard} bucket ${bucket}`);
+  // logger.debug(`got shard ${shard} bucket ${bucket}`);
   // const { bucket, shard } = shard_key_selectors[shard_selector](key, scope, buckets_per_shard, shards);
 
   if(!shard_uri) {
@@ -387,7 +387,7 @@ const getRequiredIpfsData = async (
   const shardHash = convertFromUri(shard_uri);
   const shardRawData = await readPointer(shardHash, account, sidechain);
   const shardData = parseShard(shardRawData);
-  logger.debug(`got shard uri ${shard_uri}`);
+  // logger.debug(`got shard uri ${shard_uri}`);
   // TODO: check if data is in ipfsentry table already?
   uris.push({ uri: shard_uri, data: shardRawData });
 
@@ -395,7 +395,7 @@ const getRequiredIpfsData = async (
   const bucketIpfsUri = converToUri(bucketUri);
   const bucketRawData = await readPointer(bucketUri, account, sidechain);
   const bucketData = parseBucket(bucketRawData,keysize);
-  logger.debug(`got bucket uri ${bucketIpfsUri}`);
+  // logger.debug(`got bucket uri ${bucketIpfsUri}`);
   uris.push({ uri: bucketIpfsUri, data: bucketRawData });
 
   const formattedScope = stringToNameInner(stringToName(scope,'number')).toString();
@@ -405,7 +405,7 @@ const getRequiredIpfsData = async (
     tableEntryUri = tableEntryUri.toString('hex');
     const tableEntryIpfsUri = converToUri(tableEntryUri);
     const tableEntryRawData = await readPointer(tableEntryUri, account, sidechain);
-    logger.debug(`entry exists - entry uri ${tableEntryIpfsUri}`);
+    // logger.debug(`entry exists - entry uri ${tableEntryIpfsUri}`);
     uris.push({ uri: tableEntryIpfsUri, data: tableEntryRawData });
   }
 
@@ -418,7 +418,7 @@ async function verifyIPFSConnection() {
     logger.info('ipfs connection established');
   }
   catch (e) {
-    logger.error(`ipfs connection failed (${e}), IPFS_HOST = ${process.env.IPFS_HOST}`);
+    logger.error(`ipfs connection failed (${e}), IPFS_HOST = ${process.env.IPFS_PROTOCOL || 'http'}://${process.env.IPFS_HOST || 'localhost'}:${process.env.IPFS_PORT || 5001}`);
     process.exit(1);
   }
 }
@@ -476,6 +476,7 @@ nodeFactory('ipfs', {
     if (rollback) { return; }
     const uri = await saveToIPFS(data);
     if (process.env.PASSIVE_DSP_NODE == 'true' || replay || exception) {
+      logger.warn(`commit PASSIVE_DSP_NODE ${process.env.PASSIVE_DSP_NODE} || replay: ${replay} || exception ${exception}`)
       return;
     }
     return {
@@ -651,7 +652,6 @@ nodeFactory('ipfs', {
         const encoding = body.encoding ? body.encoding : 'base64';
 
         const rowRaw = await getRowRaw(contract, table, scope, key, keytype, keysize, buckets, shards, body.sidechain);
-        logger.debug(`rowRaw ${rowRaw}`);
         const row = await deserializeRow(contract, table, rowRaw, body.sidechain, encoding);
         // get abi
         // parse object

@@ -2,8 +2,7 @@ const { requireBox } = require('@liquidapps/box-utils');
 const { loadModels } = requireBox('seed-models/tools/models');
 const { deserialize, eosDSPGateway, generateABI, genNode, eosPrivate, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission } = requireBox('dapp-services/services/dapp-services-node/common');
 const logger = requireBox('log-extensions/helpers/logger');
-require = require('esm')(module)
-const loader = require("assemblyscript/lib/loader");
+const loader = require("@assemblyscript/loader");
 const fs = require('fs');
 const path = require('path');
 

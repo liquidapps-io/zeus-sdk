@@ -8,7 +8,7 @@ const mnemonic = 'either ostrich protect jump kingdom flat neck cabin sock they 
 
 module.exports = async (args) => {
   await killIfRunning();
-  const command = `nohup node ${ganachePath} -m \"${mnemonic}\" -b 1 >> ganache.log 2>&1 &`
+  const command = `nohup node ${ganachePath} -m \"${mnemonic}\" -b 1 >> logs/ganache.log 2>&1 &`
   await execPromise(command);
 }
 
