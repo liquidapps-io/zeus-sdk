@@ -1,9 +1,0 @@
-{
-    "name": "simplecontract-eos-cpp",
-    "args":[
-        "contractname"
-    ],
-    "optionals":[
-        "contractname"
-    ]
-}

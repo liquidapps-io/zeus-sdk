@@ -125,10 +125,10 @@ var processStdOut = (stdout) =>
 var which = require('which');
 
 module.exports = async (args) => {
-  if (!fs.existsSync(path.resolve('contracts/eos/CMakeLists.txt'))) { return; }
+  if (!fs.existsSync(path.resolve('zeus_boxes/contracts/eos/CMakeLists.txt'))) { return; }
   try {
     await execPromise(`rm CMakeCache.txt`, {
-      cwd: path.resolve('contracts/eos')
+      cwd: path.resolve('zeus_boxes/contracts/eos')
     });
   } catch (e) {
 
@@ -159,7 +159,7 @@ module.exports = async (args) => {
       };
     }
     let stdout = await execPromise(`${cmake || `docker run -e CXX=$CXX -e CC=$CC  -w /contracts -u $(id -u \$USER) --name zeus-make -i --rm -v ${path.resolve('./contracts/eos')}:/contracts ${dockerImage} cmake`} .`, {
-      cwd: path.resolve('contracts/eos'),
+      cwd: path.resolve('zeus_boxes/contracts/eos'),
       printOutStream: process.stdout,
       printErrStream: process.stderr,
       printErrCB: processStdOut,
@@ -170,7 +170,7 @@ module.exports = async (args) => {
       }
     });
     stdout = await execPromise(`${make || `docker run -w /contracts -u $(id -u \$USER) --name zeus-make -i --rm -v ${path.resolve('./contracts/eos')}:/contracts ${dockerImage} make clean`} ${args.contract ? args.contract : ''}`, {
-      cwd: path.resolve('contracts/eos'),
+      cwd: path.resolve('zeus_boxes/contracts/eos'),
       printOutStream: process.stdout,
       printErrStream: process.stderr,
       printErrCB: processStdOut,
@@ -178,14 +178,14 @@ module.exports = async (args) => {
     });
 
     stdout = await execPromise(`${make || `docker run -w /contracts -u $(id -u\ $USER) --name zeus-make -i --rm -v ${path.resolve('./contracts/eos')}:/contracts ${dockerImage} make`} ${args.contract ? args.contract : ''}`, {
-      cwd: path.resolve('contracts/eos'),
+      cwd: path.resolve('zeus_boxes/contracts/eos'),
       printOutStream: process.stdout,
       printErrStream: process.stderr,
       printErrCB: processStdOut,
       printOutCB: processStdOut
     });
     // copy compile contracts folder to root
-    await execPromise(`cp -rf contracts contracts`);
+    await execPromise(`cp -rf zeus_boxes/contracts contracts`);
   } catch (e) {
     if (e.stderr && e.stderr.includes('No rule to make target')) throw new Error(`${emojMap.white_frowning_face} ${args.contract} was not found, please ensure the file exists`);
     throw emojMap.white_frowning_face + 'eos contracts compile failed';

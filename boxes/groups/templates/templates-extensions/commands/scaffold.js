@@ -11,9 +11,9 @@ module.exports = {
   command: 'scaffold <template_name>',
   handler: async (args) => {
     await scaffold(args.templateName, args);
-    if (fs.existsSync(`contracts/eos/${args.contractname}/main.cpp`)) {
-      await execPromise(`mv contracts/eos/${args.contractname}/main.cpp contracts/eos/${args.contractname}/${args.contractname}.cpp`);
+    if (fs.existsSync(`zeus_boxes/contracts/eos/${args.contractname}/main.cpp`)) {
+      await execPromise(`mv zeus_boxes/contracts/eos/${args.contractname}/main.cpp zeus_boxes/contracts/eos/${args.contractname}/${args.contractname}.cpp`);
     }
-    console.log(`Created ${args.contractname}.cpp with template: ${args.templateName} in contracts/eos/${args.contractname}/${args.contractname}.cpp`);
+    console.log(`scaffolded ${args.templateName}`);
   }
 };
