@@ -8,7 +8,7 @@ const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
-const { genAllocateDAPPTokens, readVRAMData } = requireBox('dapp-services/tools/eos/dapp-services');
+// const { genAllocateDAPPTokens, readVRAMData } = requireBox('dapp-services/tools/eos/dapp-services');
 const { loadModels } = requireBox('seed-models/tools/models');
 
 const fetch = require('node-fetch');
@@ -17,7 +17,7 @@ const { JsonRpc, Api, Serialize } = eosjs2;
 const url = getUrl(getDefaultArgs());
 const rpc = new JsonRpc(url, { fetch });
 
-const contractCode = '<%- contractname %>';
+const contractCode = 'mycontract';
 const ctrt = artifacts.require(`./${contractCode}/`);
 const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
 
@@ -43,21 +43,21 @@ describe(`${contractCode} Contract`, () => {
             try {
                 const deployedContract = await deployer.deploy(ctrt, code);
                 const services = await loadModels('dapp-services');
-                for (let i = 0; i < services.length; i++) {
-                    let service = services[i];
-                    await genAllocateDAPPTokens(deployedContract, service.name);
-                }
+                // for (let i = 0; i < services.length; i++) {
+                //     let service = services[i];
+                //     await genAllocateDAPPTokens(deployedContract, service.name);
+                // }
                 // create token
                 endpoint = "http://localhost:13015";
                 const testcontract = await getTestContract(code);
 
                 let info = await rpc.get_info();
                 chainId = info.chain_id;
-                let res = await testcontract.xvinit({
-                    chainid: chainId
-                }, {
-                    authorization: `${code}@active`,
-                });
+                // let res = await testcontract.xvinit({
+                //     chainid: chainId
+                // }, {
+                //     authorization: `${code}@active`,
+                // });
 
                 const selectedNetwork = getNetwork(getDefaultArgs());
                 const config = {

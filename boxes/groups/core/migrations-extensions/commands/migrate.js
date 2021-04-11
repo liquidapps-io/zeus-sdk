@@ -31,10 +31,10 @@ module.exports = {
         describe: 'network to work on',
         default: 'development'
       })
-      .option('verbose-rpc', {
-        describe: 'verbose logs for blockchain communication',
-        default: false
-      })
+      // .option('verbose-rpc', {
+      //   describe: 'verbose logs for blockchain communication',
+      //   default: false
+      // })
       .option('storage-path', {
         describe: 'path for persistent storage',
         default: path.join(require('os').homedir(), '.zeus')
