@@ -205,7 +205,10 @@ CONTRACT_START()
     asset quantity = asset(transfer_data.amount, settings.token_symbol);    
     if (settings.can_issue) {
       action(permission_level{_self, "active"_n}, settings.token_contract, "issue"_n,
-        std::make_tuple(name(transfer_data.account), quantity, memo))
+        std::make_tuple(_self, quantity, memo))
+      .send();
+      action(permission_level{_self, "active"_n}, settings.token_contract, "transfer"_n,
+        std::make_tuple(_self, name(transfer_data.account), quantity, memo))
       .send();
     } else {
       action(permission_level{_self, "active"_n}, settings.token_contract, "transfer"_n,
@@ -247,7 +250,10 @@ CONTRACT_START()
       // return locked tokens in case of failure
       if (settings.can_issue) {
         action(permission_level{_self, "active"_n}, settings.token_contract, "issue"_n,
-          std::make_tuple(name(transfer_receipt.account), quantity, memo))
+          std::make_tuple(_self, quantity, memo))
+        .send();
+        action(permission_level{_self, "active"_n}, settings.token_contract, "transfer"_n,
+          std::make_tuple(_self, name(transfer_receipt.account), quantity, memo))
         .send();
       } else {
         action(permission_level{_self, "active"_n}, settings.token_contract, "transfer"_n,

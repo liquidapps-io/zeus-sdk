@@ -106,6 +106,13 @@ CONTRACT_START()
       //Add additional enabling logic as neccessary
   }
 
+  [[eosio::action]]
+  void disable(bool processing_enabled)
+  {
+      require_auth(_self);
+      disablelink(processing_enabled);
+  }
+
   vector<char> message_received(const std::vector<char>& message) {
     token_settings_table settings_singleton(_self, _self.value);
     token_settings_t settings = settings_singleton.get_or_default();
@@ -116,7 +123,10 @@ CONTRACT_START()
     
     if (settings.can_issue) {
       action(permission_level{_self, "active"_n}, settings.token_contract, "issue"_n,
-        std::make_tuple(name(transfer_data.to_account), transfer_data.received_amount, memo))
+        std::make_tuple(_self, transfer_data.received_amount, memo))
+      .send();
+      action(permission_level{_self, "active"_n}, settings.token_contract, "transfer"_n,
+        std::make_tuple(_self, name(transfer_data.to_account), transfer_data.received_amount, memo))
       .send();
     } else {
       action(permission_level{_self, "active"_n}, settings.token_contract, "transfer"_n,
@@ -146,6 +156,9 @@ CONTRACT_START()
       if (settings.can_issue) {
         action(permission_level{_self, "active"_n}, settings.token_contract, "issue"_n,
           std::make_tuple(name(receipt_received.from_account), receipt_received.received_amount, memo))
+        .send();
+        action(permission_level{_self, "active"_n}, settings.token_contract, "transfer"_n,
+          std::make_tuple(_self, name(receipt_received.from_account), receipt_received.received_amount, memo))
         .send();
       } else {
         action(permission_level{_self, "active"_n}, settings.token_contract, "transfer"_n,
@@ -211,4 +224,4 @@ CONTRACT_START()
   }
 
 };//closure for CONTRACT_START
-EOSIO_DISPATCH_SVC_TRX(CONTRACT_NAME(), (init)(enable))
+EOSIO_DISPATCH_SVC_TRX(CONTRACT_NAME(), (init)(enable)(disable))

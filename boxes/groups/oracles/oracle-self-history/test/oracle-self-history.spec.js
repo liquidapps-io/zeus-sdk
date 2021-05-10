@@ -35,8 +35,8 @@ describe(`History Oracle Service Test`, () => {
     (async () => {
       try {
         var res = await testcontract.testget({
-          uri: Buffer.from(`self_history://${code}/0/0/0/action_trace.act.data.account`, 'utf8'),
-          expectedfield: Buffer.from(code, 'utf8'),
+          uri: Buffer.from(`self_history://${code}/0/0/0/action_trace.act.data.memo`, 'utf8'),
+          expectedfield: Buffer.from("don't spend it all in one place", 'utf8'),
         }, {
           authorization: `${code}@active`,
           broadcast: true,

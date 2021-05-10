@@ -6,6 +6,7 @@ const endpoints = {
     'kylin': 'https://kylin.eosn.io',
     'worbli': 'https://api.worbli.eostribe.io',
     'jungle': 'https://junglehistory.cryptolions.io:4433',
+    'jungle3': 'https://jungle3.cryptolions.io:443',
     'meetone': 'https://fullnode.meet.one',
     'localmainnet': 'http://localhost:8888',
     'test1': 'http://localhost:2424',

@@ -10,7 +10,7 @@ using namespace eosio;
     END_EVENT()
     
 
-CONTRACT helloworld : public eosio::contract {
+CONTRACT <%- contractname %> : public eosio::contract {
   public:
       using contract::contract;
 

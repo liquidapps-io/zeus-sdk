@@ -32,7 +32,7 @@ const getCombined = (storagePath) => {
 
 const add = (storagePath, box, version, uri) => {
   if (box in getBuiltin()) {
-    console.log("WARNING:", box, "already in builtin mapping. Local mapping will take precedence over built-in mapping if versions are equal. If you wish to revert to builtin mapping, use zeus box remove", box);
+    console.log(`\nWARNING:`, box, `already in builtin mapping. Local mapping will take precedence over built-in mapping if versions are equal. If you wish to revert to builtin mapping, use zeus box remove\n`, box);
   }
   const localMapping = getLocal(storagePath);
   var newLocalMapping = localMapping;

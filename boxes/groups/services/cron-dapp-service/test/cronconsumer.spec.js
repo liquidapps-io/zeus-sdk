@@ -23,7 +23,6 @@ describe(`Cron Service Test Contract`, () => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
         await genAllocateDAPPTokens(deployedContract, 'cron');
-        testcontract = await getTestContract(code);
         dspeos = await getLocalDSPEos(code);
 
         done();
@@ -39,6 +38,7 @@ describe(`Cron Service Test Contract`, () => {
   it('Cron test - every 2 seconds', done => {
     (async () => {
       try {
+        testcontract = await getTestContract(code);
         var res = await testcontract.testschedule({
           interval: 2
         }, {
@@ -74,6 +74,13 @@ describe(`Cron Service Test Contract`, () => {
           'limit': 100
         });
         assert.ok(res.rows[0].counter > second, 'counter did not increase');
+        await testcontract.removetimer({
+          account: code
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
         done();
       }
       catch (e) {
@@ -165,6 +172,21 @@ describe(`Cron Service Test Contract`, () => {
           'limit': 100
         });
         assert.ok(res.rows[0].counter > second, 'second account counter did not increase');
+        await testcontract2.removetimer({
+          account: multiOne
+        }, {
+          authorization: `${multiOne}@active`,
+          broadcast: true,
+          sign: true
+        });
+        await testcontract2.removetimer({
+          account: multiTwo
+        }, {
+          authorization: `${multiTwo}@active`,
+          broadcast: true,
+          sign: true,
+          keyProvider: [multiTwoKeys.active.privateKey]
+        });
         done();
       }
       catch (e) {
@@ -249,6 +271,13 @@ describe(`Cron Service Test Contract`, () => {
         });
         let string = res.rows[0].payload;
         assert.ok(string == "Payload Test", 'payload string missing from singleton');
+        await testcontract2.removetimer({
+          account: payloadTest
+        }, {
+          authorization: `${payloadTest}@active`,
+          broadcast: true,
+          sign: true
+        });
         done();
       }
       catch (e) {
@@ -337,6 +366,20 @@ describe(`Cron Service Test Contract`, () => {
           'limit': 100
         });
         assert.ok(res.rows[0].counter > second, 'second account counter did not increase');
+        await testcontract2.removetimer({
+          account: multiOne
+        }, {
+          authorization: `${multiOne}@active`,
+          broadcast: true,
+          sign: true
+        });
+        await testcontract2.removetimer({
+          account: multiTwo
+        }, {
+          authorization: `${multiOne}@active`,
+          broadcast: true,
+          sign: true
+        });
         done();
       }
       catch (e) {
@@ -386,6 +429,140 @@ describe(`Cron Service Test Contract`, () => {
           second = res.rows[0].payload;
         }
         assert.equal(second, first, 'counter should never fire, always aborted');
+        await testcontractAboort.removetimer({
+          account: aborttest
+        }, {
+          authorization: `${aborttest}@active`,
+          broadcast: true,
+          sign: true
+        });
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  
+  it('Cron test - test interval', done => {
+    (async () => {
+      const payloadTest = `intervltst`
+      const contract = await deployer.deploy(ctrt, payloadTest);
+      await genAllocateDAPPTokens(contract, 'cron');
+      const contractInstance = await getTestContract(payloadTest);
+      try {
+        let res = await dspeos.getTableRows({
+          'json': true,
+          'scope': payloadTest,
+          'code': payloadTest,
+          'table': 'stat',
+          'limit': 100
+        });
+        let first = 0;
+        if(res.rows && res.rows.length) {
+          first = res.rows[0].counter
+        }
+        res = await contractInstance.testinterval({
+          interval: 2
+        }, {
+          authorization: `${payloadTest}@active`,
+          broadcast: true,
+          sign: true
+        });
+        await delay(5000);
+        res = await dspeos.getTableRows({
+          'json': true,
+          'scope': payloadTest,
+          'code': payloadTest,
+          'table': 'stat',
+          'limit': 100
+        });
+        let second = 0;
+        if(res.rows && res.rows.length) {
+          second = res.rows[0].counter
+        }
+        assert.ok(second > first, 'counter did not increase');
+        await contractInstance.rminterval({}, {
+          authorization: `${payloadTest}@active`,
+          broadcast: true,
+          sign: true
+        });
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  
+  it('Cron test - remove interval', done => {
+    (async () => {
+      const payloadTest = `rmintervltst`
+      const contract = await deployer.deploy(ctrt, payloadTest);
+      await genAllocateDAPPTokens(contract, 'cron');
+      const contractInstance = await getTestContract(payloadTest);
+      try {
+        let res = await dspeos.getTableRows({
+          'json': true,
+          'scope': payloadTest,
+          'code': payloadTest,
+          'table': 'stat',
+          'limit': 100
+        });
+        let first = 0;
+        if(res.rows && res.rows.length) {
+          first = res.rows[0].counter
+        }
+        res = await contractInstance.testinterval({
+          interval: 2
+        }, {
+          authorization: `${payloadTest}@active`,
+          broadcast: true,
+          sign: true
+        });
+        await delay(5000);
+        res = await dspeos.getTableRows({
+          'json': true,
+          'scope': payloadTest,
+          'code': payloadTest,
+          'table': 'stat',
+          'limit': 100
+        });
+        let second = 0;
+        if(res.rows && res.rows.length) {
+          second = res.rows[0].counter
+        }
+        assert.ok(second > first, 'counter did not increase');
+        res = await contractInstance.rminterval({}, {
+          authorization: `${payloadTest}@active`,
+          broadcast: true,
+          sign: true
+        });
+        await delay(3000);
+        let third = 0;
+        res = await dspeos.getTableRows({
+          'json': true,
+          'scope': payloadTest,
+          'code': payloadTest,
+          'table': 'stat',
+          'limit': 100
+        });
+        if(res.rows && res.rows.length) {
+          third = res.rows[0].counter
+        }
+        await delay(5000);
+        let fourth = 0;
+        res = await dspeos.getTableRows({
+          'json': true,
+          'scope': payloadTest,
+          'code': payloadTest,
+          'table': 'stat',
+          'limit': 100
+        });
+        if(res.rows && res.rows.length) {
+          fourth = res.rows[0].counter
+        }
+        assert.ok(third === fourth, 'counter should not have increased after being removed');
         done();
       }
       catch (e) {

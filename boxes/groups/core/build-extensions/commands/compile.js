@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-const { requireBox, getBoxesDir } = require('@liquidapps/box-utils');
+const { requireBox, getBoxesDir, createDir, createLocalDir } = require('@liquidapps/box-utils');
 
 module.exports = {
   description: 'compile contracts',
@@ -41,6 +41,7 @@ module.exports = {
       }
     } else {
       var boxesDir = getBoxesDir();
+      createLocalDir('contracts');
       if (fs.existsSync(boxesDir)) {
         let modules = [
           'dapp-services/commands/compile/dapp-services-eos',

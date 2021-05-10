@@ -13,8 +13,7 @@ module.exports = {
   },
   command: 'upgrade',
   handler: async (args) => {
-    var stdout = await execPromise(`${process.env.NPM || 'npm'} update -g @liquidapps/zeus-cmd`);
-    await execPromise(`${process.env.NPM || 'npm'} update @liquidapps/zeus-cmd`);
+    var stdout = await execPromise(`${process.env.NPM || 'npm'} i -g @liquidapps/zeus-cmd`);
     console.log(stdout);
   }
 };

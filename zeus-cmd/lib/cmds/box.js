@@ -1,12 +1,17 @@
 const fs = require('fs');
 const path = require('path');
 const mapping = require('../helpers/_mapping');
-const { execPromise } = require('../helpers/_exec');
+const { execPromise, emojMap } = require('../helpers/_exec');
 
 module.exports = {
     description: 'Create, Add or Remove a Box',
     builder: (yargs) => {
         yargs
+            .option('light', {
+                describe: 'light npm dependencies for box',
+                default: false,
+                alias: 'l'
+            })
             .example(`$0 box create`)
             .example(`$0 box add liquidx-jungle 1.0.0 https://s3.us-east-2.amazonaws.com/liquidapps.artifacts/boxes/0a98835c75debf2f1d875be8be39591501b15352f7c017799d0ebf3342668d2c.zip`)
             .example(`$0 box remove liquidx-jungle 1.0.0`)
@@ -26,7 +31,7 @@ module.exports = {
             const dependencies = {
                 "is-wsl": "^2.0.0",
                 "big-integer": "^1.6.36",
-                "@liquidapps/box-utils": "^1.0.0",
+                "@liquidapps/box-utils": "^1.0.1",
                 "bytebuffer": "^5.0.1",
                 "chalk": "^2.4.1",
                 "dotenv": "^6.1.0",
@@ -43,15 +48,31 @@ module.exports = {
                 "fcbuffer": "^2.2.2"
             }
 
+            const lightDependencies = {
+                "dotenv": "^6.1.0",
+                "is-wsl": "^2.0.0",
+                "@liquidapps/box-utils": "^1.0.1",
+                "node-emoji": "^1.8.1",
+                "add-dependencies": "^1.1.0",     
+                "sleep-promise": "^8.0.1",      
+                "yargs": "^12.0.2",
+            }
+
+            const dependencieList = args.light ? lightDependencies : dependencies
+
             await execPromise('npm init -y');
             let packageJson = JSON.parse(fs.readFileSync(path.resolve('./package.json')));
             if (packageJson.dependencies && Object.keys(packageJson).length) {
-                packageJson.dependencies = { ...packageJson.dependencies, ...dependencies }
+                packageJson.dependencies = { ...packageJson.dependencies, ...dependencieList }
             } else {
-                packageJson.dependencies = dependencies;
+                packageJson.dependencies = dependencieList;
             }
+            packageJson.scripts.test = "zeus test"
+            packageJson.scripts.compile = "zeus compile"
+            packageJson.scripts.update = "npm uninstall -g @liquidapps/zeus-cmd; npm i -g @liquidapps/zeus-cmd"
             // packageJson["go-ipfs"] = goIpfs;
             fs.writeFileSync(`./package.json`, JSON.stringify(packageJson, null, 4), function (err) { if (err) throw err; });
+            console.log(`${emojMap.zap} Wrote ${args.light ? 'light' : 'default'} package.json to to ./package.json`);
 
             // default zeus-box.json options
             const json = {
@@ -74,8 +95,8 @@ module.exports = {
                 "dependencies": {}
             }
             fs.writeFileSync(`./zeus-box.json`, JSON.stringify(json, null, 4), function (err) { if (err) throw err; });
-            console.log(`Wrote to ${process.cwd()}/zeus-box.json:\n`);
-            console.log(JSON.stringify(json, null, 4));
+            console.log(`${emojMap.zap} Wrote deafult zeus-box.json to to ./zeus-box.json`);
+            // console.log(JSON.stringify(json, null, 4));
         } else if (args.option === 'add') {
             // return error if name and uri are not present
             if (!args.name || !args.boxVersion || !args.uri) {

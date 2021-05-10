@@ -34,12 +34,17 @@ const actionHandlers = {
     const models = await loadModels('dapp-services');
     const model = models.find(m => m.contract == service);
     if(process.env.DSP_ALLOW_API_NON_BROADCAST.toString() === "false" && !model.commands[action].broadcast && isExternal) {
-      logger.warn(`Attempt to broadcast event for non broadcastable request, not processing trx, to enable non-broadcast events, set the DSP_ALLOW_API_NON_BROADCAST env var to true - ${JSON.stringify(act.event)}`);
+      logger.warn(`Attempt to broadcast event for non broadcastable request, not processing trx, to enable non-broadcast events, set the allow_api_non_broadcast config.toml var to true under [dsp] section - ${JSON.stringify(act.event)}`);
+      return;
+    }
+    if(isExternal && model.name === "sign") {
+      logger.warn(`Sign request detected from external source, rejected`)
       return;
     }
   
     var providerData = await resolveProviderData(service, provider, packageid, sidechain);
     if (!providerData) { throw new Error('provider data not found'); }
+    if (!model) { throw new Error('model not found'); }
     if (!act.exception && paccount !== provider)
       return;
 

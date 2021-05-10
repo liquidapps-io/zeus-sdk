@@ -25,7 +25,7 @@ module.exports = async (args, zeusbox, cwd) => {
     catch (e) {
       console.error(e.stderr);
       if (packages === 'ipfs go-ipfs-dep ipfsd-ctl' && e.stderr.indexOf('ERR!') === -1) { return; }
-      throw new Error('npm install failed');
+      throw new Error(`${emojMap.error} npm install failed`);
     }
   }
 
@@ -45,7 +45,7 @@ module.exports = async (args, zeusbox, cwd) => {
           }
           return `${pkg}@${ver}`;
         }).join(' ');
-        console.log(emojMap.eight_pointed_black_star + 'NPM Install', packages.yellow, 'in', dir.cyan);
+        console.log(emojMap.eight_pointed_black_star + 'Installing new packages in ./package.json', packages.yellow, 'in', dir.cyan);
         await execPromise(`npm install --loglevel error ${packages}`, {
           cwd: path.resolve('.', dir),
           env: {

@@ -167,7 +167,7 @@ describe(`LiquidStorage Test`, async () => {
   it('Upload File and read small photo', done => {
     (async () => {
       try {
-        const path = `${boxDir}test/utils/smash.jpeg`;
+        const path = `test/utils/smash.jpeg`;
         const data = fs.readFileSync(path, { encoding: 'utf8' });
         const result = await storageClient.upload_public_file(
           data,
@@ -195,7 +195,7 @@ describe(`LiquidStorage Test`, async () => {
   it('Upload File and read large photo', done => {
     (async () => {
       try {
-        const path = `${boxDir}test/utils/shockley.jpg`;
+        const path = `test/utils/shockley.jpg`;
         const data = fs.readFileSync(path,{ encoding: 'utf8' });
         const result = await storageClient.upload_public_file(
           data,
@@ -223,7 +223,7 @@ describe(`LiquidStorage Test`, async () => {
   it('Upload File and read short mp4 movie', done => {
     (async () => {
       try {
-        const path = `${boxDir}test/utils/end-of-z-world.mp4`;
+        const path = `test/utils/end-of-z-world.mp4`;
         const data = fs.readFileSync(path,{ encoding: 'utf8' });
         const result = await storageClient.upload_public_file(
           data,
@@ -251,7 +251,7 @@ describe(`LiquidStorage Test`, async () => {
   it('Upload Archive', done => {
     (async () => {
       try {
-        const path = `${boxDir}test/utils/YourTarBall.tar`;
+        const path = `test/utils/YourTarBall.tar`;
         const content = fs.readFileSync(path);
         const options = {
           rawLeaves: true

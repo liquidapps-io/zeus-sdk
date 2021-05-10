@@ -52,6 +52,18 @@ CONTRACT_START()
       schedule_timer(_self, payload, interval);
   }
 
+  // test setting interval
+  [[eosio::action]] void testinterval(uint32_t interval) {
+      // optional payload for data to be passed to timer_callback
+      std::vector<char> payload;
+      start_interval(_self, payload, interval);
+  }
+
+  // remove interval
+  [[eosio::action]] void rminterval() {
+      remove_interval(_self);
+  }
+
   // test multiple timers by scoping each timer by account with 2s interval
   [[eosio::action]] void multitimer(name account, uint32_t interval) {
       // optional payload for data to be passed to timer_callback
@@ -74,4 +86,4 @@ CONTRACT_START()
       std::vector<char> payload;
       schedule_timer(account, payload, 2);
   }
-CONTRACT_END((testschedule)(multitimer)(removetimer)(testpayload)(testabort))
+CONTRACT_END((testschedule)(multitimer)(removetimer)(testpayload)(testabort)(testinterval)(rminterval))

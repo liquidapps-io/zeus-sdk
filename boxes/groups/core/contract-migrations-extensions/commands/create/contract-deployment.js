@@ -7,8 +7,8 @@ module.exports = {
   builder: (yargs) => {
     yargs.example(`$0 create ${cmd} helloworld myeosaccount`);
   },
-  command: `${cmd} <contract> <account>`,
+  command: `${cmd} <contract> <account> [network]`,
   handler: async (args) => {
-    saveModel(`${cmd}s`, args.account, { contract: args.contract, account: args.account });
+    saveModel(`${cmd}s`, args.account, { contract: args.contract, account: args.account, network: args.network || 'development' });
   }
 };

@@ -157,26 +157,32 @@ const compileDappService = async (serviceModel, sidechain) => {
   const box = `${name}-dapp-service`;
   try {
     if (serviceModel.generateStubs) {
-      fs.writeFileSync(path.resolve(`./zeus_boxes/contracts/eos/dappservices/_${name}_impl.hpp`),
+      console.log(emojMap.alembic + `Generating ./contracts/eos/dappservices/_${name}_impl.hpp ${name.green}`);
+      fs.writeFileSync(path.resolve(`./contracts/eos/dappservices/_${name}_impl.hpp`),
         await generateImplStubHppFile(serviceModel));
-      if (!fs.existsSync(path.resolve(`./zeus_boxes/${box}/services/${name}-dapp-service-node`))) { fs.mkdirSync(path.resolve(`./zeus_boxes/${box}/services/${name}-dapp-service-node`)) }
 
+      if (!fs.existsSync(path.resolve(`./zeus_boxes/${box}/services/${name}-dapp-service-node`))) { 
+        console.log(emojMap.alembic + `Making directory ./zeus_boxes/${box}/services/${name}-dapp-service-node ${name.green}`);
+        fs.mkdirSync(path.resolve(`./zeus_boxes/${box}/services/${name}-dapp-service-node`)) 
+      }
+      console.log(emojMap.alembic + `Generating ./zeus_boxes/${box}/services/${name}-dapp-service-node/index.js ${name.green}`);
       fs.writeFileSync(path.resolve(`./zeus_boxes/${box}/services/${name}-dapp-service-node/index.js`),
         await generateServiceFileStub(serviceModel));
-    }
-    fs.writeFileSync(path.resolve(`./zeus_boxes/contracts/eos/dappservices/${name}.hpp`),
-      await generateServiceHppFile(serviceModel, sidechain));
-    console.log(emojMap.alembic + `CodeGen Service ${name.green}`);
+      }
+
+      console.log(emojMap.alembic + `Generating ./contracts/eos/dappservices/${name}.hpp ${name.green}`);
+      fs.writeFileSync(path.resolve(`./contracts/eos/dappservices/${name}.hpp`),
+        await generateServiceHppFile(serviceModel, sidechain));
   }
   catch (e) {
-    throw new Error(emojMap.white_frowning_face + `CodeGen Service: ${name.green} Service: ${e}`);
+    throw new Error(emojMap.white_frowning_face + `CodeGen Service failed: ${name.red} Service: ${e}`);
   }
 };
 const generateConfig = async (sidechain) => {
   const mapEntries = (loadModels('liquidx-mappings')).filter(m => m.mainnet_account === 'dappservices' && (m.sidechain_name === sidechain || !sidechain));
   const liquidxDefines = mapEntries.map(a => `#define DAPPSERVICEX_CONTRACT_${a.sidechain_name.toUpperCase()} "${a.chain_account}"_n`).join('\n');
   const selectedSideChain = mapEntries.map(a => a.sidechain_name.toUpperCase()).find(a => a);
-  fs.writeFileSync(path.resolve(`./zeus_boxes/contracts/eos/dappservices/dappservices.config.hpp`),
+  fs.writeFileSync(path.resolve(`./contracts/eos/dappservices/dappservices.config.hpp`),
     `\n
 
 ${liquidxDefines}

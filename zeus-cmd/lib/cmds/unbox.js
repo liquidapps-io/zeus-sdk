@@ -123,7 +123,7 @@ const handler = async (args, globalCopyList = []) => {
     if (!fs.existsSync(path.resolve('./package.json'))) {
       console.log(`Missing package.json. Please use zeus box create.`);
     } else {
-      console.log('NPM Install');
+      console.log(`${emojMap.zap} Installing packages in ./package.json`);
       await execPromise('npm install');
     }
 
@@ -336,7 +336,7 @@ const handler = async (args, globalCopyList = []) => {
   try {
     await runHook('post-install', args, zeusBoxJson, extractPath);
     if (!args.no_sample) {
-        console.log(emojMap.eight_pointed_black_star + 'NPM Install');
+        console.log(emojMap.zap + 'Installing newly added packages to ./package.json');
         await execPromise(`npm install --loglevel error`, {
           cwd: path.resolve('.'),
           env: {

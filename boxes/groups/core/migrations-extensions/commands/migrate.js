@@ -3,7 +3,7 @@ var { requireBox, createDir } = require('@liquidapps/box-utils');
 var { execScripts, emojMap } = requireBox('seed-zeus-support/_exec');
 var compileCommand = requireBox('build-extensions/commands/compile');
 var startEnv = requireBox('localenv-extensions/commands/start-localenv');
-var cmd = 'migrate';
+var cmd = 'migrate [contract]';
 
 module.exports = {
   description: 'run migration scripts',
@@ -17,10 +17,10 @@ module.exports = {
         default: 'zeus'
       }).option('creator-key', {
         describe: 'private key to set contract to',
-        default: '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3'
+        default: ''
       }).option('creator', {
         describe: 'eos account to set contract to',
-        default: 'eosio'
+        default: ''
       }).option('reset', {
         describe: 'reset local environment',
         default: true
@@ -29,12 +29,16 @@ module.exports = {
         default: 'eos'
       }).option('network', {
         describe: 'network to work on',
-        default: 'development'
+        default: ''
       })
-      .option('verbose-rpc', {
-        describe: 'verbose logs for blockchain communication',
-        default: false
+      .option('services', {
+        describe: 'service APIs to run',
+        default: ''
       })
+      // .option('verbose-rpc', {
+      //   describe: 'verbose logs for blockchain communication',
+      //   default: false
+      // })
       .option('storage-path', {
         describe: 'path for persistent storage',
         default: path.join(require('os').homedir(), '.zeus')
@@ -47,9 +51,11 @@ module.exports = {
   command: cmd,
   handler: async (args) => {
     if (args.creator == 'eosio' && args.network !== 'development') {
-      throw new Error(`must pass a creator when not using development network ${args.creator} ${args.network}`);
+      // throw new Error(`must pass a creator when not using development network ${args.creator} ${args.network}`);
     }
-    let stdout;
+    if(args.services) {
+      args.services = args.services.split(',');
+    }
     if (args.compileAll) {
       await compileCommand.handler(args);
     }
@@ -70,6 +76,9 @@ module.exports = {
       }, args);
     }
     catch (e) {
+      if((typeof(e) == "object" ? JSON.stringify(e) : e).includes('does not have signatures for it')) {
+        console.log(`${emojMap.bangbang} must import key first with "zeus key import" or provide with "--creator-key"`)
+      }
       console.log(emojMap.white_frowning_face + 'Migration failed');
       throw e;
     }

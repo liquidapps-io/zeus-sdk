@@ -10,10 +10,14 @@ module.exports = {
   },
   command: 'scaffold <template_name>',
   handler: async (args) => {
-    await scaffold(args.templateName, args);
-    if (fs.existsSync(`zeus_boxes/contracts/eos/${args.contractname}/main.cpp`)) {
-      await execPromise(`mv zeus_boxes/contracts/eos/${args.contractname}/main.cpp zeus_boxes/contracts/eos/${args.contractname}/${args.contractname}.cpp`);
+    if(!fs.existsSync('contracts')) {
+        await execPromise('zeus compile');
     }
-    console.log(`scaffolded ${args.templateName}`);
+    await scaffold(args.templateName, args);
+    if (fs.existsSync(`contracts/eos/${args.contractname}/main.cpp`)) {
+      await execPromise(`mv contracts/eos/${args.contractname}/main.cpp contracts/eos/${args.contractname}/${args.contractname}.cpp`);
+    }
+    console.log(`Created contracts/eos/${args.contractname}/${args.contractname}.cpp with template: ${args.templateName}`);
+    console.log(`Created test/${args.contractname}.spec.js with template: ${args.templateName}`);
   }
 };

@@ -35,6 +35,26 @@ static void remove_timer(name timer){  \
         timers.remove(); \
     } \
 }  \
+static void start_interval(name timer,std::vector<char> payload, uint32_t seconds){ \
+    timers_def timers(current_receiver(), timer.value); \
+    timerentry newtimer; \
+    if(timers.exists()){ \
+        newtimer = timers.get(); \
+    } \
+    newtimer.fired_timestamp = 0;\
+    newtimer.set_timestamp = eosio::current_time_point().time_since_epoch().count();\
+    timers.set(newtimer, current_receiver()); \
+    SEND_SVC_REQUEST(interval, timer, payload, seconds); \
+}  \
+static void remove_interval(name timer){  \
+    timers_def timers(current_receiver(), timer.value); \
+    if(timers.exists()){ \
+        timers.remove(); \
+    } else { \
+        eosio::check(false, "no interval to remove"); \
+    } \
+    SEND_SVC_REQUEST(rminterval, timer); \
+}  \
 SVC_RESP_CRON(schedule)(name timer,std::vector<char> payload, uint32_t seconds,name current_provider){ \
     timers_def timers(current_receiver() , timer.value); \
     if(!timers.exists()) \
@@ -48,5 +68,23 @@ SVC_RESP_CRON(schedule)(name timer,std::vector<char> payload, uint32_t seconds,n
         return; \
     schedule_timer(timer, payload, seconds);\
 } \
-
+SVC_RESP_CRON(interval)(name timer,std::vector<char> payload, uint32_t seconds, name current_provider){ \
+    timers_def timers(current_receiver() , timer.value); \
+    if(!timers.exists()) \
+        return; \
+    auto current_timer = timers.get(); \
+    if(current_timer.fired_timestamp != 0 || (current_timer.set_timestamp + (seconds * 1000000) > eosio::current_time_point().time_since_epoch().count()))\
+        return; \
+    current_timer.fired_timestamp = eosio::current_time_point().time_since_epoch().count(); \
+    timers.set(current_timer, current_receiver()); \
+    if(!timer_callback(timer, payload, seconds)) \
+        return; \
+    start_interval(timer, payload, seconds);\
+} \
+SVC_RESP_CRON(rminterval)(name timer, name current_provider){ \
+    timers_def timers(current_receiver() , timer.value); \
+    if(!timers.exists()) \
+        return; \
+    remove_interval(timer);\
+} \
 

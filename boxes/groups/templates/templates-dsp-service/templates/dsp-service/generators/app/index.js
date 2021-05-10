@@ -21,7 +21,7 @@ module.exports = class extends Generator {
 
         this.fs.copyTpl(
             this.templatePath('**'),
-            this.destinationPath(`zeus_boxes/contracts/eos/${name}consumer/`),
+            this.destinationPath(`contracts/eos/${name}consumer/`),
             this.options
         );
 
@@ -39,7 +39,7 @@ module.exports = class extends Generator {
 
 
         // append to cmakelists
-        const originalContent = fs.readFileSync(this.destinationPath('', 'zeus_boxes/contracts/eos/CMakeLists.txt'), 'utf8');
+        const originalContent = fs.readFileSync(this.destinationPath('', 'contracts/eos/CMakeLists.txt'), 'utf8');
         if (originalContent.split('\n').indexOf(`# building:${name}`) !== -1) { return; }
         const toAppendContent = `\n
 # building:${name}\n
@@ -54,6 +54,6 @@ ExternalProject_Add(
    INSTALL_COMMAND ""
    BUILD_ALWAYS 1
 )\n`;
-        fs.writeFileSync(this.destinationPath('', 'zeus_boxes/contracts/eos/CMakeLists.txt'), originalContent.concat(toAppendContent));
+        fs.writeFileSync(this.destinationPath('', 'contracts/eos/CMakeLists.txt'), originalContent.concat(toAppendContent));
     }
 };

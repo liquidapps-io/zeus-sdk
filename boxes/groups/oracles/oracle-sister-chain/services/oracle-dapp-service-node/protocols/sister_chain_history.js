@@ -15,6 +15,7 @@ const endpoints = {
     'kylin': 'http://kylin.eosn.io',
     'worbli': 'https://api.worbli.eostribe.io',
     'jungle': 'https://junglehistory.cryptolions.io:4433',
+    'jungle3': 'https://jungle3.cryptolions.io:443',
     'meetone': 'https://fullnode.meet.one'
 };
 const resolveHistoryEndpointForSisterChain = (chain) => {

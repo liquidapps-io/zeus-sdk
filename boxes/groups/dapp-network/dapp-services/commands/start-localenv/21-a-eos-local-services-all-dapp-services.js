@@ -51,6 +51,9 @@ var serviceRunner = requireBox('seed-microservices/helpers/service-runner');
 
 module.exports = async (args) => {
   if (args.creator !== 'eosio') { return; } // only local
+  if(args.kill) {
+    return;
+  }
   var models = await loadModels('dapp-services');
   const gatewayPort = args.gatewayPort || '13015';
   await deployer.deploy(servicesC, servicescontract);

@@ -59,6 +59,7 @@
     "raw-body": "^2.3.3",
     "readline-sync": "^1.4.9",
     "sleep-promise": "^8.0.1",
+    "sqlite3": "^5.0.2",
     "stream-buffers": "^3.0.1",
     "temp": "^0.8.3",
     "text-encoding": "^0.7.0",

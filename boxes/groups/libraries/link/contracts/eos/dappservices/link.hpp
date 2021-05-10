@@ -532,11 +532,26 @@ void enablelink(bool processing_enabled)\
   settings_table settings_singleton(_self, _self.value); \
   settings_t settings = settings_singleton.get_or_default(); \
   if (processing_enabled) { /* schedule all eth timers */ \
-    schedule_timer(name("packbatches"), vector<char>(), LINK_CRON_INTERVAL); /* pack pending messages (pmessages) to batched messages (bmessages) after finality check passes  */ \
-    schedule_timer(name("getbatches"), vector<char>(), LINK_CRON_INTERVAL); /* fetch ETH batches */ \
-    schedule_timer(name("unpkbatches"), vector<char>(), LINK_CRON_INTERVAL); /* unpack messages from getbatches */ \
-    schedule_timer(name("hndlmessage"), vector<char>(), LINK_CRON_INTERVAL); /* handle message / recipt success / failure from unpacked msg */ \
-    schedule_timer(name("pushbatches"), vector<char>(), LINK_CRON_INTERVAL); /* push eth sign service request */ \
+    start_interval(name("packbatches"), vector<char>(), LINK_CRON_INTERVAL); /* pack pending messages (pmessages) to batched messages (bmessages) after finality check passes  */ \
+    start_interval(name("getbatches"), vector<char>(), LINK_CRON_INTERVAL); /* fetch ETH batches */ \
+    start_interval(name("unpkbatches"), vector<char>(), LINK_CRON_INTERVAL); /* unpack messages from getbatches */ \
+    start_interval(name("hndlmessage"), vector<char>(), LINK_CRON_INTERVAL); /* handle message / recipt success / failure from unpacked msg */ \
+    start_interval(name("pushbatches"), vector<char>(), LINK_CRON_INTERVAL); /* push eth sign service request */ \
+  } \
+  settings.processing_enabled = processing_enabled; \
+  settings_singleton.set(settings, _self);\
+}\
+void disablelink(bool processing_enabled)\
+ { \
+  auto _self = name(current_receiver()); \
+  settings_table settings_singleton(_self, _self.value); \
+  settings_t settings = settings_singleton.get_or_default(); \
+  if (processing_enabled == false) { /* schedule all eth timers */ \
+    remove_interval(name("packbatches")); \
+    remove_interval(name("getbatches")); \
+    remove_interval(name("unpkbatches")); \
+    remove_interval(name("hndlmessage")); \
+    remove_interval(name("pushbatches")); \
   } \
   settings.processing_enabled = processing_enabled; \
   settings_singleton.set(settings, _self);\
@@ -566,10 +581,24 @@ void enablelink(bool processing_enabled)\
   settings_table settings_singleton(_self, _self.value); \
   settings_t settings = settings_singleton.get_or_default(); \
   if (processing_enabled) { /* schedule all timers */ \
-    schedule_timer(name("packbatches"), vector<char>(), LINK_CRON_INTERVAL); /* pack pending messages (pmessages) to batched messages (bmessages) after finality check passes  */ \
-    schedule_timer(name("getbatches"), vector<char>(), LINK_CRON_INTERVAL); /* fetch ETH batches */ \
-    schedule_timer(name("unpkbatches"), vector<char>(), LINK_CRON_INTERVAL); /* unpack messages from getbatches */ \
-    schedule_timer(name("hndlmessage"), vector<char>(), LINK_CRON_INTERVAL); /* handle message / recipt success / failure from unpacked msg */ \
+    start_interval(name("packbatches"), vector<char>(), LINK_CRON_INTERVAL); /* pack pending messages (pmessages) to batched messages (bmessages) after finality check passes  */ \
+    start_interval(name("getbatches"), vector<char>(), LINK_CRON_INTERVAL); /* fetch ETH batches */ \
+    start_interval(name("unpkbatches"), vector<char>(), LINK_CRON_INTERVAL); /* unpack messages from getbatches */ \
+    start_interval(name("hndlmessage"), vector<char>(), LINK_CRON_INTERVAL); /* handle message / recipt success / failure from unpacked msg */ \
+  } \
+  settings.processing_enabled = processing_enabled; \
+  settings_singleton.set(settings, _self);\
+}\
+void disablelink(bool processing_enabled)\
+ { \
+  auto _self = name(current_receiver()); \
+  settings_table settings_singleton(_self, _self.value); \
+  settings_t settings = settings_singleton.get_or_default(); \
+  if (processing_enabled == false) { /* remove all timers */ \
+    remove_interval(name("packbatches")); \
+    remove_interval(name("getbatches")); \
+    remove_interval(name("unpkbatches")); \
+    remove_interval(name("hndlmessage")); \
   } \
   settings.processing_enabled = processing_enabled; \
   settings_singleton.set(settings, _self);\

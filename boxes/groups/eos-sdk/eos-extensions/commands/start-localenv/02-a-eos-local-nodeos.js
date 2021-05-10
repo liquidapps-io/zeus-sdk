@@ -12,6 +12,11 @@ if (fs.existsSync(`${getBoxesDir()}dapp-services/tools/eos/dapp-services.js`)) {
 
 module.exports = async (args) => {
   if (args.creator !== 'eosio') { return; } // only local
+  if(args.kill) {
+    await killIfRunning();
+    await dockerrm('zeus-eosio');
+    return;
+  }
 
   // add logging.json if doesnt exist
   await addLoggingConfig();
@@ -20,9 +25,11 @@ module.exports = async (args) => {
     '-e',
     '-p eosio',
     '--plugin eosio::producer_plugin',
+    '--plugin eosio::producer_api_plugin',
     '--disable-replay-opts',
     '--plugin eosio::history_plugin',
     '--plugin eosio::chain_api_plugin',
+    '--plugin eosio::chain_plugin',
     '--plugin eosio::history_api_plugin',
     '--plugin eosio::http_plugin',
     '--delete-all-blocks',
@@ -59,7 +66,7 @@ module.exports = async (args) => {
     ];
   }
   if (dappservices) {
-    console.log('Initing dappservices plugins');
+    // console.log('Initing dappservices plugins');
     var backend = process.env.DEMUX_BACKEND || 'state_history_plugin';
     var { dappServicesContract } = dappservices;
     switch (backend) {

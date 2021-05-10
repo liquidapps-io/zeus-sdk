@@ -25,7 +25,7 @@ async function getCreateKeys(account, args = getDefaultArgs(), dontCreateIfHaveK
     args = getDefaultArgs();
   const { wallet, storagePath, network } = args;
   // check if private key exists.
-  var accountDir = path.resolve(storagePath, 'networks', network, 'accounts');
+  var accountDir = path.resolve(storagePath, 'networks', sidechain ? sidechain.name : network, 'accounts');
   var accountPath = path.join(accountDir, `${account}.json`);
   if (!fs.existsSync(accountDir)) { await execPromise(`mkdir -p ${accountDir}`); }
   var existingKeys = await loadKeys(accountPath);
@@ -47,7 +47,6 @@ async function getCreateKeys(account, args = getDefaultArgs(), dontCreateIfHaveK
   }
   existingKeys = existingKeys || await saveKeys(accountPath, await createKeys(args));
   // backwards compatibility
-
   return existingKeys;
 }
 

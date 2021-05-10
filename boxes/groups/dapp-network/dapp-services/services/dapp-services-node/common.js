@@ -434,7 +434,7 @@ const processFn = async (actionHandlers, actionObject, simulated, serviceName, h
   }
   catch (e) {
     logger.error('error processing processFn')
-    logger.error(e);
+    logger.error(typeof(e) == "object" ? JSON.stringify(e) : e);
     throw e;
   }
 };
@@ -589,6 +589,7 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
       let detailsAssertionSvcReq;
       rText = JSON.parse(resText);
       const detailMsg = rText.error.details;
+      if(!detailMsg) throw new Error('no service request found');
       const detailsAssertion = detailMsg.find(d => d.message.indexOf(': required service') != -1);
       if(detailsAssertion) {
         detailsAssertionSvcReq = detailMsg.find(d => d.message.indexOf(': required service') != -1).message.replace('assertion failure with message: required service','') 
@@ -709,7 +710,7 @@ const genNode = async (actionHandlers, port, serviceName, handlers, abi, sidecha
       return res.send(pjson.version); // send response to contain the version
 
     if (!isPushTransaction && !isServiceRequest && !isServiceAPIRequest) {
-      logger.info(`proxying${uri.indexOf('/v1/chain/') ? ' nodeos': ''} request ${uri}`);
+      if(process.env.DSP_VERBOSE_LOGS) logger.info(`proxying${uri.indexOf('/v1/chain/') ? ' nodeos': ''} request ${uri}`);
       return proxy.web(req, res, { target: sidechain ? sidechain.nodeos_endpoint : nodeosMainnetEndpoint });
     }
 
@@ -940,6 +941,11 @@ const pushTransaction = async (endpoint, dappContract, payer, provider, action, 
     authorization: payerPermissions,
     data: payload,
   });
+  // add nonce
+  meta = {
+    ...meta,
+    nonce: Math.floor(Math.random()*100000)
+  }
 
   if (enableXCallback === true) {
     actions.push({
@@ -1017,6 +1023,11 @@ const emitUsage = async (contract, service, quantity = 1, meta = {}, requestId =
       "quantity": quantityAsset,
       "success": true
     }
+  }
+  // add nonce
+  meta = {
+    ...meta,
+    nonce: Math.floor(Math.random()*100000)
   }
   try {
     await pushTransaction(

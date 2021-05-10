@@ -361,4 +361,24 @@ describe(`LiquidBrinX BlockchainRPC`, () => {
       }
     })()
   });
+
+  it('Disable mainnet/sidechain stop intervals', done => {
+    (async () => {
+      try {
+        await testcontractX.disable({
+          processing_enabled: false
+        }, {
+          authorization: `${codeXSidechain}@active`
+        });
+        await testcontract.disable({
+          processing_enabled: false
+        }, {
+          authorization: `${codeXMainnet}@active`
+        });
+        done();
+      } catch(e) {
+        done(e);
+      }
+    })()
+  });
 });
