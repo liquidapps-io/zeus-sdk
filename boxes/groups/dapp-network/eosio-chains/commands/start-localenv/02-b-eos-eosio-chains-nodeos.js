@@ -8,12 +8,17 @@ var which = require('which');
 const os = require('os');
 const { loadModels } = requireBox('seed-models/tools/models');
 
-var generateNodeos = async (model) => {
+var generateNodeos = async (model, args) => {
 
   var name = model.name;
   var nodeosPort = model.nodeos_port;
   var nodeosP2PPort = model.nodeos_p2p_port;
   var stateHistoryPort = model.nodeos_state_history_port;
+  if(args.kill) {
+    await killIfRunning(nodeosPort);
+    await dockerrm(`zeus-eosio-${name}`);
+    return;
+  }
 
   // add logging.json if doesnt exist
   await addLoggingConfig(name);
@@ -22,9 +27,11 @@ var generateNodeos = async (model) => {
     '-e',
     '-p eosio',
     '--plugin eosio::producer_plugin',
+    '--plugin eosio::producer_api_plugin',
     '--disable-replay-opts',
     '--plugin eosio::history_plugin',
     '--plugin eosio::chain_api_plugin',
+    '--plugin eosio::chain_plugin',
     '--plugin eosio::history_api_plugin',
     '--plugin eosio::http_plugin',
     '--delete-all-blocks',
@@ -60,7 +67,7 @@ var generateNodeos = async (model) => {
     ];
   }
   if (dappservices) {
-    console.log('Initing dappservices plugins');
+    // console.log('Initing dappservices plugins');
     var backend = process.env.DEMUX_BACKEND || 'state_history_plugin';
     switch (backend) {
       case 'state_history_plugin':
@@ -97,12 +104,13 @@ var generateNodeos = async (model) => {
 }
 module.exports = async (args) => {
   if (args.creator !== 'eosio') { return; } // only local
+  if(args.singleChain) { return; } // don't run on command
   // load models
   var sidechains = await loadModels('eosio-chains');
   for (var i = 0; i < sidechains.length; i++) {
     if (sidechains[i].local === false) return;
     var sidechain = sidechains[i];
-    await generateNodeos(sidechain);
+    await generateNodeos(sidechain, args);
   }
 };
 

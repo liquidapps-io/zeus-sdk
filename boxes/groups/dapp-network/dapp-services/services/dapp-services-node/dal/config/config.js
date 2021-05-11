@@ -4,7 +4,7 @@ module.exports = {
   development: {
     dialect: "sqlite",
     logging: false,
-    storage: `./db.development.${paccount}.sqlite`
+    storage: `./logs/db.development.${paccount}.sqlite`
   },
   // test: {
   //   dialect: "sqlite",

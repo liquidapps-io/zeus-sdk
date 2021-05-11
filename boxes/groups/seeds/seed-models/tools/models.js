@@ -1,9 +1,10 @@
-const { getBoxName, getBoxesDir } = require('@liquidapps/box-utils');
+const { getBoxName, getBoxesDir, requireBox } = require('@liquidapps/box-utils');
 const fs = require('fs');
 const path = require('path');
 const { lstatSync, readdirSync } = fs;
 const { join } = require('path');
 const yaml = require('js-yaml');
+const { emojMap } = requireBox('seed-zeus-support/_exec');
 
 const isFile = source => !lstatSync(source).isDirectory();
 const getFiles = (source, ext) =>
@@ -41,7 +42,8 @@ const loadModels = (name) => {
 const saveModel = async (name, modelName, obj) => {
   // if another file matches the file name searched, a wrong box can be returned
   const box = getBoxName(`${name}`);
-  fs.writeFileSync(path.resolve(`./zeus_boxes/${box}/models/${name}/${modelName}.json`), JSON.stringify(obj));
+  fs.writeFileSync(path.resolve(`./zeus_boxes/${box}/models/${name}/${modelName}_${obj.contract}_${obj.network}.json`), JSON.stringify(obj));
+  console.log(`${emojMap.zap}wrote deployment to ./zeus_boxes/${box}/models/${name}/${modelName}_${obj.contract}_${obj.network}.json`)
 }
 
 const s4 = () => Math.floor((1 + Math.random()) * 0x10000)

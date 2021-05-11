@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-const { requireBox, createDir } = require('@liquidapps/box-utils');
+const { requireBox, createDir, createLocalDir } = require('@liquidapps/box-utils');
 const { execPromise, emojMap } = requireBox('seed-zeus-support/_exec');
 
 // todo: move to seed-tests
@@ -35,10 +35,11 @@ module.exports = {
         describe: 'compile contract(s)',
         alias: 'c',
         default: false
-      }).option('verbose-rpc', {
-        describe: 'verbose logs for blockchain communication',
-        default: false
       })
+      // .option('verbose-rpc', {
+      //   describe: 'verbose logs for blockchain communication',
+      //   default: false
+      // })
       .option('storage-path', {
         describe: 'path for persistent storage',
         default: path.join(require('os').homedir(), '.zeus')
@@ -47,6 +48,11 @@ module.exports = {
         describe: 'account staking amount',
         default: '300.0000',
         alias: 's'
+      })
+      .option('basic-env', {
+        describe: 'min needed for EOSIO smart contract test',
+        default: false,
+        alias: 'b'
       })
       .option('services', {
         describe: 'service APIs to run',
@@ -57,10 +63,19 @@ module.exports = {
         default: false,
         alias: 'd'
       })
+      .option('enable-features', {
+        describe: 'enables eosio features',
+        default: false
+      })
+      .option('single-chain', {
+        describe: 'run without LiquidX',
+        default: false
+      })
       .example('$0 test contract')
       .example('$0 test')
       .example('$0 test contract -c')
-      .example('$0 test -c');
+      .example('$0 test -c')
+      .example('$0 test --services "ipfs,cron,oracle,sign"');
   },
   command: 'test [contract]',
 
@@ -82,12 +97,11 @@ module.exports = {
     console.log(emojMap.zap + 'Running tests');
     try {
       createDir('test', 'test');
-      // copy unit testing files over to root test folder
-      await execPromise(`cp -rf zeus_boxes/test test`)
+      createLocalDir('test');
       const preNpmCommand = process.env.NPM || 'npm';
       const npmCommand = process.env.CI === 'true' ? 'run test-ci' : 'test';
-      const subContractCommand = `-- zeus_boxes/test/${args.contract}.spec.js`;
-      const contractCommand = `${args.contract ? subContractCommand : '-- zeus_boxes/test'}`;
+      const subContractCommand = `-- test/${args.contract}.spec.js`;
+      const contractCommand = `${args.contract ? subContractCommand : '-- test'}`;
       await execPromise(`${preNpmCommand} ${npmCommand} ${contractCommand}`, {
         env: {
           ...process.env,

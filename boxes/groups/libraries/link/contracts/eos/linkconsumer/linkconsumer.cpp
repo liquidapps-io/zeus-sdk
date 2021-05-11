@@ -40,6 +40,7 @@ void init(
   bool processing_enabled
   )
 {
+    require_auth(_self);
     initlink(
         sister_code,
         sister_chain_name,
@@ -52,8 +53,16 @@ void init(
 [[eosio::action]]
 void enable(bool processing_enabled)
 {
+    require_auth(_self);
     enablelink(processing_enabled);
     //Add additional enabling logic as neccessary
+}
+
+[[eosio::action]]
+void disable(bool processing_enabled)
+{
+    require_auth(_self);
+    disablelink(processing_enabled);
 }
 
 vector<char> emit_released(vector<char> message) {
@@ -109,6 +118,7 @@ void receipt_received_failed(message_payload receipt) {
 
 [[eosio::action]]
 void emit(uint64_t id, string message) {
+  require_auth(_self);
   parcel_t obj = {true,id,message};
   parcels_table parcels(_self,_self.value);
   auto this_parcel = parcels.find(id);
@@ -122,4 +132,4 @@ void emit(uint64_t id, string message) {
   pushMessage(data);
 }
 
-CONTRACT_END((init)(enable)(emit))
+CONTRACT_END((init)(enable)(emit)(disable))

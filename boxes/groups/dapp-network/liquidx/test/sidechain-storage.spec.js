@@ -157,7 +157,7 @@ describe(`LiquidX Sidechain storagextest Service Test Contract`, () => {
     (async () => {
       try {
         const storageClient = await dappClient.service("storage", code);
-        const keys = await getCreateKeys(code);
+        const keys = await getCreateKeys(code, getDefaultArgs(), false, sidechain);
         const key = keys.active.privateKey;
         const data = Buffer.from("test1234read", "utf8");
         const permission = "active";
@@ -193,7 +193,7 @@ describe(`LiquidX Sidechain storagextest Service Test Contract`, () => {
     (async () => {
       try {
         const storageClient = await dappClient.service("storage", code);
-        const keys = await getCreateKeys(code);
+        const keys = await getCreateKeys(code, getDefaultArgs(), false, sidechain);
         const key = keys.active.privateKey;
         const data = Buffer.from("test1234", "utf8");
         const permission = "active";
@@ -222,7 +222,7 @@ describe(`LiquidX Sidechain storagextest Service Test Contract`, () => {
           fetch
         });
         const storageClient = await dappClient.service("storage", code);
-        const keys = await getCreateKeys(code);
+        const keys = await getCreateKeys(code, getDefaultArgs(), false, sidechain);
         const key = keys.active.privateKey;
         const data = Buffer.from("test1234read", "utf8");
         const permission = "active";
@@ -257,10 +257,10 @@ describe(`LiquidX Sidechain storagextest Service Test Contract`, () => {
           fetch
         });
         const storageClient = await dappClient.service("storage", code);
-        const keys = await getCreateKeys(code);
+        const keys = await getCreateKeys(code, getDefaultArgs(), false, sidechain);
         const key = keys.active.privateKey;
         const permission = "active";
-        const path = "zeus_boxes/test/utils/YourTarBall.tar";
+        const path = "test/utils/YourTarBall.tar";
         const content = fs.readFileSync(path);
         const result = await storageClient.upload_public_archive(
           content,
@@ -392,7 +392,7 @@ describe(`LiquidX Sidechain storagextest Service Test Contract`, () => {
     (async () => {
       try {
         const storageClient = await dappClient.service("storage", code);
-        const keys = await getCreateKeys(code);
+        const keys = await getCreateKeys(code, getDefaultArgs(), false, sidechain);
         const key = keys.active.privateKey;
         const data = Buffer.from("test1234", "utf8");
         const permission = "active";

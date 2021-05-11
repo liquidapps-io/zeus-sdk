@@ -2,7 +2,7 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 const mapping = require('../../helpers/_mapping');
-var { execPromise } = require('../../helpers/_exec');
+var { execPromise, emojMap } = require('../../helpers/_exec');
 var temp = require('temp');
 var AWS = require('aws-sdk');
 var sha256 = require('js-sha256').sha256;
@@ -67,7 +67,8 @@ module.exports = {
     let stdout;
     var inputPath = path.resolve('.');
 
-    console.log(`staging in ${stagingPath}`);
+    // console.log(`${emojMap.zap} staging in ${stagingPath}`);
+    console.log(`${emojMap.zap} Preparing for deployment`);
     var zeusBoxJsonPath = path.join(inputPath, 'zeus-box.json');
     if (!fs.existsSync(zeusBoxJsonPath)) {
       temp.cleanupSync();
@@ -166,7 +167,7 @@ module.exports = {
         uri = `file://${packagePath}/box.zip`;
     }
 
-    console.log(`box deployed to ${uri}`);
+    console.log(`${emojMap.zap} box deployed to ${uri}`);
     // run post script
 
     // invalidate endpoints:
@@ -183,7 +184,7 @@ module.exports = {
     if (String(args['update-mapping']) === 'true') {
       mapping.add(args.storagePath, packageName, version, uri);
     }
-    console.log('done.');
+    // console.log('done.');
     process.exit();
     // resolve github 3rd party boxes
     // resolve ipfs boxes

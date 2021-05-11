@@ -52,6 +52,11 @@ async function deployLocalExtensions(sidechain) {
 
 module.exports = async (args) => {
   if (args.creator !== 'eosio') { return; } // only local
+  if(args.kill) {
+    return;
+  }
+  if(args.singleChain) { return; } // don't run on command
+
   var testProviders = testProvidersList;
 
   var sidechains = await loadModels('eosio-chains');

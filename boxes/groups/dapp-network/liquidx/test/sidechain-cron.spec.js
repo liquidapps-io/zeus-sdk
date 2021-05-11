@@ -112,6 +112,13 @@ describe(`LiquidX Sidechain Cron Service Test Contract`, () => {
           'limit': 100
         });
         assert.ok(res.rows[0].counter > second, 'counter did not increase');
+        await testcontract.removetimer({
+          account: code
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
         done();
       }
       catch (e) {

@@ -4,6 +4,9 @@ const serviceRunner = requireBox('seed-microservices/helpers/service-runner');
 
 module.exports = async (args) => {
     if (args.creator !== 'eosio') { return; } // only local
+    if(args.kill) {
+        return;
+    }
     for (var pi = 0; pi < testProvidersList.length; pi++) {
         var testProvider = testProvidersList[pi];
         await serviceRunner(`/dummy/demux`, 3195 * (pi + 1)).handler(args, {

@@ -1,6 +1,8 @@
 const { requireBox } = require('@liquidapps/box-utils');
 const { uploadContract, getCreateAccount, getUrl, getNetwork } = requireBox('seed-eos/tools/eos/utils');
 const { getEosWrapper } = require('./eos-wrapper');
+const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
+const ecc = require('eosjs-ecc')
 
 const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 
@@ -12,9 +14,17 @@ async function setContractPermissions(args, account, keys, sidechain) {
     keyProvider: keys.active.privateKey,
     chainId: selectedNetwork.chainId
   };
+  if (account) {
+    if (account == args.creator && args.creatorKey) {
+      config.keyProvider = args.creatorKey;
+    }
+    else {
+      keys = await getCreateKeys(account, args, true, sidechain);
+      config.keyProvider = keys.active.privateKey;
+    }
+  }
   var endpoint = getUrl(args, sidechain);
   config.httpEndpoint = endpoint;
-
   const eos = getEosWrapper(config);
   await (await eos.contract('eosio')).updateauth({
     account,
@@ -23,7 +33,7 @@ async function setContractPermissions(args, account, keys, sidechain) {
     auth: {
       threshold: 1,
       waits: [],
-      keys: [{ key: keys.active.publicKey, weight: 1 }],
+      keys: [{ key: ecc.privateToPublic(config.keyProvider[0]), weight: 1 }],
       accounts: [{
         permission: { actor: account, permission: 'eosio.code' },
         weight: 1

@@ -37,4 +37,7 @@ CONTRACT_START()
     std::vector<char> payload;
     schedule_timer(_self, payload, 2);
   }
-CONTRACT_END((testschedule))
+  [[eosio::action]] void removetimer(name account) {
+      remove_timer(account);
+  }
+CONTRACT_END((testschedule)(removetimer))

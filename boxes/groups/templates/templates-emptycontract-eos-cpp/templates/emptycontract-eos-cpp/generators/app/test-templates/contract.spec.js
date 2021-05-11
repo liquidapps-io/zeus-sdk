@@ -31,7 +31,7 @@ describe(`${contractCode} Contract`, () => {
         let s = '111111111111' + fivenum;
         let prefix = 'test';
         s = prefix + s.substr(s.length - (12 - prefix.length));
-        console.log(s);
+        // console.log(s);
         return s;
     };
     const code = getTestAccountName(Math.floor(Math.random() * 1000));

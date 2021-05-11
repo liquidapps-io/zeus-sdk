@@ -26,7 +26,7 @@ const actionHandlers = {
     if (!sidechain && meta && meta.sidechain) {
       sidechain = sidechainsDict[meta.sidechain.name];
     }
-    logger.info(`service_request ${provider} | ${service}:${serviceName} | ${payer} | ${sidechain ? sidechain.name : ""} | ${broadcasted} | ${isReplay}`)
+    logger.info(`service_request ${provider} | ${service}:${serviceName}:${action} | ${payer} | ${sidechain ? sidechain.name : ""} | ${broadcasted} | ${isReplay}`)
     var handler = handlers[action];
     var models = await loadModels('dapp-services');
     var serviceContractForLookup = service;
@@ -83,7 +83,10 @@ const actionHandlers = {
       if (service !== thisService)
         logger.warn("WARNING - Service Mixup: %s requested inside %s, forwarding event.", service, thisService);
       var providerData = await resolveProviderData(service, provider, packageid, sidechain);
-      if (!providerData) { return; }
+      if (!providerData) { 
+        logger.warn(`no provider data found`)
+        return; 
+      }
       return await forwardEvent(act, providerData.endpoint, act.exception);
     }
     if (!simulated) {

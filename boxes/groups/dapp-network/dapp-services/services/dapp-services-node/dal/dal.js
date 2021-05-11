@@ -52,6 +52,52 @@ async function createServiceRequest(key) {
   }
 }
 
+async function createCronInterval(key, timer, payload, seconds, event) {
+  await sync();
+  const res = await db.CronInterval.findOne({
+    where: { key }
+  });
+  while (true) {
+    if (!res) {
+      try {
+        return db.CronInterval.create({ key, timer, payload, seconds, event });
+      }
+      catch (e) {
+        if (e.name === 'SequelizeOptimisticLockError')
+          continue;
+        else throw e;
+      }
+    }
+    return res;
+  }
+}
+
+async function removeCronInterval(key) {
+  await sync();
+  var res = await db.CronInterval.destroy({
+    where: { key }
+  });
+  return res;
+}
+
+async function fetchCronInterval(key) {
+  await sync();
+  var res = await db.CronInterval.findOne({ where: { key } });
+  if (!res) {
+    return;
+  }
+  return res;
+}
+
+async function fetchAllCronInterval() {
+  await sync();
+  var res = await db.CronInterval.findAll();
+  if (!res) {
+    return;
+  }
+  return res;
+}
+
 // settings table contains singleton with key 'settings'
 async function getSettings() {
   await sync();
@@ -84,6 +130,10 @@ module.exports = {
   updateServiceRequest,
   createServiceRequest,
   getSettings,
-  updateSettings
+  updateSettings,
+  createCronInterval,
+  removeCronInterval,
+  fetchAllCronInterval,
+  fetchCronInterval
 };
 

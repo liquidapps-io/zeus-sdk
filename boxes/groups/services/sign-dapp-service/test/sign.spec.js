@@ -168,7 +168,7 @@ function sendSigRequest(id, destination, trx_data, chain, chain_type, sigs, acco
 
 
 function getEthMultisigTxData(to, value) {
-  const multiSigAbi = JSON.parse(fs.readFileSync(path.resolve('./zeus_boxes/test/eth-build/multisigAbi.json')));
+  const multiSigAbi = JSON.parse(fs.readFileSync(path.resolve('./test/eth-build/multisigAbi.json')));
 
   const multiSigContract = new web3.eth.Contract(multiSigAbi);
   return multiSigContract.methods.submitTransaction(to, value, '0x0').encodeABI();
@@ -176,8 +176,8 @@ function getEthMultisigTxData(to, value) {
 
 // deploys ERC20 token and issues `amount` of token to `account`
 async function deployErc20Token(account, amount){
-  const tokenAbi = JSON.parse(fs.readFileSync(path.resolve('./zeus_boxes/test/eth-build/tokenAbi.json')));
-  const tokenBin = fs.readFileSync(path.resolve('./zeus_boxes/test/eth-build/token.bin'), 'utf8');
+  const tokenAbi = JSON.parse(fs.readFileSync(path.resolve('./test/eth-build/tokenAbi.json')));
+  const tokenBin = fs.readFileSync(path.resolve('./test/eth-build/token.bin'), 'utf8');
 
   const availableAccounts = await web3.eth.getAccounts();
   const masterAccount = availableAccounts[0];
@@ -202,8 +202,8 @@ async function deployErc20Token(account, amount){
 
 // deploys multisig from accounts[0] with accounts[1] as signer
 async function deployEthMultiSig(signers, numOfSigners = '1') {
-  const multiSigAbi = JSON.parse(fs.readFileSync(path.resolve('./zeus_boxes/test/eth-build/multisigAbi.json')));
-  const multiSigBin = fs.readFileSync(path.resolve('./zeus_boxes/test/eth-build/multisig.bin'), 'utf8');
+  const multiSigAbi = JSON.parse(fs.readFileSync(path.resolve('./test/eth-build/multisigAbi.json')));
+  const multiSigBin = fs.readFileSync(path.resolve('./test/eth-build/multisig.bin'), 'utf8');
 
   const availableAccounts = await web3.eth.getAccounts();
   const masterAccount = availableAccounts[0];
