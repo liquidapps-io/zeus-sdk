@@ -6,7 +6,19 @@ const fetch = require('node-fetch');
 const logger = requireBox('log-extensions/helpers/logger');
 const dappServicesContract = process.env.DAPPSERVICES_CONTRACT || 'dappservices';
 const dappServicesLiquidXContract = process.env.DSP_LIQUIDX_CONTRACT || 'liquidx';
-const testProvidersList = ['pprovider1', 'pprovider2'];
+// accounts 8,9 based on mnemonic provide 03-a/b
+const testProvidersList = [
+  {
+    account: 'pprovider1',
+    key:'0x50e66efcac83baba59c8021ae49c54d7c65fba897a1cb6038878f15f89009ad6',
+    sidechain_key:'0x4d3dcab00d3d780b6acc8481d72f263fde4c6d9627e3227be7c30873d17a54bd'
+  },
+  {
+    account: 'pprovider2',
+    key:'0xb5da36d79df92e18c85ca54bcbb3cfae4899bb41674163d98d95c4b35ae5ceb4',
+    sidechain_key:'0x3b58e1ca05f04201bfa0ad114f3667295613576869e923fce4d37322287f542d'
+  }
+];
 
 // return service account name given a service model, if sidechain, return sidechain service account
 // TODO: does not assert if one way mapping not found for account link
@@ -23,15 +35,16 @@ function getContractAccountFor(model, sidechain = null) {
 async function genAllocateDAPPTokens(deployedContract, serviceName, provider = '', selectedPackage = 'default', sidechain = null, updConsumerAuth = true) {
   var providers = testProvidersList;
   if (provider !== '') {
-    providers = [provider];
+    providers = {account:provider};
+    providers = [providers];
   }
   for (var i = 0; i < providers.length; i++) {
-    var currentProvider = providers[i];
+    var currentProvider = providers[i].account;
     await genAllocateDAPPTokensInner(deployedContract, serviceName, provider = currentProvider, (currentProvider == "pprovider2" && selectedPackage == 'default') ? 'foobar' : selectedPackage, sidechain, providers, updConsumerAuth);
   }
 }
 
-async function genAllocateDAPPTokensInner(deployedContract, serviceName, provider = 'pprovider1', selectedPackage = 'default', sidechain = null, providers = ['pprovider1'], updConsumerAuth) {
+async function genAllocateDAPPTokensInner(deployedContract, serviceName, provider = 'pprovider1', selectedPackage = 'default', sidechain = null, providers = testProvidersList[0], updConsumerAuth) {
   var key = await getCreateKeys(dappServicesContract, null, false, sidechain);
   var model = (await loadModels('dapp-services')).find(m => m.name == serviceName);
   var service = getContractAccountFor(model);
@@ -66,7 +79,7 @@ async function genAllocateDAPPTokensInner(deployedContract, serviceName, provide
   if (!updConsumerAuth) { return; }
   let auth = providers.map(p => {
     return {
-      permission: { actor: p, permission: 'active' },
+      permission: { actor: p.account, permission: 'active' },
       weight: 1,
     }
   });

@@ -1,5 +1,5 @@
 {
-  "version": "1.0.5",
+  "version": "1.0.6",
   "ignore": [
     "README.md"
   ],
@@ -14,7 +14,8 @@
       "vaccntxrem": true,
       "vaccntxremx": true,
       "cronxtest": true,
-      "storagextest": true
+      "storagextest": true,
+      "signxtest": true
     }
   },
   "dependencies": {

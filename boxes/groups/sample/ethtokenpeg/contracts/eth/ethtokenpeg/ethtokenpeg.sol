@@ -4,7 +4,7 @@ import "../link/link.sol";
 import "../IERC20/IERC20.sol";
 import "../IOwned/IOwned.sol";
 
-contract tokenpeg is link {
+contract ethtokenpeg is link {
   event Refund(uint256 id, address recipient, uint256 amount, bytes reason);
   event Failure(bytes reason);
   event Receipt(address recipient, uint256 amount, bytes reason);
@@ -15,7 +15,7 @@ contract tokenpeg is link {
     address[] memory _owners,
     uint8 _required,
     address _tokenContract
-  ) link(_owners, _required)
+  ) public link(_owners, _required)
   {
     tokenContract = IERC20(_tokenContract);
   }
@@ -36,7 +36,7 @@ contract tokenpeg is link {
     */
   function sendToken(uint256 amount, uint64 recipient) public {
     tokenContract.destroy(msg.sender, amount);
-    bytes memory message = abi.encodePacked(bool(true), recipient, uint64(amount), msg.sender);
+    bytes memory message = abi.encodePacked(bool(true), Endian.reverse64(recipient), uint64(amount), msg.sender);
     pushMessage(message);
   }
 

@@ -9,7 +9,7 @@ const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
-const { dappServicesContract, testProvidersList } = requireBox('dapp-services/tools/eos/dapp-services');
+const { dappServicesContract } = requireBox('dapp-services/tools/eos/dapp-services');
 const { loadModels } = requireBox('seed-models/tools/models');
 const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 

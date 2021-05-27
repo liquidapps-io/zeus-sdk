@@ -43,7 +43,7 @@ abstract contract link {
   mapping (bytes32 => bool) public executedMsg;
   mapping (bytes32 => uint256) public numOfConfirmed;  
 
-  constructor(address[] memory _owners, uint256 _required) {
+  constructor(address[] memory _owners, uint256 _required) public {
     for (uint i = 0; i < _owners.length; i++) {
       require(!isOwner[_owners[i]] && _owners[i] != address(0));
       isOwner[_owners[i]] = true;
@@ -115,7 +115,7 @@ abstract contract link {
     *
     * @param _message the message to push
     */
-  function pushInboundMessage(uint256 id, bytes memory _message) external {
+  function pushInboundMessage(uint256 id, bytes memory _message) public {
     bytes32 dataHash = keccak256(abi.encodePacked(id, _message));
     if (!confirmConsensus(dataHash)) {
       return;
@@ -184,4 +184,22 @@ abstract contract link {
     * @param _message message
     */
   function onReceipt(uint256 id, bytes memory _message) internal virtual;
+}
+  
+library Endian {
+  /* https://ethereum.stackexchange.com/questions/83626/how-to-reverse-byte-order-in-uint256-or-bytes32 */
+  function reverse64(uint64 input) internal pure returns (uint64 v) {
+      v = input;
+
+      // swap bytes
+      v = ((v & 0xFF00FF00FF00FF00) >> 8) |
+          ((v & 0x00FF00FF00FF00FF) << 8);
+
+      // swap 2-byte long pairs
+      v = ((v & 0xFFFF0000FFFF0000) >> 16) |
+          ((v & 0x0000FFFF0000FFFF) << 16);
+
+      // swap 4-byte long pairs
+      v = (v >> 32) | (v << 32);
+  }
 }

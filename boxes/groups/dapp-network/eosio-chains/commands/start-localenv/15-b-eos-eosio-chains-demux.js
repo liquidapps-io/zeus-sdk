@@ -16,7 +16,7 @@ module.exports = async (args) => {
         if (sidechains[i].local === false) return;
         for (var pi = 0; pi < testProvidersList.length; pi++) {
             var testProvider = testProvidersList[pi];
-            const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechain.name && m.mainnet_account === testProvider);
+            const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechain.name && m.mainnet_account === testProvider.account);
             await serviceRunner(`/dummy/demux`, sidechain.demux_port * (pi + 1)).handler(args, {
                 NODEOS_HOST: 'localhost',
                 TEST_ENV: true,

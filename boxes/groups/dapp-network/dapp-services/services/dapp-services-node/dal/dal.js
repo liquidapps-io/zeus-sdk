@@ -1,4 +1,6 @@
 const db = require('./models');
+const { requireBox } = require('@liquidapps/box-utils');
+const logger = requireBox('log-extensions/helpers/logger');
 
 // gross syncing solution as sync() must be called in each method
 let synced = false;
@@ -117,6 +119,26 @@ async function updateSettings(data) {
   }
 }
 
+async function fetchNonce(chain) {
+  await sync();
+  var res = await db.Nonce.findOne({ where: { key: chain } });
+  if (!res) {
+    return;
+  }
+  return res;
+}
+
+async function updateNonce(data, chain) {
+  await sync();
+  const currentNonce = await fetchNonce(chain);
+  if (currentNonce) {
+    data = { ...currentNonce.data, ...data };
+    await db.Nonce.update({ data }, { where: { key: chain }});
+  } else {
+    await db.Nonce.create({ key: chain, data });
+  }
+}
+
 async function sync() {
   if (synced)
     return;
@@ -131,6 +153,8 @@ module.exports = {
   createServiceRequest,
   getSettings,
   updateSettings,
+  updateNonce,
+  fetchNonce,
   createCronInterval,
   removeCronInterval,
   fetchAllCronInterval,

@@ -60,10 +60,10 @@ void enable(bool processing_enabled)
 }
 
 [[eosio::action]]
-void disable(bool processing_enabled)
+void disable(name timer, bool processing_enabled)
 {
     require_auth(_self);
-    disablelink(processing_enabled);
+    disablelink(timer, processing_enabled);
 }
 
 vector<char> emit_released(const std::vector<char>& message) {

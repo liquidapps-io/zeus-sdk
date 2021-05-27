@@ -37,7 +37,17 @@ module.exports = async (args) => {
     }
   }
   if(tries == 0) throw new Error('unable to startup chain')
-  await Promise.all(systemAccountList.map(s => createAccount(wallet, creator, s, args)));
+
+  tries = 20;
+  while (tries--) {
+    try {
+      await Promise.all(systemAccountList.map(s => createAccount(wallet, creator, s, args)));
+      break;
+    }
+    catch (e) {
+      await sleep(500);
+    }
+  }
   await uploadSystemContract(args, 'eosio.token')
   await uploadSystemContract(args, 'eosio.msig')
   let eos = await getEos('eosio.token', args)

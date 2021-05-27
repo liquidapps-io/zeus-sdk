@@ -67,11 +67,11 @@ module.exports = async (args) => {
     const { deployedContractLiquidX, deployedContract } = await deployLocalExtensions(sidechain);
     for (var pi = 0; pi < testProviders.length; pi++) {
       var testProvider = testProviders[pi];
-      const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechain.name && m.mainnet_account === testProvider);
+      const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechain.name && m.mainnet_account === testProvider.account);
       if (!mapEntry)
-        throw new Error(`missing LiquidX mapping (liquidx-mappings) for ${testProvider} in ${sidechain.name}`);
+        throw new Error(`missing LiquidX mapping (liquidx-mappings) for ${testProvider.account} in ${sidechain.name}`);
       const sidechainKeys = await getCreateAccount(mapEntry.chain_account, null, true, sidechain);
-      const mainnetKeys = await getCreateKeys(testProvider);
+      const mainnetKeys = await getCreateKeys(testProvider.account);
       await createLiquidXMapping(sidechain.name, mapEntry.mainnet_account, mapEntry.chain_account);
       const config = {};
       config[`DSP_PRIVATE_KEY_${sidechain.name.toUpperCase()}`] = sidechainKeys.active.privateKey;

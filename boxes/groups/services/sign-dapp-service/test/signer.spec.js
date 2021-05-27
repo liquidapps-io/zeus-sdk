@@ -24,7 +24,7 @@ const ctrt = artifacts.require(`./${contractCode}/`);
 let testcontract;
 let ethMultiSig;
 const code = 'signservice1';
-const randomEthAddress = '0x409e78ff1b1b8e55620d3a075de707dc5bacbc9d';
+const randomEthAddress = '0x654Cf0636b0e85b3379BcD773672CA4B4AEf8Dc0';
 
 describe(`Sign DAPP Service Test Contract`, () => {
   var testcontracta;
@@ -35,6 +35,7 @@ describe(`Sign DAPP Service Test Contract`, () => {
       try {
         var deployedContract = await deployer.deploy(ctrt, code);
         await genAllocateDAPPTokens(deployedContract, 'sign', 'pprovider1');
+        // await genAllocateDAPPTokens(deployedContract, 'sign', 'pprovider2');
         // create token
         var selectedNetwork = getNetwork(getDefaultArgs());
         var config = {
@@ -53,6 +54,7 @@ describe(`Sign DAPP Service Test Contract`, () => {
 
         testcontract = await eosvram.contract(code);
         // deploy eth multi sig contract
+        // accounts 8/9 from mnemonic 
         ethMultiSig = await deployEthMultiSig();
         done();
       }
@@ -67,7 +69,7 @@ describe(`Sign DAPP Service Test Contract`, () => {
       try {
         const prevBalance = (await web3.eth.getBalance(randomEthAddress)).toString();
         const data = getEthMultisigTxData(randomEthAddress, '1'); 
-        await sendSigRequest('1', ethMultiSig.address, data, '1', 'ethereum', '0', '1', 1);
+        await sendSigRequest('1', ethMultiSig.address, data, 'evmlocal', 'ethereum', '0', '1', 1);
         await sleep(2000)
         const postBalance = (await web3.eth.getBalance(randomEthAddress)).toString();
         assert.equal(postBalance - prevBalance, 1, 'eth address balance should be 1');
@@ -88,7 +90,8 @@ describe(`Sign DAPP Service Test Contract`, () => {
           multisig_address: ethMultiSig.address,
           token_address: token.address,
           destination: randomEthAddress,
-          amount: 1
+          amount: 1,
+          chain: "evmlocal"
         }, {
           authorization: `${code}@active`,
           broadcast: true,
@@ -109,7 +112,7 @@ describe(`Sign DAPP Service Test Contract`, () => {
     (async() => {
       try {
         const prevBalance = (await web3.eth.getBalance(randomEthAddress)).toString();
-        await sendEth(ethMultiSig.address, randomEthAddress, 1);
+        await sendEth(ethMultiSig.address, randomEthAddress, 1, "evmlocal");
         await sleep(2000)
         const postBalance = (await web3.eth.getBalance(randomEthAddress)).toString();
         assert.equal(postBalance - prevBalance, 1, 'eth address balance should be 1');
@@ -137,11 +140,12 @@ describe(`Sign DAPP Service Test Contract`, () => {
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-function sendEth(multiSigAddress, destination, amount) {
+function sendEth(multiSigAddress, destination, amount, chain) {
   return testcontract.sendeth({
     multisig_address: multiSigAddress,
     destination,
-    amount
+    amount,
+    chain
   }, {
     authorization: `${code}@active`,
     broadcast: true,
@@ -201,15 +205,16 @@ async function deployErc20Token(account, amount){
 }
 
 // deploys multisig from accounts[0] with accounts[1] as signer
-async function deployEthMultiSig(signers, numOfSigners = '1') {
+async function deployEthMultiSig() {
   const multiSigAbi = JSON.parse(fs.readFileSync(path.resolve('./test/eth-build/multisigAbi.json')));
   const multiSigBin = fs.readFileSync(path.resolve('./test/eth-build/multisig.bin'), 'utf8');
 
   const availableAccounts = await web3.eth.getAccounts();
   const masterAccount = availableAccounts[0];
-  const signerAccount = availableAccounts[2];
-  if (!signers)
-    signers = [signerAccount]
+  const dsp1 = availableAccounts[8];
+  // const dsp2 = availableAccounts[9];
+  // const dspSigners = [dsp1, dsp2];
+  const dspSigners = [dsp1];
 
   const multiSigContract = contract({
     abi: multiSigAbi,
@@ -218,7 +223,7 @@ async function deployEthMultiSig(signers, numOfSigners = '1') {
 
   multiSigContract.setProvider(web3.currentProvider);
 
-  const deployedContract = await multiSigContract.new(signers, numOfSigners, {
+  const deployedContract = await multiSigContract.new(dspSigners, dspSigners.length, {
     from: masterAccount,
     gas: '5000000'
   });

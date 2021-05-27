@@ -56,9 +56,9 @@ module.exports = async (args) => {
       servicesPorts[`DAPPSERVICE_PORT_${loadedExtension.name.toUpperCase()}`] = loadedExtension.port * (pi + 1);
     }
     var testProvider = testProviders[pi];
-    const keys = await getCreateAccount(testProvider);
+    const keys = await getCreateAccount(testProvider.account);
     await serviceRunner(`/dummy/dapp-services-node.js`, 13015 * (pi + 1)).handler(args, {
-      DSP_ACCOUNT: testProvider,
+      DSP_ACCOUNT: testProvider.account,
       DSP_GATEWAY_MAINNET_ENDPOINT: `http://localhost:${13015 * (pi + 1)}`,
       WEBHOOK_DAPP_PORT: 8812 * (pi + 1),
       DSP_PRIVATE_KEY: keys.active.privateKey,

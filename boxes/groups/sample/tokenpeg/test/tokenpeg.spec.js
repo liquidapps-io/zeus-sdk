@@ -366,16 +366,53 @@ describe(`Token bridge Test`, () => {
       }
     })()
   });
-
   it('Token peg mainnet/sidechain stop intervals', done => {
     (async () => {
       try {
         await testcontractX.disable({
+          timer: "packbatches",
           processing_enabled: false
         }, {
           authorization: `${codeXSidechain}@active`
         });
         await testcontract.disable({
+          timer: "packbatches",
+          processing_enabled: true
+        }, {
+          authorization: `${codeXMainnet}@active`
+        });
+        await testcontractX.disable({
+          timer: "getbatches",
+          processing_enabled: false
+        }, {
+          authorization: `${codeXSidechain}@active`
+        });
+        await testcontract.disable({
+          timer: "getbatches",
+          processing_enabled: true
+        }, {
+          authorization: `${codeXMainnet}@active`
+        });
+        await testcontractX.disable({
+          timer: "unpkbatches",
+          processing_enabled: false
+        }, {
+          authorization: `${codeXSidechain}@active`
+        });
+        await testcontract.disable({
+          timer: "unpkbatches",
+          processing_enabled: true
+        }, {
+          authorization: `${codeXMainnet}@active`
+        });
+        await testcontractX.disable({
+          timer: "hndlmessage",
+          processing_enabled: false
+        }, {
+          authorization: `${codeXSidechain}@active`
+        });
+        await testcontract.disable({
+          timer: "hndlmessage",
           processing_enabled: true
         }, {
           authorization: `${codeXMainnet}@active`

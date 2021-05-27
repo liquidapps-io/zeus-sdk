@@ -137,13 +137,30 @@ const DFUSE_ENABLE = globalEnv.DFUSE_ENABLE || false;
 const DFUSE_API_KEY = globalEnv.DFUSE_API_KEY;
 const DFUSE_NETWORK = globalEnv.DFUSE_NETWORK || 'mainnet';
 const DFUSE_AUTHORIZATION = globalEnv.DFUSE_AUTHORIZATION || false;
-const ETH_PRIVATE_KEY = globalEnv.ETH_PRIVATE_KEY || '';
-const ETH_ENDPOINT = globalEnv.ETH_ENDPOINT || '';
-const ETH_GAS_PRICE = globalEnv.ETH_GAS_PRICE || '2000000';
-const ETH_GAS_LIMIT = globalEnv.ETH_GAS_LIMIT || '500000';
-const ETH_KEYS_PER_CONSUMER = globalEnv.ETH_KEYS_PER_CONSUMER || '';
-const ETH_GAS_PRICE_MULT = Number(globalEnv.ETH_KEYS_PER_CONSUMER) || 1.2;
-const WEB3_PROVIDER = ETH_ENDPOINT;
+const EVM_ETHEREUM_PRIVATE_KEY = globalEnv.EVM_ETHEREUM_PRIVATE_KEY || '';
+const EVM_ETHEREUM_ENDPOINT = globalEnv.EVM_ETHEREUM_ENDPOINT || '';
+const EVM_ETHEREUM_GAS_PRICE = globalEnv.EVM_ETHEREUM_GAS_PRICE || '2000000';
+const EVM_ETHEREUM_GAS_LIMIT = globalEnv.EVM_ETHEREUM_GAS_LIMIT || '500000';
+const EVM_ETHEREUM_KEYS_PER_CONSUMER = globalEnv.EVM_ETHEREUM_KEYS_PER_CONSUMER || '';
+const EVM_ETHEREUM_GAS_PRICE_MULT = Number(globalEnv.EVM_ETHEREUM_KEYS_PER_CONSUMER) || 1.2;
+const EVM_BINANCE_PRIVATE_KEY = globalEnv.EVM_BINANCE_PRIVATE_KEY || '';
+const EVM_BINANCE_ENDPOINT = globalEnv.EVM_BINANCE_ENDPOINT || '';
+const EVM_BINANCE_GAS_PRICE = globalEnv.EVM_BINANCE_GAS_PRICE || '2000000';
+const EVM_BINANCE_GAS_LIMIT = globalEnv.EVM_BINANCE_GAS_LIMIT || '500000';
+const EVM_BINANCE_KEYS_PER_CONSUMER = globalEnv.EVM_BINANCE_KEYS_PER_CONSUMER || '';
+const EVM_BINANCE_GAS_PRICE_MULT = Number(globalEnv.EVM_BINANCE_GAS_PRICE_MULT) || 1.2;
+const EVM_BSCTEST_PRIVATE_KEY = globalEnv.EVM_BSCTEST_PRIVATE_KEY || '';
+const EVM_BSCTEST_ENDPOINT = globalEnv.EVM_BSCTEST_ENDPOINT || '';
+const EVM_BSCTEST_GAS_PRICE = globalEnv.EVM_BSCTEST_GAS_PRICE || '2000000';
+const EVM_BSCTEST_GAS_LIMIT = globalEnv.EVM_BSCTEST_GAS_LIMIT || '500000';
+const EVM_BSCTEST_KEYS_PER_CONSUMER = globalEnv.EVM_BSCTEST_KEYS_PER_CONSUMER || '';
+const EVM_BSCTEST_GAS_PRICE_MULT = Number(globalEnv.EVM_BSCTEST_GAS_PRICE_MULT) || 1.2;
+const EVM_PRIVATE_KEY = globalEnv.EVM_PRIVATE_KEY || '';
+const EVM_ENDPOINT = globalEnv.EVM_ENDPOINT || '';
+const EVM_GAS_PRICE = globalEnv.EVM_GAS_PRICE || '2000000';
+const EVM_GAS_LIMIT = globalEnv.EVM_GAS_LIMIT || '500000';
+const EVM_KEYS_PER_CONSUMER = globalEnv.EVM_KEYS_PER_CONSUMER || '';
+const EVM_GAS_PRICE_MULT = Number(globalEnv.EVM_GAS_PRICE_MULT) || 1.2;
 
 // Assert .env
 if (['state_history_plugin'].indexOf(DEMUX_BACKEND) === -1) throw new Error("DEMUX_BACKEND must be 'state_history_plugin'");
@@ -159,8 +176,8 @@ const serviceNames = (loadModels('dapp-services')).map(file => file.name).filter
 const DSP_SERVICES_ENABLED = globalEnv.DSP_SERVICES_ENABLED || serviceNames.join(',');
 const services = DSP_SERVICES_ENABLED.split(',');
 
-if (services.includes('link') && !globalEnv.ETH_PRIVATE_KEY) throw new Error("ETH_PRIVATE_KEY is required to run link service");
-if (services.includes('link') && !globalEnv.ETH_ENDPOINT) throw new Error("ETH_ENDPOINT is required to run link service");
+if (services.includes('link') && !globalEnv.EVM_PRIVATE_KEY && !globalEnv.EVM_ETHEREUM_PRIVATE_KEY && !globalEnv.EVM_BINANCE_PRIVATE_KEY) throw new Error("EVM_PRIVATE_KEY is required to run link service");
+if (services.includes('link') && !globalEnv.EVM_ENDPOINT && !globalEnv.EVM_ETHEREUM_ENDPOINT && !globalEnv.EVM_BINANCE_ENDPOINT) throw new Error("EVM_ENDPOINT is required to run link service");
 
 const port = NODEOS_PORT ? ':' + NODEOS_PORT : '';
 const host = NODEOS_HOST ? NODEOS_HOST : '';
@@ -205,12 +222,30 @@ let commonEnv = {
   DFUSE_NETWORK,
   DFUSE_AUTHORIZATION,
   DEBUG: globalEnv.DFUSE_DEBUG ? "dfuse:*" : "",
-  ETH_PRIVATE_KEY,
-  ETH_ENDPOINT,
-  WEB3_PROVIDER,
-  ETH_GAS_PRICE,
-  ETH_GAS_LIMIT,
-  ETH_GAS_PRICE_MULT
+  EVM_ETHEREUM_PRIVATE_KEY,
+  EVM_ETHEREUM_ENDPOINT,
+  EVM_ETHEREUM_GAS_PRICE,
+  EVM_ETHEREUM_GAS_LIMIT,
+  EVM_ETHEREUM_KEYS_PER_CONSUMER,
+  EVM_ETHEREUM_GAS_PRICE_MULT,
+  EVM_BINANCE_PRIVATE_KEY,
+  EVM_BINANCE_ENDPOINT,
+  EVM_BINANCE_GAS_PRICE,
+  EVM_BINANCE_GAS_LIMIT,
+  EVM_BINANCE_KEYS_PER_CONSUMER,
+  EVM_BINANCE_GAS_PRICE_MULT,
+  EVM_BSCTEST_PRIVATE_KEY,
+  EVM_BSCTEST_ENDPOINT,
+  EVM_BSCTEST_GAS_PRICE,
+  EVM_BSCTEST_GAS_LIMIT,
+  EVM_BSCTEST_KEYS_PER_CONSUMER,
+  EVM_BSCTEST_GAS_PRICE_MULT,
+  EVM_PRIVATE_KEY,
+  EVM_ENDPOINT,
+  EVM_GAS_PRICE,
+  EVM_GAS_LIMIT,
+  EVM_KEYS_PER_CONSUMER,
+  EVM_GAS_PRICE_MULT
 };
 
 const guaranteeLevels = [];
@@ -221,8 +256,14 @@ if(DSP_PUSH_GUARANTEE_PER_SERVICE) {
   })
 }
 
-if(ETH_KEYS_PER_CONSUMER) {
-  ETH_KEYS_PER_CONSUMER.split(',').forEach(item => {
+if(EVM_BINANCE_KEYS_PER_CONSUMER) {
+  EVM_BINANCE_KEYS_PER_CONSUMER.split(',').forEach(item => {
+    Object.assign(commonEnv, JSON.parse(item));
+  })
+}
+
+if(EVM_ETHEREUM_KEYS_PER_CONSUMER) {
+  EVM_ETHEREUM_KEYS_PER_CONSUMER.split(',').forEach(item => {
     Object.assign(commonEnv, JSON.parse(item));
   })
 }

@@ -63,6 +63,10 @@ module.exports = {
         default: false,
         alias: 'd'
       })
+      .option('multi-evm', {
+        describe: 'run multiple evm chains',
+        default: false
+      })
       .option('enable-features', {
         describe: 'enables eosio features',
         default: false
