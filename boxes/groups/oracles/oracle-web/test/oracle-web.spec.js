@@ -69,7 +69,7 @@ describe(`Web Oracle Service Test`, () => {
       try {
         const body = Buffer.from('{"block_num_or_id":"36568000"}').toString('base64')
         const res = await testcontract.testget({
-          uri: Buffer.from(`https+post+json://timestamp/${body}/eos.greymass.com:443/v1/chain/get_block`, 'utf8'),
+          uri: Buffer.from(`https+post+json://timestamp/${body}/mainnet.eosn.io:443/v1/chain/get_block`, 'utf8'),
           expectedfield: Buffer.from('2019-01-09T18:20:23.000', 'utf8'),
         }, {
           authorization: `${code}@active`,
@@ -180,7 +180,7 @@ describe(`Web Oracle Service Test`, () => {
         });
         const body = Buffer.from('{"block_num_or_id":"36568000"}').toString('base64')
         let res = await testcontract.testget({
-          uri: Buffer.from(`https+post+json://timestamp/${body}/eos.greymass.com:443/v1/chain/get_block`, 'utf8'),
+          uri: Buffer.from(`https+post+json://timestamp/${body}/mainnet.eosn.io:443/v1/chain/get_block`, 'utf8'),
           expectedfield: Buffer.from('2019-01-09T18:20:23.000', 'utf8'),
         }, {
           authorization: `${code}@active`,
@@ -198,7 +198,7 @@ describe(`Web Oracle Service Test`, () => {
           authorization: `${provider}@active`,
         });
         res = await testcontract.testget({
-          uri: Buffer.from(`https+post+json://timestamp/${body}/eos.greymass.com:443/v1/chain/get_block`, 'utf8'),
+          uri: Buffer.from(`https+post+json://timestamp/${body}/mainnet.eosn.io:443/v1/chain/get_block`, 'utf8'),
           expectedfield: Buffer.from('2019-01-09T18:20:23.000', 'utf8'),
         }, {
           authorization: `${code}@active`,

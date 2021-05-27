@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.2",
   "ignore": [
     "README.md"
   ],
@@ -10,8 +10,10 @@
   },
   "install": {
     "npm": {
-      "solc": true,
-      "glob": true
+      "glob": true,
+      "openzeppelin-solidity":"v3.2.0",
+      "truffle":true,
+      "zeppelin-solidity": true
     }
   }
 }

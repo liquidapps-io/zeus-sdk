@@ -24,7 +24,8 @@ describe(`ETH Token bridge Test`, () => {
   // cpp contract, sol contract instances
   const codeEos = 'ethtokenpeg';
   const testAccEos = 'testpegmn';
-  const testAccEosHex = 167755678134730;
+  // const testAccEosHex = 167755678134730;
+  const testAccEosUint64 = "14605625119638814720";
   const tokenMainnet = 'sometoken';
   let tokenMainnetContract;
   let testAddressEth;
@@ -60,6 +61,14 @@ describe(`ETH Token bridge Test`, () => {
             authorization: `${tokenMainnet}@active`,
         });
         await deployedTokenMainnet.contractInstance.issue({
+          to: tokenMainnet,
+          quantity: "1000.0000 TKN",
+          memo: ""
+        }, {
+            authorization: `${tokenMainnet}@active`,
+        });
+        await deployedTokenMainnet.contractInstance.transfer({
+          from: tokenMainnet,
           to: testAccEos,
           quantity: "1000.0000 TKN",
           memo: ""
@@ -86,7 +95,7 @@ describe(`ETH Token bridge Test`, () => {
           sister_address: ethTokenpeg.address,
           //sister_msig_address: ethMultisig.address,
           sister_msig_address: ethTokenpeg.address, // remove
-          sister_chain_name: "123456",
+          sister_chain_name: "evmlocal",
           this_chain_name: "localmainnet",
           processing_enabled: true,
           token_contract: tokenMainnet,
@@ -234,7 +243,7 @@ describe(`ETH Token bridge Test`, () => {
           'limit': 1
         });
         const prevEosBalance = parseInt(res.rows[0].balance.split(" ")[0]);
-        await ethTokenpeg.sendToken("10000", testAccEosHex, {
+        await ethTokenpeg.sendToken("10000", testAccEosUint64, {
           from: testAddressEth,
           gasLimit: '1000000'
         });
@@ -254,25 +263,69 @@ describe(`ETH Token bridge Test`, () => {
       }
     })()
   });
+
+  it('Token peg mainnet/sidechain stop intervals', done => {
+    (async () => {
+      try {
+        await tokenpegCpp.disable({
+          timer: "packbatches",
+          processing_enabled: false,
+          transfers_enabled: false
+        }, {
+          authorization: `${codeEos}@active`
+        });
+        await tokenpegCpp.disable({
+          timer: "getbatches",
+          processing_enabled: false,
+          transfers_enabled: false
+        }, {
+          authorization: `${codeEos}@active`
+        });
+        await tokenpegCpp.disable({
+          timer: "unpkbatches",
+          processing_enabled: false,
+          transfers_enabled: false
+        }, {
+          authorization: `${codeEos}@active`
+        });
+        await tokenpegCpp.disable({
+          timer: "hndlmessage",
+          processing_enabled: false,
+          transfers_enabled: false
+        }, {
+          authorization: `${codeEos}@active`
+        });
+        await tokenpegCpp.disable({
+          timer: "pushbatches",
+          processing_enabled: false,
+          transfers_enabled: false
+        }, {
+          authorization: `${codeEos}@active`
+        });
+        done();
+      } catch(e) {
+        done(e);
+      }
+    })()
+  });
 });
 
 async function deployEthContracts() {
-  const tokenpegAbi = JSON.parse(fs.readFileSync(path.resolve('./zeus_boxes/contracts/eth/build/tokenpeg.abi')));
-  const tokenpegBin = fs.readFileSync(path.resolve('./zeus_boxes/contracts/eth/build/tokenpeg.bin'), 'utf8');
-  const tokenAbi = JSON.parse(fs.readFileSync(path.resolve('./zeus_boxes/test/eth-build/tokenAbi.json')));
-  const tokenBin = fs.readFileSync(path.resolve('./zeus_boxes/test/eth-build/token.bin'), 'utf8');
+  const tokenpegAbiBin = JSON.parse(fs.readFileSync(path.resolve('./build/contracts/ethtokenpeg.json')));
+  const tokenAbi = JSON.parse(fs.readFileSync(path.resolve('./test/eth-build/tokenAbi.json')));
+  const tokenBin = fs.readFileSync(path.resolve('./test/eth-build/token.bin'), 'utf8');
   const availableAccounts = await web3.eth.getAccounts();
   const masterAccount = availableAccounts[0];
-  const dsp1 = availableAccounts[2];
-  const dsp2 = availableAccounts[3];
+  const dsp1 = availableAccounts[8];
+  const dsp2 = availableAccounts[9];
   const signers = [dsp1, dsp2];
   const tokenContract = contract({
     abi: tokenAbi,
     unlinked_binary: tokenBin
   });
   const tokenpegContract = contract({
-    abi: tokenpegAbi,
-    unlinked_binary: tokenpegBin
+    abi: tokenpegAbiBin['abi'],
+    unlinked_binary: tokenpegAbiBin['bytecode']
   });
   tokenContract.setProvider(web3.currentProvider);
   tokenpegContract.setProvider(web3.currentProvider);

@@ -10,10 +10,10 @@ module.exports = {
   nodeosUrl: process.env.NODEOS_URL || 'http://127.0.0.1',
   // eth stuff
   web3Provider: process.env.WEB3_PROVIDER || 'http://localhost:8545',
-  ethCreatorKey: process.env.ETH_CREATOR_KEY || '0xa966a4df8f4ad2c5938fce96b46391e45ab6eade06848608020a50938b5dc3a2',
-  ethPrivateKey: process.env.ETH_PRIVATE_KEY || '0xa966a4df8f4ad2c5938fce96b46391e45ab6eade06848608020a50938b5dc3a2',
-  getEthPrivateKey: (consumerName) =>  process.env[`ETH_PRIVATE_KEY_${consumerName}`] || process.env.ETH_PRIVATE_KEY || '0xa966a4df8f4ad2c5938fce96b46391e45ab6eade06848608020a50938b5dc3a2',
-  newEthAccountFundAmount: process.env.ETH_FUND_AMOUNT || '1000000000000000000',
-  ethGasPrice: process.env.ETH_GAS_PRICE || '2000000000',
-  ethGasLimit: process.env.ETH_GAS_LIMIT || '1000000',
+  ethCreatorKey: process.env.EVM_CREATOR_KEY || '0xa966a4df8f4ad2c5938fce96b46391e45ab6eade06848608020a50938b5dc3a2',
+  ethPrivateKey: process.env.EVM_PRIVATE_KEY || '0xa966a4df8f4ad2c5938fce96b46391e45ab6eade06848608020a50938b5dc3a2',
+  getEthPrivateKey: (consumerName, chain) =>  process.env[`EVM_PRIVATE_KEY_${chain.toUpperCase()}_${consumerName.toUpperCase()}`] || process.env.EVM_PRIVATE_KEY || '0xa966a4df8f4ad2c5938fce96b46391e45ab6eade06848608020a50938b5dc3a2',
+  newEthAccountFundAmount: process.env.EVM_FUND_AMOUNT || '1000000000000000000',
+  ethGasPrice: process.env.EVM_GAS_PRICE || '2000000000',
+  ethGasLimit: process.env.EVM_GAS_LIMIT || '1000000',
 }

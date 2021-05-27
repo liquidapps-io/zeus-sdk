@@ -8,8 +8,6 @@ const { dappServicesContract, getContractAccountFor, testProvidersList } = requi
 const servicescontract = dappServicesContract;
 var servicesC = artifacts.require(`./dappservices/`);
 
-const ethPrivateKeys = ["0xa966a4df8f4ad2c5938fce96b46391e45ab6eade06848608020a50938b5dc3a2", "0xd06197723d79371d8b9e60c89ef16b8efe89b819adb623c4d9233027a7c6c599"];
-
 async function deployLocalService(serviceModel, provider = 'pprovider1', gatewayPort) {
   var eos = await getEos(provider);
   var contractInstance = await eos.contract(servicescontract)
@@ -69,18 +67,21 @@ module.exports = async (args) => {
     var testProviders = testProvidersList;
     for (var pi = 0; pi < testProviders.length; pi++) {
       var testProvider = testProviders[pi];
-      var key = await getCreateAccount(testProvider);
+      var key = await getCreateAccount(testProvider.account);
       await serviceRunner(`/dummy/${serviceModel.name}-dapp-service-node.js`, serviceModel.port * (pi + 1)).handler(args, {
         DSP_PRIVATE_KEY: key.active.privateKey,
-        ETH_PRIVATE_KEY: ethPrivateKeys[pi],
-        ETH_GAS_PRICE_MULT: 1.2,
+        EVM_EVMLOCALSIDECHAIN_PRIVATE_KEY: testProvider.sidechain_key,
+        EVM_PRIVATE_KEY: testProvider.key,
+        EVM_GAS_PRICE_MULT: 1.2,
+        EVM_EVMLOCALSIDECHAIN_ENDPOINT: "http://localhost:8546",
+        EVM_ENDPOINT: "http://localhost:8545",
         DSP_GATEWAY_MAINNET_ENDPOINT: `http://localhost:${13015 * (pi + 1)}`, // mainnet gateway
-        DSP_ACCOUNT: testProvider,
+        DSP_ACCOUNT: testProvider.account,
         NODEOS_LATEST: true,
         SVC_PORT: serviceModel.port * (pi + 1),
         DSP_PORT: 13015 * (pi + 1)
       });
-      await deployLocalService(serviceModel, testProvider, gatewayPort * (pi + 1));
+      await deployLocalService(serviceModel, testProvider.account, gatewayPort * (pi + 1));
     }
   }
 };

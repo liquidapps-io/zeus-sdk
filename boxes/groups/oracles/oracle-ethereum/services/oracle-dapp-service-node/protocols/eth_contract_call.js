@@ -6,15 +6,18 @@ const { saveToIPFS } = requireBox('storage-dapp-service/services/storage-dapp-se
 const { eosMainnet, getEosForSidechain } = requireBox('dapp-services/services/dapp-services-node/common');
 const { TextEncoder, TextDecoder } = require('util'); 
 
-const web3MainnetProvider = process.env.WEB3_PROVIDER || 'http://localhost:8545';
+const web3MainnetProvider = process.env.EVM_ENDPOINT || 'http://localhost:8545';
 
 // {"inputs":[{"internalType":"uint64","name":"","type":"uint64"}],"name":"foreign_messages","outputs":[{"internalType":"bytes","name":"message","type":"bytes"}],"stateMutability":"view","type":"function"}
 
 const getEndpoint = (chainId) => {
   const endpoints = {
     "1": web3MainnetProvider, // for mainnet, should be env var
-    "3": "", //TODO: add ropsten endpoint here
-    "123456": "http://localhost:8545", //TODO: change?
+    "ropsten": "", //TODO: add ropsten endpoint here
+    "evmlocal": "http://localhost:8545",
+    "evmlocalsidechain": "http://localhost:8546",
+    "bsc": "https://bsc-dataseed1.binance.org:443",
+    "bsctest": "https://data-seed-prebsc-1-s1.binance.org:8545"
   }
   return endpoints[chainId];
 }

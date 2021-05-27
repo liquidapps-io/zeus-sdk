@@ -27,16 +27,12 @@ module.exports = {
         const module = requireBox('dapp-services/commands/compile/dapp-services-eos');
         await module.call(module, args);
       }
-      /*else if (args.phase == 'npm') {
-        const module = requireBox('eos-extensions/commands/compile/npm');
-        await module.call(module, args);
-      }*/
       else if (args.phase == 'eos') {
         const module = requireBox('eos-extensions/commands/compile/eos');
         await module.call(module, args);
       }
-      else if (args.phase == 'eth') {
-        const module = requireBox('eth-extensions/commands/compile/eth');
+      else if (args.phase == 'truffle' || args.phase == 'eth' || args.phase == 'evm') {
+        const module = requireBox('eth-extensions/commands/compile/truffle');
         await module.call(module, args);
       }
     } else {
@@ -45,9 +41,8 @@ module.exports = {
       if (fs.existsSync(boxesDir)) {
         let modules = [
           'dapp-services/commands/compile/dapp-services-eos',
-          //'eos-extensions/commands/compile/npm',
           'eos-extensions/commands/compile/eos',
-          'eth-extensions/commands/compile/eth'
+          'eth-extensions/commands/compile/truffle'
         ];
         for (let moduleDir of modules) {
           if (fs.existsSync(path.join(boxesDir, moduleDir + '.js'))) {

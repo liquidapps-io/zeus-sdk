@@ -152,10 +152,7 @@ const foreignChains = {
     }
   },
   'ethereum': {
-    'endpoints': [
-      'https://main-light.eth.linkpool.io'
-      // process.env.ETHEREUM_JSONRPC_API || `http://localhost:....`
-    ],
+    'endpoints': ['https://main-light.eth.linkpool.io'],
     'block_number': async({ parts, address, endpoint }) => {
       const body = JSON.stringify({
         'jsonrpc': '2.0',
@@ -186,8 +183,6 @@ const foreignChains = {
         method: 'POST',
         body
       });
-      console.log('got here');
-
       return await r.json();
     },
     'balance': async({ parts, address, endpoint }) => {

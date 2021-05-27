@@ -6,7 +6,7 @@ const { dappServicesContract } = requireBox('dapp-services/tools/eos/dapp-servic
 const { loadModels } = requireBox('seed-models/tools/models');
 const dal = requireBox('dapp-services/services/dapp-services-node/dal/dal');
 
-let timers = {}, startup=true;
+let timers = {}, startup=true, data;
 
 const intervalCallback = (async (event, { timer, payload, seconds }) => {
 
@@ -19,7 +19,7 @@ const intervalCallback = (async (event, { timer, payload, seconds }) => {
       dapp = await getLinkedAccount(null, null, dappServicesContract, sidechain.name);
       eosMain = await getEosForSidechain(sidechain, current_provider, true);
   }
-  let data = {
+  data = {
       current_provider,
       timer,
       'package': packageid,
@@ -33,24 +33,25 @@ const intervalCallback = (async (event, { timer, payload, seconds }) => {
   }
   catch (e) {
     error = true;
-    if (JSON.stringify(e).includes('duplicate') 
-        || JSON.stringify(e).includes('abort_service_request') 
-        || JSON.stringify(e).includes('required service') 
-        || JSON.stringify(e).includes('to account does not exist') 
-        || JSON.stringify(e).includes('tx_cpu_usage_exceeded')
-        || JSON.stringify(e).includes('tx_net_usage_exceeded')
-        || JSON.stringify(e).includes('string is too long to be a valid name')
+    let strErr = JSON.stringify(e);
+    if (strErr.includes('duplicate') 
+        || strErr.includes('abort_service_request') 
+        || strErr.includes('required service') 
+        || strErr.includes('to account does not exist') 
+        || strErr.includes('tx_cpu_usage_exceeded')
+        || strErr.includes('tx_net_usage_exceeded')
+        || strErr.includes('string is too long to be a valid name')
     ) {
       let message;
-      if(JSON.stringify(e).includes('duplicate')) {
+      if(strErr.includes('duplicate')) {
         message = `duplicate trx detected ${payer} ${timer}`
-      } else if(JSON.stringify(e).includes('abort_service_request')) {
+      } else if(strErr.includes('abort_service_request')) {
         message = `abort service request detected ${payer} ${timer}`
-      } else if(JSON.stringify(e).includes('required service')) {
-        message = `required service error detected, DSP unable to fulfill request ${payer} ${timer}`
-      } else if(JSON.stringify(e).includes('tx_cpu_usage_exceeded') || JSON.stringify(e).includes('tx_net_usage_exceeded')) {
+      } else if(strErr.includes('required service')) {
+        message = `required service error detected, DSP unable to fulfill request ${payer} ${timer} ${process.env.DSP_VERBOSE_LOGS ? strErr : ''}`
+      } else if(strErr.includes('tx_cpu_usage_exceeded') || strErr.includes('tx_net_usage_exceeded')) {
         message = `STAKE MORE CPU/NET resetting timer ${payer} ${timer}`
-      } else if(JSON.stringify(e).includes('string is too long to be a valid name') || JSON.stringify(e).includes('tx_net_usage_exceeded')) {
+      } else if(strErr.includes('string is too long to be a valid name') || strErr.includes('tx_net_usage_exceeded')) {
         message = `invalid name ${payer} ${timer}`
       } else {
         message = `to account does not exist ${payer} ${timer}`
@@ -58,7 +59,7 @@ const intervalCallback = (async (event, { timer, payload, seconds }) => {
       if(process.env.DSP_VERBOSE_LOGS) logger.warn(message);
     } else {
       console.error("error:", e);
-      logger.error(`Error executing interval transaction: ${e.json ? JSON.stringify(e.json) : JSON.stringify(e)}`);
+      logger.error(`Error executing interval transaction: ${e.json ? JSON.stringify(e.json) : strErr}`);
     }
   }
   if (sidechain && error === false) {
@@ -212,7 +213,6 @@ nodeFactory('cron', {
           continue;
         else throw e;
       }
-      logger.info(`Cron Interval created for: INTERVAL_${event.payer}_${timer}_${sidechain_event ? sidechain_event : "PROVISIONING_X"}`);
       break;
     }
     clearTimeout(timerId);

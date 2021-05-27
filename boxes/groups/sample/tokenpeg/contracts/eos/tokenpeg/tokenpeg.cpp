@@ -107,10 +107,10 @@ CONTRACT_START()
   }
 
   [[eosio::action]]
-  void disable(bool processing_enabled)
+  void disable(name timer, bool processing_enabled)
   {
       require_auth(_self);
-      disablelink(processing_enabled);
+      disablelink(timer, processing_enabled);
   }
 
   vector<char> message_received(const std::vector<char>& message) {

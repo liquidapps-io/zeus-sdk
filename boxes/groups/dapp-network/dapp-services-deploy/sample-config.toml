@@ -102,13 +102,35 @@ protocol = "http"
 host = "localhost"
 port = 5001
 
-[eth] # if using LiquidLink (link) service 
+[evm] # if using LiquidLink (link) service for ethereum, binance, or other evm chain
+
+# default, will check for chain specific then default
 private_key = ""
 endpoint = ""
-gas_price = '2000000'
-gas_limit = '500000'
-keys_per_consumer = '{"ETH_PRIVATE_KEY_CONSUMER1":"PRIVATE_KEY_HERE"},{"ETH_PRIVATE_KEY_CONSUMER2":"PRIVATE_KEY_HERE"}'
-gas_price_mult = 1.2
+gas_limit = ''
+
+# chain specific
+ethereum_private_key = ""
+ethereum_endpoint = ""
+ethereum_gas_price = '2000000'
+ethereum_gas_limit = '500000'
+ethereum_keys_per_consumer = '{"EVM_ETHEREUM_PRIVATE_KEY_CONSUMER1":"PRIVATE_KEY_HERE"},{"EVM_ETHEREUM_PRIVATE_KEY_CONSUMER2":"PRIVATE_KEY_HERE"}'
+ethereum_gas_price_mult = 1.2
+
+binance_private_key = ""
+binance_endpoint = ""
+binance_gas_price = '2000000'
+binance_gas_limit = '500000'
+binance_keys_per_consumer = '{"EVM_BINANCE_PRIVATE_KEY_CONSUMER1":"PRIVATE_KEY_HERE"},{"EVM_BINANCE_PRIVATE_KEY_CONSUMER2":"PRIVATE_KEY_HERE"}'
+binance_gas_price_mult = 1.2
+
+bsctest_private_key = ""
+bsctest_endpoint = "https://data-seed-prebsc-1-s1.binance.org:8545"
+bsctest_gas_limit = '700000'
+
+ropsten_private_key = ""
+ropsten_gas_limit = '700000'
+ropsten_endpoint  = "" # setup free account https://ropsten.infura.io/
 
 # sidechain section, if no sidechains, leave as [sidechains], can add additional sidechains with [sidechains.newchain] ...
 [sidechains]

@@ -51,7 +51,7 @@ CONTRACT_START()
     svc_sign_signtrx(id, destination, trx_data, chain, chain_type, account, 1);
   }
 
- [[eosio::action]] void sendeth(std::string multisig_address, std::string destination, uint128_t amount)
+ [[eosio::action]] void sendeth(std::string multisig_address, std::string destination, uint128_t amount, std::string chain)
   {
     std::string data = MULTISIG_METHOD_ID +\
     pad_left(clean_eth_address(destination)) +\
@@ -59,13 +59,13 @@ CONTRACT_START()
     ENCODED_METHOD_NO_DATA_TAIL;
 
     std::string id = "1";
-    std::string chain = "mainnet";
+    // std::string chain = "evmlocal";
     std::string chain_type = "ethereum";
     std::string account = "signservice1";
     svc_sign_signtrx(id, multisig_address, data, chain, chain_type, account, 1);
   }
 
- [[eosio::action]] void sendtoken(std::string multisig_address, std::string token_address, std::string destination, uint128_t amount)
+ [[eosio::action]] void sendtoken(std::string multisig_address, std::string token_address, std::string destination, uint128_t amount, std::string chain)
   {
     std::string method_data = TRANSFER_METHOD_ID +\
     pad_left(clean_eth_address(destination)) +\
@@ -80,7 +80,6 @@ CONTRACT_START()
     method_data;
 
     std::string id = "1";
-    std::string chain = "mainnet";
     std::string chain_type = "ethereum";
     std::string account = "signservice1";
     svc_sign_signtrx(id, multisig_address, data, chain, chain_type, account, 1);
@@ -96,4 +95,24 @@ CONTRACT_START()
     svc_sign_signtrx(data, multisig_account, data, chain, chain_type, account, 1);
   }
 
-CONTRACT_END((sendsigreq)(sendeth)(sendtoken)(signalaction))
+ [[eosio::action]] void sendevm(std::string multisig_address, std::string token_address, std::string destination, uint128_t amount, std::string chain)
+  {
+    std::string method_data = TRANSFER_METHOD_ID +\
+    pad_left(clean_eth_address(destination)) +\
+    pad_left(num_to_hex_string(amount)) +\
+    MULTISIG_ENCODED_TRANFER_RIGHT_PADDING;
+
+    std::string data = MULTISIG_METHOD_ID +\
+    pad_left(clean_eth_address(token_address)) +\
+    EMPTY_DATA_LEFT_PADDED +\
+    BYTES_ARRAY_POINTER +\
+    TRANSFER_BYTES_ARRAY_SIZE +\
+    method_data;
+
+    std::string id = "1";
+    std::string chain_type = "ethereum";
+    std::string account = "signservice1";
+    svc_sign_signtrx(id, multisig_address, data, chain, chain_type, account, 1);
+  }
+
+CONTRACT_END((sendsigreq)(sendeth)(sendtoken)(signalaction)(sendevm))

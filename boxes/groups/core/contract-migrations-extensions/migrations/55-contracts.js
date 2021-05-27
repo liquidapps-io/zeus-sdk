@@ -38,7 +38,7 @@ module.exports = async function (args) {
   const preContract = args.contract;
   const preCreator = args.creator;
   const preNetwork = args.network;
-  if(!deployments.length) console.log(`${emojMap.white_frowning_face} please create a contract deployment first with "zeus create contract-deployment -h"`)
+  if(!deployments.length) throw new Error(`${emojMap.white_frowning_face} please create a contract deployment first with "zeus create contract-deployment -h"`)
   for (var i = 0; i < deployments.length; i++) {
     var { contract, account, network } = deployments[i];
     if(args.creator === 'eosio' && args.network !== 'development') {

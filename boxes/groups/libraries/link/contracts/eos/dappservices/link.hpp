@@ -25,7 +25,7 @@
 #define DAPPSERVICE_ACTIONS_COMMANDS() \
   ORACLE_SVC_COMMANDS()CRON_SVC_COMMANDS()IPFS_SVC_COMMANDS()SIGN_SVC_COMMANDS() 
 #endif
-#define PUSH_FOREIGN_MESSAGE_METHOD_ID "7d29a9f0"
+#define PUSH_FOREIGN_MESSAGE_METHOD_ID "7d29a9f0" // push foreign method
 #define BYTES_ARRAY_POINTER_PUSH_FOREIGN_MESSAGE "0000000000000000000000000000000000000000000000000000000000000040"
 #else
 #ifndef DAPPSERVICES_ACTIONS
@@ -83,7 +83,6 @@ TABLE settings_t {
     string sister_msig_address; // name of corresponding bridge for oracle queries
     string sister_chain_name;   // chain ID
     string this_chain_name;     //name of this chain for irreversability query
-
 
     bool processing_enabled;
     uint64_t last_irreversible_block_time;
@@ -541,17 +540,13 @@ void enablelink(bool processing_enabled)\
   settings.processing_enabled = processing_enabled; \
   settings_singleton.set(settings, _self);\
 }\
-void disablelink(bool processing_enabled)\
+void disablelink(name timer, bool processing_enabled)\
  { \
   auto _self = name(current_receiver()); \
   settings_table settings_singleton(_self, _self.value); \
   settings_t settings = settings_singleton.get_or_default(); \
   if (processing_enabled == false) { /* schedule all eth timers */ \
-    remove_interval(name("packbatches")); \
-    remove_interval(name("getbatches")); \
-    remove_interval(name("unpkbatches")); \
-    remove_interval(name("hndlmessage")); \
-    remove_interval(name("pushbatches")); \
+    remove_interval(timer); \
   } \
   settings.processing_enabled = processing_enabled; \
   settings_singleton.set(settings, _self);\
@@ -589,16 +584,13 @@ void enablelink(bool processing_enabled)\
   settings.processing_enabled = processing_enabled; \
   settings_singleton.set(settings, _self);\
 }\
-void disablelink(bool processing_enabled)\
+void disablelink(name timer, bool processing_enabled)\
  { \
   auto _self = name(current_receiver()); \
   settings_table settings_singleton(_self, _self.value); \
   settings_t settings = settings_singleton.get_or_default(); \
   if (processing_enabled == false) { /* remove all timers */ \
-    remove_interval(name("packbatches")); \
-    remove_interval(name("getbatches")); \
-    remove_interval(name("unpkbatches")); \
-    remove_interval(name("hndlmessage")); \
+    remove_interval(timer); \
   } \
   settings.processing_enabled = processing_enabled; \
   settings_singleton.set(settings, _self);\

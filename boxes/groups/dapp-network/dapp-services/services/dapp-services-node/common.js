@@ -218,11 +218,11 @@ const getDfuseJwt = async () => {
 
 const forwardEvent = async (act, endpoint, redirect) => {
   if (redirect) { 
-    logger.info(`redirecting ${act.event.payer}:${act.event.action} for service ${act.event.service} to ${endpoint} for DSP: ${act.event.provider}`)
+    if(process.env.DSP_VERBOSE_LOGS) logger.info(`redirecting ${act.event.payer}:${act.event.action} for service ${act.event.service} to ${endpoint} for DSP: ${act.event.provider}`)
     return endpoint;
   }
   const msg = act.account ? `forwarding event ${act.account}:${act.method} to ${endpoint + '/event'}` : `forwarding ${act.event.etype} event ${act.event.payer}:${act.event.action} for service ${act.event.service} to ${endpoint + '/event'} for DSP: ${act.event.provider}`
-  logger.info(msg);
+  if(process.env.DSP_VERBOSE_LOGS) logger.info(msg);
   const r = await fetch(endpoint + '/event', { method: 'POST', body: JSON.stringify(act) });
   const rtxt = await r.text();
   return rtxt;
@@ -246,7 +246,7 @@ const resolveBackendServiceData = async (service, provider, packageid, sidechain
   let port = process.env[`DAPPSERVICE_PORT_${loadedExtension.name.toUpperCase()}`];
   if (!host) host = 'localhost';
   if (!port) port = loadedExtension.port;
-  logger.info(`resolving internal endpoint: ${`http://${host}:${port}`} for provider: ${provider} | service: ${service} | package id: ${packageid}`);
+  if(process.env.DSP_VERBOSE_LOGS) logger.info(`resolving internal endpoint: ${`http://${host}:${port}`} for provider: ${provider} | service: ${service} | package id: ${packageid}`);
   return {
     internal: true,
     endpoint: `http://${host}:${port}`
@@ -263,7 +263,7 @@ const resolveExternalProviderData = async (service, provider, packageid, sidecha
     if (Number(balance.substring(0, balance.length - 5)) < Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)))
       throw new Error(`DAPP Balance is less than minimum stake quantity for provider: ${provider}, service: ${service}, packageid: ${packageid}: ${Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)) - Number(balance.substring(0, balance.length - 5))} more DAPP must be staked to meet threshold`);
   
-  logger.info(`resolving external endpoint: ${result[0].api_endpoint} for provider: ${provider} | service: ${service} | package id: ${packageid} balance: ${balance} | sidechain ${sidechain}`);
+  if(process.env.DSP_VERBOSE_LOGS) logger.info(`resolving external endpoint: ${result[0].api_endpoint} for provider: ${provider} | service: ${service} | package id: ${packageid} balance: ${balance} | sidechain ${sidechain}`);
   return {
     internal: false,
     endpoint: result[0].api_endpoint
@@ -407,10 +407,10 @@ const resolveProviderPackage = async (payer, service, provider, sidechain, getEv
   }
   if (!selectedPackage) { throw new Error(`resolveProviderPackage failed - no enabled packages - ${provider} ${service}`); }
   if (getEvery) {
-    logger.info(`verifying provider(s) for payer: ${payer} service: ${service} provider: ${provider} providers: ${JSON.stringify(providers)}`)
+    if(process.env.DSP_VERBOSE_LOGS) logger.info(`verifying provider(s) for payer: ${payer} service: ${service} provider: ${provider} providers: ${JSON.stringify(providers)}`)
     return providers;
   } 
-  logger.info(`verifying package for payer: ${payer} service: ${service} provider: ${provider}: package: ${selectedPackage}`)
+  if(process.env.DSP_VERBOSE_LOGS) logger.info(`verifying package for payer: ${payer} service: ${service} provider: ${provider}: package: ${selectedPackage}`)
   return selectedPackage;
 };
 
@@ -434,7 +434,7 @@ const processFn = async (actionHandlers, actionObject, simulated, serviceName, h
   }
   catch (e) {
     logger.error('error processing processFn')
-    logger.error(typeof(e) == "object" ? JSON.stringify(e) : e);
+    logger.error(e)
     throw e;
   }
 };
@@ -710,7 +710,7 @@ const genNode = async (actionHandlers, port, serviceName, handlers, abi, sidecha
       return res.send(pjson.version); // send response to contain the version
 
     if (!isPushTransaction && !isServiceRequest && !isServiceAPIRequest) {
-      if(process.env.DSP_VERBOSE_LOGS) logger.info(`proxying${uri.indexOf('/v1/chain/') ? ' nodeos': ''} request ${uri}`);
+      if(process.env.DSP_VERBOSE_LOGS) if(process.env.DSP_VERBOSE_LOGS) logger.info(`proxying${uri.indexOf('/v1/chain/') ? ' nodeos': ''} request ${uri}`);
       return proxy.web(req, res, { target: sidechain ? sidechain.nodeos_endpoint : nodeosMainnetEndpoint });
     }
 

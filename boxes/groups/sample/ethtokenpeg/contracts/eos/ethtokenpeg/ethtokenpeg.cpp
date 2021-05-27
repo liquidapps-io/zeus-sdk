@@ -55,16 +55,16 @@ CONTRACT_START()
     return bytes;
   }
 
-  std::string BytesToHex(vector<char> data)
-  {
-    std::string s(data.size() * 2, ' ');
-    char hexmap[] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
-    for (int i = 0; i < data.size(); ++i) {
-        s[2 * i]     = hexmap[(data[i] & 0xF0) >> 4];
-        s[2 * i + 1] = hexmap[data[i] & 0x0F];
-    }
-    return s;
-  }
+  // std::string BytesToHex(vector<char> data)
+  // {
+  //   std::string s(data.size() * 2, ' ');
+  //   char hexmap[] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+  //   for (int i = 0; i < data.size(); ++i) {
+  //       s[2 * i]     = hexmap[(data[i] & 0xF0) >> 4];
+  //       s[2 * i + 1] = hexmap[data[i] & 0x0F];
+  //   }
+  //   return s;
+  // }
 
   eosio::checksum160 HexToAddress(const std::string& hex) {
     auto bytes = HexToBytes(clean_eth_address(hex));
@@ -73,12 +73,12 @@ CONTRACT_START()
     return eosio::checksum160(arr);
   }
 
-  std::string AddressToHex(const eosio::checksum160& address) {
-    std::vector<char> bytes;
-    auto arr = address.extract_as_byte_array();
-    std::copy_n(arr.begin(), 20, bytes.begin());
-    return BytesToHex(bytes);
-  }
+  // std::string AddressToHex(const eosio::checksum160& address) {
+  //   std::vector<char> bytes;
+  //   auto arr = address.extract_as_byte_array();
+  //   std::copy_n(arr.begin(), 20, bytes.begin());
+  //   return BytesToHex(bytes);
+  // }
 
   int64_t reverse(int64_t value) {
     vector<char> value_v(8);
@@ -152,6 +152,17 @@ CONTRACT_START()
   {
       require_auth(_self);
       enablelink(processing_enabled);
+      token_settings_table settings_singleton(_self, _self.value);
+      token_settings_t settings = settings_singleton.get_or_default();
+      settings.transfers_enabled = transfers_enabled;
+      settings_singleton.set(settings, _self);
+  }
+
+  [[eosio::action]]
+  void disable(name timer, bool processing_enabled = false, bool transfers_enabled = false)
+  {
+      require_auth(_self);
+      disablelink(timer, processing_enabled);
       token_settings_table settings_singleton(_self, _self.value);
       token_settings_t settings = settings_singleton.get_or_default();
       settings.transfers_enabled = transfers_enabled;
@@ -302,4 +313,4 @@ CONTRACT_START()
   }
 
 };//closure for CONTRACT_START
-EOSIO_DISPATCH_SVC_TRX(CONTRACT_NAME(), (init)(enable)(getdest))
+EOSIO_DISPATCH_SVC_TRX(CONTRACT_NAME(), (init)(enable)(getdest)(disable))

@@ -43,6 +43,10 @@ module.exports = {
         describe: 'account staking amount',
         default: '300.0000'
       })
+      .option('multi-evm', {
+        describe: 'run multiple evm chains',
+        default: false
+      })
       .option('kill', {
         describe: 'kill all current running nodes and services',
         default: false
