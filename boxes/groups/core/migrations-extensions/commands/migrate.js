@@ -17,10 +17,10 @@ module.exports = {
         default: 'zeus'
       }).option('creator-key', {
         describe: 'private key to set contract to',
-        default: ''
+        default: '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3'
       }).option('creator', {
         describe: 'eos account to set contract to',
-        default: ''
+        default: 'eosio'
       }).option('reset', {
         describe: 'reset local environment',
         default: true
@@ -29,7 +29,7 @@ module.exports = {
         default: 'eos'
       }).option('network', {
         describe: 'network to work on',
-        default: ''
+        default: 'development'
       })
       .option('services', {
         describe: 'service APIs to run',
