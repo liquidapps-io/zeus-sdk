@@ -17,6 +17,7 @@ const partyMigrate = async (args, {network, account, contract}) => {
     var models = await loadModels('dapp-services');
     for (var modeli = 0; modeli < models.length; modeli++) {
       var serviceModel = models[modeli];
+      if(args.services && args.services.length && !args.services.includes(serviceModel.name)) return;
       await genAllocateDAPPTokens(deployedContract, serviceModel.name);
     }
   }
@@ -44,7 +45,7 @@ module.exports = async function (args) {
     if(args.creator === 'eosio' && args.network !== 'development') {
       args.creator = account
     }
-    if(!args.network && !args.creator && !args.contract){
+    if((!args.network && !args.creator && !args.contract) || (args.creator === 'eosio' && args.network === 'development')){
       await partyMigrate(args, { contract, account, network })
       args.contract = preContract
       args.creator = preCreator

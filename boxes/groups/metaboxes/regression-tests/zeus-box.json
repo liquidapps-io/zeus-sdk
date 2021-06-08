@@ -1,5 +1,5 @@
 {
-  "version": "1.0.7",
+  "version": "1.0.8",
   "ignore": [
     "README.md"
   ],
@@ -13,7 +13,6 @@
     "airdrop": "^1.0.0",
     "liquidx": "^1.0.0",
     "combined": "^1.0.0",
-    "sign-dapp-service": "^1.0.0",
-    "tokenpeg": "^1.0.0"
+    "sign-dapp-service": "^1.0.0"
   }
 }
