@@ -7,21 +7,22 @@ const { getCreateAccount } = requireBox('seed-eos/tools/eos/utils');
 const { loadModels } = requireBox('seed-models/tools/models');
 const { dappServicesContract, testProvidersList } = requireBox('dapp-services/tools/eos/dapp-services');
 const servicescontract = dappServicesContract;
-var servicesC = artifacts.require(`./dappservices/`);
-var serviceRunner = requireBox('seed-microservices/helpers/service-runner');
+const servicesC = artifacts.require(`./dappservices/`);
+const serviceRunner = requireBox('seed-microservices/helpers/service-runner');
 
 async function deployLocalExtensions() {
-  var deployedContract = await deployer.deploy(servicesC, servicescontract);
-  var blocksPerSecond = 2;
-  var blocksPerMinute = 60 * blocksPerSecond;
-  var blocksPerHour = 60 * blocksPerMinute;
-  var blocksPerDay = 24 * blocksPerHour;
-  var blocksPerYear = 365 * blocksPerDay;
-  var numberOfBlocksToTwice = blocksPerYear;
-  var inflation = 0.02;
+  const deployedContract = await deployer.deploy(servicesC, servicescontract);
+  const blocksPerSecond = 2;
+  const blocksPerMinute = 60 * blocksPerSecond;
+  const blocksPerHour = 60 * blocksPerMinute;
+  const blocksPerDay = 24 * blocksPerHour;
+  const blocksPerYear = 365 * blocksPerDay;
+  const numberOfBlocksToTwice = blocksPerYear;
+  const inflation = 0.0271;
   await deployedContract.contractInstance.create({
     maximum_supply_amount: 5000000000 * 10000,
     inflation_per_block: Math.pow(1.00 + inflation, 1.0 / (numberOfBlocksToTwice)) - 1.0,
+    gov_allocation: 0,
     inflation_starts_at: new Date().getTime()
   }, {
     authorization: `${servicescontract}@active`,
