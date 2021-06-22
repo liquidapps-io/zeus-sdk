@@ -1,0 +1,18 @@
+{
+    "version": "1.0.1",
+    "ignore": [
+      "README.md"
+    ],
+    "commands": {
+      "Test eth message bridge": "zeus compile && zeus test ethtokenpeg"
+    },
+    "dependencies": {
+      "dapp-services": "^1.0.0"
+    },
+    "install": {
+      "contracts": {
+        "splitter": true
+      }
+    }
+  }
+  

@@ -9,12 +9,14 @@ const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
-const { dappServicesContract } = requireBox('dapp-services/tools/eos/dapp-services');
+const { dappServicesContract, dappGovernorContract } = requireBox('dapp-services/tools/eos/dapp-services');
 const { loadModels } = requireBox('seed-models/tools/models');
 const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 
 var contractCode = 'ipfsconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
+var contractCodeSplit = 'splitter';
+var ctrtSplit = artifacts.require(`./${contractCodeSplit}/`);
 
 const servicescontract = dappServicesContract;
 var servicesC = artifacts.require(`./dappservices/`);
@@ -315,6 +317,26 @@ async function setcost(serviceName = 'ipfs', provider = 'pprovider1', package_id
   }
 }
 
+async function updateinflation(inflation_per_block) {
+  var eos = await getEos(dappServicesContract);
+  let servicesTokenContract = await eos.contract(dappServicesContract);
+  await servicesTokenContract.updinflation({
+    inflation_per_block
+  }, {
+    authorization: `${dappServicesContract}@active`,
+  });
+}
+
+async function updateGovAllocation(gov_allocation) {
+  var eos = await getEos(dappServicesContract);
+  let servicesTokenContract = await eos.contract(dappServicesContract);
+  await servicesTokenContract.updgovalloc({
+    gov_allocation
+  }, {
+    authorization: `${dappServicesContract}@active`,
+  });
+}
+
 async function deployPayer(code) {
   var deployedContract = await getCreateAccount(code);
   var eos = await getEos(code);
@@ -343,20 +365,64 @@ async function deployConsumerContract(code) {
   return { testcontract, deployedContract };
 }
 
+function convertInflation(inflation_per_block) {
+  // 100.0 * ( (1 + 0.00000000042394888)^63,072,000 - 1) = 2.7100006741956671395612853715339494176104006721609767429832997964 https://www.wolframalpha.com/input/?i=2.7100006741956671395612853715339494176104006721609767429832997964&assumption=%22ClashPrefs%22+-%3E+%7B%22Math%22%7D
+  let blocks_per_year = 7200 * 24 * 365;
+  return 100.0 * (Math.pow(1.0 + parseFloat(inflation_per_block), blocks_per_year) - 1.0);
+}
+
+function inflationToBlock(inflation) {
+  // 2 blocks per second, 60 sec / min, 60 m / hr * 24 hr / day * 365 days / year
+  // (1 + 15/100)^(1/63,072,000) - 1 = 2.2159110624367185822983091149543260791518375962948232458330 × 10^-9 https://www.wolframalpha.com/input/?i=%281+%2B+15%2F100%29%5E%281%2F63%2C072%2C000%29+-+1
+  let blocks_per_year = 2 * 60 * 60 * 24 * 365;
+  return Math.pow(parseFloat(inflation) / 100 + 1, 1 / blocks_per_year) - 1
+}
+
+async function openBalance(account, splitter) {
+  let eos = await getEos(splitter);
+  let servicesTokenContract = await eos.contract(splitter);
+  let keys = await getCreateKeys(account);
+  await servicesTokenContract.open({
+      owner: account,
+      ram_payer: account
+  }, {
+    authorization: `${account}@active`,
+    keyProvider: [keys.active.privateKey]
+  });
+  eos = await getEos(dappServicesContract);
+  servicesTokenContract = await eos.contract(dappServicesContract);
+  keys = await getCreateKeys(account);
+  await servicesTokenContract.open({
+      owner: account,
+      symbol: "DAPP",
+      ram_payer: account
+  }, {
+    authorization: `${account}@active`,
+    keyProvider: [keys.active.privateKey]
+  });
+}
+
+const invokeService = async (code, testcontract) => {
+  var keys = await getCreateKeys(code);
+  var res = await testcontract.testempty({
+    uri: 'ipfs://zb2rhmy65F3REf8SZp7De11gxtECBGgUKaLdiDj7MCGCHxbDW',
+  }, {
+    authorization: `${code}@active`,
+    keyProvider: keys.active.privateKey
+  });
+};
+
 describe(`DAPP Services Provider & Packages Tests`, () => {
-  const invokeService = async (code, testcontract) => {
-    var keys = await getCreateKeys(code);
-    var res = await testcontract.testempty({
-      uri: 'ipfs://zb2rhmy65F3REf8SZp7De11gxtECBGgUKaLdiDj7MCGCHxbDW',
-    }, {
-      authorization: `${code}@active`,
-      keyProvider: keys.active.privateKey
-    });
-    // var eventResp = JSON.parse(res.processed.action_traces[0].console);
-    // assert.equal(eventResp.etype, "service_request", "wrong etype");
-    // assert.equal(eventResp.provider,"", "wrong provider");
-    // assert.equal(eventResp.action, "logevent", "wrong action");
-  };
+    // before(done => {
+    //   (async () => {
+    //     try {
+    //       done();
+    //     }
+    //     catch (e) {
+    //       done(e);
+    //     }
+    //   })();
+    // });
 
   it('Simple package and action', done => {
     (async () => {
@@ -904,11 +970,6 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
 
   it.skip('Inflation tuning', done => {
     (async () => {
-      const convertInflation = (inflation_per_block) => {
-        let blocks_per_year = 7200 * 24 * 365;
-        let inflation = 100.0 * (Math.pow(1.0 + parseFloat(inflation_per_block), blocks_per_year) - 1.0);
-        return inflation;
-      }
       try {
         var eos = await getEos('pprovider1');
         let table = await eos.getTableRows({
@@ -1070,6 +1131,230 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
           failed = true
         }
         assert(failed, "should have failed, inflation must be between 0 and 5 %")
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
+  it('Adjust inflation and split rewards with gov', done => {
+    (async () => {
+      try {
+        const testContractAccount = 'testinflate2';
+        const { deployedContract } = await deployConsumerContract(testContractAccount);
+        let table = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: 'DAPP',
+          table: 'statext',
+          json: true
+        });
+        const prevInflation = convertInflation(table.rows[0].inflation_per_block);
+        const prevAvgInflation = parseFloat(prevInflation.toFixed(2));
+        assert.equal(prevAvgInflation, 2.71, "error, inflation previously set to 2%");
+        const newInflationPerBlock = inflationToBlock(15);
+        const governanceAllocation = (15 - 2.71)/15;
+        await updateinflation(newInflationPerBlock);
+        await updateGovAllocation(governanceAllocation);
+        table = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: 'DAPP',
+          table: 'statext',
+          json: true
+        });
+        const newInflation = convertInflation(table.rows[0].inflation_per_block);
+        const newAvgInflation = parseFloat(newInflation.toFixed(2));
+        assert.equal(newAvgInflation, 15, "error, inflation not updated to 15%");
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  it('test split rewards with splitter', done => {
+    (async () => {
+      try {
+        const selectedPackage = 'test2223';
+        const testContractAccount = 'contr25';
+        const packagePeriod = 5;
+        const { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
+        await deployServicePackage({ package_id: selectedPackage, packagePeriod });
+        await selectPackage({ deployedContract, selectedPackage });
+        await allocateDAPPTokens(deployedContract, '1000000.0000 DAPP');
+        const testAccount1 = 'govaccount1';
+        const testAccount2 = 'govaccount2';
+        const splitterKeys = await getCreateAccount(dappGovernorContract);
+        await getCreateAccount(testAccount1);
+        await getCreateAccount(testAccount2);
+        const splitterContract = await deployer.deploy(ctrtSplit, dappGovernorContract);
+        await openBalance(testAccount1, dappGovernorContract);
+        await openBalance(testAccount2, dappGovernorContract);
+        await openBalance(dappGovernorContract, dappGovernorContract);
+        const percentage = '0.5';
+        const splitterContractInstance = splitterContract.contractInstance;
+        await splitterContractInstance.setup(
+        {
+            payouts: [
+                {
+                  account: testAccount1,
+                  percentage 
+                },
+                {
+                  account: testAccount2,
+                  percentage
+                }
+            ]
+        }, {
+          authorization: `${dappGovernorContract}@active`,
+          broadcast: true,
+          sign: true,
+          keyProvider: [splitterKeys.active.privateKey],
+        });
+
+        await stake({ deployedContract, selectedPackage, amount: '200000.0000' });
+
+        let table = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: 'pprovider1',
+          table: 'reward',
+          json: true,
+        });
+        const balance0 = parseFloat(table.rows[0].balance.replace(' DAPP', ''));
+        table = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: dappGovernorContract,
+          table: 'reward',
+          json: true,
+        });
+        const balanceGov0 = parseFloat(table.rows[0].balance.replace(' DAPP', ''));
+
+        await delaySec(packagePeriod + 1);
+        await stake({ deployedContract, selectedPackage, amount: '200000.0000' });
+
+        table = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: 'pprovider1',
+          table: 'reward',
+          json: true,
+        });
+
+        const balance1 = parseFloat(table.rows[0].balance.replace(' DAPP', ''));
+        assert(balance1 > balance0, 'balance should have increased');
+
+        table = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: dappGovernorContract,
+          table: 'reward',
+          json: true,
+        });
+        const balanceGov1 = parseFloat(table.rows[0].balance.replace(' DAPP', ''));
+        assert(balanceGov1 > balanceGov0, 'gov balance should have increased');
+
+        await delaySec(packagePeriod + 1);
+        await unstake({ deployedContract, selectedPackage, amount: '100000.0000' });
+
+        table = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: 'pprovider1',
+          table: 'reward',
+          json: true,
+        });
+
+        const balance2 = parseFloat(table.rows[0].balance.replace(' DAPP', ''));
+        assert(balance2 > balance1, 'balance should have increased');
+
+        table = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: dappGovernorContract,
+          table: 'reward',
+          json: true,
+        });
+        const balanceGov2 = parseFloat(table.rows[0].balance.replace(' DAPP', ''));
+        assert(balanceGov2 > balanceGov1, 'gov balance should have increased');
+
+        await delaySec(packagePeriod + 1);
+        await invokeService(testContractAccount, testcontract);
+
+        table = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: 'pprovider1',
+          table: 'reward',
+          json: true,
+        });
+
+        const balance3 = parseFloat(table.rows[0].balance.replace(' DAPP', ''));
+        assert(balance3 > balance2, 'balance should have increased');
+
+        table = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: dappGovernorContract,
+          table: 'reward',
+          json: true,
+        });
+        const balanceGov3 = parseFloat(table.rows[0].balance.replace(' DAPP', ''));
+        assert(balanceGov3 > balanceGov2, 'gov balance should have increased');
+
+        await delaySec(packagePeriod + 1);
+
+        let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
+
+
+        const govKey = await getCreateKeys(dappGovernorContract);
+        await servicesTokenContract.claimrewards({
+          provider: dappGovernorContract
+        }, {
+          authorization: `${dappGovernorContract}@active`,
+          broadcast: true,
+          sign: true,
+          keyProvider: [govKey.active.privateKey]
+        });
+
+        let accounts = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: dappGovernorContract,
+          table: 'accounts',
+          json: true,
+        });
+
+        table = await deployedContract.eos.getTableRows({
+          code: dappServicesContract,
+          scope: dappGovernorContract,
+          table: 'reward',
+          json: true,
+        });
+
+        const balanceGov4 = parseFloat(accounts.rows[0].balance.replace(' DAPP', ''));
+        const rewardGov = parseFloat(table.rows[0].balance.replace(' DAPP', ''));
+
+        assert(balanceGov4 > balanceGov3, 'balance should have increased');
+        assert(rewardGov == 0, 'reward should be 0');
+        
+        let eosWrapper = getEosWrapper({
+          httpEndpoint: `http://localhost:8888`
+        });
+        let res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+        let preBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
+        res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+        let preBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
+        assert.equal(preBalance1, preBalance2);
+        await splitterContractInstance.claim({
+          account: dappGovernorContract,
+          all: true
+        }, {
+          authorization: `${dappGovernorContract}@active`,
+          broadcast: true,
+          sign: true,
+          keyProvider: [splitterKeys.active.privateKey],
+        });
+        res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+        let postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
+        res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+        let postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
+        assert.equal(postBalance1, postBalance2);
+        assert(postBalance1 >= 75, 'split amount should be above 75');
+
         done();
       }
       catch (e) {
