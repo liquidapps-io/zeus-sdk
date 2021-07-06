@@ -9,7 +9,7 @@ const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
-const { dappServicesContract, dappGovernorContract } = requireBox('dapp-services/tools/eos/dapp-services');
+const { dappServicesContract, dappRewardsContract } = requireBox('dapp-services/tools/eos/dapp-services');
 const { loadModels } = requireBox('seed-models/tools/models');
 const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 
@@ -1173,6 +1173,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
       }
     })();
   });
+
   it('test split rewards with splitter', done => {
     (async () => {
       try {
@@ -1185,13 +1186,13 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         await allocateDAPPTokens(deployedContract, '1000000.0000 DAPP');
         const testAccount1 = 'govaccount1';
         const testAccount2 = 'govaccount2';
-        const splitterKeys = await getCreateAccount(dappGovernorContract);
+        const splitterKeys = await getCreateAccount(dappRewardsContract);
         await getCreateAccount(testAccount1);
         await getCreateAccount(testAccount2);
-        const splitterContract = await deployer.deploy(ctrtSplit, dappGovernorContract);
-        await openBalance(testAccount1, dappGovernorContract);
-        await openBalance(testAccount2, dappGovernorContract);
-        await openBalance(dappGovernorContract, dappGovernorContract);
+        const splitterContract = await deployer.deploy(ctrtSplit, dappRewardsContract);
+        await openBalance(testAccount1, dappRewardsContract);
+        await openBalance(testAccount2, dappRewardsContract);
+        await openBalance(dappRewardsContract, dappRewardsContract);
         const percentage = '0.5';
         const splitterContractInstance = splitterContract.contractInstance;
         await splitterContractInstance.setup(
@@ -1207,7 +1208,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
                 }
             ]
         }, {
-          authorization: `${dappGovernorContract}@active`,
+          authorization: `${dappRewardsContract}@active`,
           broadcast: true,
           sign: true,
           keyProvider: [splitterKeys.active.privateKey],
@@ -1224,7 +1225,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         const balance0 = parseFloat(table.rows[0].balance.replace(' DAPP', ''));
         table = await deployedContract.eos.getTableRows({
           code: dappServicesContract,
-          scope: dappGovernorContract,
+          scope: dappRewardsContract,
           table: 'reward',
           json: true,
         });
@@ -1245,7 +1246,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
 
         table = await deployedContract.eos.getTableRows({
           code: dappServicesContract,
-          scope: dappGovernorContract,
+          scope: dappRewardsContract,
           table: 'reward',
           json: true,
         });
@@ -1267,7 +1268,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
 
         table = await deployedContract.eos.getTableRows({
           code: dappServicesContract,
-          scope: dappGovernorContract,
+          scope: dappRewardsContract,
           table: 'reward',
           json: true,
         });
@@ -1289,7 +1290,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
 
         table = await deployedContract.eos.getTableRows({
           code: dappServicesContract,
-          scope: dappGovernorContract,
+          scope: dappRewardsContract,
           table: 'reward',
           json: true,
         });
@@ -1301,11 +1302,11 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         let servicesTokenContract = await deployedContract.eos.contract(dappServicesContract);
 
 
-        const govKey = await getCreateKeys(dappGovernorContract);
+        const govKey = await getCreateKeys(dappRewardsContract);
         await servicesTokenContract.claimrewards({
-          provider: dappGovernorContract
+          provider: dappRewardsContract
         }, {
-          authorization: `${dappGovernorContract}@active`,
+          authorization: `${dappRewardsContract}@active`,
           broadcast: true,
           sign: true,
           keyProvider: [govKey.active.privateKey]
@@ -1313,14 +1314,14 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
 
         let accounts = await deployedContract.eos.getTableRows({
           code: dappServicesContract,
-          scope: dappGovernorContract,
+          scope: dappRewardsContract,
           table: 'accounts',
           json: true,
         });
 
         table = await deployedContract.eos.getTableRows({
           code: dappServicesContract,
-          scope: dappGovernorContract,
+          scope: dappRewardsContract,
           table: 'reward',
           json: true,
         });
@@ -1340,10 +1341,10 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         let preBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
         assert.equal(preBalance1, preBalance2);
         await splitterContractInstance.claim({
-          account: dappGovernorContract,
+          account: dappRewardsContract,
           all: true
         }, {
-          authorization: `${dappGovernorContract}@active`,
+          authorization: `${dappRewardsContract}@active`,
           broadcast: true,
           sign: true,
           keyProvider: [splitterKeys.active.privateKey],

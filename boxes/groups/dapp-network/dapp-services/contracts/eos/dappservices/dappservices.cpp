@@ -32,7 +32,7 @@ public:
   using contract::contract;
 
   const name HODL_ACCOUNT = "dappairhodl1"_n;
-  const name GOV_ACCOUNT = "dappgovernor"_n;
+  const name GOV_ACCOUNT = "dappsplitter"_n;
   
   struct usage_t {
     asset quantity;
@@ -62,10 +62,10 @@ public:
     uint64_t primary_key() const { return staked.symbol.code().raw(); }
   };
 
-  TABLE gov_allocation {
+  TABLE govalloc {
     double gov_allocation = 0;
   };
-  typedef eosio::singleton<"gov"_n, gov_allocation> gov_allocation_t;
+  typedef eosio::singleton<"govalloc"_n, govalloc> gov_allocation_t;
 
   //START THIRD PARTY STAKING MODS
   TABLE refundreq {
