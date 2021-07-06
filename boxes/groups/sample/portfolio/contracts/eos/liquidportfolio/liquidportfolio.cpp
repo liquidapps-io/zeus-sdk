@@ -30,7 +30,11 @@ void liquidportfolio::newentry() {
 
 void liquidportfolio::updateoracle(oracle_struct payload) {
     std::vector<char> rawPayload = eosio::pack<oracle_struct>(payload);
-    schedule_timer(_self, rawPayload, 300);
+    start_interval(_self, rawPayload, 300);
+}
+
+void liquidportfolio::disable() {
+  remove_interval(_self);
 }
 
 void liquidportfolio::login(login_struct payload) {

@@ -27,7 +27,9 @@ async function deployLocalService(serviceModel, provider = 'pprovider1', pi = 0,
 }
 
 module.exports = async (args) => {
-  if (args.creator !== 'eosio') { return; } // only local
+  if (args.creator !== 'eosio') { 
+    return;
+  } // only local
   if(args.kill) return;
   if(args.singleChain) { return; } // don't run on command
   var sidechains = await loadModels('eosio-chains');

@@ -5,13 +5,14 @@ import { getClient } from '../helpers/getClient';
 const contract = process.env.REACT_APP_EOS_CONTRACT_NAME;
 
 const updatePrice = async () => {
-    const btc = Buffer.from(`https+json://BTC.USD/min-api.cryptocompare.com/data/pricemulti?fsyms=BTC&tsyms=USD&api_key=d5a24f9e55abec981ac9ee4c76b04a2f27d18024a1415df80fa00a794f48dcab`, 'utf8');
-    const eth = Buffer.from(`https+json://ETH.USD/min-api.cryptocompare.com/data/pricemulti?fsyms=ETH&tsyms=USD&api_key=d5a24f9e55abec981ac9ee4c76b04a2f27d18024a1415df80fa00a794f48dcab`, 'utf8');
-    const eos = Buffer.from(`https+json://EOS.USD/min-api.cryptocompare.com/data/pricemulti?fsyms=EOS&tsyms=USD&api_key=d5a24f9e55abec981ac9ee4c76b04a2f27d18024a1415df80fa00a794f48dcab`, 'utf8');
+    const btc = Buffer.from(`https+json://BTC.USD/min-api.cryptocompare.com/data/pricemulti?fsyms=BTC&tsyms=USD&api_key=ea73728d4525392fa859c21cfb2791bcfbdf6f6492372c1fac4d48f953b4275e`, 'utf8');
+    const eth = Buffer.from(`https+json://ETH.USD/min-api.cryptocompare.com/data/pricemulti?fsyms=ETH&tsyms=USD&api_key=ea73728d4525392fa859c21cfb2791bcfbdf6f6492372c1fac4d48f953b4275e`, 'utf8');
+    const eos = Buffer.from(`https+json://EOS.USD/min-api.cryptocompare.com/data/pricemulti?fsyms=EOS&tsyms=USD&api_key=ea73728d4525392fa859c21cfb2791bcfbdf6f6492372c1fac4d48f953b4275e`, 'utf8');
     const service = await (await getClient()).service('vaccounts', contract);
     var vaccount = localStorage.getItem('user_account');
     const privateKey = localStorage.getItem('user_key');
     if(vaccount == null) return;
+    console.log('updating')
     return await service.push_liquid_account_transaction(contract,
       privateKey,
       'updateoracle', {

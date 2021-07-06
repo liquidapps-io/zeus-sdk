@@ -20,8 +20,8 @@ var ctrtSplit = artifacts.require(`./${contractCodeSplit}/`);
 
 const servicescontract = dappServicesContract;
 var servicesC = artifacts.require(`./dappservices/`);
-const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
-const delaySec = sec => delay(sec * 1000);
+const { eosio } = requireBox('test-extensions/lib/index');
+const delaySec = sec => eosio.delay(sec * 1000);
 
 var generateModel = (commandNames, cost_per_action = 1) => {
   var model = {};
@@ -1334,9 +1334,9 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
         let eosWrapper = getEosWrapper({
           httpEndpoint: `http://localhost:8888`
         });
-        let res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+        let res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
         let preBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-        res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+        res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
         let preBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
         assert.equal(preBalance1, preBalance2);
         await splitterContractInstance.claim({
@@ -1348,9 +1348,9 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
           sign: true,
           keyProvider: [splitterKeys.active.privateKey],
         });
-        res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+        res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
         let postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-        res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+        res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
         let postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
         assert.equal(postBalance1, postBalance2);
         assert(postBalance1 >= 75, 'split amount should be above 75');

@@ -2,20 +2,20 @@
 import axios from 'axios';
 let totalTokenBalance = 0;
 
-const fetchEthTokenData = async(balanceArr, thisObject) => {
-  const tokenBalanceArr = [...balanceArr]; let ethTokenApiUrl = '';
-  for(let i = 0; i < balanceArr.length; i++){
-    ethTokenApiUrl = `${thisObject.state.ethTokenPrefixApiUrl}${balanceArr[i].address}${thisObject.state.ethTokenSuffixApiUrl}`;
-    const res = await axios.get(ethTokenApiUrl);
-    if (res.data.tokens) {
-      res.data.tokens.forEach(el => {
-        tokenBalanceArr[i].tokens.push({ symbol: el.tokenInfo.symbol, pricePerToken: el.tokenInfo.price.rate ? el.tokenInfo.price.rate : 0, balance: el.balance / (Math.pow(10, el.tokenInfo.decimals)) });
-        totalTokenBalance += (el.tokenInfo.price.rate ? Number(el.tokenInfo.price.rate) : 0) * Number(el.balance / (Math.pow(10, el.tokenInfo.decimals)));
-      });
-    }
-  };
-  return tokenBalanceArr;
-};
+// const fetchEthTokenData = async(balanceArr, thisObject) => {
+//   const tokenBalanceArr = [...balanceArr]; let ethTokenApiUrl = '';
+//   for(let i = 0; i < balanceArr.length; i++){
+//     ethTokenApiUrl = `${thisObject.state.ethTokenPrefixApiUrl}${balanceArr[i].address}${thisObject.state.ethTokenSuffixApiUrl}`;
+//     const res = await axios.get(ethTokenApiUrl);
+//     if (res.data.tokens) {
+//       res.data.tokens.forEach(el => {
+//         tokenBalanceArr[i].tokens.push({ symbol: el.tokenInfo.symbol, pricePerToken: el.tokenInfo.price.rate ? el.tokenInfo.price.rate : 0, balance: el.balance / (Math.pow(10, el.tokenInfo.decimals)) });
+//         totalTokenBalance += (el.tokenInfo.price.rate ? Number(el.tokenInfo.price.rate) : 0) * Number(el.balance / (Math.pow(10, el.tokenInfo.decimals)));
+//       });
+//     }
+//   };
+//   return tokenBalanceArr;
+// };
 
 const fetchEthData = async(address, thisObject) => {
   if (address.length < 1) return;
@@ -50,7 +50,7 @@ const fetchEthData = async(address, thisObject) => {
     }];
     totalEthBalance += Number(balanceData.data.result / 1000000000000000000);
   }
-  tokenBalanceArr = await fetchEthTokenData(balanceArr, thisObject);
+  // tokenBalanceArr = await fetchEthTokenData(balanceArr, thisObject);
   await thisObject.setState({ ethBalanceArr: tokenBalanceArr, ethTotalBalance: totalEthBalance * thisObject.state.ethPrice, ethTotalTokenBalance: totalTokenBalance });
 };
 

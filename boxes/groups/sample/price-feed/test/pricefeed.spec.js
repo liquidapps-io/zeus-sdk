@@ -6,7 +6,7 @@ const { getTestContract, getLocalDSPEos } = requireBox('seed-eos/tools/eos/utils
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
 const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
-const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
+const { eosio } = requireBox('test-extensions/lib/index');
 
 // setup nodeos RPC
 const fetch = require('node-fetch');
@@ -69,7 +69,7 @@ describe(`Price Feed Test`, () => {
       }
     })();
   });
-  it('Oracle Price Feed Fetch Bitcoin', done => {
+  it.skip('Oracle Price Feed Fetch Bitcoin', done => {
     (async() => {
       try {
         let prevPrice = 0;
@@ -98,7 +98,7 @@ describe(`Price Feed Test`, () => {
           cpuUsed = await fetchCpuUtilization(code, dspeos, cpuUsed, timesRun);
           timesRun += 1;
         }, intervalTime * 1000);
-        await delay((intervalTime * 1000 * intervals) + 1000);
+        await eosio.delay((intervalTime * 1000 * intervals) + 1000);
         clearInterval(interval);
         let newPrice = await dspeos.getTableRows({
           'json': true,
@@ -117,7 +117,7 @@ describe(`Price Feed Test`, () => {
       }
     })();
   });
-  it('Oracle Price Feed Bitcoin', done => {
+  it.skip('Oracle Price Feed Bitcoin', done => {
     (async() => {
       try {
         let prevPrice = 0;
@@ -143,13 +143,13 @@ describe(`Price Feed Test`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(intervalTime * 1000);
+        await eosio.delay(intervalTime * 1000);
         timesRun = 0;
         const interval = await setInterval(async () => {
           cpuUsed = await fetchCpuUtilization(code2, dspeos, cpuUsed, timesRun);
           timesRun += 1;
         }, intervalTime * 1000);
-        await delay((intervalTime * 1000 * intervals) + 1000);
+        await eosio.delay((intervalTime * 1000 * intervals) + 1000);
         clearInterval(interval);
         // stop interval
         await testcontract2.stopstart({
@@ -166,8 +166,11 @@ describe(`Price Feed Test`, () => {
           'table': 'prevprice',
           'limit': 1
         });
-        if(!newPrice.rows.length) newPrice = 0;
-        if(newPrice.rows[0]) newPrice = newPrice.rows[0].last_price;
+        if(!newPrice.rows.length) {
+          newPrice = 0;
+        } else if(newPrice.rows[0]) {
+          newPrice = newPrice.rows[0].last_price;
+        }
         assert(prevPrice != newPrice, 'new price should exist');
         done();
       }

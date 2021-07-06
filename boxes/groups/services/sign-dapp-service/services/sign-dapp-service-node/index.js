@@ -13,22 +13,9 @@ const q = async.queue(async ({ id, destination, trx_data, chain, chain_type, sig
     const keypair = getCreateKeypair[chain_type](chain, consumer);
     const signedTx = await signFn[chain_type](destination, trx_data, chain, account, keypair);
     const web3 = getWeb3(chain);
-    const tx = web3.eth.sendSignedTransaction(signedTx);
-    tx.once('transactionHash', function(hash) {
-      logger.debug(`got txHash ${hash}`);
-    });
-    tx.once('confirmation', function(confirmationNumber, receipt){ 
-      if(process.env.DSP_VERBOSE_LOGS) logger.info(`got confirmation ${confirmationNumber} ${receipt.transactionHash}`)
-     })
-    tx.once('receipt', async function(receipt){ 
-        logger.info(`got receipt for ${receipt.transactionHash} gas used ${receipt.gasUsed}`);
-        callback();
-    });
-    tx.once('error', async function(error){ 
-        logger.error(`got error ${error}`);
-        await decrementNonce(keypair.publicKey, chain);
-        callback();
-    });
+    const tx = await web3.eth.sendSignedTransaction(signedTx);
+    logger.info(`got tx: ${tx.transactionHash} gas used: ${tx.gasUsed} cumulative gas used: ${tx.cumulativeGasUsed}`)
+    callback();
   } catch(e) {
     logger.error(`error running sign service trx: ${typeof(e) == "object" ? JSON.stringify(e) : e}`)
     callback();

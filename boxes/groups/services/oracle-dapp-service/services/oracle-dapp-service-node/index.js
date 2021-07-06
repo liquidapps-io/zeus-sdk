@@ -35,7 +35,7 @@ nodeFactory('oracle', {
       }
       let data = await handler({ proto, address, sidechain, contract: payer });
       if(!data || !data.length) {
-        logger.warn(`no data returned for ${proto}://${address} | payer: ${payer} | package: ${packageid} | DSP: ${current_provider} | sidechain ${typeof(sidechain) === "object" ? JSON.stringify(sidechain) : sidechain}`);
+        if(process.env.DSP_VERBOSE_LOGS) logger.warn(`no data returned for ${proto}://${address} | payer: ${payer} | package: ${packageid} | DSP: ${current_provider} | sidechain ${typeof(sidechain) === "object" ? JSON.stringify(sidechain) : sidechain}`);
         return;
       }
       return {

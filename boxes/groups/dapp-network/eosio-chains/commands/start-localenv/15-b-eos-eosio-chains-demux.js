@@ -4,7 +4,9 @@ const { testProvidersList } = requireBox('dapp-services/tools/eos/dapp-services'
 const serviceRunner = requireBox('seed-microservices/helpers/service-runner');
 
 module.exports = async (args) => {
-    if (args.creator !== 'eosio') { return; } // only local
+    if (args.creator !== 'eosio') { 
+    return;
+  } // only local
     if(args.singleChain) { return; } // don't run on command
     if(args.kill) {
         return;

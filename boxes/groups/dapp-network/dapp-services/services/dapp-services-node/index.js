@@ -26,7 +26,7 @@ const actionHandlers = {
     }
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider, sidechain);
     
-    logger.info(`received DSP API service request for ${service}:${action} payer ${payer} | DSP: ${provider}:${packageid} | exception: ${act.exception} | simulated: ${simulated} | service name: ${serviceName} | external: ${isExternal} | replay: ${isReplay}`)
+    if(process.env.DSP_VERBOSE_LOGS) logger.info(`received DSP API service request for ${service}:${action} payer ${payer} | DSP: ${provider}:${packageid} | exception: ${act.exception} | simulated: ${simulated} | service name: ${serviceName} | external: ${isExternal} | replay: ${isReplay}`)
 
     if (sidechain)
       service = await getLinkedAccount(null, null, service, sidechain.name, true);
@@ -112,7 +112,7 @@ const actionHandlers = {
             continue;
           else throw e;
         }
-        logger.debug(`forwarding signal ${key}`);
+        if(process.env.DSP_VERBOSE_LOGS) logger.debug(`forwarding signal ${key}`);
         break;
       }
     }
@@ -154,7 +154,7 @@ const actionHandlers = {
             continue;
           else throw e;
         }
-        logger.debug(`forwarding usage ${key}`);
+        if(process.env.DSP_VERBOSE_LOGS) logger.debug(`forwarding usage ${key}`);
         break;
       }
     }

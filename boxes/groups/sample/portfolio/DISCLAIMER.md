@@ -7,7 +7,7 @@ LiquidPortfolio does not set or evaluate itself any values, but used DAPP Networ
 - For EOS tokens balance and prices: https://www.api.bloks.io/account/
 - For BTC balance: https://blockchain.info/q/addressbalance/
 - For ETH balance: https://api.etherscan.io/
-- For EOS balance: https://nodes.get-scatter.com/
+- For EOS balance: https://mainnet.eosn.io/
 
 As the information is gathered from third parties, the information is provided AS-IS. LiquisApps holds no warranty or guarantees to the accuracy of the presented values, nor to the operation and fitness of LiquidPortfolio, so the use of LiquidPortfolio is at your own risk.
 

@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "ignore": [
     "README.md"
   ],
@@ -20,7 +20,8 @@
     "cron-dapp-service": "^1.0.0",
     "eos-common": "^1.0.0",
     "seed-frontends": "^1.0.0",
-    "seed-models": "^1.0.0"
+    "seed-models": "^1.0.0",
+    "liquidx": "^1.0.0"
   },
   "install": {
     "contracts": {

@@ -43,7 +43,7 @@ abstract contract link {
   mapping (bytes32 => bool) public executedMsg;
   mapping (bytes32 => uint256) public numOfConfirmed;  
 
-  constructor(address[] memory _owners, uint256 _required) public {
+  constructor(address[] memory _owners, uint256 _required) {
     for (uint i = 0; i < _owners.length; i++) {
       require(!isOwner[_owners[i]] && _owners[i] != address(0));
       isOwner[_owners[i]] = true;
@@ -115,7 +115,7 @@ abstract contract link {
     *
     * @param _message the message to push
     */
-  function pushInboundMessage(uint256 id, bytes memory _message) public {
+  function pushInboundMessage(uint256 id, bytes memory _message) external {
     bytes32 dataHash = keccak256(abi.encodePacked(id, _message));
     if (!confirmConsensus(dataHash)) {
       return;

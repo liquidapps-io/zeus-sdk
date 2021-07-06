@@ -11,7 +11,7 @@ const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
 const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
-const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
+const { eosio } = requireBox('test-extensions/lib/index');
 
 const contractCode = 'ethtokenpeg';
 const ctrt = artifacts.require(`./${contractCode}/`);
@@ -20,18 +20,17 @@ const eosTokenContract = artifacts.require('./eosio.token/');
 const provider = new Web3.providers.HttpProvider('http://localhost:8545');
 const web3 = new Web3(provider);
 
-describe(`ETH Token bridge Test`, () => {
+describe(`ETH Token bridge Test EOSIO <> EVM`, () => {
   // cpp contract, sol contract instances
   const codeEos = 'ethtokenpeg';
-  const testAccEos = 'testpegmn';
-  // const testAccEosHex = 167755678134730;
-  const testAccEosUint64 = "14605625119638814720";
+  const testAccEos = 'testpegmn3';
+  const testAccEosUint64 = "14605625119638863872";
   const tokenMainnet = 'sometoken';
   let tokenMainnetContract;
   let testAddressEth;
   let tokenpegCpp;
   let dspeos;
-  let ethToken, ethTokenpeg;
+  let ethToken, ethTokenpeg, dspSigners;
   const quantity = "2.0000 TKN"
   before(done => {
     (async () => {
@@ -86,9 +85,10 @@ describe(`ETH Token bridge Test`, () => {
         await genAllocateDAPPTokens(deployedContract, "cron", "pprovider2", "default");
         dspeos = await getLocalDSPEos(codeEos);
 
-        const { token, tokenpeg } = await deployEthContracts();
+        const { token, tokenpeg, signers } = await deployEthContracts();
         ethToken = token;
         ethTokenpeg = tokenpeg;
+        dspSigners = signers; 
 
         // set up bridge contracts
         await tokenpegCpp.init({
@@ -106,12 +106,12 @@ describe(`ETH Token bridge Test`, () => {
         }, {
           authorization: `${codeEos}@active`
         });
-        await tokenpegCpp.enable({
-          processing_enabled: true,
-          transfers_enabled: true
-        }, {
-          authorization: `${codeEos}@active`
-        });
+        // await tokenpegCpp.enable({
+        //   processing_enabled: true,
+        //   transfers_enabled: true
+        // }, {
+        //   authorization: `${codeEos}@active`
+        // });
         done();
       }
       catch (e) {
@@ -139,7 +139,7 @@ describe(`ETH Token bridge Test`, () => {
         }, {
           authorization: `${testAccEos}@active`
         });
-        await delay(2000);
+        await eosio.delay(2000);
         await tokenMainnetContract.transfer({ 
           from: testAccEos,
           to: codeEos,
@@ -155,7 +155,7 @@ describe(`ETH Token bridge Test`, () => {
           'table': 'accounts',
           'limit': 1
         });
-        await delay(50000);
+        await eosio.delay(50000);
         const ethBalance = (await ethToken.balanceOf(testAddressEth)).toString();
         assert.equal(ethBalance, "40000");
         done();
@@ -165,7 +165,7 @@ describe(`ETH Token bridge Test`, () => {
     })()
   });
 
-  it('Refunds to sender when eth address doesn\'t exist', done => {
+  it('Auto refund to sender when eth address doesn\'t exist', done => {
     (async () => {
       try {
         let res;
@@ -194,7 +194,7 @@ describe(`ETH Token bridge Test`, () => {
         });
         const midEosBalance = parseInt(res.rows[0].balance.split(" ")[0]);
         assert.equal(prevEosBalance - midEosBalance, 2);
-        await delay(50000);
+        await eosio.delay(50000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': testAccEos,
@@ -211,7 +211,7 @@ describe(`ETH Token bridge Test`, () => {
     })()
   });
 
-  it('Refunds to sender when eos account doesn\'t exist', done => {
+  it('Manual refund to sender when eos account doesn\'t exist', done => {
     (async () => {
       try {
         const prevBalance = (await ethToken.balanceOf(testAddressEth)).toString();
@@ -221,9 +221,22 @@ describe(`ETH Token bridge Test`, () => {
         });
         const midBalance = (await ethToken.balanceOf(testAddressEth)).toString();
         assert.equal(parseInt(prevBalance) - parseInt(midBalance), 10000);
-        await delay(150000);
+        await eosio.delay(120000);
+        // failed so refund manually
+        await tokenpegCpp.refund({
+          receipt_id: 2147483648
+        }, {
+          authorization: [`${codeEos}@active`]
+        });
+        await eosio.delay(15000);
+        // await ethTokenpeg.mintToken("10000", testAddressEth,{
+        //   from: dspSigners[0],
+        //   gas: '5000000'
+        // });
         const postBalance = (await ethToken.balanceOf(testAddressEth)).toString();
         assert.equal(parseInt(postBalance) - parseInt(prevBalance), 0);
+        const postTokenpegBalance = (await ethToken.balanceOf(ethTokenpeg.address)).toString();
+        assert(postTokenpegBalance == 0, "Token should not exist because burned");
         done();
       } catch(e) {
         done(e);
@@ -247,7 +260,7 @@ describe(`ETH Token bridge Test`, () => {
           from: testAddressEth,
           gasLimit: '1000000'
         });
-        await delay(50000);
+        await eosio.delay(120000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': testAccEos,
@@ -257,6 +270,8 @@ describe(`ETH Token bridge Test`, () => {
         });
         const postEosBalance = parseInt(res.rows[0].balance.split(" ")[0]);
         assert.equal(postEosBalance - prevEosBalance, 1);
+        const postTokenpegBalance = (await ethToken.balanceOf(ethTokenpeg.address)).toString();
+        assert(postTokenpegBalance == 0, "Token should not exist because burned");
         done();
       } catch(e) {
         done(e);
@@ -348,5 +363,5 @@ async function deployEthContracts() {
   });
   // console.log(`erc20 token address ${deployedToken.address}`)
   // console.log(`ethtokenpeg contract address ${deployedTokenpeg.address}`)
-  return { token: deployedToken, tokenpeg: deployedTokenpeg };
+  return { token: deployedToken, tokenpeg: deployedTokenpeg, signers };
 }

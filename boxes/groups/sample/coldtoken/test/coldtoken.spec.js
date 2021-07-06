@@ -9,7 +9,7 @@ const { genAllocateDAPPTokens, readVRAMData } = requireBox('dapp-services/tools/
 
 var contractCode = 'coldtoken';
 var ctrt = artifacts.require(`./${contractCode}/`);
-const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
+const { eosio } = requireBox('test-extensions/lib/index');
 
 const { parseTable } = requireBox('ipfs-dapp-service/utils/ipfs-service/get-table');
 
@@ -84,7 +84,7 @@ describe(`${contractCode} Contract`, () => {
           scope: code2,
           keytype: 'symbol'
         });
-        await delay(2000);
+        await eosio.delay(2000);
         assert(tableRes1.row.balance == `500.0000 ${symbol}`, "wrong sender balance");
         assert(tableRes2.row.balance == `500.0000 ${symbol}`, "wrong receiver balance");
         done();
@@ -158,7 +158,7 @@ describe(`${contractCode} Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(9000);
+        await eosio.delay(9000);
         var testtoken = testcontract;
         txRes = await testtoken.issue({
           to: testUser,
@@ -169,7 +169,7 @@ describe(`${contractCode} Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(2000);
+        await eosio.delay(2000);
         var tableRes = await readVRAMData({
           contract: code,
           key: symbol,
@@ -187,7 +187,7 @@ describe(`${contractCode} Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(2000);
+        await eosio.delay(2000);
         tableRes = await readVRAMData({
           contract: code,
           key: symbol,

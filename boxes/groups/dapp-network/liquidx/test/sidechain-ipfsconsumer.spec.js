@@ -13,8 +13,8 @@ var sha256 = require('js-sha256').sha256;
 
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
-const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
-const delaySec = sec => delay(sec * 1000);
+const { eosio } = requireBox('test-extensions/lib/index');
+const delaySec = sec => eosio.delay(sec * 1000);
 
 var contractCode = 'ipfsxtest';
 var ctrt = artifacts.require(`./${contractCode}/`);

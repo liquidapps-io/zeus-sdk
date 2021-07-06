@@ -13,7 +13,8 @@ function getWeb3(chain) {
   } else {
     endpoint = 'http://localhost:8545'
   }
-  return new Web3(endpoint);
+  // return new Web3(endpoint);
+  return new Web3(new Web3.providers.WebsocketProvider(endpoint));
 }
 
 module.exports = {

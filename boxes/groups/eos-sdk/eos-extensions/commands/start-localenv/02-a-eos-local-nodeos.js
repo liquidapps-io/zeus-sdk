@@ -11,7 +11,9 @@ const os = require('os');
 if (fs.existsSync(`${getBoxesDir()}dapp-services/tools/eos/dapp-services.js`)) { dappservices = requireBox('dapp-services/tools/eos/dapp-services'); }
 
 module.exports = async (args) => {
-  if (args.creator !== 'eosio') { return; } // only local
+  if (args.creator !== 'eosio') { 
+    return;
+  } // only local
   if(args.kill) {
     await killIfRunning();
     await dockerrm('zeus-eosio');

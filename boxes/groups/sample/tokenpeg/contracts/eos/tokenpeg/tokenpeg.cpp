@@ -155,7 +155,7 @@ CONTRACT_START()
       // return locked tokens in case of failure
       if (settings.can_issue) {
         action(permission_level{_self, "active"_n}, settings.token_contract, "issue"_n,
-          std::make_tuple(name(receipt_received.from_account), receipt_received.received_amount, memo))
+          std::make_tuple(_self, receipt_received.received_amount, memo))
         .send();
         action(permission_level{_self, "active"_n}, settings.token_contract, "transfer"_n,
           std::make_tuple(_self, name(receipt_received.from_account), receipt_received.received_amount, memo))
@@ -221,6 +221,13 @@ CONTRACT_START()
     auto data = eosio::pack(current_transfer);
     // add message to pmessages table
     pushMessage(data);
+
+    // burn tokens
+    if (settings.can_issue) {
+        action(permission_level{_self, "active"_n}, settings.token_contract, "retire"_n,
+          std::make_tuple(quantity, std::string("burn tokens")))
+        .send();
+    }
   }
 
 };//closure for CONTRACT_START

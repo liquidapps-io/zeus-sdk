@@ -34,7 +34,8 @@ const initialState = {
   btcAddressArr: [],
   btcPrice: '',
   btcBalanceArr: [],
-  btcBalanceApiUrl: 'https://chain.api.btc.com/v3/address/',
+  // btcBalanceApiUrl: 'https://chain.api.btc.com/v3/address/',
+  btcBalanceApiUrl: 'https://blockchain.info/balance?active=',
   // btcBalanceApiUrl: 'https://blockchain.info/q/addressbalance/',
   btcTotalBalance: 0,
   // ethereum
@@ -54,7 +55,7 @@ const initialState = {
   eosAddressArr: [],
   eosPrice: '',
   eosBalanceArr: [],
-  eosBalanceApiUrl: 'https://nodes.get-scatter.com/v1/chain/get_account',
+  eosBalanceApiUrl: 'https://mainnet.eosn.io/v1/chain/get_account',
   eosTokenPrefixApiUrl: 'https://www.api.bloks.io/account/',
   eosTokenSuffixApiUrl: '?type=getAccountTokens&coreSymbol=EOS',
   eosTotalBalance: 0,

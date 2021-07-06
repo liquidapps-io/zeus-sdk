@@ -8,7 +8,7 @@ const deployer = requireBox('seed-eos/tools/eos/deployer');
 const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
 const { getEos, getCreateAccount } = requireBox('seed-eos/tools/eos/utils');
-const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
+const { eosio } = requireBox('test-extensions/lib/index');
 
 var args = getDefaultArgs();
 var systemToken = (args.creator !== 'eosio') ? 'EOS' : 'SYS';
@@ -188,7 +188,7 @@ describe(`${contractCode} Contract`, () => {
     var nextSlot = new Date().getTime() - startTime;
     var sleepTime = (cycleTime * 1000) - (nextSlot % (cycleTime * 1000));
 
-    return delay(sleepTime);
+    return eosio.delay(sleepTime);
   };
   it('auction didnt start yet', done => {
     (async () => {
@@ -457,7 +457,7 @@ describe(`${contractCode} Contract`, () => {
         var endTime = startTime + ((cycles + 1) * cycleTime) * 1000;
         var waitTime = endTime - new Date().getTime();
         if (waitTime > 0) {
-          await delay(waitTime);
+          await eosio.delay(waitTime);
         }
         var failed = false;
         try {

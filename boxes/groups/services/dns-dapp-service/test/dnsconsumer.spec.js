@@ -11,7 +11,7 @@ const { genAllocateDAPPTokens, readVRAMData } = requireBox('dapp-services/tools/
 var contractCode = 'dnsconsumer';
 var serviceName = 'dns'
 var ctrt = artifacts.require(`./${contractCode}/`);
-const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
+const { eosio } = requireBox('test-extensions/lib/index');
 const util = require('util');
 
 describe(`${contractCode} Contract`, () => {

@@ -10,7 +10,7 @@
 #define MESSAGE_RECEIPT_HOOK(receipt) receipt_received(receipt)
 
 #undef MESSAGE_RECEIVED_FAILURE_HOOK	
-#define MESSAGE_RECEIVED_FAILURE_HOOK(message) message_received_failed(message)	
+#define MESSAGE_RECEIVED_FAILURE_HOOK(message,id) message_received_failed(message,id)	
 
 #undef MESSAGE_RECEIPT_FAILURE_HOOK	
 #define MESSAGE_RECEIPT_FAILURE_HOOK(receipt) receipt_received_failed(receipt)
@@ -36,6 +36,14 @@ CONTRACT_START()
     };
     typedef eosio::multi_index<"history"_n, history> history_table;
   #endif
+
+  TABLE refunds {
+    uint64_t receipt_id;
+    vector<char> data;
+    message_t msg;
+    uint64_t primary_key()const { return receipt_id; }
+  };
+  typedef eosio::multi_index<"refunds"_n, refunds> refunds_table;
 
   std::string clean_eth_address(std::string address) {
     // remove initial 0x if there
@@ -175,6 +183,25 @@ CONTRACT_START()
     check(false, res);
   }
 
+  [[eosio::action]]
+  void refund(uint64_t receipt_id) {
+    require_auth(_self);
+    refunds_table refunds(_self, _self.value);
+    auto iterator = refunds.find(receipt_id);
+    check(iterator != refunds.end(), "no refund exists");
+    pushMessage(iterator->data);
+    refunds.erase(iterator);
+  }
+
+  [[eosio::action]]
+  void clearhist(uint64_t id) {
+    require_auth(_self);
+    history_table histories(_self, _self.value);
+    auto iterator = histories.find(id);
+    check(iterator != histories.end(), "no history entry exists");
+    histories.erase(iterator);
+  }
+
   void transfer(name from, name to, asset quantity, string memo) {
     token_settings_table settings_singleton(_self, _self.value);
     token_settings_t settings = settings_singleton.get_or_default();
@@ -201,6 +228,13 @@ CONTRACT_START()
       });
     #endif
     pushMessage(transfer);
+
+    // burn tokens
+    if (settings.can_issue) {
+        action(permission_level{_self, "active"_n}, settings.token_contract, "retire"_n,
+          std::make_tuple(quantity, memo))
+        .send();
+    }
   }
 
   vector<char> message_received(const std::vector<char>& data) {
@@ -240,13 +274,24 @@ CONTRACT_START()
     return orig_data;
   } 
 
-  // mark message as failed and return
-  vector<char> message_received_failed(const std::vector<char>& message) {
-    auto failed_message = unpack(message);
-    failed_message.success = false;
-    auto packed_data = pack(failed_message);
-    return packed_data;
-  } 
+  void message_received_failed(const vector<char>& data, uint64_t id) {
+    auto transfer_data = unpack(data);
+    transfer_data.success = false;
+    auto packed_data = pack(transfer_data);
+    history_table histories(_self, _self.value);
+    histories.emplace(_self, [&]( auto& a ){
+      a.id = histories.available_primary_key();
+      a.data = packed_data;
+      a.msg = transfer_data;
+      a.type = "incomingMessageFailure";
+    });
+    refunds_table refunds(_self, _self.value);
+    refunds.emplace(_self, [&]( auto& a ){
+      a.data = packed_data;
+      a.receipt_id = id;
+      a.msg = transfer_data;
+    });
+  }
 
   void receipt_received(const std::vector<char>& data) {
     // deserialize original message to get the quantity and original sender to refund
@@ -313,4 +358,4 @@ CONTRACT_START()
   }
 
 };//closure for CONTRACT_START
-EOSIO_DISPATCH_SVC_TRX(CONTRACT_NAME(), (init)(enable)(getdest)(disable))
+EOSIO_DISPATCH_SVC_TRX(CONTRACT_NAME(), (init)(enable)(getdest)(disable)(refund)(clearhist))
