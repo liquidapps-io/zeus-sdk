@@ -27,7 +27,7 @@
           "vue-loader": "^13.7.0",
           "vue-template-compiler": "^2.5.13",
           "webpack": "^3.10.0",
-          "axios": "^0.18.0",
+          "axios": "^0.21.1",
           "dotenv-webpack": "^1.5.5",
           "murmurhash": "0.0.2",
           "showdown": "^1.8.6",

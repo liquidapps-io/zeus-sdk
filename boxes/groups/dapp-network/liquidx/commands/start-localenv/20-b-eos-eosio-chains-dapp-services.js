@@ -8,10 +8,9 @@ const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
 
 const { createLiquidXMapping, dappServicesLiquidXContract, testProvidersList } = requireBox('dapp-services/tools/eos/dapp-services');
 
-var servicesC = artifacts.require(`./dappservicex/`);
-var liquidXC = artifacts.require(`./liquidx/`);
-
 async function deployLocalExtensions(sidechain) {
+  var servicesC = artifacts.require(`./dappservicex/`);
+  var liquidXC = artifacts.require(`./liquidx/`);
   const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechain.name && m.mainnet_account === 'dappservices');
   if (!mapEntry)
     throw new Error(`missing LiquidX mapping (liquidx-mappings) for dappservices in ${sidechain.name}`);
@@ -51,7 +50,9 @@ async function deployLocalExtensions(sidechain) {
 }
 
 module.exports = async (args) => {
-  if (args.creator !== 'eosio') { return; } // only local
+  if (args.creator !== 'eosio') { 
+    return; 
+  } // only local
   if(args.kill) {
     return;
   }

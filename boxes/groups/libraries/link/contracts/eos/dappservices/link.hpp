@@ -51,7 +51,7 @@
 #endif
 
 #ifndef LINK_CRON_INTERVAL
-#define LINK_CRON_INTERVAL 5 //20
+#define LINK_CRON_INTERVAL 5
 #endif
 
 #ifndef LINK_PROVIDER_THRESHOLD
@@ -59,7 +59,7 @@
 #endif
 
 #define MESSAGE_RECEIVED_HOOK(message) error_needs_to_be_defined_dummy_received(message)
-#define MESSAGE_RECEIVED_FAILURE_HOOK(message) error_needs_to_be_defined_dummy_received(message)
+#define MESSAGE_RECEIVED_FAILURE_HOOK(message) error_needs_to_be_defined_dummy_received(message,id=0)
 #define MESSAGE_RECEIPT_HOOK(receipt) error_needs_to_be_defined_dummy_receipt(receipt)
 #define MESSAGE_RECEIPT_FAILURE_HOOK(receipt) error_needs_to_be_defined_dummy_receipt(receipt)
 
@@ -246,7 +246,6 @@ bool handle_push_messages() {
         );
         curr_payload++;
     }
-    
     settings.last_pushed_batch_id += 1;
     settings_singleton.set(settings, _self);
     return settings.processing_enabled;
@@ -454,7 +453,7 @@ bool handle_receipt(const message_payload& payload, const bool failed = false) {
     auto outgoing = batched_messages.find(messageId);
     if(outgoing != batched_messages.end()) {       
         if(failed) {
-            // pull fmessages table 
+            // pull fmessages table
             failed_messages_table_t failed_messages(_self, _self.value);
             auto failed = failed_messages.find(payload.id);
             if(failed == failed_messages.end()) {
@@ -472,10 +471,17 @@ bool handle_receipt(const message_payload& payload, const bool failed = false) {
             //erase the batch itself from batches table
             batches_table_t batches_table(_self, _self.value);
             auto batch = batches_table.find(batch_id);
-            if(batch != batches_table.end()) batches_table.erase(batch);
+            if(batch != batches_table.end()) {
+                // erase batches before this, assume read
+                auto itr = batches_table.begin();
+                while(itr != batch) {
+                    itr = batches_table.erase(itr);
+                }
+                batches_table.erase(batch);
+            } 
         }
         return true;
-    }    
+    }
     return false;
 }
 
@@ -597,6 +603,118 @@ void disablelink(name timer, bool processing_enabled)\
 }
 #endif
 
+#ifdef LINK_PROTOCOL_ETHEREUM
+#define LINK_BOOTSTRAP() \
+TABLE settings_t {\
+    string sister_address;\
+    string sister_msig_address;\
+    string sister_chain_name;\
+    string this_chain_name;\
+    bool processing_enabled;\
+    uint64_t last_irreversible_block_time;\
+    uint64_t last_pushed_batch_id;\
+    uint64_t available_message_id;\
+    uint64_t available_batch_id;\
+    uint64_t next_inbound_batch_id;\
+};\
+TABLE pending_messages_t {\
+    message_payload message;\
+    uint32_t received_block_time;\
+    uint64_t primary_key()const { return message.id; }\
+    uint64_t by_time()const { return received_block_time; }\
+};\
+TABLE batched_messages_t {\
+    message_payload message;\
+    uint64_t batch_id;\
+    uint32_t batched_block_time;\
+    uint64_t primary_key()const { return message.id; }\
+    uint64_t by_time()const { return batched_block_time; }\
+    uint64_t by_batch()const { return batch_id; }\
+};\
+TABLE message_batches_t {\
+    uint64_t batch_id;\
+    uint64_t batched_block_time;\
+    string messages_uri;\
+    uint64_t primary_key()const { return batch_id; }\
+};\
+typedef eosio::singleton<"settings"_n, settings_t> settings_table;\
+typedef eosio::multi_index<"settings"_n, settings_t> settings_table_abi;\
+typedef eosio::multi_index<"pmessages"_n, pending_messages_t, \
+indexed_by<"bytime"_n, const_mem_fun<pending_messages_t, uint64_t, &pending_messages_t::by_time>>> pending_messages_table_t;\
+typedef eosio::multi_index<"bmessages"_n, batched_messages_t, \
+indexed_by<"bytime"_n, const_mem_fun<batched_messages_t, uint64_t, &batched_messages_t::by_time>>, \
+indexed_by<"bybatch"_n, const_mem_fun<batched_messages_t, uint64_t, &batched_messages_t::by_batch>>> batched_messages_table_t;\
+typedef eosio::multi_index<"imessages"_n, pending_messages_t, \
+indexed_by<"bytime"_n, const_mem_fun<pending_messages_t, uint64_t, &pending_messages_t::by_time>>> inbound_messages_table_t;\
+typedef eosio::multi_index<"fmessages"_n, pending_messages_t, \
+indexed_by<"bytime"_n, const_mem_fun<pending_messages_t, uint64_t, &pending_messages_t::by_time>>> failed_messages_table_t;\
+typedef eosio::multi_index<"batches"_n, message_batches_t>  batches_table_t;\
+typedef eosio::multi_index<"fbatches"_n, message_batches_t>  failed_batches_table_t;\
+typedef eosio::multi_index<"ibatches"_n, message_batches_t>  inbound_batches_table_t;\
+typedef eosio::singleton<"ibatch"_n, message_batches_t>  inbound_batch_t;\
+typedef eosio::singleton<"imessage"_n, pending_messages_t>  inbound_message_t;\
+typedef eosio::multi_index<"ibatch"_n, message_batches_t>  inbound_batch_abi_t;\
+typedef eosio::multi_index<"imessage"_n, pending_messages_t>  inbound_message_abi_t;\
+LINK_INIT_METHODS()\
+bool timer_callback(name timer, std::vector<char> payload, uint32_t seconds){ \
+    auto _self = name(current_receiver()); \
+    settings_table settings_singleton(_self, _self.value); \
+    settings_t settings = settings_singleton.get_or_default(); \
+    check(settings.processing_enabled, "processing disabled"); \
+    LINK_HANDLE_ETH_JOBS()\
+    if (timer.to_string() == "packbatches") return handle_pack_batches(); \
+    else if (timer.to_string() == "getbatches") return handle_get_batches(); \
+    else if (timer.to_string() == "unpkbatches") return handle_unpack_batches(); \
+    else if (timer.to_string() == "hndlmessage") return handle_message(); \
+    else eosio::check(false, "unrecognized timer name: " + timer.to_string()); \
+    return false; \
+}\
+bool handle_message() {\
+    auto _self = name(current_receiver());\
+    auto current_block_time = eosio::current_time_point().sec_since_epoch();\
+    settings_table settings_singleton(_self, _self.value);\
+    settings_t settings = settings_singleton.get_or_default();\
+    inbound_message_t message_singleton(_self, _self.value); /* pull imessage singleton */\
+    if(!message_singleton.exists()) { /* if doesn't exist try pulling from imessages table */\
+        inbound_messages_table_t inbound_messages(_self, _self.value); /* imessage singleton */\
+        auto ordered_messages = inbound_messages.get_index<"bytime"_n>();\
+        auto message = ordered_messages.begin();\
+        eosio::check(message != ordered_messages.end(), "{abort_service_request}"); /* if no entry abort service request */\
+        auto next_message = *message;\
+        next_message.received_block_time = current_block_time;\
+        message_singleton.set(next_message, _self);\
+        ordered_messages.erase(message);\
+    } else {\
+        auto message = message_singleton.get();\
+        auto payload = message.message;\
+        if(message.received_block_time + LINK_PROCESSING_TIMEOUT > current_block_time) { /* message received between imessage singleton creation and 60s after, if not considered failed */\
+            if(payload.id < LINK_RECEIPT_FLAG) { /* if payload is a message and not a receipt */\
+                MESSAGE_RECEIVED_HOOK(payload.data);\
+            } else { /* if receipt in bmessages table to erase, erase, if batch to erase, erase as well, run MESSAGE_RECEIPT_HOOK, otherwise don't */\
+                if(handle_receipt(payload)) MESSAGE_RECEIPT_HOOK(payload.data);\
+            }\
+        } else { /* if message not handled witihin time imessage received and the LINK_PROCESSING_TIMEOUT, handle failure */\
+            if(payload.id < LINK_RECEIPT_FLAG) { /* if payload is a message, if payload id greater than LINK_RECEIPT_FLAG would indicate receipt */\
+                MESSAGE_RECEIVED_FAILURE_HOOK(payload.data, payload.id + LINK_RECEIPT_FLAG); \
+            } else { /* is receipt, handle then fire failure hook */\
+                if(handle_receipt(payload,true)) MESSAGE_RECEIPT_FAILURE_HOOK(payload);\
+            }\
+        }\
+        message_singleton.remove();\
+    }\
+    return settings.processing_enabled;\
+}\
+void setlinkstate (state_params new_state) {\
+    auto _self = name(current_receiver()); \
+    require_auth(_self);\
+    settings_table settings_singleton(_self, _self.value); \
+    settings_t settings = settings_singleton.get_or_default(); \
+    settings.last_irreversible_block_time = new_state.last_irreversible_block_time; \
+    settings.available_message_id = new_state.available_message_id; \
+    settings.available_batch_id = new_state.available_batch_id; \
+    settings.next_inbound_batch_id = new_state.next_inbound_batch_id; \
+}
+#else
 #define LINK_BOOTSTRAP() \
 TABLE settings_t {\
     string sister_address;\
@@ -690,7 +808,7 @@ bool handle_message() {\
             if(payload.id < LINK_RECEIPT_FLAG) { /* if payload is a message, if payload id greater than LINK_RECEIPT_FLAG would indicate receipt */\
                 pushMessage(MESSAGE_RECEIVED_FAILURE_HOOK(payload.data), payload.id + LINK_RECEIPT_FLAG);\
             } else { /* is receipt, handle then fire failure hook */\
-                if(handle_receipt(payload)) MESSAGE_RECEIPT_FAILURE_HOOK(payload);\
+                if(handle_receipt(payload,true)) MESSAGE_RECEIPT_FAILURE_HOOK(payload);\
             }\
         }\
         message_singleton.remove();\
@@ -707,3 +825,4 @@ void setlinkstate (state_params new_state) {\
     settings.available_batch_id = new_state.available_batch_id; \
     settings.next_inbound_batch_id = new_state.next_inbound_batch_id; \
 }
+#endif

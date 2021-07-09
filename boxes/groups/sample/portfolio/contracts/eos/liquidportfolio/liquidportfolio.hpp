@@ -105,6 +105,9 @@ CONTRACT_START()
   
     [[eosio::action]]
     void updateoracle(oracle_struct payload);
+  
+    [[eosio::action]]
+    void disable();
     
     bool timer_callback(name timer, std::vector<char> rawPayload, uint32_t seconds){
       auto payload = eosio::unpack<oracle_struct>(rawPayload);

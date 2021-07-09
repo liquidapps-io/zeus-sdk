@@ -3,10 +3,16 @@
 #define CONTRACT_NAME() sanftpeg
 
 #undef MESSAGE_RECEIVED_HOOK
-#define MESSAGE_RECEIVED_HOOK(message) transfer_received(message);
+#define MESSAGE_RECEIVED_HOOK(message) message_received(message)
 
 #undef MESSAGE_RECEIPT_HOOK
-#define MESSAGE_RECEIPT_HOOK(receipt) transfer_receipt(receipt);
+#define MESSAGE_RECEIPT_HOOK(receipt) receipt_received(receipt)
+
+#undef MESSAGE_RECEIVED_FAILURE_HOOK
+#define MESSAGE_RECEIVED_FAILURE_HOOK(message) message_received_failed(message)
+
+#undef MESSAGE_RECEIPT_FAILURE_HOOK
+#define MESSAGE_RECEIPT_FAILURE_HOOK(receipt) receipt_received_failed(receipt)
 
 // name of asset contract to monitor transfer
 #define ASSET_CODE "simpleassets"_n.value
@@ -63,7 +69,7 @@ CONTRACT_START()
 
   LINK_BOOTSTRAP()
 
-  // SimpleAssets asset table so we can determine existing tokens
+  // simpleassets asset table so we can determine existing tokens
   struct sasset {
     uint64_t                id;
     name                    owner;
@@ -95,7 +101,7 @@ CONTRACT_START()
 	};
 	typedef eosio::singleton< "global"_n, sassetids > sassetids_table; /// singleton  
 
-  //partial mapping of SimpleAssets sasset
+  //partial mapping of simpleassets sasset
   struct mini_sasset {
     uint64_t                id;
     name                    category;
@@ -104,17 +110,12 @@ CONTRACT_START()
   };
 
   //transfer object to communicate nft bridge
-  struct transfer_t {
+  struct message_t {
+    bool success;
     name from_account;
     string to_account;
     string to_chain;
     mini_sasset token;
-  };
-
-  //response object from nft bridge
-  struct response_t {
-    uint64_t id;
-    string txid;
   };
 
   //asset to track this specific bridge functionality
@@ -258,10 +259,10 @@ CONTRACT_START()
     createAsset.send();
   }
 
-  vector<char> transfer_received(message_payload message) {
+  vector<char> message_received(const std::vector<char>& message) {
     asset_settings_table settings_singleton(_self, _self.value);
     asset_settings_t settings = settings_singleton.get_or_default();      
-    auto transfer_data = eosio::unpack<transfer_t>(message.data);
+    auto transfer_data = eosio::unpack<message_t>(message);
 
     sassetids_table sassetids_singleton(settings.asset_contract, settings.asset_contract.value);
     sassetids assetids = sassetids_singleton.get_or_default();
@@ -278,34 +279,38 @@ CONTRACT_START()
       std::make_tuple( settings.asset_author, transfer_data.token.category, name(transfer_data.to_account), idata, transfer_data.token.mdata, 1 )
     );
     createAsset.send();
+  }  
 
-    response_t response{ id, txid };    
-    return eosio::pack(response);
-  }   
+  // mark message as failed and return
+  vector<char> message_received_failed(const std::vector<char>& message) {
+    auto failed_message = eosio::unpack<message_t>(message);
+    failed_message.success = false;
+    auto packed_data = eosio::pack(failed_message);
+    return packed_data;
+  }  
 
-  void transfer_receipt(message_receipt receipt) {  
+  void receipt_received(const std::vector<char>& receipt) {  
     asset_settings_table settings_singleton(_self, _self.value);
     asset_settings_t settings = settings_singleton.get_or_default();
-      
-    auto transfer_receipt = eosio::unpack<transfer_t>(receipt.data);
-    auto response_data = eosio::unpack<response_t>(receipt.response);
 
-    vector<uint64_t> assetids{ transfer_receipt.token.id };
+    // issue with error 'read' here
+    auto receipt_received = eosio::unpack<message_t>(receipt);
+    std::string memo = "LiquidApps LiquidLink Transfer Failed - Refund Processed";
+
+    vector<uint64_t> assetids{ receipt_received.token.id };
     //failures are not yet handled - will always be success
-    if (!receipt.success) {
+    if (!receipt_received.success) {
       // offer the asset back to the original owner 
       string memo = "Returning asset after unsuccessful IBC";
       action offerAsset = action(
         permission_level{settings.asset_author, "active"_n},
         settings.asset_contract,
         "offer"_n,
-        std::make_tuple(settings.asset_author, name(transfer_receipt.from_account), assetids, memo) //TODO: Create more detailed memo from transfer response
+        std::make_tuple(settings.asset_author, name(receipt_received.from_account), assetids, memo) //TODO: Create more detailed memo from transfer response
       );
       offerAsset.send();     
     } else {
-      string memo = "Burning asset after successful IBC. Created asset id: " + 
-                    std::to_string(response_data.id) + "on chain " + 
-                    transfer_receipt.to_chain + " with txid: " + response_data.txid;
+      string memo = "Burning asset after successful IBC.";
       action saBurn = action(
         permission_level{settings.asset_author, "active"_n},
         settings.asset_contract,
@@ -313,6 +318,23 @@ CONTRACT_START()
         std::make_tuple(settings.asset_author, assetids, memo) //TODO: Create more detailed memo from transfer response
       );
       saBurn.send();
+    }
+  }
+
+  // mark receipt as failed and store in failed messages table
+  void receipt_received_failed(message_payload& receipt) { 
+    auto failed_receipt = eosio::unpack<message_t>(receipt.data);
+    failed_receipt.success = false;
+    auto failed_receipt_packed = eosio::pack<message_t>(failed_receipt);
+    receipt.data = failed_receipt_packed;
+    // add failed receipt to fmessages table
+    failed_messages_table_t failed_messages(_self, _self.value);
+    auto failed = failed_messages.find(receipt.id);
+    if(failed == failed_messages.end()) {
+        failed_messages.emplace(_self, [&](auto& a){
+            a.message = receipt;
+            a.received_block_time = eosio::current_time_point().sec_since_epoch();
+        });
     }
   }
 
@@ -338,9 +360,17 @@ CONTRACT_START()
       check(token->container.size() == 0, "Asset id: " + std::to_string(assetids[i]) + " has attached assets. These must be detached");
       check(token->containerf.size() == 0, "Asset id: " + std::to_string(assetids[i]) + " has attached tokens. These must be detached");
       mini_sasset current_asset = { token->id, token->category, token->idata, token->mdata };
-      transfer_t current_transfer = { from, to_account, to_chain, current_asset };
-      auto data = eosio::pack<transfer_t>(current_transfer);
+      message_t current_transfer = { true, from, to_account, to_chain, current_asset };
+      auto data = eosio::pack<message_t>(current_transfer);
       pushMessage(data);
+    }
+
+    // burn nft
+    // add variable in settings table
+    if (false) {
+        action(permission_level{_self, "active"_n}, settings.asset_contract, "burn"_n,
+          std::make_tuple(_self, assetids, "burning nft"))
+        .send();
     }
   }
 

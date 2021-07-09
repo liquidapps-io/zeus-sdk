@@ -23,8 +23,8 @@ global.fetch = fetch;
 var contractCode = 'combined';
 var ctrt = artifacts.require(`./${contractCode}/`);
 
-const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
-const delaySec = sec => delay(sec * 1000);
+const { eosio } = requireBox('test-extensions/lib/index');
+const delaySec = sec => eosio.delay(sec * 1000);
 
 
 describe(`Combined Services Test Contract`, () => {

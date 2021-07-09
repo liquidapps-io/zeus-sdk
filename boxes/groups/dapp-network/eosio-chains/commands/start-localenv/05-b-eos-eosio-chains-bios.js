@@ -5,7 +5,9 @@ const { loadModels } = requireBox('seed-models/tools/models');
 var sleep = require('sleep-promise');
 
 module.exports = async (args) => {
-  if (args.creator !== 'eosio') { return; } // only local
+  if (args.creator !== 'eosio') { 
+    return;
+  } // only local
   if(args.kill) {
     return;
   }

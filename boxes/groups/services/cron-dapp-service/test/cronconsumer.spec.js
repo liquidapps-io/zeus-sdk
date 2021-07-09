@@ -10,7 +10,7 @@ const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-servi
 const { getTestContract, getLocalDSPEos } = requireBox('seed-eos/tools/eos/utils');
 const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
 
-const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
+const { eosio } = requireBox('test-extensions/lib/index');
 
 var contractCode = 'cronconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
@@ -46,7 +46,7 @@ describe(`Cron Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': code,
@@ -55,7 +55,7 @@ describe(`Cron Service Test Contract`, () => {
           'limit': 100
         });
         var first = res.rows[0].counter;
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': code,
@@ -65,7 +65,7 @@ describe(`Cron Service Test Contract`, () => {
         });
         var second = res.rows[0].counter;
         assert.ok(second > first, 'counter did not increase');
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': code,
@@ -116,7 +116,7 @@ describe(`Cron Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': multiOne,
@@ -125,7 +125,7 @@ describe(`Cron Service Test Contract`, () => {
           'limit': 100
         });
         var first = res.rows[0].counter;
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': multiOne,
@@ -135,7 +135,7 @@ describe(`Cron Service Test Contract`, () => {
         });
         var second = res.rows[0].counter;
         assert.ok(second > first, 'counter did not increase');
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': multiOne,
@@ -153,7 +153,7 @@ describe(`Cron Service Test Contract`, () => {
           'limit': 100
         });
         first = res.rows[0].counter;
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': multiTwo,
@@ -163,7 +163,7 @@ describe(`Cron Service Test Contract`, () => {
         });
         second = res.rows[0].counter;
         assert.ok(second > first, 'second account counter did not increase');
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': multiTwo,
@@ -210,7 +210,7 @@ describe(`Cron Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(5000);
+        await eosio.delay(5000);
         res = await testcontract2.removetimer({
           account: removeTimerTest
         }, {
@@ -218,7 +218,7 @@ describe(`Cron Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': removeTimerTest,
@@ -227,7 +227,7 @@ describe(`Cron Service Test Contract`, () => {
           'limit': 100
         });
         var first = res.rows[0].counter;
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': removeTimerTest,
@@ -261,7 +261,7 @@ describe(`Cron Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': payloadTest,
@@ -310,7 +310,7 @@ describe(`Cron Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': multiOne,
@@ -319,7 +319,7 @@ describe(`Cron Service Test Contract`, () => {
           'limit': 100
         });
         var first = res.rows[0].counter;
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': multiOne,
@@ -329,7 +329,7 @@ describe(`Cron Service Test Contract`, () => {
         });
         var second = res.rows[0].counter;
         assert.ok(second > first, 'counter did not increase');
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': multiOne,
@@ -347,7 +347,7 @@ describe(`Cron Service Test Contract`, () => {
           'limit': 100
         });
         first = res.rows[0].counter;
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': multiTwo,
@@ -357,7 +357,7 @@ describe(`Cron Service Test Contract`, () => {
         });
         second = res.rows[0].counter;
         assert.ok(second > first, 'second account counter did not increase');
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': multiTwo,
@@ -415,7 +415,7 @@ describe(`Cron Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': aborttest,
@@ -469,7 +469,7 @@ describe(`Cron Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': payloadTest,
@@ -520,7 +520,7 @@ describe(`Cron Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(5000);
+        await eosio.delay(5000);
         res = await dspeos.getTableRows({
           'json': true,
           'scope': payloadTest,
@@ -538,7 +538,7 @@ describe(`Cron Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(3000);
+        await eosio.delay(3000);
         let third = 0;
         res = await dspeos.getTableRows({
           'json': true,
@@ -550,7 +550,7 @@ describe(`Cron Service Test Contract`, () => {
         if(res.rows && res.rows.length) {
           third = res.rows[0].counter
         }
-        await delay(5000);
+        await eosio.delay(5000);
         let fourth = 0;
         res = await dspeos.getTableRows({
           'json': true,

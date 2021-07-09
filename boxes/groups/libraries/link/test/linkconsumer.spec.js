@@ -6,7 +6,7 @@ const { loadModels } = requireBox('seed-models/tools/models');
 const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
 const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
-const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
+const { eosio } = requireBox('test-extensions/lib/index');
 
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
@@ -93,7 +93,7 @@ describe(`LiquidBrinX BlockchainRPC`, () => {
         keys = await getCreateKeys(codeXMainnet);
         eostestMainnet = getEosWrapper({
           keyProvider: keys.active.privateKey,
-          httpEndpoint: 'http://localhost:13115'
+          httpEndpoint: 'http://localhost:13015'
         });
         testcontract = await eostestMainnet.contract(codeXMainnet);
 
@@ -134,7 +134,7 @@ describe(`LiquidBrinX BlockchainRPC`, () => {
           authorization: `${codeXMainnet}@active`
         });
         // handler,code,table,scope,search_field,desired_state,timeout = 240000,limit = 1
-        await awaitTable(dspeos,codeXMainnet,"parcels",codeXMainnet,"response_message",`${message1} pong`,maxDelay);
+        await eosio.awaitTable(dspeos,codeXMainnet,"parcels",codeXMainnet,"response_message",`${message1} pong`,maxDelay);
 
         tx = await testcontract.emit({ 
           id: 2,
@@ -142,9 +142,9 @@ describe(`LiquidBrinX BlockchainRPC`, () => {
         }, {
           authorization: `${codeXMainnet}@active`
         });
-        await awaitTable(dspeos,codeXMainnet,"parcels",codeXMainnet,"response_message",`${message2} pong`,maxDelay);
+        await eosio.awaitTable(dspeos,codeXMainnet,"parcels",codeXMainnet,"response_message",`${message2} pong`,maxDelay);
 
-        let parcels = await getTable(dspeos,codeXMainnet,"parcels",codeXMainnet);        
+        let parcels = await eosio.getTable(dspeos,codeXMainnet,codeXMainnet,"parcels");        
         assert.equal(parcels.rows[0].original_message, message1);
         assert.equal(parcels.rows[0].response_message, message1 + " pong");
         
@@ -166,7 +166,7 @@ describe(`LiquidBrinX BlockchainRPC`, () => {
         }, {
           authorization: `${codeXSidechain}@active`
         });
-        await awaitTable(eosconsumerX,codeXSidechain,"parcels",codeXSidechain,"response_message",`${message1} pong`,maxDelay);
+        await eosio.awaitTable(eosconsumerX,codeXSidechain,"parcels",codeXSidechain,"response_message",`${message1} pong`,maxDelay);
         
         tx = await testcontractX.emit({
           id: 11,
@@ -174,9 +174,9 @@ describe(`LiquidBrinX BlockchainRPC`, () => {
         }, {
           authorization: `${codeXSidechain}@active`
         });
-        await awaitTable(eosconsumerX,codeXSidechain,"parcels",codeXSidechain,"response_message",`${message2} pong`,maxDelay);
+        await eosio.awaitTable(eosconsumerX,codeXSidechain,"parcels",codeXSidechain,"response_message",`${message2} pong`,maxDelay);
 
-        let parcels = await getTable(eosconsumerX,codeXSidechain,"parcels",codeXSidechain,3);      
+        let parcels = await eosio.getTable(eosconsumerX,codeXSidechain,codeXSidechain,"parcels",3);      
         assert.equal(parcels.rows[2].original_message, message1);
         assert.equal(parcels.rows[2].response_message, message1 + " pong");
         
@@ -201,46 +201,46 @@ describe(`LiquidBrinX BlockchainRPC`, () => {
 
         while(!finished) {
           try {
-            await delay(2000); // sleep
+            await eosio.delay(2000); // sleep
             waited += 2000;
             let res;
             if(!hasLocalConfirmed) {
-              res = await getTable(dspeos,codeXMainnet,"cmessages",codeXMainnet);
+              res = await eosio.getTable(dspeos,codeXMainnet,codeXMainnet,"cmessages");
               if(res.rows.length > 0) {
                 console.log(`Got local confirmed message <${waited} ms elapsed>:\n ${JSON.stringify(res.rows)}\n\n`);
                 hasLocalConfirmed = true;
               }
             }
             if(!hasRemoteCRelease) {
-              res = await getTable(eosconsumerX,codeXSidechain,"releases",codeXSidechain);
+              res = await eosio.getTable(eosconsumerX,codeXSidechain,codeXSidechain,"releases");
               if(res.rows.length > 0) {
                 console.log(`Got remote compressed release <${waited} ms elapsed>:\n ${JSON.stringify(res.rows)}\n\n`);
                 hasRemoteCRelease = true;
               }
             }
             if(!hasRemoteRelease) {
-              res = await getTable(eosconsumerX,codeXSidechain,"creleases",codeXSidechain);
+              res = await eosio.getTable(eosconsumerX,codeXSidechain,codeXSidechain,"creleases");
               if(res.rows.length > 0) {
                 console.log(`Got remote uncompressed release <${waited} ms elapsed>:\n ${JSON.stringify(res.rows)}\n\n`);
                 hasRemoteRelease = true;
               }
             }
             if(!hasRemoteReceipt) {
-              res = await getTable(eosconsumerX,codeXSidechain,"lreceipts",codeXSidechain);
+              res = await eosio.getTable(eosconsumerX,codeXSidechain,codeXSidechain,"lreceipts");
               if(res.rows.length > 0) {
                 console.log(`Got remote compressed receipt <${waited} ms elapsed>:\n ${JSON.stringify(res.rows)}\n\n`);
                 hasRemoteReceipt = true;
               }
             }
             if(!hasForeignReceipt) {
-              res = await getTable(dspeos,codeXMainnet,"freceipts",codeXMainnet);
+              res = await eosio.getTable(dspeos,codeXMainnet,codeXMainnet,"freceipts");
               if(res.rows.length > 0) {
                 console.log(`Got foreign compressed receipt <${waited} ms elapsed>:\n ${JSON.stringify(res.rows)}\n\n`);
                 hasForeignReceipt = true;
               }
             }
             // if(!hasHandledReceipt) {
-            //   res = await getTable(dspeos,codeXMainnet,"cfreceipts",codeXMainnet);
+            //   res = await eosio.getTable(dspeos,codeXMainnet,codeXMainnet,"cfreceipts");
             //   if(res.rows.length > 0) {
             //     console.log(`Got foreign uncompressed receipt <${waited} ms elapsed>:\n ${JSON.stringify(res.rows[0])}\n\n`);
             //     hasHandledReceipt = true;
@@ -264,7 +264,7 @@ describe(`LiquidBrinX BlockchainRPC`, () => {
         }, {
           authorization: `${codeXMainnet}@active`
         });
-        await delay(maxDelay); // sleep
+        await eosio.delay(maxDelay); // sleep
         await checkStatus();
         
         done();
@@ -288,46 +288,46 @@ describe(`LiquidBrinX BlockchainRPC`, () => {
 
         while(!finished) {
           try {
-            await delay(2000); // sleep
+            await eosio.delay(2000); // sleep
             waited += 2000;
             let res;
             if(!hasLocalConfirmed) {
-              res = await getTable(eosconsumerX,codeXSidechain,"cmessages",codeXSidechain);
+              res = await eosio.getTable(eosconsumerX,codeXSidechain,codeXSidechain,"cmessages");
               if(res.rows.length > 0) {
                 console.log(`Got local confirmed message <${waited} ms elapsed>:\n ${JSON.stringify(res.rows[0])}\n\n`);
                 hasLocalConfirmed = true;
               }
             }
             if(!hasRemoteCRelease) {
-              res = await getTable(dspeos,codeXMainnet,"releases",codeXMainnet);
+              res = await eosio.getTable(dspeos,codeXMainnet,codeXMainnet,"releases");
               if(res.rows.length > 0) {
                 console.log(`Got remote compressed release <${waited} ms elapsed>:\n ${JSON.stringify(res.rows[0])}\n\n`);
                 hasRemoteCRelease = true;
               }
             }
             if(!hasRemoteRelease) {
-              res = await getTable(dspeos,codeXMainnet,"creleases",codeXMainnet);
+              res = await eosio.getTable(dspeos,codeXMainnet,codeXMainnet,"creleases");
               if(res.rows.length > 0) {
                 console.log(`Got remote uncompressed release <${waited} ms elapsed>:\n ${JSON.stringify(res.rows[0])}\n\n`);
                 hasRemoteRelease = true;
               }
             }
             if(!hasRemoteReceipt) {
-              res = await getTable(dspeos,codeXMainnet,"lreceipts",codeXMainnet);
+              res = await eosio.getTable(dspeos,codeXMainnet,codeXMainnet,"lreceipts");
               if(res.rows.length > 0) {
                 console.log(`Got remote compressed receipt <${waited} ms elapsed>:\n ${JSON.stringify(res.rows[0])}\n\n`);
                 hasRemoteReceipt = true;
               }
             }
             if(!hasForeignReceipt) {
-              res = await getTable(eosconsumerX,codeXSidechain,"freceipts",codeXSidechain);
+              res = await eosio.getTable(eosconsumerX,codeXSidechain,codeXSidechain,"freceipts");
               if(res.rows.length > 0) {
                 console.log(`Got foreign compressed receipt <${waited} ms elapsed>:\n ${JSON.stringify(res.rows[0])}\n\n`);
                 hasForeignReceipt = true;
               }
             }
           // if(!hasHandledReceipt) {
-          //   res = await getTable(dspeos,codeXMainnet,"cfreceipts",codeXMainnet);
+          //   res = await eosio.getTable(dspeos,codeXMainnet,codeXMainnet,"cfreceipts");
           //   if(res.rows.length > 0) {
           //     console.log(`Got foreign uncompressed receipt <${waited} ms elapsed>:\n ${JSON.stringify(res.rows[0])}\n\n`);
           //     hasHandledReceipt = true;
@@ -352,7 +352,7 @@ describe(`LiquidBrinX BlockchainRPC`, () => {
         }, {
           authorization: `${codeXSidechain}@active`
         });
-        await delay(maxDelay); // sleep
+        await eosio.delay(maxDelay); // sleep
         await checkStatus();
 
         done();

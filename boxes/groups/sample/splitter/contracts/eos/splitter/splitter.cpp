@@ -28,7 +28,7 @@ CONTRACT splitter : public eosio::contract {
     accounts accountstable(DAPPSERVICES_ACCOUNT,_self.value);
     const auto& splitter_dappservices_balance = accountstable.get( DAPPSERVICES_TOKEN_SYMBOL.code().raw(), "no destination balance found. please open an account with dappservices" );
     accounts local_self_accountstable(_self,_self.value);   
-    const auto& local_self_balance = local_self_accountstable.get(DAPPSERVICES_TOKEN_SYMBOL.code().raw(), "no destination balance found. please open an account with dappservices");
+    const auto& local_self_balance = local_self_accountstable.get(DAPPSERVICES_TOKEN_SYMBOL.code().raw(), "no destination balance found. please open an account with self");
     payouts_def payouttable(_self, _self.value);
     auto table = payouttable.get();
     vector<payout> payouts = table.payouts;
@@ -52,7 +52,7 @@ CONTRACT splitter : public eosio::contract {
       } else {
         require_auth(account);
         accounts local_accountstable(_self,account.value);
-        const auto& local_self_balance = local_accountstable.get(DAPPSERVICES_TOKEN_SYMBOL.code().raw(), "no destination balance found. please open an account with dappservices");
+        const auto& local_self_balance = local_accountstable.get(DAPPSERVICES_TOKEN_SYMBOL.code().raw(), "no destination balance found. please open an account with self");
         auto balance_itr = local_accountstable.find(DAPPSERVICES_TOKEN_SYMBOL.code().raw());   
         if(itr->account == account){
           // authorized = true;
@@ -82,8 +82,16 @@ CONTRACT splitter : public eosio::contract {
   void setup(vector<payout> payouts) {
     require_auth(_self);
     double total = 0;
+    accounts self_accountstable(DAPPSERVICES_ACCOUNT,_self.value);
+    self_accountstable.get(DAPPSERVICES_TOKEN_SYMBOL.code().raw(), "no destination balance found. please open an account with dappservices");
+    accounts local_self_accountstable(_self,_self.value);
+    local_self_accountstable.get(DAPPSERVICES_TOKEN_SYMBOL.code().raw(), "no destination balance found. please open an account with self");
     for (auto &payout : payouts) {
       total += payout.percentage;
+      accounts account_accountstable(DAPPSERVICES_ACCOUNT,payout.account.value);
+      account_accountstable.get(DAPPSERVICES_TOKEN_SYMBOL.code().raw(), "no destination balance found. please open an account with dappservices");
+      accounts local_account_accountstable(_self,payout.account.value);
+      local_account_accountstable.get(DAPPSERVICES_TOKEN_SYMBOL.code().raw(), "no destination balance found. please open an account with self");
     }
     eosio::check(total == 1, "total percentage must equal 1 (100%) between all owners");
     payouts_def payouttable(_self, _self.value);
@@ -96,11 +104,8 @@ CONTRACT splitter : public eosio::contract {
   void open( const name& owner, const name& ram_payer )
   {
     require_auth( ram_payer );
-
     check( is_account( owner ), "owner account does not exist" );
-
     auto sym_code_raw = DAPPSERVICES_TOKEN_SYMBOL.code().raw();
-
     accounts acnts( get_self(), owner.value );
     auto it = acnts.find( sym_code_raw );
     if( it == acnts.end() ) {
@@ -118,7 +123,7 @@ CONTRACT splitter : public eosio::contract {
 
   void add_balance(name account, double quantity_amount) {
     accounts local_accountstable(_self,account.value);   
-    const auto& destination_balance = local_accountstable.get(DAPPSERVICES_TOKEN_SYMBOL.code().raw(), "no destination balance found. please open an account with dappservices");
+    const auto& destination_balance = local_accountstable.get(DAPPSERVICES_TOKEN_SYMBOL.code().raw(), "no destination balance found. please open an account with self");
     auto itr = local_accountstable.find(DAPPSERVICES_TOKEN_SYMBOL.code().raw());
     asset quantity = asset(quantity_amount, DAPPSERVICES_TOKEN_SYMBOL);
     local_accountstable.modify(itr, eosio::same_payer, [&](auto &r) {
@@ -128,7 +133,7 @@ CONTRACT splitter : public eosio::contract {
 
   void subtract_balance(name account, double quantity_amount) {
     accounts local_accountstable(_self,account.value);   
-    const auto& destination_balance = local_accountstable.get(DAPPSERVICES_TOKEN_SYMBOL.code().raw(), "no destination balance found. please open an account with dappservices");
+    const auto& destination_balance = local_accountstable.get(DAPPSERVICES_TOKEN_SYMBOL.code().raw(), "no destination balance found. please open an account with self");
     auto itr = local_accountstable.find(DAPPSERVICES_TOKEN_SYMBOL.code().raw());
     asset quantity = asset(quantity_amount, DAPPSERVICES_TOKEN_SYMBOL);
     local_accountstable.modify(itr, eosio::same_payer, [&](auto &r) {

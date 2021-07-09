@@ -84,6 +84,12 @@ module.exports = {
   command: 'test [contract]',
 
   handler: async (args) => {
+    try {
+      createDir('test', 'test');
+      createLocalDir('test');
+    } catch (e) {
+      console.log(e);
+    }
     if (args.deleteLogs) {
       if (fs.existsSync(`logs`)) {
         await execPromise(`rm -rf logs`);
@@ -100,8 +106,6 @@ module.exports = {
     }
     console.log(emojMap.zap + 'Running tests');
     try {
-      createDir('test', 'test');
-      createLocalDir('test');
       const preNpmCommand = process.env.NPM || 'npm';
       const npmCommand = process.env.CI === 'true' ? 'run test-ci' : 'test';
       const subContractCommand = `-- test/${args.contract}.spec.js`;

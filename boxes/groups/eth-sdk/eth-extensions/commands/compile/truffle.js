@@ -1,9 +1,10 @@
 const { requireBox, getBoxesDir } = require('@liquidapps/box-utils');
-const { execPromise } = requireBox('seed-zeus-support/_exec');
+const { execPromise, emojMap } = requireBox('seed-zeus-support/_exec');
 const truffleConfig = require('./truffle/truffle-config')
 const fs = require('fs');
 
 module.exports = async (args) => {
+  console.log(`\n${emojMap.zap} ETH CONTRACT COMPILING\n`)
     const file = fs.readFileSync(`${__dirname}/truffle/truffle-config.js`, function (err, data) {
       if (err) {
          return console.error(err);

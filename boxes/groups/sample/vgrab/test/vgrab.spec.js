@@ -11,7 +11,7 @@ const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-servi
 
 var contractCode = 'vgrab';
 var ctrt = artifacts.require(`./${contractCode}/`);
-const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
+const { eosio } = requireBox('test-extensions/lib/index');
 
 describe(`${contractCode} Contract`, () => {
   var testcontract;
@@ -69,7 +69,7 @@ describe(`${contractCode} Contract`, () => {
           keyProvider: [key.active.privateKey],
           sign: true
         });
-        await delay(3000);
+        await eosio.delay(3000);
         try {
           await testtoken.transfer({
             from: code2,
@@ -87,7 +87,7 @@ describe(`${contractCode} Contract`, () => {
           failed = true;
         }
         assert(failed, 'should have failed before withdraw');
-        await delay(3000);
+        await eosio.delay(3000);
 
         await testtoken.withdraw({
           to: code2,
@@ -110,7 +110,7 @@ describe(`${contractCode} Contract`, () => {
           keyProvider: [key.active.privateKey],
           sign: true
         });
-        await delay(3000);
+        await eosio.delay(3000);
         failed = false;
         try {
           await testtoken.transfer({

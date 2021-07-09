@@ -221,6 +221,13 @@ CONTRACT_START()
 
     auto data = eosio::pack(current_transfer);
     pushMessage(data);
+
+    // burn tokens
+    if (settings.can_issue) {
+        action(permission_level{_self, "active"_n}, settings.token_contract, "retire"_n,
+          std::make_tuple(quantity, std::string("burn tokens")))
+        .send();
+    }
   }
 
 };//closure for CONTRACT_START

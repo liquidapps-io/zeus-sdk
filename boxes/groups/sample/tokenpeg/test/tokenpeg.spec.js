@@ -11,20 +11,19 @@ const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
 const { genAllocateDAPPTokens, createLiquidXMapping } = requireBox('dapp-services/tools/eos/dapp-services');
 
-
 const contractCode = 'tokenpeg';
 const contractCodeX = 'tokenpegx';
 const ctrt = artifacts.require(`./${contractCode}/`);
 const ctrtx = artifacts.require(`./${contractCodeX}/`);
 const tokenContract = artifacts.require('./eosio.token/');
-const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
+const { eosio,atomic } = requireBox('test-extensions/lib/index');
 
-describe(`Token bridge Test`, () => {
+describe(`Token bridge Test EOSIO <> EOSIO`, () => {
   let testcontract, testcontractX;
   const codeXMainnet = 'testpegxm';
   const codeXSidechain = 'testpegx';
   const sidechainName = 'test1';
-  const testAccMainnet = 'testpegmn';
+  const testAccMainnet = 'testpegmn4';
   const testAccSidechain = 'testpegsc';
   const tokenAccMainnet = 'tpgmainnet';
   const tokenAccSidechain = 'tpgsidechain';
@@ -138,7 +137,7 @@ describe(`Token bridge Test`, () => {
         keys = await getCreateKeys(testAccMainnet);
         eostestMainnet = getEosWrapper({
           keyProvider: keys.active.privateKey,
-          httpEndpoint: 'http://localhost:13115'
+          httpEndpoint: 'http://localhost:13015'
         });
         tokenMainnet = await eostestMainnet.contract(tokenAccMainnet);
 
@@ -180,15 +179,10 @@ describe(`Token bridge Test`, () => {
   it('Token peg mainnet to sidechain', done => {
     (async () => {
       try {
-        let res = await dspeos.getTableRows({
-          'json': true,
-          'scope': testAccMainnet,
-          'code': tokenAccMainnet,
-          'table': 'accounts',
-          'limit': 1
-        });
-        const prevMainnetBalance = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
+        const prevMainnetBalance = await eosio.parseTokenTable(dspeos,tokenAccMainnet,testAccMainnet,'accounts')
+        // console.log(prevMainnetBalance)
         const prevSidechainBalance = 0; // no table row to check
+        const preBalanceBurned = await eosio.parseTokenTable(dspeos,tokenAccMainnet,codeXMainnet,'accounts')
         const transferMemo = `${testAccSidechain},test1`;
         await tokenMainnet.transfer({ 
           from: testAccMainnet,
@@ -198,119 +192,20 @@ describe(`Token bridge Test`, () => {
         }, {
           authorization: `${testAccMainnet}@active`
         });
-        res = await dspeos.getTableRows({
-          'json': true,
-          'scope': testAccMainnet,
-          'code': tokenAccMainnet,
-          'table': 'accounts',
-          'limit': 1
-        });
-        const postMainnetBalance = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
+        const postMainnetBalance = await eosio.parseTokenTable(dspeos,tokenAccMainnet,testAccMainnet,'accounts')
+        // console.log(postMainnetBalance)
         // handler,code,table,scope,search_field,desired_state,timeout = 240000,limit = 1
-        res = await awaitTable(eosconsumerX,tokenAccSidechain,"accounts",testAccSidechain,"balance",`${prevSidechainBalance + 2}.0000 TKN`);
+        let res = await eosio.awaitTable(eosconsumerX,tokenAccSidechain,"accounts",testAccSidechain,"balance",`${prevSidechainBalance + 2}.0000 TKN`);
         if(!res) throw new Error(`await table expired`);
         const postSidechainBalance = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
+        // console.log(res)
+        // console.log(postSidechainBalance)
+        // console.log(typeof(prevMainnetBalance))
+        // console.log(typeof(postSidechainBalance))
         assert.equal(prevMainnetBalance - postMainnetBalance, 2);
         assert.equal(postSidechainBalance - prevSidechainBalance, 2);
-        done();
-      } catch(e) {
-        done(e);
-      }
-    })()
-  });
-
-  it('Token peg sidechain to mainnet', done => {
-    (async () => {
-      try {
-        let res = await dspeos.getTableRows({
-          'json': true,
-          'scope': testAccMainnet,
-          'code': tokenAccMainnet,
-          'table': 'accounts',
-          'limit': 1
-        });
-        const prevMainnetBalance = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-        res = await eosconsumerX.getTableRows({
-          'json': true,
-          'scope': testAccSidechain,
-          'code': tokenAccSidechain,
-          'table': 'accounts',
-          'limit': 1
-        });
-        const prevSidechainBalance = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-        const transferMemo = `${testAccMainnet},localmainnet`;
-        await tokenSidechain.transfer({ 
-          from: testAccSidechain,
-          to: codeXSidechain,
-          quantity: "1.0000 TKN",
-          memo: transferMemo
-        }, {
-          authorization: `${testAccSidechain}@active`
-        });
-        // handler,code,table,scope,search_field,desired_state,timeout = 240000,limit = 1
-        res = await awaitTable(dspeos,tokenAccMainnet,"accounts",testAccMainnet,"balance",`${prevMainnetBalance + 1}.0000 TKN`);
-        if(!res) throw new Error(`await table expired`);
-
-        const postMainnetBalance = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-        res = await eosconsumerX.getTableRows({
-          'json': true,
-          'scope': testAccSidechain,
-          'code': tokenAccSidechain,
-          'table': 'accounts',
-          'limit': 1
-        });
-        const postSidechainBalance = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-        assert.equal(prevSidechainBalance - postSidechainBalance, 1);
-        assert.equal(postMainnetBalance - prevMainnetBalance, 1);
-        done();
-      } catch(e) {
-        done(e);
-      }
-    })()
-  });
-
-  it('Token peg mainnet to sidechain account doesnt exist', done => {
-    (async () => {
-      try {
-        let res = await dspeos.getTableRows({
-          'json': true,
-          'scope': testAccMainnet,
-          'code': tokenAccMainnet,
-          'table': 'accounts',
-          'limit': 1
-        });
-        const prevMainnetBalance = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-        res = await eosconsumerX.getTableRows({
-          'json': true,
-          'scope': testAccSidechain,
-          'code': tokenAccSidechain,
-          'table': 'accounts',
-          'limit': 1
-        });
-        const prevSidechainBalance = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-        const transferMemo = `notrightacct,test1`;
-        await tokenMainnet.transfer({ 
-          from: testAccMainnet,
-          to: codeXMainnet,
-          quantity: "2.0000 TKN",
-          memo: transferMemo
-        }, {
-          authorization: `${testAccMainnet}@active`
-        });
-        // handler,code,table,scope,search_field,desired_state,timeout = 240000,limit = 1
-        res = await awaitTable(dspeos,tokenAccMainnet,"accounts",testAccMainnet,"balance",`${prevMainnetBalance}.0000 TKN`);
-        if(!res) throw new Error(`await table expired`);
-        const postMainnetBalance = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-        res = await eosconsumerX.getTableRows({
-          'json': true,
-          'scope': testAccSidechain,
-          'code': tokenAccSidechain,
-          'table': 'accounts',
-          'limit': 1
-        });
-        const postSidechainBalance = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-        assert.equal(prevMainnetBalance, postMainnetBalance, "mainnet account not refunded");
-        assert.equal(postSidechainBalance ,prevSidechainBalance, "sidechain account should not be credited, does not exist");
+        const postBalanceBurned = await eosio.parseTokenTable(dspeos,tokenAccMainnet,codeXMainnet,'accounts')
+        assert.equal(preBalanceBurned + 2,postBalanceBurned, "tokens were burned, should not be");
         done();
       } catch(e) {
         done(e);
@@ -321,23 +216,10 @@ describe(`Token bridge Test`, () => {
   it('Token peg sidechain to mainnet account doesnt exist', done => {
     (async () => {
       try {
-        let res = await dspeos.getTableRows({
-          'json': true,
-          'scope': testAccMainnet,
-          'code': tokenAccMainnet,
-          'table': 'accounts',
-          'limit': 1
-        });
-        const prevMainnetBalance = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-        res = await eosconsumerX.getTableRows({
-          'json': true,
-          'scope': testAccSidechain,
-          'code': tokenAccSidechain,
-          'table': 'accounts',
-          'limit': 1
-        });
-        const prevSidechainBalance = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
+        const prevMainnetBalance = await eosio.parseTokenTable(dspeos,tokenAccMainnet,testAccMainnet,'accounts')
+        const prevSidechainBalance = await eosio.parseTokenTable(eosconsumerX,tokenAccSidechain,testAccSidechain,'accounts')
         const transferMemo = `notrightacct,localmainnet`;
+        const preBurn = await eosio.parseTokenTable(eosconsumerX,tokenAccSidechain,codeXSidechain,'accounts')
         await tokenSidechain.transfer({ 
           from: testAccSidechain,
           to: codeXSidechain,
@@ -346,26 +228,86 @@ describe(`Token bridge Test`, () => {
         }, {
           authorization: `${testAccSidechain}@active`
         });
+        const prePostBurn = await eosio.parseTokenTable(eosconsumerX,tokenAccSidechain,codeXSidechain,'accounts')
+        assert.equal(preBurn,prePostBurn,"token not burned")
         // handler,code,table,scope,search_field,desired_state,timeout = 240000,limit = 1
-        res = await awaitTable(eosconsumerX,tokenAccSidechain,"accounts",testAccSidechain,"balance",`${prevSidechainBalance}.0000 TKN`);
+        let res = await eosio.awaitTable(eosconsumerX,tokenAccSidechain,"accounts",testAccSidechain,"balance",`${prevSidechainBalance}.0000 TKN`);
         if(!res) throw new Error(`await table expired`);
         const postSidechainBalance = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-        res = await dspeos.getTableRows({
-          'json': true,
-          'scope': testAccMainnet,
-          'code': tokenAccMainnet,
-          'table': 'accounts',
-          'limit': 1
-        });
-        const postMainnetBalance = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
+        const postMainnetBalance = await eosio.parseTokenTable(dspeos,tokenAccMainnet,testAccMainnet,'accounts')
         assert.equal(prevSidechainBalance, postSidechainBalance, "sidechain account not refunded");
         assert.equal(postMainnetBalance ,prevMainnetBalance, "mainnet account should not be credited, does not exist");
+        const postPostBurn = await eosio.parseTokenTable(eosconsumerX,tokenAccSidechain,codeXSidechain,'accounts')
+        assert.equal(postPostBurn,prePostBurn,"token not burned")
         done();
       } catch(e) {
         done(e);
       }
     })()
   });
+
+  it('Token peg sidechain to mainnet', done => {
+    (async () => {
+      try {
+        const prevMainnetBalance = await eosio.parseTokenTable(dspeos,tokenAccMainnet,testAccMainnet,'accounts')
+        const prevSidechainBalance = await eosio.parseTokenTable(eosconsumerX,tokenAccSidechain,testAccSidechain,'accounts')
+        const transferMemo = `${testAccMainnet},localmainnet`;
+        // console.log('before transfer')
+        const prePreBurn = await eosio.parseTokenTable(eosconsumerX,tokenAccSidechain,codeXSidechain,'accounts')
+        await tokenSidechain.transfer({ 
+          from: testAccSidechain,
+          to: codeXSidechain,
+          quantity: "1.0000 TKN",
+          memo: transferMemo
+        }, {
+          authorization: `${testAccSidechain}@active`
+        });
+        const postPreBurn = await eosio.parseTokenTable(eosconsumerX,tokenAccSidechain,codeXSidechain,'accounts')
+        assert.equal(prePreBurn,postPreBurn,"token not burned")
+        let res = await eosio.awaitTable(dspeos,tokenAccMainnet,"accounts",testAccMainnet,"balance",`${prevMainnetBalance + 1}.0000 TKN`);
+        if(!res) throw new Error(`await table expired`);
+
+        const postMainnetBalance = await eosio.parseTokenTable(dspeos,tokenAccMainnet,testAccMainnet,'accounts')
+        const postSidechainBalance = await eosio.parseTokenTable(eosconsumerX,tokenAccSidechain,testAccSidechain,'accounts')
+        assert.equal(prevSidechainBalance - postSidechainBalance, 1);
+        assert.equal(postMainnetBalance - prevMainnetBalance, 1);
+        const postPostBurn = await eosio.parseTokenTable(eosconsumerX,tokenAccSidechain,codeXSidechain,'accounts')
+        assert.equal(postPostBurn,postPreBurn,"token not burned")
+        done();
+      } catch(e) {
+        done(e);
+      }
+    })()
+  });
+
+  it('Token peg mainnet to sidechain account doesnt exist', done => {
+    (async () => {
+      try {
+        const prevMainnetBalance = await eosio.parseTokenTable(dspeos,tokenAccMainnet,testAccMainnet,'accounts')
+        const prevSidechainBalance = await eosio.parseTokenTable(eosconsumerX,tokenAccSidechain,testAccSidechain,'accounts')
+        const transferMemo = `notrightacct,test1`;
+        await tokenMainnet.transfer({ 
+          from: testAccMainnet,
+          to: codeXMainnet,
+          quantity: "2.0000 TKN",
+          memo: transferMemo
+        }, {
+          authorization: `${testAccMainnet}@active`
+        });
+        // handler,code,table,scope,search_field,desired_state,timeout = 240000,limit = 1
+        let res = await eosio.awaitTable(dspeos,tokenAccMainnet,"accounts",testAccMainnet,"balance",`${prevMainnetBalance}.0000 TKN`);
+        if(!res) throw new Error(`await table expired`);
+        const postMainnetBalance = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
+        const postSidechainBalance = await eosio.parseTokenTable(eosconsumerX,tokenAccSidechain,testAccSidechain,'accounts')
+        assert.equal(prevMainnetBalance, postMainnetBalance, "mainnet account not refunded");
+        assert.equal(postSidechainBalance ,prevSidechainBalance, "sidechain account should not be credited, does not exist");
+        done();
+      } catch(e) {
+        done(e);
+      }
+    })()
+  });
+
   it('Token peg mainnet/sidechain stop intervals', done => {
     (async () => {
       try {
@@ -377,7 +319,7 @@ describe(`Token bridge Test`, () => {
         });
         await testcontract.disable({
           timer: "packbatches",
-          processing_enabled: true
+          processing_enabled: false
         }, {
           authorization: `${codeXMainnet}@active`
         });
@@ -389,7 +331,7 @@ describe(`Token bridge Test`, () => {
         });
         await testcontract.disable({
           timer: "getbatches",
-          processing_enabled: true
+          processing_enabled: false
         }, {
           authorization: `${codeXMainnet}@active`
         });
@@ -401,7 +343,7 @@ describe(`Token bridge Test`, () => {
         });
         await testcontract.disable({
           timer: "unpkbatches",
-          processing_enabled: true
+          processing_enabled: false
         }, {
           authorization: `${codeXMainnet}@active`
         });
@@ -413,7 +355,7 @@ describe(`Token bridge Test`, () => {
         });
         await testcontract.disable({
           timer: "hndlmessage",
-          processing_enabled: true
+          processing_enabled: false
         }, {
           authorization: `${codeXMainnet}@active`
         });

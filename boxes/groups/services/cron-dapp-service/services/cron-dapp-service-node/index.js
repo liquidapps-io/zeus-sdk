@@ -6,6 +6,8 @@ const { dappServicesContract } = requireBox('dapp-services/tools/eos/dapp-servic
 const { loadModels } = requireBox('seed-models/tools/models');
 const dal = requireBox('dapp-services/services/dapp-services-node/dal/dal');
 
+const delay = ms => new Promise(res => setTimeout(res, ms));
+
 let timers = {}, startup=true, data;
 
 const intervalCallback = (async (event, { timer, payload, seconds }) => {
@@ -26,7 +28,7 @@ const intervalCallback = (async (event, { timer, payload, seconds }) => {
       payload,
       seconds
   };
-  logger.info(`firing interval ${payer} ${timer} ${sidechain ? sidechain.name : ''}`);
+  if(process.env.DSP_VERBOSE_LOGS) logger.info(`firing interval ${payer} ${timer} ${sidechain ? sidechain.name : ''}`);
   let res, error = false;
   try {
       res = await pushTransaction(eosMain, dapp, payer, current_provider, "xinterval", data);
@@ -169,10 +171,15 @@ nodeFactory('cron', {
         logger.error(`cron not being scheduled because cron interval is ${seconds} for ${payer}, must be > ${seconds}`);
         return
     }
+    const timerId = timers[`INTERVAL_${payer}_${timer}_${sidechain ? sidechain.name : "PROVISIONING_X"}`];
+    if (timerId) {
+      // logger.debug(`interval already set INTERVAL_${payer}_${timer}_${sidechain ? sidechain.name : "PROVISIONING_X"}`)
+      return;
+    }
     const interval = await dal.fetchCronInterval(`INTERVAL_${payer}_${timer}_${sidechain ? sidechain.name : "PROVISIONING_X"}`);
     if (interval) {
-      logger.warn(`interval already set INTERVAL_${payer}_${timer}_${sidechain ? sidechain.name : "PROVISIONING_X"}`)
-      return;
+      logger.debug(`interval already set fetchCronInterval INTERVAL_${payer}_${timer}_${sidechain ? sidechain.name : "PROVISIONING_X"}`)
+      return
     }
     logger.warn(`INTERVAL_${payer}_${timer}_${sidechain ? sidechain.name : "PROVISIONING_X"}`)
     const serviceRequest = await dal.createCronInterval(`INTERVAL_${payer}_${timer}_${sidechain ? sidechain.name : "PROVISIONING_X"}`, timer, payload, seconds, event);
@@ -182,9 +189,13 @@ nodeFactory('cron', {
         await serviceRequest.save();
       }
       catch (e) {
-        if (e.name === 'SequelizeOptimisticLockError')
+        if (e.name === 'SequelizeOptimisticLockError') {
+          logger.warn(`SequelizeOptimisticLockError error`)
+          await delay(10);
           continue;
-        else throw e;
+        } else {
+          throw e;
+        }
       }
       logger.info(`Cron Interval created for: INTERVAL_${payer}_${timer}_${sidechain ? sidechain.name : "PROVISIONING_X"}`);
       break;
@@ -196,27 +207,33 @@ nodeFactory('cron', {
         logger.debug(`exception: ${exception} || replay: ${replay} || rollback: ${rollback} || PASSIVE_DSP_NODE: ${process.env.PASSIVE_DSP_NODE} hit, not running cron`)
         return; 
     }
-    let sidechain_event;
-    if(event.meta && event.meta.sidechain) {
-      sidechain_event = event.meta.sidechain
+    let sidechain_name;
+    if(event.meta && event.meta.sidechain && event.meta.sidechain.name) {
+      sidechain_name = event.meta.sidechain.name
     }
-    logger.warn(`removing INTERVAL_${event.payer}_${timer}_${sidechain_event ? sidechain_event : "PROVISIONING_X"}`)
-    const timerId = timers[`INTERVAL_${event.payer}_${timer}_${sidechain_event ? sidechain_event : "PROVISIONING_X"}`];
-    while (true) {
+    logger.warn(`removing INTERVAL_${event.payer}_${timer}_${sidechain_name ? sidechain_name : "PROVISIONING_X"}`)
+    const timerId = timers[`INTERVAL_${event.payer}_${timer}_${sidechain_name ? sidechain_name : "PROVISIONING_X"}`];
+    let counter = 0;
+    while (true && counter++ < 5) {
       try {
-        let res = await dal.removeCronInterval(`INTERVAL_${event.payer}_${timer}_${sidechain_event ? sidechain_event : "PROVISIONING_X"}`);
+        let res = await dal.removeCronInterval(`INTERVAL_${event.payer}_${timer}_${sidechain_name ? sidechain_name : "PROVISIONING_X"}`);
         if(res) logger.info('interval removed');
-        if(!res) logger.warn('interval not removed');
+        if(!res) {
+          logger.warn('interval not removed, retrying');
+          continue;
+        } 
       }
       catch (e) {
-        if (e.name === 'SequelizeOptimisticLockError')
+        if (e.name === 'SequelizeOptimisticLockError'){ 
           continue;
-        else throw e;
+        } else {
+          throw e;
+        }
       }
       break;
     }
     clearTimeout(timerId);
-    delete timers[`INTERVAL_${event.payer}_${timer}_${sidechain_event ? sidechain_event : "PROVISIONING_X"}`];
+    delete timers[`INTERVAL_${event.payer}_${timer}_${sidechain_name ? sidechain_name : "PROVISIONING_X"}`];
     return {
       timer
     };

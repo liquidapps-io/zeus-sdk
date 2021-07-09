@@ -5,7 +5,7 @@ const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
 const { getNetwork, getTestContract, getUrl, getCreateAccount, getEos } = requireBox('seed-eos/tools/eos/utils');
 const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
-const { dappServicesContract, dappGovernorContract } = requireBox('dapp-services/tools/eos/dapp-services');
+const { dappServicesContract, dappRewardsContract } = requireBox('dapp-services/tools/eos/dapp-services');
 
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
@@ -13,7 +13,7 @@ const deployer = requireBox('seed-eos/tools/eos/deployer');
 
 const contractCode = 'splitter';
 const ctrt = artifacts.require(`./${contractCode}/`);
-const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
+const { eosio } = requireBox('test-extensions/lib/index');
 
 async function allocateDAPPTokens(account, quantity = '1000.0000 DAPP') {
     const eos = await getEos(dappServicesContract);
@@ -99,9 +99,15 @@ describe(`${contractCode} Contract`, () => {
                 await getCreateAccount(testAccount2);
                 await getCreateAccount(testAccount3);
                 await getCreateAccount(testAccount4);
+                await openBalance(testAccount1, splitterContractName);
+                await openBalance(testAccount2, splitterContractName);
+                await openBalance(testAccount3, splitterContractName2);
+                await openBalance(testAccount4, splitterContractName2);
+                await openBalance(splitterContractName, splitterContractName);
+                await openBalance(splitterContractName2, splitterContractName2);
                 let res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
                 let preBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 let preBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 await splitterContractInstance.setup(
                 {
@@ -159,12 +165,6 @@ describe(`${contractCode} Contract`, () => {
                   broadcast: true,
                   sign: true
                 });
-                await openBalance(testAccount1, splitterContractName);
-                await openBalance(testAccount2, splitterContractName);
-                await openBalance(testAccount3, splitterContractName2);
-                await openBalance(testAccount4, splitterContractName2);
-                await openBalance(splitterContractName, splitterContractName);
-                await openBalance(splitterContractName2, splitterContractName2);
                 
                 await splitterContractInstance.claim({
                   account: splitterContractName,
@@ -184,9 +184,9 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys2.active.privateKey],
                 });
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 let postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 let postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 assert.equal(postBalance1, postBalance2);
                 assert.equal(postBalance1, preBalance1 + 1);
@@ -212,9 +212,12 @@ describe(`${contractCode} Contract`, () => {
                 const keys = await getCreateAccount(splitterContractName)
                 await getCreateAccount(testAccount1)
                 await getCreateAccount(testAccount2)
+                await openBalance(testAccount1, splitterContractName);
+                await openBalance(testAccount2, splitterContractName);
+                await openBalance(splitterContractName, splitterContractName);
                 let res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
                 let preBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 let preBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 await splitterContractInstance.setup(
                 {
@@ -244,9 +247,6 @@ describe(`${contractCode} Contract`, () => {
                   broadcast: true,
                   sign: true
                 });
-                await openBalance(testAccount1, splitterContractName);
-                await openBalance(testAccount2, splitterContractName);
-                await openBalance(splitterContractName, splitterContractName);
                 await splitterContractInstance.claim({
                   account: splitterContractName,
                   all: true
@@ -256,18 +256,18 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys.active.privateKey],
                 });
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 let postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 let postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 assert.equal(postBalance1, postBalance2);
                 assert.equal(postBalance1, preBalance1 + 1);
                 assert.equal(postBalance2, preBalance2 + 1);
                 let percentage1 = '0.25';
                 let percentage2 = '0.75';
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 preBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 preBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 await splitterContractInstance.setup(
                 {
@@ -306,9 +306,9 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys.active.privateKey],
                 });
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 assert.equal(postBalance1, preBalance1 + 2);
                 assert.equal(postBalance2, preBalance2 + 6);
@@ -333,20 +333,26 @@ describe(`${contractCode} Contract`, () => {
                 const splitterContract = await deployer.deploy(ctrt, splitterContractName);
                 const splitterContractInstance = splitterContract.contractInstance;
                 const keys = await getCreateAccount(splitterContractName)
-                await getCreateAccount(testAccount1)
-                await getCreateAccount(testAccount2)
-                await getCreateAccount(testAccount3)
-                await getCreateAccount(testAccount4)
-                await getCreateAccount(testAccount5)
+                await getCreateAccount(testAccount1);
+                await getCreateAccount(testAccount2);
+                await getCreateAccount(testAccount3);
+                await getCreateAccount(testAccount4);
+                await getCreateAccount(testAccount5);
+                await openBalance(testAccount1, splitterContractName);
+                await openBalance(testAccount2, splitterContractName);
+                await openBalance(testAccount3, splitterContractName);
+                await openBalance(testAccount4, splitterContractName);
+                await openBalance(testAccount5, splitterContractName);
+                await openBalance(splitterContractName, splitterContractName);
                 let res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
                 let preBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 let preBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount3)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount3,'accounts')
                 let preBalance3 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount4)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount4,'accounts')
                 let preBalance4 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount5)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount5,'accounts')
                 let preBalance5 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 await splitterContractInstance.setup(
                 {
@@ -388,9 +394,6 @@ describe(`${contractCode} Contract`, () => {
                   broadcast: true,
                   sign: true
                 });
-                await openBalance(testAccount1, splitterContractName);
-                await openBalance(testAccount2, splitterContractName);
-                await openBalance(splitterContractName, splitterContractName);
                 await splitterContractInstance.claim({
                   account: splitterContractName,
                   all: true
@@ -400,15 +403,15 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys.active.privateKey],
                 });
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 let postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 let postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount3)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount3,'accounts')
                 let postBalance3 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount4)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount4,'accounts')
                 let postBalance4 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount5)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount5,'accounts')
                 let postBalance5 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 assert.equal(postBalance1, postBalance2);
                 assert.equal(postBalance2, postBalance3);
@@ -436,9 +439,12 @@ describe(`${contractCode} Contract`, () => {
                 let percentage = '0.6';
                 const splitterContract = await deployer.deploy(ctrt, splitterContractName);
                 const splitterContractInstance = splitterContract.contractInstance;
-                const keys = await getCreateAccount(splitterContractName)
-                await getCreateAccount(testAccount1)
-                await getCreateAccount(testAccount2)
+                const keys = await getCreateAccount(splitterContractName);
+                await getCreateAccount(testAccount1);
+                await getCreateAccount(testAccount2);
+                await openBalance(testAccount1, splitterContractName);
+                await openBalance(testAccount2, splitterContractName);
+                await openBalance(splitterContractName, splitterContractName);
                 let failed = false, error = '';
                 // test 120%
                 try { 
@@ -591,9 +597,15 @@ describe(`${contractCode} Contract`, () => {
                 await getCreateAccount(testAccount2);
                 await getCreateAccount(testAccount3);
                 await getCreateAccount(testAccount4);
+                await openBalance(testAccount1, splitterContractName);
+                await openBalance(testAccount2, splitterContractName);
+                await openBalance(testAccount3, splitterContractName2);
+                await openBalance(testAccount4, splitterContractName2);
+                await openBalance(splitterContractName, splitterContractName);
+                await openBalance(splitterContractName2, splitterContractName2);
                 let res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
                 let preBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 let preBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 await splitterContractInstance.setup(
                 {
@@ -651,14 +663,8 @@ describe(`${contractCode} Contract`, () => {
                   broadcast: true,
                   sign: true
                 });
-                await openBalance(testAccount1, splitterContractName);
-                await openBalance(testAccount2, splitterContractName);
-                await openBalance(testAccount3, splitterContractName2);
-                await openBalance(testAccount4, splitterContractName2);
-                await openBalance(splitterContractName, splitterContractName);
-                await openBalance(splitterContractName2, splitterContractName2);
                 
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 await splitterContractInstance.claim({
                   account: testAccount1,
                   all: false
@@ -668,7 +674,7 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys1.active.privateKey],
                 });
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 await splitterContractInstance.claim({
                   account: testAccount2,
                   all: false
@@ -696,9 +702,9 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys4.active.privateKey],
                 });
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 let postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 let postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 assert.equal(postBalance1, postBalance2);
                 assert.equal(postBalance1, preBalance1 + 1);
@@ -726,13 +732,16 @@ describe(`${contractCode} Contract`, () => {
                 const keys2 = await getCreateAccount(testAccount2)
                 await getCreateAccount(testAccount1)
                 await getCreateAccount(testAccount2)
+                await openBalance(testAccount1, splitterContractName);
+                await openBalance(testAccount2, splitterContractName);
+                await openBalance(splitterContractName, splitterContractName);
                 let res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
                 let preBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 preBalance1 += res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 let preBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 preBalance2 += res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 await splitterContractInstance.setup(
                 {
@@ -762,9 +771,6 @@ describe(`${contractCode} Contract`, () => {
                   broadcast: true,
                   sign: true
                 });
-                await openBalance(testAccount1, splitterContractName);
-                await openBalance(testAccount2, splitterContractName);
-                await openBalance(splitterContractName, splitterContractName);
                 await splitterContractInstance.claim({
                   account: testAccount1,
                   all: false
@@ -774,17 +780,17 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys1.active.privateKey],
                 });
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 let postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 let postSplitterBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance1 += postSplitterBalance1
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 let postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 let postSplitterBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance2 += postSplitterBalance2
-                res = await getTable(eosWrapper,splitterContractName,'accounts',splitterContractName)
+                res = await eosio.getTable(eosWrapper,splitterContractName,splitterContractName,'accounts')
                 let postSplitterBalanceItself1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 await splitterContractInstance.claim({
                   account: testAccount2,
@@ -795,14 +801,14 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys2.active.privateKey],
                 });
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 postSplitterBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance1 += postSplitterBalance1
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 postSplitterBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance2 += postSplitterBalance2
                 assert.equal(postBalance1, postBalance2);
@@ -810,13 +816,13 @@ describe(`${contractCode} Contract`, () => {
                 assert.equal(postBalance2, preBalance2 + 1);
                 let percentage1 = '0.25';
                 let percentage2 = '0.75';
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 preBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 preBalance1 += res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 preBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 preBalance2 += res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 await splitterContractInstance.setup(
                 {
@@ -855,14 +861,14 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys1.active.privateKey],
                 });
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 postSplitterBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance1 += postSplitterBalance1
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 postSplitterBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance2 += postSplitterBalance2
                 await splitterContractInstance.claim({
@@ -874,23 +880,23 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys2.active.privateKey],
                 });
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 postSplitterBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance1 += postSplitterBalance1
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 postSplitterBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance2 += postSplitterBalance2
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 postBalance1 += res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 postBalance2 += res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 assert.equal(postBalance1, preBalance1 + 2);
                 assert.equal(postBalance2, preBalance2 + 6);
@@ -925,15 +931,20 @@ describe(`${contractCode} Contract`, () => {
                 await getCreateAccount(testAccount3)
                 await getCreateAccount(testAccount4)
                 await getCreateAccount(testAccount5)
+                await openBalance(testAccount1, splitterContractName);
+                await openBalance(testAccount2, splitterContractName);
+                await openBalance(testAccount3, splitterContractName);
+                await openBalance(testAccount4, splitterContractName);
+                await openBalance(testAccount5, splitterContractName);
                 let res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
                 let preBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 let preBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount3)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount3,'accounts')
                 let preBalance3 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount4)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount4,'accounts')
                 let preBalance4 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount5)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount5,'accounts')
                 let preBalance5 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 await splitterContractInstance.setup(
                 {
@@ -965,11 +976,6 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys.active.privateKey],
                 });
-                await openBalance(testAccount1, splitterContractName);
-                await openBalance(testAccount2, splitterContractName);
-                await openBalance(testAccount3, splitterContractName);
-                await openBalance(testAccount4, splitterContractName);
-                await openBalance(testAccount5, splitterContractName);
                 await dappTokenMainnet.transfer({ 
                   from: testSender,
                   to: splitterContractName,
@@ -1025,15 +1031,15 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys5.active.privateKey],
                 });
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 let postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 let postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount3)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount3,'accounts')
                 let postBalance3 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount4)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount4,'accounts')
                 let postBalance4 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount5)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount5,'accounts')
                 let postBalance5 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 assert.equal(postBalance1, postBalance2);
                 assert.equal(postBalance2, postBalance3);
@@ -1067,13 +1073,16 @@ describe(`${contractCode} Contract`, () => {
                 const keys2 = await getCreateAccount(testAccount2)
                 await getCreateAccount(testAccount1)
                 await getCreateAccount(testAccount2)
+                await openBalance(testAccount1, splitterContractName);
+                await openBalance(testAccount2, splitterContractName);
+                await openBalance(splitterContractName, splitterContractName);
                 let res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
                 let preBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 preBalance1 += res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 let preBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 preBalance2 += res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 await splitterContractInstance.setup(
                 {
@@ -1103,9 +1112,6 @@ describe(`${contractCode} Contract`, () => {
                   broadcast: true,
                   sign: true
                 });
-                await openBalance(testAccount1, splitterContractName);
-                await openBalance(testAccount2, splitterContractName);
-                await openBalance(splitterContractName, splitterContractName);
                 await splitterContractInstance.claim({
                   account: testAccount1,
                   all: false
@@ -1115,14 +1121,14 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys1.active.privateKey],
                 });
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 let postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 let postSplitterBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance1 += postSplitterBalance1
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 let postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 let postSplitterBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance2 += postSplitterBalance2
                 await dappTokenMainnet.transfer({ 
@@ -1153,14 +1159,14 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys1.active.privateKey],
                 });
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 postSplitterBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance1 += postSplitterBalance1
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 postSplitterBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance2 += postSplitterBalance2
                 assert.equal(postBalance1, postBalance2);
@@ -1168,13 +1174,13 @@ describe(`${contractCode} Contract`, () => {
                 assert.equal(postBalance2, preBalance2 + 2);
                 let percentage1 = '0.25';
                 let percentage2 = '0.75';
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 preBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 preBalance1 += res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 preBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 preBalance2 += res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 await splitterContractInstance.setup(
                 {
@@ -1213,14 +1219,14 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys1.active.privateKey],
                 });
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 postSplitterBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance1 += postSplitterBalance1
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 postSplitterBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance2 += postSplitterBalance2
                 await splitterContractInstance.claim({
@@ -1232,14 +1238,14 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys2.active.privateKey],
                 });
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 postSplitterBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance1 += postSplitterBalance1
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 postSplitterBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance2 += postSplitterBalance2
                 assert.equal(postBalance1, preBalance1 + 2);
@@ -1267,13 +1273,16 @@ describe(`${contractCode} Contract`, () => {
                 const keys2 = await getCreateAccount(testAccount2)
                 await getCreateAccount(testAccount1)
                 await getCreateAccount(testAccount2)
+                await openBalance(testAccount1, splitterContractName);
+                await openBalance(testAccount2, splitterContractName);
+                await openBalance(splitterContractName, splitterContractName);
                 let res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
                 let preBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 preBalance1 += res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 let preBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 preBalance2 += res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 await splitterContractInstance.setup(
                 {
@@ -1303,17 +1312,14 @@ describe(`${contractCode} Contract`, () => {
                   broadcast: true,
                   sign: true
                 });
-                await openBalance(testAccount1, splitterContractName);
-                await openBalance(testAccount2, splitterContractName);
-                await openBalance(splitterContractName, splitterContractName);
                 res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
                 let postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 let postSplitterBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance1 += postSplitterBalance1
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 let postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 let postSplitterBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance2 += postSplitterBalance2
                 await splitterContractInstance.claim({
@@ -1325,14 +1331,14 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys.active.privateKey],
                 });
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 postSplitterBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance1 += postSplitterBalance1
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 postSplitterBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance2 += postSplitterBalance2
                 assert.equal(postBalance1, postBalance2);
@@ -1340,13 +1346,13 @@ describe(`${contractCode} Contract`, () => {
                 assert.equal(postBalance2, preBalance2 + 1);
                 let percentage1 = '0.25';
                 let percentage2 = '0.75';
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 preBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 preBalance1 += res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 preBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 preBalance2 += res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 await splitterContractInstance.setup(
                 {
@@ -1385,14 +1391,14 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys1.active.privateKey],
                 });
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 postSplitterBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance1 += postSplitterBalance1
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 postSplitterBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance2 += postSplitterBalance2
                 await splitterContractInstance.claim({
@@ -1404,14 +1410,14 @@ describe(`${contractCode} Contract`, () => {
                   sign: true,
                   keyProvider: [keys2.active.privateKey],
                 });
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount1,'accounts')
                 postBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount1)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount1,'accounts')
                 postSplitterBalance1 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance1 += postSplitterBalance1
-                res = await getTable(eosWrapper,'dappservices','accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,'dappservices',testAccount2,'accounts')
                 postBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
-                res = await getTable(eosWrapper,splitterContractName,'accounts',testAccount2)
+                res = await eosio.getTable(eosWrapper,splitterContractName,testAccount2,'accounts')
                 postSplitterBalance2 = res.rows.length ? parseInt(res.rows[0].balance.split(" ")[0]) : 0;
                 postBalance2 += postSplitterBalance2
                 assert.equal(postBalance1, preBalance1 + 2);

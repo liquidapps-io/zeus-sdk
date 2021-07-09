@@ -9,8 +9,8 @@ const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
 const { generateBackup } = requireBox('ipfs-dapp-service/utils/ipfs-service/backup');
 const { genAllocateDAPPTokens, readVRAMData } = requireBox('dapp-services/tools/eos/dapp-services');
-const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
-const delaySec = sec => delay(sec * 1000);
+const { eosio } = requireBox('test-extensions/lib/index');
+const delaySec = sec => eosio.delay(sec * 1000);
 
 var contractCode = 'ipfsconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);

@@ -12,7 +12,7 @@ const { loadModels } = requireBox('seed-models/tools/models');
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
 const { genAllocateDAPPTokens, createLiquidXMapping } = requireBox('dapp-services/tools/eos/dapp-services');
-const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
+const { eosio } = requireBox('test-extensions/lib/index');
 
 var contractCode = 'cronxtest';
 var ctrt = artifacts.require(`./${contractCode}/`);
@@ -84,7 +84,7 @@ describe(`LiquidX Sidechain Cron Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(10000);
+        await eosio.delay(10000);
         res = await eosconsumer.getTableRows({
           'json': true,
           'scope': code,
@@ -93,7 +93,7 @@ describe(`LiquidX Sidechain Cron Service Test Contract`, () => {
           'limit': 100
         });
         var first = res.rows[0].counter;
-        await delay(10000);
+        await eosio.delay(10000);
         res = await eosconsumer.getTableRows({
           'json': true,
           'scope': code,
@@ -103,7 +103,7 @@ describe(`LiquidX Sidechain Cron Service Test Contract`, () => {
         });
         var second = res.rows[0].counter;
         assert.ok(second > first, 'counter did not increase');
-        await delay(10000);
+        await eosio.delay(10000);
         res = await eosconsumer.getTableRows({
           'json': true,
           'scope': code,

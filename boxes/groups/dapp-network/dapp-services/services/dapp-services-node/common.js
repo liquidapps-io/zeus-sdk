@@ -427,7 +427,7 @@ const resolveProvider = async (payer, service, provider, sidechain) => {
 
 const processFn = async (actionHandlers, actionObject, simulated, serviceName, handlers, isExternal) => {
   var actionHandler = actionHandlers[actionObject.event.etype];
-  logger.info(`processing ${actionObject.event.etype} for service name: ${serviceName} | service contract: ${actionObject.event.service} | simulated: ${simulated} | isExternal: ${isExternal}`)
+  if(process.env.DSP_VERBOSE_LOGS) logger.info(`processing ${actionObject.event.etype} for service name: ${serviceName} | service contract: ${actionObject.event.service} | simulated: ${simulated} | isExternal: ${isExternal}`)
   if (!actionHandler) { return; }
   try {
     return await actionHandler(actionObject, simulated, serviceName, handlers, isExternal);
@@ -672,7 +672,7 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
       }
       // handles internal service request forwarding
       if (endpoint) {
-        logger.info(`forwarding internal service transaction: ${endpoint + uri}`)
+        if(process.env.DSP_VERBOSE_LOGS) logger.info(`forwarding internal service transaction: ${endpoint + uri}`)
         r = await fetch(endpoint + uri, { method: 'POST', body: JSON.stringify(body) });
         resText = await r.text();
         rText = JSON.parse(resText);
@@ -709,10 +709,10 @@ const genNode = async (actionHandlers, port, serviceName, handlers, abi, sidecha
     if (uri === '/v1/dsp/version')
       return res.send(pjson.version); // send response to contain the version
 
-    if (!isPushTransaction && !isServiceRequest && !isServiceAPIRequest) {
-      if(process.env.DSP_VERBOSE_LOGS) if(process.env.DSP_VERBOSE_LOGS) logger.info(`proxying${uri.indexOf('/v1/chain/') ? ' nodeos': ''} request ${uri}`);
-      return proxy.web(req, res, { target: sidechain ? sidechain.nodeos_endpoint : nodeosMainnetEndpoint });
-    }
+      if (!isPushTransaction && !isServiceRequest && !isServiceAPIRequest) {
+        if(process.env.DSP_VERBOSE_LOGS) logger.info(`proxying${uri.indexOf('/v1/chain/') ? ' nodeos': ''} request ${uri}`);
+        return proxy.web(req, res, { target: sidechain ? sidechain.nodeos_endpoint : nodeosMainnetEndpoint });
+      }
 
     if (isServiceAPIRequest && serviceName === 'services') {
       if (uriParts.length < 5) return notFound(res, 'bad endpoint format');

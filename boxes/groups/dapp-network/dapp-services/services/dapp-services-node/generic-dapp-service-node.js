@@ -26,7 +26,7 @@ const actionHandlers = {
     if (!sidechain && meta && meta.sidechain) {
       sidechain = sidechainsDict[meta.sidechain.name];
     }
-    logger.info(`service_request ${provider} | ${service}:${serviceName}:${action} | ${payer} | ${sidechain ? sidechain.name : ""} | ${broadcasted} | ${isReplay}`)
+    if(process.env.DSP_VERBOSE_LOGS) logger.info(`service_request ${provider} | ${service}:${serviceName}:${action} | ${payer} | ${sidechain ? sidechain.name : ""} | ${broadcasted} | ${isReplay}`)
     var handler = handlers[action];
     var models = await loadModels('dapp-services');
     var serviceContractForLookup = service;
@@ -150,6 +150,7 @@ let enableXCallback = null;
 
 const extractUsageQuantity = async (e) => {
   const details = e.json.error.details;
+  // logger.error(JSON.stringify(details))
   let jsons;
   // if pending console does not contain usage report, use assertion message
   if(!JSON.stringify(details[details.length - 1]).includes('usage_report')) {
@@ -161,7 +162,9 @@ const extractUsageQuantity = async (e) => {
         throw e;
       }
     } else {
-      logger.error(`usage event not found: ${typeof(jsons) == "object" ? JSON.stringify(jsons) : jsons}`)
+      let errMsg = typeof(jsons) == "object" ? JSON.stringify(jsons) : jsons
+      if(!errMsg) errMsg = typeof(details) == "object" ? JSON.stringify(details) : details
+      logger.error(`usage event not found: ${errMsg}`)
       if (!jsons.length) throw new Error('usage event not found');
     }
   } else {

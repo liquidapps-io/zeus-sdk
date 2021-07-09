@@ -43,6 +43,10 @@ module.exports = {
         describe: 'path for persistent storage',
         default: path.join(require('os').homedir(), '.zeus')
       })
+      .option('sidechain', {
+        describe: 'sidechain name to use for liquidx',
+        default: ''
+      })
       .option('stake', {
         describe: 'account staking amount',
         default: '300.0000'

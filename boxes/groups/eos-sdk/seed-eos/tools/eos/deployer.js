@@ -85,5 +85,6 @@ function createDeployer(args) {
 
 module.exports = {
   deploy,
-  createDeployer
+  createDeployer,
+  setContractPermissions
 };

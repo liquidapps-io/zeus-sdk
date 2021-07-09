@@ -11,9 +11,8 @@
   "install": {
     "npm": {
       "glob": true,
-      "openzeppelin-solidity":"v3.2.0",
-      "truffle":true,
-      "zeppelin-solidity": true
+      "@openzeppelin/contracts":true,
+      "truffle":true
     }
   }
 }

@@ -10,16 +10,16 @@ const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
 const { genAllocateDAPPTokens, createLiquidXMapping } = requireBox('dapp-services/tools/eos/dapp-services');
-const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
+const { eosio } = requireBox('test-extensions/lib/index');
 
 const contractCode = 'sanftpeg';
 const contractCodeX = 'sanftpegx';
 const ctrt = artifacts.require(`./${contractCode}/`);
 const ctrtx = artifacts.require(`./${contractCodeX}/`);
-const tokenContract = artifacts.require('./SimpleAssets/');
+const tokenContract = artifacts.require('./simpleassets/');
 const rejectContract = artifacts.require('./sareject/');
 
-describe(`Token bridge Test`, () => {
+describe(`Simple Assets Token bridge Test EOSIO <> EOSIO`, () => {
   let testcontract, testcontractX;
   const codeXMainnet = 'sanftpeg';
   const codeXSidechain = 'sanftpegx';
@@ -163,7 +163,7 @@ describe(`Token bridge Test`, () => {
     })();
   });
 
-  it('Token peg mainnet to sidechain', done => {
+  it('Simple Assets NFT Peg mainnet to sidechain', done => {
     (async () => {
       try {
         //Create a TSHIRT 1
@@ -205,11 +205,11 @@ describe(`Token bridge Test`, () => {
         }, {
           authorization: `${testAccMainnet}@active`
         });
-        console.log(tx);
+        // console.log(tx);
 
 
         //arbitrary delay for irreversibility
-        await delay(40000); // sleep
+        await eosio.delay(40000); // sleep
 
 
         //MINT TSHIRT 2
@@ -231,10 +231,10 @@ describe(`Token bridge Test`, () => {
         }, {
           authorization: `${testAccMainnet}@active`
         });
-        console.log(tx);
+        // console.log(tx);
 
 
-        await delay(40000);
+        await eosio.delay(40000);
 
         //MINT TSHIRT 3
         await testcontract.mint({
@@ -256,9 +256,9 @@ describe(`Token bridge Test`, () => {
         }, {
           authorization: `${testAccMainnet}@active`
         });
-        console.log(tx);
+        // console.log(tx);
 
-        await delay(40000);
+        await eosio.delay(40000);
 
 
         //MINT TSHIRT 4
@@ -280,9 +280,9 @@ describe(`Token bridge Test`, () => {
         }, {
           authorization: `${testAccMainnet}@active`
         });
-        console.log(tx);
+        // console.log(tx);
 
-        await delay(40000);
+        await eosio.delay(40000);
 
         done();
       } catch(e) {
@@ -291,7 +291,7 @@ describe(`Token bridge Test`, () => {
     })()
   });
 
-  it('Token peg sidechain to mainnet', done => {
+  it('Simple Assets NFT Peg sidechain to mainnet', done => {
     (async () => {
       try {   
         let tx;     
@@ -315,14 +315,14 @@ describe(`Token bridge Test`, () => {
           }, {
             authorization: `${testAccSidechain}@active`
           });
-          console.log(tx);
+          // console.log(tx);
 
         } catch(e) {
-          console.log("Unable to get shirt 1");
+          // console.log("Unable to get shirt 1");
           
         }
 
-        await delay(40000); // sleep
+        await eosio.delay(40000); // sleep
 
         try {
           //CLAIM NFTS ON TESTNET (so claimer pays ram)
@@ -342,13 +342,13 @@ describe(`Token bridge Test`, () => {
           }, {
             authorization: `${testAccSidechain}@active`
           });
-          console.log(tx);
+          // console.log(tx);
 
         } catch(e) {
-          console.log("Unable to get shirt 2");
+          // console.log("Unable to get shirt 2");
         }
 
-        await delay(40000); // sleep
+        await eosio.delay(40000); // sleep
 
         try {
           //CLAIM NFTS ON TESTNET (so claimer pays ram)
@@ -368,12 +368,12 @@ describe(`Token bridge Test`, () => {
           }, {
             authorization: `${testAccSidechain}@active`
           });
-          console.log(tx);
+          // console.log(tx);
 
         } catch(e) {
-          console.log("Unable to get shirt 4");
+          // console.log("Unable to get shirt 4");
         }
-        await delay(40000); // sleep
+        await eosio.delay(40000); // sleep
         done();
       } catch(e) {
         done(e);

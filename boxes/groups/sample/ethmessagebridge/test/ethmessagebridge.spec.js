@@ -8,7 +8,7 @@ const { getLocalDSPEos, getCreateAccount, getNetwork } = requireBox('seed-eos/to
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
 const { genAllocateDAPPTokens, createLiquidXMapping } = requireBox('dapp-services/tools/eos/dapp-services');
-const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
+const { eosio } = requireBox('test-extensions/lib/index');
 
 const contractCode = 'helloeth';
 const ctrt = artifacts.require(`./${contractCode}/`);
@@ -68,7 +68,7 @@ describe(`Token bridge Test`, () => {
         }, {
           authorization: `${codeEos}@active`
         });
-        await delay(10000);
+        await eosio.delay(10000);
         const lastReceivedMessageId = await helloEosSol.last_received_message_id.call(); 
         const lastReceivedMessage = await helloEosSol.foreign_messages.call(lastReceivedMessageId);
         assert.equal(lastReceivedMessage.message, "Hello Ethereum");
@@ -88,7 +88,7 @@ describe(`Token bridge Test`, () => {
         await helloEosSol.pushMessage( message , {
           from: ethOwnerAccount 
         });
-        await delay(10000);
+        await eosio.delay(10000);
         // verify message received
         //const lastReceivedMessage = await dspeos.getTableRows({
           //'json': true,

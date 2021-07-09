@@ -12,8 +12,8 @@ const contractCode = 'dappairhodl1';
 var contractCode2 = 'ipfsconsumer';
 var ctrt = artifacts.require(`./airhodl/`);
 var ctrt2 = artifacts.require(`./${contractCode2}/`);
-const { awaitTable, getTable, delay } = requireBox('seed-tests/lib/index');
-const delaySec = sec => delay(sec * 1000);
+const { eosio } = requireBox('test-extensions/lib/index');
+const delaySec = sec => eosio.delay(sec * 1000);
 
 async function issueInitialSupply({ deployedContract }) {
   var key = await getCreateKeys(dappServicesContract);

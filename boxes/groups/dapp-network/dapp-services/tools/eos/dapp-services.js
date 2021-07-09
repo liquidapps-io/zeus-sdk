@@ -5,7 +5,7 @@ const { loadModels } = requireBox('seed-models/tools/models');
 const fetch = require('node-fetch');
 const logger = requireBox('log-extensions/helpers/logger');
 const dappServicesContract = process.env.DAPPSERVICES_CONTRACT || 'dappservices';
-const dappGovernorContract = process.env.DAPPGOVERNOR_CONTRACT || 'dappgovernor';
+const dappRewardsContract = process.env.DAPP_REWARDS_CONTRACT || 'dappsplitter';
 const dappServicesLiquidXContract = process.env.DSP_LIQUIDX_CONTRACT || 'liquidx';
 // accounts 8,9 based on mnemonic provide 03-a/b
 const testProvidersList = [
@@ -210,5 +210,5 @@ module.exports = {
   testProvidersList,
   dappServicesLiquidXContract,
   createLiquidXMapping,
-  dappGovernorContract
+  dappRewardsContract
 };
