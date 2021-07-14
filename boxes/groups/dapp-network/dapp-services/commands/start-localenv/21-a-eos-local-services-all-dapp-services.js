@@ -4,7 +4,6 @@ const deployer = requireBox('seed-eos/tools/eos/deployer');
 const { getCreateAccount, getEos } = requireBox('seed-eos/tools/eos/utils');
 const { loadModels } = requireBox('seed-models/tools/models');
 const { dappServicesContract, getContractAccountFor, testProvidersList } = requireBox('dapp-services/tools/eos/dapp-services');
-
 const servicescontract = dappServicesContract;
 var servicesC = artifacts.require(`./dappservices/`);
 

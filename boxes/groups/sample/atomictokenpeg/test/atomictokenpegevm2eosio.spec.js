@@ -105,25 +105,21 @@ describe(`Atomic NFT Token bridge Test EVM <> EOSIO`, () => {
   it('Transfers ERC721 from EVM to EOSIO', done => {
     (async () => {
       try {
-        await atomic.createNft(deployedAtomicNft, dspeos, testAccMainnet,true,atomicMainnet,true,tokenpegMainnet,null,"nftauthcoll1");
-        await atomic.setupEosio(deployedContract,tokenpegMainnet,null,"nftauthcoll1")
+        await atomic.createNft(deployedAtomicNft, dspeos, testAccMainnet,true,atomicMainnet,true,tokenpegMainnet,null,"nftauthcoll2");
+        await atomic.setupEosio(deployedContract,tokenpegMainnet,null,"nftauthcoll2",3)
         // const asset_id = await atomic.returnAssetId(dspeos, testAccMainnet,atomicMainnet,true);
-        const asset_id = 1
+        const asset_id = 1;
         const availableAccounts = await web3.eth.getAccounts();
         const masterAccount = availableAccounts[0];
         await erc721Contract.mint(testAddressEth, asset_id,{
           from: masterAccount,
           gas: '5000000'
         });
-        // await erc721Contract.approve(atomictokenpeg.address, asset_id,{
-        //   from: testAddressEth,
-        //   gas: '5000000'
-        // });
         await erc721Contract.setApprovalForAll(atomictokenpeg.address, 1,{
           from: testAddressEth,
           gas: '5000000'
         });
-        await atomictokenpeg.sendToken(asset_id, testAccMainnetUint64, {
+        await atomictokenpeg.sendToken(asset_id, testAccMainnetUint64, erc721Contract.address, {
           from: testAddressEth,
           gasLimit: '1000000'
         });
@@ -161,7 +157,7 @@ describe(`Atomic NFT Token bridge Test EVM <> EOSIO`, () => {
           from: testAccMainnet,
           to: tokenpegMainnet,
           asset_ids: [asset_id],
-          memo: "0x0"
+          memo: `0x0,${erc721Contract.address}`
         }, {
           authorization: [`${testAccMainnet}@active`],
           keyProvider: [keys.active.privateKey]
@@ -198,7 +194,7 @@ describe(`Atomic NFT Token bridge Test EVM <> EOSIO`, () => {
           from: testAccMainnet,
           to: tokenpegMainnet,
           asset_ids: [asset_id],
-          memo: testAddressEth
+          memo: `${testAddressEth},${erc721Contract.address}`
         }, {
           authorization: [`${testAccMainnet}@active`],
           keyProvider: [keys.active.privateKey]
@@ -226,7 +222,7 @@ describe(`Atomic NFT Token bridge Test EVM <> EOSIO`, () => {
           from: testAddressEth,
           gas: '5000000'
         });
-        await atomictokenpeg.sendToken(1, 12345, {
+        await atomictokenpeg.sendToken(1, 12345, erc721Contract.address, {
           from: testAddressEth,
           gasLimit: '1000000'
         });
@@ -320,12 +316,12 @@ async function deployEthContracts() {
   });
   nftContract.setProvider(web3.currentProvider);
   tokenpegContract.setProvider(web3.currentProvider);
-  const deployedToken = await nftContract.new("Existing NFT Contract", "NFTs", "",{
+  const deployedToken = await nftContract.new("Bridged NFT", "NFT", "QmWx6jv5rQufPu5zbRkC2NADZnaXoBqdiYWDwBqaM3fFnM",{
     from: masterAccount,
     gas: '5000000'
   });
   // console.log(`Token address: ${deployedToken.address}`);
-  const deployedTokenpeg = await tokenpegContract.new(signers, 1, deployedToken.address, {
+  const deployedTokenpeg = await tokenpegContract.new(signers, 1, {
     from: masterAccount,
     gas: '5000000'
   });

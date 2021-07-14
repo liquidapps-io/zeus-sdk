@@ -16,6 +16,8 @@ const endpoints = {
     'worbli': 'https://api.worbli.eostribe.io',
     'jungle': 'https://junglehistory.cryptolions.io:4433',
     'jungle3': 'https://jungle3.cryptolions.io:443',
+    'waxtest': 'https://testnet.waxsweden.org',
+    'wax': 'http://wax.pink.gg',
     'meetone': 'https://fullnode.meet.one'
 };
 const resolveHistoryEndpointForSisterChain = (chain) => {

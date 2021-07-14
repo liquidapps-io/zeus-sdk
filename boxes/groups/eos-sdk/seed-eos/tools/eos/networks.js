@@ -19,6 +19,18 @@ let networks = {
         port: 443,
         secured: true
     },
+    'waxtest': {
+        chainId: '2a02a0053e5a8cf73a56ba0fda11e4d92e0238a4a2aa74fccf46d5a910746840',
+        host: 'testnet.waxsweden.org',
+        port: 443,
+        secured: true
+    },
+    'wax': {
+        chainId: '1064487b3cd1a897ce03ae5b6a865651747e2e152090f99c1d19d44e01aea5a4',
+        host: 'wax.pink.gg',
+        port: 443,
+        secured: true
+    },
     'kylin': {
         chainId: '5fff1dae8dc8e2fc4d5b23b2c7665c97f9e9d8edf2b6485a86ba311c25639191',
         host: 'kylin.eosn.io',

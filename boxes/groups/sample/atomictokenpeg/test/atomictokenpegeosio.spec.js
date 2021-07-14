@@ -18,7 +18,8 @@ const ctrtx = artifacts.require(`./${contractCodeX}/`);
 const { eosio,atomic } = requireBox('test-extensions/lib/index');
 const nftTokenContract = artifacts.require('./atomicassets/');
 const nftTokenAccount = 'atomicasset2';
-// const asset_id = 1099511627776;
+// const asset_id = 1099511627776;,
+const testNftAuthor = 'testpegmnown';
 
 describe(`Atomic NFT Token bridge Test EOSIO <> EOSIO`, () => {
   let testcontract, testcontractX, keys;
@@ -169,6 +170,16 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EOSIO`, () => {
       try {
         const asset_id = await atomic.createNft(deployedAtomicNft, dspeos, testAccMainnet, true,atomicMainnet,false,tokenpegMainnet);
         await atomic.createNft(deployedAtomicatomicSidechain, eosconsumerX, testAccSidechain, true,atomicSidechain,true,tokenpegSidechain,sidechain);
+        const nftOwnerKeys = await getCreateAccount(testNftAuthor);
+        await testcontract.regmapping({
+          template_id: 1,
+          schema_name: atomic.schema_name,
+          collection_name: atomic.collection_name,
+          immutable_data: atomic.immutable_data,
+        }, {
+          authorization: [`${testNftAuthor}@active`],
+          keyProvider: [nftOwnerKeys.active.privateKey]
+        });
         const pre_balance = await atomic.returnAssetId(eosconsumerX, testAccSidechain,atomicSidechain);
         const transferMemo = `${testAccSidechain},test1`;
         await nftTokenMainnetContract.transfer({

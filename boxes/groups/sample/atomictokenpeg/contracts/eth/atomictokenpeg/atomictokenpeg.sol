@@ -1,30 +1,25 @@
 //SPDX-License-Identifier: UNLICENSED
-pragma solidity >0.6.0;
+pragma solidity ^0.8.0;
 import "../link/link.sol";
-import "./IERC721Burnable.sol";
+import "./IERC721BurnableStorage.sol";
 import "./IOwned.sol";
 
 contract atomictokenpeg is link {
   event Refund(uint256 id, address recipient, uint256 tokenId, bytes reason);
   event Failure(bytes reason);
   event Receipt(address recipient, uint256 tokenId, bytes reason);
-
-  IERC721Burnable public tokenContract;
   
   constructor(
     address[] memory _owners,
-    uint8 _required,
-    address _tokenContract
+    uint8 _required
   ) link(_owners, _required)
-  {
-    tokenContract = IERC721Burnable(_tokenContract);
-  }
+  {}
 
   /**
     * @dev accepts ownership of smart token
     */
-  function acceptTokenOwnership() public {
-    IOwned ownableToken = IOwned(address(tokenContract));
+  function acceptTokenOwnership(address tokenAddress) public {
+    IOwned ownableToken = IOwned(tokenAddress);
     ownableToken.acceptOwnership();
   }
 
@@ -34,34 +29,23 @@ contract atomictokenpeg is link {
     * @param tokenId message
     * @param recipient message
     */
-  function sendToken(uint256 tokenId, uint64 recipient) public {
-    tokenContract.burn(tokenId);
-    bytes memory message = abi.encodePacked(bool(true), Endian.reverse64(recipient), uint64(tokenId), msg.sender);
+  function sendToken(uint256 tokenId, uint64 recipient, address tokenContract) public {
+    bytes memory message = abi.encodePacked(bool(true), Endian.reverse64(recipient), uint64(tokenId), msg.sender, tokenContract);
+    IERC721Burnable(tokenContract).burn(tokenId);
     pushMessage(message);
   }
-
-  // /**
-  //   * @dev allows owner to mint tokens from improper send
-  //   *
-  //   * @param tokenId message
-  //   * @param recipient message
-  //   */
-  // function mintToken(uint256 tokenId, address recipient) public {
-  //   require(isOwner[msg.sender], "sender not authorized");
-  //   tokenContract.mint(recipient, tokenId);
-  // }
 
   /**
     * @dev allows msg.sender to send tokens to another chain
     *
     * @param recipient message
     */
-  function mintTokens(uint256 tokenId, address recipient, uint256 id, bytes memory message) internal {
+  function mintTokens(uint256 tokenId, address recipient, uint256 id, address tokenAddress, bytes memory message) internal {
     bytes memory receipt = message;
-    try tokenContract.mint(recipient, tokenId) {
+    try IERC721Burnable(tokenAddress).mint(recipient, tokenId) {
       // return success true
       receipt[0] = 0x01;
-    } catch(bytes memory failureMessage) {      
+    } catch(bytes memory failureMessage) {
       // return success false
       receipt[0] = 0x00;
       emit Failure(failureMessage);
@@ -78,10 +62,12 @@ contract atomictokenpeg is link {
     //byte 0, status
     //byte 1-8, eos account
     //byte 9-17, asset_id
-    //byte 17-27 address
+    //byte 17-37 address
+    //byte 37-45 token index
     uint256 tokenId = readMessage(_message, 9, 8);
     address recipient = address(uint160(readMessage(_message, 17, 20)));
-    mintTokens(tokenId, recipient, id, _message);
+    address tokenAddress = address(uint160(readMessage(_message, 37, 20)));
+    mintTokens(tokenId, recipient, id, tokenAddress, _message);
   }
 
   /**

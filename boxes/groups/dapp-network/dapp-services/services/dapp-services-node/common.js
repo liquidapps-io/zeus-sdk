@@ -575,6 +575,7 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
   let garbage = []; 
   let simulated = false;
   let lastProcessedData = '';
+  let detailMsg;
   while (trys < maxReqRetries) {    
     let r = await testTransaction(sidechain, uri, body);
     let resText = await r.text();
@@ -588,7 +589,7 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
     try {
       let detailsAssertionSvcReq;
       rText = JSON.parse(resText);
-      const detailMsg = rText.error.details;
+      detailMsg = rText.error.details;
       if(!detailMsg) throw new Error('no service request found');
       const detailsAssertion = detailMsg.find(d => d.message.indexOf(': required service') != -1);
       if(detailsAssertion) {
@@ -683,7 +684,7 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
     }
     catch (e) {
       await rollBack(garbage, actionHandlers, serviceName, handlers);
-      logger.error(`exception running push_transaction: ${e} for endpoint ${endpoint} and uri: ${uri}`);
+      logger.error(`exception running push_transaction: ${e} original trx error ${detailMsg} for endpoint ${endpoint} and uri: ${uri}`);
       res.status(500);
       res.send(JSON.stringify({
         code: 500,

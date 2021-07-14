@@ -12,20 +12,15 @@ contract atomictokenpegevm2eosio is link, ERC721Holder {
   
   constructor(
     address[] memory _owners,
-    uint8 _required,
-    address _tokenContract
-  ) link(_owners, _required) payable
-  {
-    tokenContract = IERC721(_tokenContract);
-  }
-
-  IERC721 public tokenContract;
+    uint8 _required
+  ) link(_owners, _required)
+  {}
 
   /**
     * @dev accepts ownership of smart token
     */
-  function acceptTokenOwnership() public {
-    IOwned ownableToken = IOwned(address(tokenContract));
+  function acceptTokenOwnership(address tokenAddress) public {
+    IOwned ownableToken = IOwned(tokenAddress);
     ownableToken.acceptOwnership();
   }
 
@@ -35,9 +30,9 @@ contract atomictokenpegevm2eosio is link, ERC721Holder {
     * @param tokenId message
     * @param recipient message
     */
-  function sendToken(uint256 tokenId, uint64 recipient) public {
-    tokenContract.safeTransferFrom(msg.sender, address(this), tokenId);
-    bytes memory message = abi.encodePacked(bool(true), Endian.reverse64(recipient), uint64(tokenId), msg.sender);
+  function sendToken(uint256 tokenId, uint64 recipient, address tokenContract) public {
+    IERC721(tokenContract).safeTransferFrom(msg.sender, address(this), tokenId);
+    bytes memory message = abi.encodePacked(bool(true), Endian.reverse64(recipient), uint64(tokenId), msg.sender, tokenContract);
     pushMessage(message);
   }
 
@@ -46,9 +41,9 @@ contract atomictokenpegevm2eosio is link, ERC721Holder {
     *
     * @param recipient message
     */
-  function transferTokens(uint256 tokenId, address recipient, uint256 id, bytes memory message) internal {
+  function transferTokens(uint256 tokenId, address recipient, uint256 id, address tokenAddress, bytes memory message) internal {
     bytes memory receipt = message;
-    try tokenContract.safeTransferFrom(address(this), recipient, tokenId) {
+    try IERC721(tokenAddress).safeTransferFrom(address(this), recipient, tokenId) {
       // return success true
       receipt[0] = 0x01;
     } catch(bytes memory failureMessage) {
@@ -71,7 +66,8 @@ contract atomictokenpegevm2eosio is link, ERC721Holder {
     //byte 17-27 address
     uint256 tokenId = readMessage(_message, 9, 8);
     address recipient = address(uint160(readMessage(_message, 17, 20)));
-    transferTokens(tokenId, recipient, id, _message);
+    address tokenAddress = address(uint160(readMessage(_message, 37, 20)));
+    transferTokens(tokenId, recipient, id, tokenAddress, _message);
   }
 
   /**

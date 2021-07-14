@@ -4,10 +4,6 @@ import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 
 interface IERC721Burnable is IERC721Metadata {
     /**
-     * ADDED FUNCTIONS FOR ISSUE/DESTROY Support
-     */
-     
-    /**
      * @dev issues `amount` tokens to `recipient`.
      *
      * Returns a boolean value indicating whether the operation succeeded.
@@ -24,8 +20,4 @@ interface IERC721Burnable is IERC721Metadata {
      * Emits a {Transfer} event.
      */
     function burn(uint256 tokenId) external;
-    
-    /**
-     * END ADDED FUNCTIONS FOR ISSUE/DESTROY Support
-     */
 }
