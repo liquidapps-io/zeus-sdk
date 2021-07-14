@@ -29,11 +29,12 @@ CONTRACT_START()
 
   struct message_t {
     bool success;
-    name account;            
+    name account;
     uint64_t asset_id;
     checksum160 address;
+    checksum160 token_address;
   };
-  
+
   TABLE assets_s {
     uint64_t         asset_id;
     name             collection_name;
@@ -47,6 +48,37 @@ CONTRACT_START()
   };
   typedef multi_index <name("assets"), assets_s> assets_t;
   typedef eosio::singleton<"assets"_n, assets_s> assets_singleton_t;
+
+  TABLE collections_s {
+      name             collection_name;
+      name             author;
+      bool             allow_notify;
+      vector <name>    authorized_accounts;
+      vector <name>    notify_accounts;
+      double           market_fee;
+      vector <uint8_t> serialized_data;
+
+      uint64_t primary_key() const { return collection_name.value; };
+  };
+
+  typedef multi_index <name("collections"), collections_s> collections_t;
+
+  struct asset_entry {
+    int32_t          template_id;
+    name             schema_name;
+    name             collection_name;
+    checksum160      address;
+    vector <uint8_t> immutable_serialized_data;
+  };
+
+  TABLE templatemap_s {
+      name             author;
+      vector<asset_entry>  asset_entries;
+
+      uint64_t primary_key() const { return author.value; };
+  };
+
+  typedef multi_index <name("templatemap"), templatemap_s> templatemap_t;
 
   //Scope: collection_name
   TABLE schemas_s {
@@ -93,30 +125,12 @@ CONTRACT_START()
     return bytes;
   }
 
-  // string BytesToHex(vector<char> data)
-  // {
-  //   string s(data.size() * 2, ' ');
-  //   char hexmap[] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
-  //   for (int i = 0; i < data.size(); ++i) {
-  //       s[2 * i]     = hexmap[(data[i] & 0xF0) >> 4];
-  //       s[2 * i + 1] = hexmap[data[i] & 0x0F];
-  //   }
-  //   return s;
-  // }
-
   eosio::checksum160 HexToAddress(const string& hex) {
     auto bytes = HexToBytes(clean_eth_address(hex));
     array<uint8_t, 20> arr;
     copy_n(bytes.begin(), 20, arr.begin());
     return eosio::checksum160(arr);
   }
-
-  // string AddressToHex(const eosio::checksum160& address) {
-  //   vector<char> bytes;
-  //   auto arr = address.extract_as_byte_array();
-  //   copy_n(arr.begin(), 20, bytes.begin());
-  //   return BytesToHex(bytes);
-  // }
 
   int64_t reverse(int64_t value) {
     vector<char> value_v(8);
@@ -263,6 +277,74 @@ CONTRACT_START()
     settings.mutable_serialized_data = serialize(mutable_data, schema_itr->format);
     settings_singleton.set(settings, _self);
   }
+
+  // register mapping
+  [[eosio::action]]
+  void regmapping(
+    int32_t template_id, 
+    name schema_name, 
+    name collection_name, 
+    string address, 
+    atomicdata::ATTRIBUTE_MAP immutable_data
+  ) {
+    check(address.length() == 42, "requires valid eth address");
+
+    schemas_t schema_formats(NFT_ACCOUNT,collection_name.value);	
+    auto schema_itr = schema_formats.find(schema_name.value);
+
+    vector <uint8_t> immutable_serialized_data = serialize(immutable_data, schema_itr->format);
+    vector<asset_entry> asset_entries;
+    asset_entries.push_back({ template_id, schema_name, collection_name, HexToAddress(address), immutable_serialized_data });
+
+    collections_t collections_table(NFT_ACCOUNT,NFT_ACCOUNT.value);
+    const auto& collection = collections_table.get( collection_name.value, "no collection found" );
+
+    require_auth(collection.author);
+
+    templatemap_t templatemap_table(_self,collection.author.value);
+    auto templatemap = templatemap_table.find(collection.author.value);
+    if(templatemap == templatemap_table.end()) {
+      templatemap_table.emplace(_self, [&](auto& a){
+          a.author = collection.author;
+          a.asset_entries = asset_entries;
+      });
+    } else {
+      bool found = false;
+      for(auto template_id_itr : templatemap->asset_entries) {
+        // check for exact match
+        if((
+          template_id_itr.template_id == template_id
+          && template_id_itr.schema_name == schema_name
+          && template_id_itr.collection_name == collection_name
+          && template_id_itr.address == HexToAddress(address)
+          && template_id_itr.immutable_serialized_data == immutable_serialized_data
+        )
+        // ensure each address is unique
+        || template_id_itr.address == HexToAddress(address)) {
+          found = true;
+        }
+        asset_entries.push_back(template_id_itr);
+      }
+      check(!found,"template already mapped");
+      templatemap_table.modify(templatemap,_self, [&]( auto& a ){
+        a.asset_entries = asset_entries;
+      });
+    }
+  }
+
+  vector<string> split(const string& str, const string& delim) {
+    vector<string> tokens;
+    size_t prev = 0, pos = 0;
+    do {
+      pos = str.find(delim, prev);
+      if (pos == string::npos) pos = str.length();
+      string token = str.substr(prev, pos-prev);
+      tokens.push_back(token);
+      prev = pos + delim.length();
+    } while (pos < str.length() && prev < str.length());
+
+    return tokens;
+  }
   
   void transfer(name from, name to, vector <uint64_t> asset_ids, string memo) {
     token_settings_table settings_singleton(_self, _self.value);
@@ -274,14 +356,16 @@ CONTRACT_START()
     check(sizeof(asset_ids) > 0, "no nfts being transferred");
     check(settings.transfers_enabled, "transfers disabled");
     
-    // the memo should contain ONLY the eth address.
     for (uint64_t asset_id : asset_ids) {
       if(settings.can_issue) {
+        vector<string> split_memo = split(memo, ",");
+        check(split_memo[0].length() > 0,"no destination account");
+        check(split_memo[1].length() > 0,"no destination contract");
         // create custom message_t message
         mapping_t mapping_table(_self,asset_id);
         auto existing = mapping_table.find(asset_id);
         if(existing != mapping_table.end()) {
-          message_t new_transfer = { true, from, existing->transferred_asset_id, HexToAddress(memo) };
+          message_t new_transfer = { true, from, existing->transferred_asset_id, HexToAddress(split_memo[0]),HexToAddress(split_memo[1]) };
           auto transfer = pack(new_transfer);
 
           // burn nft
@@ -300,11 +384,12 @@ CONTRACT_START()
           pushMessage(transfer);
           remove_mapping(asset_id);
         } else {
-          // check(false,"should not get here");
-          // mint_asset(asset_id,to,settings.token_contract);
+          check(false,"should not get here");
         }
       } else {
-        message_t new_transfer = { true, from, asset_id, HexToAddress(memo) };
+        // verify mapping
+        checksum160 address = verifyMapping(asset_id);
+        message_t new_transfer = { true, from, asset_id, HexToAddress(memo), address };
         auto transfer = pack(new_transfer);
         #ifdef LINK_DEBUG    
           history_table histories(_self, _self.value);
@@ -318,6 +403,30 @@ CONTRACT_START()
         pushMessage(transfer);
       }
     }
+  }
+
+  checksum160 verifyMapping(const uint64_t asset_id) {
+    assets_t assets_table(NFT_ACCOUNT,_self.value);
+    const auto& asset = assets_table.get( asset_id, "no nft found" );
+    collections_t collections_table(NFT_ACCOUNT,NFT_ACCOUNT.value);
+    const auto& collection = collections_table.get( asset.collection_name.value, "no collection found for asset" );
+    templatemap_t templatemap_table(_self,collection.author.value);
+    const auto& templatemap = templatemap_table.get( collection.author.value, "no templatemap found, collection author must create" );
+    bool id_found = false;
+    checksum160 address;
+    for (auto asset_entry : templatemap.asset_entries) {
+      if(asset_entry.template_id == asset.template_id
+        && asset_entry.schema_name == asset.schema_name
+        && asset_entry.collection_name == asset.collection_name
+        // && asset_entry.address == HexToAddress(address)
+        && asset_entry.immutable_serialized_data == asset.immutable_serialized_data
+      ) {
+        address = asset_entry.address;
+        id_found = true;
+      }
+    }
+    check(id_found, "template id mapping not found");
+    return address;
   }
 
   vector<char> message_received(const vector<char>& data) {
@@ -489,7 +598,7 @@ extern "C" {
     else {
       switch (action) {
         EOSIO_DISPATCH_HELPER(CONTRACT_NAME(), DAPPSERVICE_ACTIONS_COMMANDS())
-        EOSIO_DISPATCH_HELPER(CONTRACT_NAME(), (init)(enable)(getdest)(disable)(refund)(clearhist)(evmeossetup))
+        EOSIO_DISPATCH_HELPER(CONTRACT_NAME(), (init)(enable)(getdest)(disable)(refund)(clearhist)(evmeossetup)(regmapping))
         EOSIO_DISPATCH_HELPER(CONTRACT_NAME(), (xsignal))
       }
     }

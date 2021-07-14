@@ -54,6 +54,20 @@ CONTRACT_START()
 
   typedef multi_index <name("assets"), assets_s> assets_t;
 
+  TABLE collections_s {
+      name             collection_name;
+      name             author;
+      bool             allow_notify;
+      vector <name>    authorized_accounts;
+      vector <name>    notify_accounts;
+      double           market_fee;
+      vector <uint8_t> serialized_data;
+
+      uint64_t primary_key() const { return collection_name.value; };
+  };
+
+  typedef multi_index <name("collections"), collections_s> collections_t;
+
   //Scope: collection_name
   TABLE schemas_s {
     name            schema_name;
@@ -100,6 +114,22 @@ CONTRACT_START()
     uint64_t primary_key() const { return current_id; };
   };
   typedef multi_index <name("nftmapping"), mapping_s> mapping_t;
+
+  struct asset_entry {
+    int32_t          template_id;
+    name             schema_name;
+    name             collection_name;
+    vector <uint8_t> immutable_serialized_data;
+  };
+
+  TABLE templatemap_s {
+      name             author;
+      vector<asset_entry>  asset_entries;
+
+      uint64_t primary_key() const { return author.value; };
+  };
+
+  typedef multi_index <name("templatemap"), templatemap_s> templatemap_t;
 
   [[eosio::action]]
   void init(
@@ -172,6 +202,55 @@ CONTRACT_START()
 
     return tokens;
   }
+
+  // register mapping
+  [[eosio::action]]
+  void regmapping(
+    int32_t template_id, 
+    name schema_name, 
+    name collection_name, 
+    atomicdata::ATTRIBUTE_MAP immutable_data
+  ) {
+
+    schemas_t schema_formats(NFT_ACCOUNT,collection_name.value);	
+    auto schema_itr = schema_formats.find(schema_name.value);
+
+    vector <uint8_t> immutable_serialized_data = serialize(immutable_data, schema_itr->format);
+    vector<asset_entry> asset_entries;
+    asset_entries.push_back({ template_id, schema_name, collection_name, immutable_serialized_data });
+
+    collections_t collections_table(NFT_ACCOUNT,NFT_ACCOUNT.value);
+    const auto& collection = collections_table.get( collection_name.value, "no collection found" );
+
+    require_auth(collection.author);
+
+    templatemap_t templatemap_table(_self,collection.author.value);
+    auto templatemap = templatemap_table.find(collection.author.value);
+    if(templatemap == templatemap_table.end()) {
+      templatemap_table.emplace(_self, [&](auto& a){
+          a.author = collection.author;
+          a.asset_entries = asset_entries;
+      });
+    } else {
+      bool found = false;
+      for(auto template_id_itr : templatemap->asset_entries) {
+        // check for exact match
+        if(
+          template_id_itr.template_id == template_id
+          && template_id_itr.schema_name == schema_name
+          && template_id_itr.collection_name == collection_name
+          && template_id_itr.immutable_serialized_data == immutable_serialized_data
+        ) {
+          found = true;
+        }
+        asset_entries.push_back(template_id_itr);
+      }
+      check(!found,"template already mapped");
+      templatemap_table.modify(templatemap,_self, [&]( auto& a ){
+        a.asset_entries = asset_entries;
+      });
+    }
+  }
   
   void transfer(name from, name to, vector <uint64_t> asset_ids, string memo) {
     token_settings_table settings_singleton(_self, _self.value);
@@ -216,23 +295,10 @@ CONTRACT_START()
           pushMessage(transfer);
           remove_mapping(asset_id);
         } else {
-          // mint_asset(asset_id,name(split_memo[0]),settings.token_contract,asset);
           check(false,"should not get here transfer");
-          // vector <eosio::asset> tokens_to_back;
-          // atomicdata::ATTRIBUTE_MAP deserialized_immutable_data = deserialize(
-          //   asset.immutable_serialized_data,
-          //   schema_itr->format
-          // );
-          // atomicdata::ATTRIBUTE_MAP deserialized_mutable_data = deserialize(
-          //   asset.mutable_serialized_data,
-          //   schema_itr->format
-          // );
-          // action(permission_level{_self, "active"_n}, settings.token_contract, "mintasset"_n,
-          //   make_tuple(_self, asset.collection_name, asset.schema_name, asset.template_id, to, deserialized_immutable_data, deserialized_mutable_data, tokens_to_back))
-          // .send();
-          // create_mapping(asset_id);
         }
       } else {
+        verifyMapping(asset_id);
         message_t new_transfer = { true, from, split_memo[0], split_memo[1], asset_id, asset.collection_name, asset.schema_name, asset.template_id, asset.backed_tokens, asset.immutable_serialized_data, asset.mutable_serialized_data, schema_itr->format };
         auto transfer = pack(new_transfer);
         #ifdef LINK_DEBUG    
@@ -247,6 +313,26 @@ CONTRACT_START()
         pushMessage(transfer);
       }
     }
+  }
+
+  void verifyMapping(const uint64_t asset_id) {
+    assets_t assets_table(NFT_ACCOUNT,_self.value);
+    const auto& asset = assets_table.get( asset_id, "no nft found" );
+    collections_t collections_table(NFT_ACCOUNT,NFT_ACCOUNT.value);
+    const auto& collection = collections_table.get( asset.collection_name.value, "no collection found for asset" );
+    templatemap_t templatemap_table(_self,collection.author.value);
+    const auto& templatemap = templatemap_table.get( collection.author.value, "no templatemap found, collection author must create" );
+    bool id_found = false;
+    for (auto asset_entry : templatemap.asset_entries) {
+      if(asset_entry.template_id == asset.template_id
+        && asset_entry.schema_name == asset.schema_name
+        && asset_entry.collection_name == asset.collection_name
+        && asset_entry.immutable_serialized_data == asset.immutable_serialized_data
+      ) {
+        id_found = true;
+      }
+    }
+    check(id_found, "template id mapping not found");
   }
 
   vector<char> message_received(const vector<char>& data) {
@@ -409,7 +495,7 @@ extern "C" {
     else {
       switch (action) {
         EOSIO_DISPATCH_HELPER(CONTRACT_NAME(), DAPPSERVICE_ACTIONS_COMMANDS())
-        EOSIO_DISPATCH_HELPER(CONTRACT_NAME(), (init)(enable)(getdest)(disable))
+        EOSIO_DISPATCH_HELPER(CONTRACT_NAME(), (init)(enable)(getdest)(disable)(regmapping))
         EOSIO_DISPATCH_HELPER(CONTRACT_NAME(), (xsignal))
       }
     }

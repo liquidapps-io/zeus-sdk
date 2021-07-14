@@ -104,8 +104,9 @@ module.exports = async (args) => {
     await execPromise(`nohup nodeos ${nodeosArgs.join(' ')} >> ./logs/nodeos.log 2>&1 &`, { unref: true });
   }
   else {
-    var nodeos = process.env.DOCKER_NODEOS || 'liquidapps/eosio-plugins:v1.6.1';
-    await execPromise(`docker run --name zeus-eosio --rm -d ${ports.join(' ')} ${nodeos} /bin/bash -c "nodeos ${nodeosArgs.join(' ')}"`);
+    throw new Error("install nodeos");
+    // var nodeos = process.env.DOCKER_NODEOS || 'liquidapps/eosio-plugins:v1.6.1';
+    // await execPromise(`docker run --name zeus-eosio --rm -d ${ports.join(' ')} ${nodeos} /bin/bash -c "nodeos ${nodeosArgs.join(' ')}"`);
   }
 };
 

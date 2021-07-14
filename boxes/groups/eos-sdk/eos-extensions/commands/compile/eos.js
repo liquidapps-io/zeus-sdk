@@ -162,6 +162,9 @@ module.exports = async (args) => {
         CXX: process.env.CXX || which.sync('eosio-cpp', { nothrow: true })
       };
     }
+    if(!which.sync('eosio-cpp', { nothrow: true })) {
+      throw new Error('install eosio-cpp')
+    }
     let stdout = await execPromise(`${cmake || `docker run -e CXX=$CXX -e CC=$CC  -w /contracts -u $(id -u \$USER) --name zeus-make -i --rm -v ${path.resolve('./contracts/eos')}:/contracts ${dockerImage} cmake`} .`, {
       cwd: path.resolve('contracts/eos'),
       printOutStream: process.stdout,

@@ -26,18 +26,12 @@ tokenpegMainnet = 'atomictknpeg',
 testAccMainnet = 'testpegmn', 
 testAccMainnetUint64 = "14605625119638814720", 
 atomicMainnet = 'atomicassets', 
-tokenId = 1099511627776;
-
-const logBatch = async (dspeos,atomictokenpeg) => {
-  const settings = await eosio.parseTable(dspeos,tokenpegMainnet,tokenpegMainnet,'settings')
-  const batch = await atomictokenpeg.getBatch(settings.next_inbound_batch_id-1);
-  console.log(JSON.stringify(batch))
-  console.log(settings.next_inbound_batch_id)
-  // return batch
-}
+tokenId = 1099511627776,
+tokenContractIndex = 0,
+testNftAuthor = 'testpegmnown';
 
 describe(`Atomic NFT Token bridge Test EOSIO <> EVM`, () => {
-  let ethToken, atomictokenpeg, deployedAtomicNft, atomicMainnetContract, keys = "", testAddressEth, tokenpegCpp, dspeos, masterAccountVar,dspSigners;
+  let ethToken, ethToken2, atomictokenpeg, deployedAtomicNft, atomicMainnetContract, keys = "", testAddressEth, tokenpegCpp, dspeos,dspSigners;
   before(done => {
     (async () => {
       try {
@@ -72,10 +66,11 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EVM`, () => {
         await genAllocateDAPPTokens(deployedContract, "cron", "pprovider2", "default");
         dspeos = await getLocalDSPEos(tokenpegMainnet);
 
-        const { token, tokenpeg, signers } = await deployEthContracts();
+        const { token, tokenpeg, signers, token2 } = await deployEthContracts();
         ethToken = token;
+        ethToken2 = token2;
         atomictokenpeg = tokenpeg;
-        dspSigners = signers;        
+        dspSigners = signers;
 
         // set up bridge contracts
         await tokenpegCpp.init({
@@ -106,11 +101,22 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EVM`, () => {
       try {
         const asset_id = await atomic.createNft(deployedAtomicNft, dspeos, testAccMainnet,true,atomicMainnet,false,tokenpegMainnet);
         // const asset_id = await atomic.returnAssetId(dspeos, testAccMainnet,atomicMainnet,true);
+        const nftOwnerKeys = await getCreateAccount(testNftAuthor);
+        await tokenpegCpp.regmapping({
+          template_id: 1,
+          schema_name: atomic.schema_name,
+          collection_name: atomic.collection_name,
+          address: `${ethToken.address}`,
+          immutable_data: atomic.immutable_data,
+        }, {
+          authorization: [`${testNftAuthor}@active`],
+          keyProvider: [nftOwnerKeys.active.privateKey]
+        });
         await atomicMainnetContract.transfer({
           from: testAccMainnet,
           to: tokenpegMainnet,
           asset_ids: [asset_id],
-          memo: testAddressEth
+          memo: `${testAddressEth}`
         }, {
           authorization: [`${testAccMainnet}@active`],
           keyProvider: [keys.active.privateKey]
@@ -133,12 +139,11 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EVM`, () => {
     (async () => {
       try {
         const prevBalance = (await ethToken.balanceOf(testAddressEth)).toString();
-        console.log(prevBalance)
         await ethToken.setApprovalForAll(atomictokenpeg.address, 1,{
           from: testAddressEth,
           gas: '5000000'
         });
-        await atomictokenpeg.sendToken(tokenId, 12345, {
+        await atomictokenpeg.sendToken(tokenId, 12345, ethToken.address, {
           from: testAddressEth,
           gasLimit: '1000000'
         });
@@ -151,13 +156,8 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EVM`, () => {
         }, {
           authorization: [`${tokenpegMainnet}@active`]
         });
-        await eosio.delay(5000);
-        // await atomictokenpeg.mintToken(tokenId, testAddressEth,{
-        //   from: dspSigners[0],
-        //   gas: '5000000'
-        // });
+        await eosio.delay(10000);
         const postBalance = (await ethToken.balanceOf(testAddressEth)).toString();
-        console.log(postBalance)
         assert.equal(parseInt(postBalance) - parseInt(prevBalance), 0);
         const postTokenpegBalance = (await ethToken.balanceOf(atomictokenpeg.address)).toString();
         assert(postTokenpegBalance == 0, "NFT should not exist because NFT burned");
@@ -176,19 +176,16 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EVM`, () => {
           from: testAddressEth,
           gas: '5000000'
         });
-        await atomictokenpeg.sendToken(tokenId, testAccMainnetUint64, {
+        await atomictokenpeg.sendToken(tokenId, testAccMainnetUint64, ethToken.address, {
           from: testAddressEth,
           gasLimit: '1000000'
         });
         const asset_id = await atomic.returnAssetId(dspeos, tokenpegMainnet,atomicMainnet,true);
-        console.log(asset_id)
         await eosio.awaitTable(dspeos,atomicMainnet,"assets",testAccMainnet,"asset_id",asset_id,200000);
         const postEosBalance = await atomic.returnAssetId(dspeos,testAccMainnet,atomicMainnet);
-        assert.equal(postEosBalance, prevEosBalance + 1, "post balance not 0");
+        assert.equal(postEosBalance, prevEosBalance + 1, "post balance not 1");
         const postTokenpegBalance = (await ethToken.balanceOf(atomictokenpeg.address)).toString();
         assert(postTokenpegBalance == 0, "NFT should not exist because NFT burned");
-        // awaiting receipt
-        // await eosio.delay(300000);
         done();
       } catch(e) {
         done(e);
@@ -205,34 +202,124 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EVM`, () => {
         // const asset_id = await atomic.createNft(deployedAtomicNft, dspeos, testAccMainnet,true,atomicMainnet,false,tokenpegMainnet);
         // no create
         const asset_id = await atomic.returnAssetId(dspeos, testAccMainnet,atomicMainnet,true);
-        console.log(asset_id);
-        // should be 1
         const prevEosBalance = await atomic.returnAssetId(dspeos,testAccMainnet,atomicMainnet);
         assert(prevEosBalance !=0, "ID should exist");
-        // await logBatch(dspeos,atomictokenpeg);
         await atomicMainnetContract.transfer({
           from: testAccMainnet,
           to: tokenpegMainnet,
           asset_ids: [asset_id],
-          memo: "0x0"
+          memo: `0x0,0`
         }, {
           authorization: [`${testAccMainnet}@active`],
           keyProvider: [keys.active.privateKey]
         });
-        // await logBatch(dspeos,atomictokenpeg);
         const midEosBalance = await atomic.returnAssetId(dspeos,testAccMainnet,atomicMainnet);
-        // assert(midEosBalance ==0, "ID should not exist");
+        assert(midEosBalance ==0, "ID should not exist");
         // await eosio.delay(70000);
-        console.log(new Date())
         await eosio.awaitTable(dspeos,atomicMainnet,"assets",testAccMainnet,"asset_id",asset_id,60000);
-        // await logBatch(dspeos,atomictokenpeg);
-        console.log(new Date())
         const postEosBalance = await atomic.returnAssetId(dspeos,testAccMainnet,atomicMainnet);
-        console.log(postEosBalance)
         assert(postEosBalance == 1, "ID should exist because NFT returned");
-        // const postTokenpegBalance = await atomic.returnAssetId(dspeos,tokenpegMainnet,atomicMainnet);
-        // console.log(postTokenpegBalance)
-        // assert(postTokenpegBalance == 0, "ID should not exist because NFT burned");
+        const postTokenpegBalance = await atomic.returnAssetId(dspeos,tokenpegMainnet,atomicMainnet);
+        assert(postTokenpegBalance == 0, "ID should not exist because NFT burned");
+        done();
+      } catch(e) {
+        done(e);
+      }
+    })()
+  });
+
+  it('register new NFT, try double register, and transfer', done => {
+    (async () => {
+      try {
+        const authorKeys = await getCreateAccount(atomic.author);
+        const nftOwnerKeys = await getCreateAccount(testNftAuthor);
+        await deployedAtomicNft.contractInstance.createcol({
+          author: atomic.author,
+          collection_name: atomic.diff_collection_name,
+          allow_notify: atomic.allow_notify,
+          authorized_accounts: [atomic.author,tokenpegMainnet],
+          notify_accounts: atomic.notify_accounts,
+          market_fee: atomic.market_fee,
+          data: atomic.data
+        }, {
+            authorization: `${atomic.author}@active`,
+            keyProvider: [authorKeys.active.privateKey]
+        });
+        await deployedAtomicNft.contractInstance.createschema({
+          authorized_creator: atomic.authorized_creator,
+          collection_name: atomic.diff_collection_name,
+          schema_name: atomic.diff_schema_name,
+          schema_format: atomic.diff_schema_format
+        }, {
+            authorization: `${atomic.author}@active`,
+            keyProvider: [authorKeys.active.privateKey]
+        });
+        await deployedAtomicNft.contractInstance.createtempl({
+          authorized_creator: atomic.authorized_creator,
+          collection_name: atomic.diff_collection_name,
+          schema_name: atomic.diff_schema_name,
+          transferable: true,
+          burnable: true,
+          max_supply: 1000,
+          immutable_data: atomic.diffImmutableData
+        }, {
+            authorization: `${atomic.author}@active`,
+            keyProvider: [(await getCreateAccount(atomic.author)).active.privateKey]
+        });
+        await tokenpegCpp.regmapping({
+          template_id: 2,
+          schema_name: atomic.diff_schema_name,
+          collection_name: atomic.diff_collection_name,
+          address: `${ethToken2.address}`,
+          immutable_data: atomic.diffImmutableData,
+        }, {
+          authorization: [`${testNftAuthor}@active`],
+          keyProvider: [nftOwnerKeys.active.privateKey]
+        });
+        try {
+          await tokenpegCpp.regmapping({
+            template_id: 2,
+            schema_name: atomic.diff_schema_name,
+            collection_name: atomic.diff_collection_name,
+            address: `${ethToken2.address}`,
+            immutable_data: atomic.diffImmutableData,
+          }, {
+            authorization: [`${testNftAuthor}@active`],
+            keyProvider: [nftOwnerKeys.active.privateKey]
+          });
+        } catch(e) {
+          console.log(`failed with e: ${e}`)
+        }
+        await deployedAtomicNft.contractInstance.mintasset({
+          authorized_minter: atomic.author,
+          collection_name: atomic.diff_collection_name,
+          schema_name: atomic.diff_schema_name,
+          template_id: 2,
+          new_asset_owner: testAccMainnet,
+          immutable_data: atomic.diffImmutableData,
+          mutable_data: [],
+          tokens_to_back: []
+        }, {
+            authorization: `${atomic.author}@active`,
+            keyProvider: [authorKeys.active.privateKey]
+        });
+        const asset_id = '1099511627778';
+        await atomicMainnetContract.transfer({
+          from: testAccMainnet,
+          to: tokenpegMainnet,
+          asset_ids: [asset_id],
+          memo: `${testAddressEth}`
+        }, {
+          authorization: [`${testAccMainnet}@active`],
+          keyProvider: [keys.active.privateKey]
+        });
+        await eosio.delay(10000);
+        const ethBalance = (await ethToken2.balanceOf(testAddressEth)).toString();
+        const ownerOfToken = (await ethToken2.ownerOf(asset_id)).toString();
+        assert.equal(ethBalance, "1");
+        assert.equal(ownerOfToken == testAddressEth, "1");
+        const postTokenpegBalance = await atomic.returnAssetId(dspeos,tokenpegMainnet,atomicMainnet); 
+        assert(postTokenpegBalance == 1, "ID should exist because NFT not burned");
         done();
       } catch(e) {
         done(e);
@@ -304,12 +391,15 @@ async function deployEthContracts() {
   });
   nftContract.setProvider(web3.currentProvider);
   tokenpegContract.setProvider(web3.currentProvider);
-  const deployedToken = await nftContract.new("Atomic NFTs", "NFT", "",{
+  const deployedToken = await nftContract.new("Bridged NFT", "NFT", "QmWx6jv5rQufPu5zbRkC2NADZnaXoBqdiYWDwBqaM3fFnM",{
     from: masterAccount,
     gas: '5000000'
   });
-  // console.log(`Token address: ${deployedToken.address}`);
-  const deployedTokenpeg = await tokenpegContract.new(signers, 1, deployedToken.address, {
+  const deployedToken2 = await nftContract.new("Bridged NFT2", "NFT2", "QmdAKKrckgtXGQrB2WLZ27dFkMDCEcZToNN5SYRQYyJgGd",{
+    from: masterAccount,
+    gas: '5000000'
+  });
+  const deployedTokenpeg = await tokenpegContract.new(signers, 1, {
     from: masterAccount,
     gas: '5000000'
   });
@@ -317,11 +407,12 @@ async function deployEthContracts() {
     from: masterAccount,
     gas: '5000000'
   });
-  // await deployedTokenpeg.acceptTokenOwnership({
-  //   from: masterAccount,
-  //   gas: '5000000'
-  // });
+  await deployedToken2.transferOwnership(deployedTokenpeg.address, {
+    from: masterAccount,
+    gas: '5000000'
+  });
   console.log(`erc721 token address ${deployedToken.address}`)
+  console.log(`erc7212 token address ${deployedToken2.address}`)
   console.log(`atomictokenpeg contract address ${deployedTokenpeg.address}`)
-  return { token: deployedToken, tokenpeg: deployedTokenpeg, signers };
+  return { token: deployedToken, tokenpeg: deployedTokenpeg, signers, token2: deployedToken2 };
 }
