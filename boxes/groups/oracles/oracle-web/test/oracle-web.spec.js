@@ -46,6 +46,25 @@ describe(`Web Oracle Service Test`, () => {
       }
     })();
   });
+  it('Oracle HTTPS Get Prefix', done => {
+    (async () => {
+      try {
+        // suffix: "Qmaisz6NMhDB51cCvNWa1GMS7LU1pAxdF4Ld6Ft9kZEP2a"
+        var res = await testcontract.testget({
+          uri: Buffer.from("https://ipfs", 'utf8'),
+          expectedfield: Buffer.from("Hello from IPFS Gateway Checker\n"),
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
   it('Oracle HTTPS+JSON Get', done => {
     (async () => {
       try {

@@ -2,6 +2,7 @@ const { requireBox, createDir } = require('@liquidapps/box-utils');
 const { nodeFactory } = requireBox('dapp-services/services/dapp-services-node/generic-dapp-service-node');
 const handlers = {};
 const logger = requireBox('log-extensions/helpers/logger');
+const { checkAddressPrefix } = require('./lib/index');
 
 createDir('protocols', 'services/oracle-dapp-service-node/protocols');
 
@@ -23,7 +24,9 @@ nodeFactory('oracle', {
     const trxId = payloadParts[partIdx++];
     const tapos = payloadParts[partIdx++];
     const proto = payloadParts[partIdx++];
-    const address = payloadParts[partIdx++];
+    let address = payloadParts[partIdx++];
+    // if there is a suffix, add and return, otherwise return original
+    address = checkAddressPrefix(address,payer);
     let handler = handlers[proto];
     logger.info(`oracle request for ${proto}://${address} | payer: ${payer} | package: ${packageid} | DSP: ${current_provider} | sidechain ${typeof(sidechain) === "object" ? JSON.stringify(sidechain) : sidechain}`);
     try {

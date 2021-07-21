@@ -5,13 +5,13 @@ const kill = require('kill-port');
 
 const ganachePath = path.resolve('./node_modules/ganache-cli/cli.js');
 const mnemonic = 'either ostrich protect kingdom jump flat neck cabin sock they vast merit'
-const port = 8546;
 
 module.exports = async (args) => {
   await killIfRunning();
   if(args.kill) { return; }
   if(!args.multiEvm) return;
-  const command = `nohup node ${ganachePath} -m \"${mnemonic}\" -b 1 -p ${port} >> logs/ganache-sidechain.log 2>&1 &`
+  if(args.singleChain) { return; } // don't run on command
+  const command = `nohup node ${ganachePath} -h ${args.evmSisterHost} -m \"${mnemonic}\" -b 1 -p ${args.evmSisterPort} >> logs/ganache-sidechain.log 2>&1 &`
   await execPromise(command);
 }
 

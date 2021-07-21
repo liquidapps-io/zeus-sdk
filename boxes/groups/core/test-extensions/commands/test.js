@@ -46,8 +46,12 @@ module.exports = {
       })
       .option('stake', {
         describe: 'account staking amount',
-        default: '300.0000',
+        default: '300',
         alias: 's'
+      })
+      .option('transfer', {
+        describe: 'account staking amount',
+        default: '1000'
       })
       .option('basic-env', {
         describe: 'min needed for EOSIO smart contract test',
@@ -74,6 +78,46 @@ module.exports = {
       .option('single-chain', {
         describe: 'run without LiquidX',
         default: false
+      })
+      .option('custom-token', {
+        describe: 'custom chain token',
+        default: ''
+      })
+      .option('custom-token-precision', {
+        describe: 'custom chain token permission',
+        default: 4
+      })
+      .option('evm-host', {
+        describe: 'custom evm host',
+        default: '127.0.0.1'
+      })
+      .option('evm-port', {
+        describe: 'custom evm port',
+        default: 8545
+      })
+      .option('evm-sister-host', {
+        describe: 'custom evm sister host',
+        default: '127.0.0.1'
+      })
+      .option('evm-sister-port', {
+        describe: 'custom evm sister port',
+        default: 8546
+      })
+      .option('external-evm-endpoint', {
+        describe: 'external evm endpoint',
+        default: ''
+      })
+      .option('external-evm-private-key', {
+        describe: 'external evm private key',
+        default: ''
+      })
+      .option('external-evm-sister-endpoint', {
+        describe: 'external evm sister endpoint',
+        default: ''
+      })
+      .option('external-evm-sister-private-key', {
+        describe: 'external evm sister private key',
+        default: ''
       })
       .example('$0 test contract')
       .example('$0 test')

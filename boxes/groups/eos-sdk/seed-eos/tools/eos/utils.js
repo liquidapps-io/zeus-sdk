@@ -64,8 +64,12 @@ async function getCreateAccount(account, args = getDefaultArgs(), dontCreateIfHa
   var existingKeys = await getCreateKeys(account, args, dontCreateIfHaveKeys, sidechain);
   // import keys if needed
 
-  // import keys if needed
-  var systemToken = (creator !== 'eosio') ? 'EOS' : 'SYS';
+  // import keys if needed ${process.env.EOSIO_CUSTOM_TOKEN_PRECISION ? process.env.EOSIO_CUSTOM_TOKEN_PRECISION :4},${}
+  var systemToken = args.customToken?args.customToken:(args.creator !== 'eosio') ? 'EOS' : 'SYS';
+  let precisionString = '';
+  for(let i = 0; i <  args.customTokenPrecision; i++) {
+    precisionString += '0';
+  }
   var staking = stake;
   if (creator != account) {
     try {
@@ -114,7 +118,7 @@ async function getCreateAccount(account, args = getDefaultArgs(), dontCreateIfHa
           data: {
             payer: creator,
             receiver: account,
-            quant: `${staking} ${systemToken}`,
+            quant: `${staking}.${precisionString} ${systemToken}`,
           },
         },
         {
@@ -127,8 +131,8 @@ async function getCreateAccount(account, args = getDefaultArgs(), dontCreateIfHa
           data: {
             from: creator,
             receiver: account,
-            stake_net_quantity: `${staking} ${systemToken}`,
-            stake_cpu_quantity: `${staking} ${systemToken}`,
+            stake_net_quantity: `${staking}.${precisionString} ${systemToken}`,
+            stake_cpu_quantity: `${staking}.${precisionString} ${systemToken}`,
             transfer: false,
           }
         },
@@ -142,7 +146,7 @@ async function getCreateAccount(account, args = getDefaultArgs(), dontCreateIfHa
           data: {
             from: creator,
             to: account,
-            quantity: `${transfer} ${systemToken}`,
+            quantity: `${transfer}.${precisionString} ${systemToken}`,
             memo: "don't spend it all in one place",
           }
         }
@@ -359,7 +363,7 @@ const setPriv = async (args, sidechain) => {
   const name = 'eosio';
   const eos = await getEos(name, args, sidechain);
   // Publish contract to the blockchain
-  console.log(`${emojMap.zap}setting up system token 4,${(args.creator !== 'eosio') ? 'EOS' : 'SYS'}`)
+  console.log(`${emojMap.zap}setting up system token ${args.customTokenPrecision ? args.customTokenPrecision :4},${args.customToken?args.customToken:(args.creator !== 'eosio') ? 'EOS' : 'SYS'}`)
   try {
     await eos.transact({
       actions: [{
@@ -389,7 +393,7 @@ const setPriv = async (args, sidechain) => {
         }],
         data: {
           version: "0",
-          core: `4,${(args.creator !== 'eosio') ? 'EOS' : 'SYS'}`
+          core: `${args.customTokenPrecision ? args.customTokenPrecision :4},${args.customToken?args.customToken:(args.creator !== 'eosio') ? 'EOS' : 'SYS'}`
         },
       },
       ]

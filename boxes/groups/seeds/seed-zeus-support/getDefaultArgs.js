@@ -6,8 +6,8 @@ function getDefaultArgs() {
   const defaultArgs = {
     network: 'development',
     storagePath: path.resolve(os.homedir(), '.zeus'),
-    stake: '300.0000',
-    transfer: '1000.0000',
+    stake: '300',
+    transfer: '1000',
     creator: 'eosio',
     wallet: 'zeus',
     creatorKey: '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3',
