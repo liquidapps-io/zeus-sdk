@@ -1,29 +1,79 @@
 const paccount = process.env.DSP_ACCOUNT || process.env.PROOF_PROVIDER_ACCOUNT || 'pprovider1';
 const paccountPermission = process.env.DSP_ACCOUNT_PERMISSIONS || 'active';
 const fetch = require('node-fetch');
-const { getCreateKeys } = require('../../extensions/helpers/key-utils');
-const { dappServicesContract, dappServicesLiquidXContract, getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
+const { requireBox } = require('@liquidapps/box-utils');
+const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
+const { dappServicesContract, dappServicesLiquidXContract, getContractAccountFor } = requireBox('dapp-services/tools/eos/dapp-services');
 
-const { loadModels } = require('../../extensions/tools/models');
-const { getEosWrapper } = require('../../extensions/tools/eos/eos-wrapper');
+const { loadModels } = requireBox('seed-models/tools/models');
+const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 const bodyParser = require('body-parser');
 const express = require('express');
 const cors = require('cors');
 const httpProxy = require('http-proxy');
 const { BigNumber } = require('bignumber.js');
-const logger = require('../../extensions/helpers/logger');
+const logger = requireBox('log-extensions/helpers/logger');
 const eosjs2 = require('eosjs');
 const { Serialize } = eosjs2;
 const { TextDecoder, TextEncoder } = require('text-encoding');
 const { Long } = require('bytebuffer')
-
 const mainnetDspKey = process.env.DSP_PRIVATE_KEY;
-if (!mainnetDspKey) console.warn('must provide DSP_PRIVATE_KEY if not using utils');
 const nodeosMainnetEndpoint = process.env.NODEOS_MAINNET_ENDPOINT || 'http://localhost:8888';
 const dspGatewayMainnetEndpoint = process.env.DSP_GATEWAY_MAINNET_ENDPOINT || 'http://localhost:13015';
-const proxy = httpProxy.createProxyServer();
+const nodeosLatest = process.env.NODEOS_LATEST || true;
+const maxReqRetries = parseInt(process.env.DSP_MAX_REQUEST_RETRIES || 10);
 
-proxy.on('error', function(err, req, res) {
+//dfuse settings
+const mainnetDfuseEnable = process.env.DFUSE_PUSH_ENABLE || false;
+const mainnetDfuseGuarantee = process.env.DFUSE_PUSH_GUARANTEE || 'in-block';
+const mainnetDfuseApiKey = process.env.DFUSE_API_KEY || '';
+const mainnetDfuseNetwork = process.env.DFUSE_NETWORK || 'mainnet';
+
+const WebSocketClient = require("ws");
+const { createDfuseClient } = require("@dfuse/client");
+
+
+async function webSocketFactory(url, protocols) {
+  const webSocket = new WebSocketClient(url, protocols, {
+    handshakeTimeout: 30 * 1000, // 30s
+    maxPayload: 200 * 1024 * 1000 * 1000 // 200Mb
+  })
+  const onUpgrade = (response) => {
+    logger.debug(`Socket upgrade response status code. ${response.statusCode}`)
+
+    // You need to remove the listener at some point since this factory
+    // is called at each reconnection with the remote endpoint!
+    webSocket.removeListener("upgrade", onUpgrade)
+  }
+  webSocket.on("upgrade", onUpgrade)
+  return webSocket
+}
+
+const dfuseClientAuth = process.env.DFUSE_AUTHORIZATION ? true : false
+
+const client = mainnetDfuseApiKey ? createDfuseClient({ authorization: dfuseClientAuth, apiKey: mainnetDfuseApiKey, network: mainnetDfuseNetwork,
+  httpClientOptions: {
+    fetch
+  },
+  graphqlStreamClientOptions: {
+    socketOptions: {
+      // The WebSocket factory used for GraphQL stream must use this special protocols set
+      // We intend on making the library handle this for you automatically in the future,
+      // for now, it's required otherwise, the GraphQL will not connect correctly.
+      webSocketFactory: (url) => webSocketFactory(url, ["graphql-ws"]),
+      reconnectDelayInMs: 250 // document every 5s
+    }
+  },
+  streamClientOptions: {
+    socketOptions: {
+      // webSocketFactory: (url) => webSocketFactory(url)
+      webSocketFactory: (url) => webSocketFactory(url)
+    }
+  }
+}) : '';
+
+const proxy = httpProxy.createProxyServer();
+proxy.on('error', function (err, req, res) {
   if (err) {
     logger.error('proxy error:');
     logger.error(err);
@@ -33,7 +83,7 @@ proxy.on('error', function(err, req, res) {
     'Content-Type': 'text/plain'
   });
 
-  res.end('DSP Proxy error.');
+  res.end(`DSP Proxy error: ${err}`);
 });
 const charmap = '.12345abcdefghijklmnopqrstuvwxyz'
 const charidx = ch => {
@@ -120,15 +170,19 @@ function decodeName(value, littleEndian = true) {
   return str
 }
 
-const eosMainnet = async() => {
+const eosMainnet = async () => {
   const mainnetConfig = {
     httpEndpoint: nodeosMainnetEndpoint,
-    keyProvider: mainnetDspKey
+    keyProvider: mainnetDspKey,
+    dfuseEnable: mainnetDfuseEnable,
+    dfuseGuarantee: mainnetDfuseGuarantee,
+    dfusePushApiKey: mainnetDfuseApiKey ? await getDfuseJwt() : '',
+    dfuseNetwork: mainnetDfuseNetwork
   }
   return getEosWrapper(mainnetConfig);
 }
 
-const eosDSPGateway = async() => {
+const eosDSPGateway = async () => {
   let config = {
     httpEndpoint: dspGatewayMainnetEndpoint,
     keyProvider: mainnetDspKey
@@ -140,66 +194,89 @@ var eosDSPEndpoint = getEosWrapper({
   httpEndpoint: dspGatewayMainnetEndpoint
 });
 
-const getEosForSidechain = async(sidechain, account = paccount, dspEndpoint = null) => {
+const getEosForSidechain = async (sidechain, account = paccount, dspEndpoint = null) => {
   let config = {
     httpEndpoint: dspEndpoint ? `http://localhost:${sidechain.dsp_port}` : sidechain.nodeos_endpoint, //TODO: do we need to check for https?
-    keyProvider: process.env[`DSP_PRIVATE_KEY_${sidechain.name.toUpperCase()}`] || (await getCreateKeys(account, null, true, sidechain)).active.privateKey //TODO: any reason not to include authorization here?
+    keyProvider: process.env[`DSP_PRIVATE_KEY_${sidechain.name.toUpperCase()}`] || (await getCreateKeys(account, null, nodeosLatest.toString() === "true" ? true : false, sidechain)).active.privateKey //TODO: any reason not to include authorization here?
+  }
+  if(!dspEndpoint) {
+    config = {
+      ...config,
+      dfuseEnable: [`DFUSE_PUSH_ENABLE_${sidechain.name.toUpperCase()}`],
+      dfuseGuarantee: [`DFUSE_PUSH_GUARANTEE_${sidechain.name.toUpperCase()}`] || 'in-block',
+      dfusePushApiKey: mainnetDfuseApiKey ? await getDfuseJwt() : '',
+      dfuseNetwork: [`DFUSE_NETWORK_${sidechain.name.toUpperCase()}`]
+    }
   }
   return getEosWrapper(config);
 }
 
-const forwardEvent = async(act, endpoint, redirect) => {
-  if (redirect) { return endpoint; }  
+const getDfuseJwt = async () => {
+  const jwtApiKey = await client.getTokenInfo();
+  return jwtApiKey.token
+}
+
+const forwardEvent = async (act, endpoint, redirect) => {
+  if (redirect) { 
+    if(process.env.DSP_VERBOSE_LOGS) logger.info(`redirecting ${act.event.payer}:${act.event.action} for service ${act.event.service} to ${endpoint} for DSP: ${act.event.provider}`)
+    return endpoint;
+  }
+  const msg = act.account ? `forwarding event ${act.account}:${act.method} to ${endpoint + '/event'}` : `forwarding ${act.event.etype} event ${act.event.payer}:${act.event.action} for service ${act.event.service} to ${endpoint + '/event'} for DSP: ${act.event.provider}`
+  if(process.env.DSP_VERBOSE_LOGS) logger.info(msg);
   const r = await fetch(endpoint + '/event', { method: 'POST', body: JSON.stringify(act) });
-  return await r.text();
+  const rtxt = await r.text();
+  return rtxt;
 };
 
-const resolveBackendServiceData = async(service, provider, packageid, sidechain, balance) => {
+const resolveBackendServiceData = async (service, provider, packageid, sidechain, balance) => {
   if (balance !== undefined) {
     const eos = await eosMainnet();
     const packages = await getTableRowsSec(eos.rpc, dappServicesContract, "package", dappServicesContract, [null, packageid, service, provider], 1, 'sha256', 2);
-    const result = packages.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service);  
+    const result = packages.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service);
     if (result.length === 0) throw new Error(`resolveBackendServiceData failed ${provider} ${service} ${packageid}`);
+    if (!result[0].enabled) throw new Error(`Provider: ${provider} Service: ${service} Package ${packageid}: Packages must be enabled for DSP services to function. The enablepkg command must be run by the DSP to enable this package.`);
     if (Number(balance.substring(0, balance.length - 5)) < Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)))
-      logger.warn(`DAPP Balance is less than minimum stake quantity for provider: ${provider}, service: ${service}, packageid: ${packageid}: ${Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)) - Number(balance.substring(0, balance.length - 5))} more DAPP must be staked to meet threshold`);
+      throw new Error(`DAPP Balance is less than minimum stake quantity for provider: ${provider}, service: ${service}, packageid: ${packageid}: ${Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)) - Number(balance.substring(0, balance.length - 5))} more DAPP must be staked to meet threshold`);
   }
   // read from local service models
-  var loadedExtensions = await loadModels('dapp-services');
-  var loadedExtension = loadedExtensions.find(a => getContractAccountFor(a) == service);
+  const loadedExtensions = await loadModels('dapp-services');
+  const loadedExtension = loadedExtensions.find(a => getContractAccountFor(a) == service);
   if (!loadedExtension) return null;
-  var host = process.env[`DAPPSERVICE_HOST_${loadedExtension.name.toUpperCase()}`];
-  var port = process.env[`DAPPSERVICE_PORT_${loadedExtension.name.toUpperCase()}`];
+  let host = process.env[`DAPPSERVICE_HOST_${loadedExtension.name.toUpperCase()}`];
+  let port = process.env[`DAPPSERVICE_PORT_${loadedExtension.name.toUpperCase()}`];
   if (!host) host = 'localhost';
   if (!port) port = loadedExtension.port;
+  if(process.env.DSP_VERBOSE_LOGS) logger.info(`resolving internal endpoint: ${`http://${host}:${port}`} for provider: ${provider} | service: ${service} | package id: ${packageid}`);
   return {
     internal: true,
     endpoint: `http://${host}:${port}`
   };
 };
 
-const resolveExternalProviderData = async(service, provider, packageid, sidechain, balance) => {
+const resolveExternalProviderData = async (service, provider, packageid, sidechain, balance) => {
   const eos = await eosMainnet();
   const packages = await getTableRowsSec(eos.rpc, dappServicesContract, "package", dappServicesContract, [null, packageid, service, provider], 1, 'sha256', 2);
-  logger.debug(`resolveExternalProviderData packages: ${JSON.stringify(packages)}`);
   const result = packages.filter(a => (a.provider === provider || !provider) && a.package_id === packageid && a.service === service);
   if (result.length === 0) throw new Error(`resolveExternalProviderData failed ${provider} ${service} ${packageid}`);
-  if (!result[0].enabled) console.log(`DEPRECATION WARNING for ${provider} ${service} ${packageid}: Packages must be enabled for DSP services to function in the future.`); //TODO: Throw error instead
+  if (!result[0].enabled) throw new Error(`Provider: ${provider} Service: ${service} Package ${packageid}: Packages must be enabled for DSP services to function. The enablepkg command must be run by the DSP to enable this package.`);
   if (balance !== undefined)
     if (Number(balance.substring(0, balance.length - 5)) < Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)))
-      logger.warn(`DAPP Balance is less than minimum stake quantity for provider: ${provider}, service: ${service}, packageid: ${packageid}: ${Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)) - Number(balance.substring(0, balance.length - 5))} more DAPP must be staked to meet threshold`);
+      throw new Error(`DAPP Balance is less than minimum stake quantity for provider: ${provider}, service: ${service}, packageid: ${packageid}: ${Number(result[0].min_stake_quantity.substring(0, result[0].min_stake_quantity.length - 5)) - Number(balance.substring(0, balance.length - 5))} more DAPP must be staked to meet threshold`);
+  
+  if(process.env.DSP_VERBOSE_LOGS) logger.info(`resolving external endpoint: ${result[0].api_endpoint} for provider: ${provider} | service: ${service} | package id: ${packageid} balance: ${balance} | sidechain ${sidechain}`);
   return {
     internal: false,
     endpoint: result[0].api_endpoint
   };
 };
 
-const resolveProviderData = async(service, provider, packageid, sidechain, balance) =>
+const resolveProviderData = async (service, provider, packageid, sidechain, balance) =>
   ((paccount === provider) ? resolveBackendServiceData : resolveExternalProviderData)(service, provider, packageid, sidechain, balance);
 
 const toBound = (numStr, bytes) =>
-`${(new Array(bytes * 2 + 1).join('0') + numStr).substring(numStr.length).toUpperCase()}`;
+  `${(new Array(bytes * 2 + 1).join('0') + numStr).substring(numStr.length).toUpperCase()}`;
 
-const getTableRowsSec = async(rpc, code, table, scope, keys, limit = 1, key_type, index_position) => {
+const getTableRowsSec = async (rpc, code, table, scope, keys, limit = 1, key_type, index_position) => {
   if (!key_type) {
     switch (keys.length) {
       case 0:
@@ -214,7 +291,7 @@ const getTableRowsSec = async(rpc, code, table, scope, keys, limit = 1, key_type
         break;
       default:
         throw new Error('unknown key length');
-        // code
+      // code
     };
   }
   if (index_position === undefined)
@@ -228,21 +305,35 @@ const getTableRowsSec = async(rpc, code, table, scope, keys, limit = 1, key_type
     'index_position': index_position,
     'limit': limit
   };
-  const hexKeys = keys.map(v => (v !== null) ? v : 0).map(v => typeof(v) === 'string' ? encodeName(v) : v).map(v => toBound(new BigNumber(v).toString(16), 8));
-  let encodedKeys = hexKeys;
+  let encodedKeys, hexKeys;
+  if (nodeosLatest.toString() === "true") {
+    hexKeys = keys.map(v => (v !== null) ? v : 0).map(v => typeof (v) === 'string' ? encodeName(v) : v).map(v => toBound(new BigNumber(v).toString(16), 8));
+    encodedKeys = hexKeys;
+  } else {
+    encodedKeys = keys.map(v => (v !== null) ? v : 0).map(v => typeof (v) === 'string' ? encodeName(v, true) : v).map(v => new BigNumber(v)).map(v => toBound(v.toString(16), 8));
+  }
   switch (key_type) {
     case 'sha256':
+      if (nodeosLatest.toString() === "true" && hexKeys) {
+        encodedKeys = hexKeys.map(k => k.match(/.{2}/g).reverse().join(''));
+        payload.lower_bound = encodedKeys[0] + encodedKeys[1] + encodedKeys[2] + encodedKeys[3];
+      } else {
+        payload.lower_bound = encodedKeys[1] + encodedKeys[0] + encodedKeys[3] + encodedKeys[2];
+      }
       // for sha256/i128 where the keys are name we split them pairwise and reverse
       // this is how eosio internally encodes name values..
-      encodedKeys = hexKeys.map(k => k.match(/.{2}/g).reverse().join(''));
       payload.encode_type = 'hex';
-      payload.lower_bound = encodedKeys[0] + encodedKeys[1] + encodedKeys[2] + encodedKeys[3];
       // in code:           0ULL, package_id.value, service.value, provider.value
       break;
     case 'i128':
-      encodedKeys = hexKeys.map(k => k.match(/.{2}/g).reverse().join(''));
-      payload.encode_type = 'hex';
-      payload.lower_bound = "0x" + encodedKeys[0] + encodedKeys[1];
+      if (nodeosLatest.toString() === "true" && hexKeys) {
+        encodedKeys = hexKeys.map(k => k.match(/.{2}/g).reverse().join(''));
+        payload.encode_type = 'hex';
+        payload.lower_bound = "0x" + encodedKeys[0] + encodedKeys[1];
+      } else {
+        payload.encode_type = 'dec';
+        payload.lower_bound = "0x" + encodedKeys[1] + encodedKeys[0];
+      }
       break;
     case 'i64':
       if (encodedKeys.length) {
@@ -251,22 +342,28 @@ const getTableRowsSec = async(rpc, code, table, scope, keys, limit = 1, key_type
       }
       break;
     default:
-      // code
+    // code
   }
-  let finalRes = [];
-  let result = await rpc.get_table_rows(payload);
-  finalRes = result.rows;
-  while (finalRes.length < limit && result.more) {
-    logger.debug(`got ${finalRes.length} responses, theres more`);
-    payload.lower_bound = result.next_key;
-    payload.limit = limit - finalRes.length;
-    result = await rpc.get_table_rows(payload);
-    finalRes =  [...finalRes, ...result.rows ];
+  if (nodeosLatest.toString() === "true") {
+    let finalRes = [];
+    let result = await rpc.get_table_rows(payload);
+    finalRes = result.rows;
+    while (finalRes.length < limit && result.more) {
+      logger.debug(`got ${finalRes.length} responses, theres more`);
+      payload.lower_bound = result.next_key;
+      payload.limit = limit - finalRes.length;
+      result = await rpc.get_table_rows(payload);
+      finalRes = [...finalRes, ...result.rows];
+    }
+    return finalRes;
+  } else {
+    const result = await rpc.get_table_rows(payload);
+    const rowsResult = result.rows;
+    return rowsResult;
   }
-  return finalRes;
 };
 
-const getProviders = async(payer, service, provider, sidechain) => {
+const getProviders = async (payer, service, provider, sidechain) => {
   if (sidechain) {
     const sidechainName = sidechain.name;
     service = await getLinkedAccount(null, null, service, sidechainName, true);
@@ -281,12 +378,9 @@ const getProviders = async(payer, service, provider, sidechain) => {
   return result;
 };
 
-const resolveProviderPackage = async(payer, service, provider, sidechain, getEvery = false) => {
-  logger.debug('resolving provider package');
-  logger.debug(JSON.stringify({payer, service, provider, sidechain, getEvery }));
+const resolveProviderPackage = async (payer, service, provider, sidechain, getEvery = false) => {
   let providers = [];
   const serviceWithStakingResult = await getProviders(payer, service, provider, sidechain);
-  logger.debug(`got svc with staking results - ${JSON.stringify(serviceWithStakingResult)}`)
   //we must iterate over staked packages and ensure they are enabled
   if (sidechain) {
     const sidechainName = sidechain.name;
@@ -305,19 +399,22 @@ const resolveProviderPackage = async(payer, service, provider, sidechain, getEve
         data: providerData
       })
       selectedPackage = checkPackage;
-      if(!getEvery) break;
+      if (!getEvery) break;
     }
     catch (e) {
-      logger.error(`Provider ${checkProvider.provider} package ${checkPackage} does not exist or is disabled`);
       logger.error(e);
     }
   }
   if (!selectedPackage) { throw new Error(`resolveProviderPackage failed - no enabled packages - ${provider} ${service}`); }
-  if(getEvery) return providers;
+  if (getEvery) {
+    if(process.env.DSP_VERBOSE_LOGS) logger.info(`verifying provider(s) for payer: ${payer} service: ${service} provider: ${provider} providers: ${JSON.stringify(providers)}`)
+    return providers;
+  } 
+  if(process.env.DSP_VERBOSE_LOGS) logger.info(`verifying package for payer: ${payer} service: ${service} provider: ${provider}: package: ${selectedPackage}`)
   return selectedPackage;
 };
 
-const resolveProvider = async(payer, service, provider, sidechain) => {
+const resolveProvider = async (payer, service, provider, sidechain) => {
   if (provider != '') { return provider; }
   const serviceWithStakingResult = await getProviders(payer, service, provider, sidechain);
 
@@ -328,15 +425,16 @@ const resolveProvider = async(payer, service, provider, sidechain) => {
   return intersectLists[Math.floor(Math.random() * intersectLists.length)];
 };
 
-const processFn = async(actionHandlers, actionObject, simulated, serviceName, handlers) => {
+const processFn = async (actionHandlers, actionObject, simulated, serviceName, handlers, isExternal) => {
   var actionHandler = actionHandlers[actionObject.event.etype];
+  if(process.env.DSP_VERBOSE_LOGS) logger.info(`processing ${actionObject.event.etype} for service name: ${serviceName} | service contract: ${actionObject.event.service} | simulated: ${simulated} | isExternal: ${isExternal}`)
   if (!actionHandler) { return; }
   try {
-    return await actionHandler(actionObject, simulated, serviceName, handlers);
+    return await actionHandler(actionObject, simulated, serviceName, handlers, isExternal);
   }
   catch (e) {
-    logger.error('error processing')
-    logger.error(e);
+    logger.error('error processing processFn')
+    logger.error(e)
     throw e;
   }
 };
@@ -361,11 +459,11 @@ async function parseEvents(text) {
     try {
       return JSON.parse(a);
     }
-    catch (e) {}
+    catch (e) { }
   }).filter(a => a);
 }
 
-const handleAction = async(actionHandlers, action, simulated, serviceName, handlers) => {
+const handleAction = async (actionHandlers, action, simulated, serviceName, handlers) => {
   var res = [];
 
   var events = await parseEvents(action.console);
@@ -379,14 +477,17 @@ const handleAction = async(actionHandlers, action, simulated, serviceName, handl
   return res;
 };
 
-const rollBack = async(garbage, actionHandlers, serviceName, handlers) => {
+const rollBack = async (garbage, actionHandlers, serviceName, handlers) => {
   return await Promise.all(garbage.map(async rollbackAction => {
     try {
-      return processFn(actionHandlers, rollbackAction, true, serviceName, handlers);
+      return await processFn(actionHandlers, rollbackAction, true, serviceName, handlers);
     }
-    catch (e) {}
+    catch (e) { 
+      logger.error(e)
+     }
   }));
 };
+
 const notFound = (res, message = 'bad endpoint') => {
   res.status(404);
   res.send(JSON.stringify({
@@ -406,18 +507,45 @@ const sendError = (res, e) => {
     }
   }));
 }
-const processRequestWithBody = async(req, res, body, actionHandlers, serviceName, handlers) => {
-  var uri = req.originalUrl;
-  var sidechain = body.sidechain;
 
-  var isServiceRequest = uri.indexOf('/event') == 0;
-  var isServiceAPIRequest = uri.indexOf('/v1/dsp/') == 0;
-  var uriParts = uri.split('/');
+const testTransaction = async(sidechain, uri, body) => {
+  const key = mainnetDfuseApiKey ? await getDfuseJwt() : '';
+  let result;
+  const network = sidechain ? [`DFUSE_NETWORK_${sidechain.name.toUpperCase()}`] : mainnetDfuseNetwork 
+  const currentNodeosEndpoint = sidechain ? sidechain.nodeos_endpoint : nodeosMainnetEndpoint;
+  const pushEnable = sidechain ? [`DFUSE_PUSH_ENABLE_${sidechain.name.toUpperCase()}`] : mainnetDfuseEnable
+  if(pushEnable.toString() === "true") {
+    const endpoint = network == 'local' || network == 'localliquidx' ? `http://` + network + uri : `https://` + network + uri
+    logger.debug(`Pushing to dFuse ${endpoint} with Guarantee ${mainnetDfuseGuarantee}`)
+    result = await fetch(endpoint, { 
+      method: 'POST', 
+      body: JSON.stringify(body),
+      headers: {
+        'Authorization': `Bearer ${key}`,
+        'X-Eos-Push-Guarantee': `${mainnetDfuseGuarantee}`
+      }
+    });
+  } else {
+    result = await fetch(currentNodeosEndpoint + uri, { method: 'POST', body: JSON.stringify(body) });
+  }  
+  return result;
+}
+
+const loggerHelper = (element) => {
+  if(typeof(element) == "object") {
+    return JSON.stringify(element)
+  } else {
+    return element
+  }
+}
+
+const processRequestWithBody = async (req, res, body, actionHandlers, serviceName, handlers, { uri, isServiceRequest, isServiceAPIRequest, isPushTransaction, uriParts, sidechain }) => {
+  var sidechain = body.sidechain;
   if (isServiceRequest) {
     try {
-
-      await processFn(actionHandlers, body, false, serviceName, handlers);
-      res.send(JSON.stringify('ok'));
+      const ret = await processFn(actionHandlers, body, false, serviceName, handlers, true);
+      const retTxt = typeof (ret) === "object" ? JSON.stringify(ret) : ret;
+      res.send(retTxt);
     }
     catch (e) {
       sendError(res, e);
@@ -444,28 +572,44 @@ const processRequestWithBody = async(req, res, body, actionHandlers, serviceName
   }
 
   let trys = 0;
-  const garbage = [];
-  const currentNodeosEndpoint = sidechain ? sidechain.nodeos_endpoint : nodeosMainnetEndpoint;
-  while (trys < 100) {
-    let r = await fetch(currentNodeosEndpoint + uri, { method: 'POST', body: JSON.stringify(body) });
+  let garbage = []; 
+  let simulated = false;
+  let lastProcessedData = '';
+  let detailMsg;
+  while (trys < maxReqRetries) {    
+    let r = await testTransaction(sidechain, uri, body);
     let resText = await r.text();
     let rText;
     if (r.status !== 500) {
+      // logger.debug(`found it!!! ${r.status} ${typeof(resText) == "object" ? JSON.stringify(resText) : resText}`)
       res.status(r.status);
       return res.send(resText);
-
     }
+    let endpoint;
     try {
+      let detailsAssertionSvcReq;
       rText = JSON.parse(resText);
-      const details = rText.error.details;
-      const detailMsg = details.find(d => d.message.indexOf(': required service') != -1);
-      if (!detailMsg) {
+      detailMsg = rText.error.details;
+      if(!detailMsg) throw new Error('no service request found');
+      const detailsAssertion = detailMsg.find(d => d.message.indexOf(': required service') != -1);
+      if(detailsAssertion) {
+        detailsAssertionSvcReq = detailMsg.find(d => d.message.indexOf(': required service') != -1).message.replace('assertion failure with message: required service','') 
+      } else {
+        detailsAssertionSvcReq = '';
+      }
+      const detailsPendingConsole = detailMsg.find(d => d.message.indexOf('pending console output:') != -1).message.replace('pending console output: ', '');
+      let jsons;
+      if (!detailsAssertion || (!detailsPendingConsole && !detailsAssertionSvcReq)) {
+        if(mainnetDfuseEnable.toString() == "true") logger.warn('unable to parse service request using dfuse push guarantee, must update consumer contract to use new dappservices contract');
         await rollBack(garbage, actionHandlers, serviceName, handlers);
         res.status(r.status);
         return res.send(resText);
+      } else if(mainnetDfuseEnable.toString() == "true") {
+        jsons = detailsAssertion.message.replace('required service: ','').split(': ', 2)[1].split(`'`).join(`"`).split('\n').filter(a => a.trim() != '');
+      } else {
+        jsons = detailsPendingConsole.split('\n').filter(a => a.trim() != '');
       }
-
-      const jsons = details[details.indexOf(detailMsg) + 1].message.split(': ', 2)[1].split('\n').filter(a => a.trim() != '');
+      
       let currentEvent;
       for (var i = 0; i < jsons.length; i++) {
         try {
@@ -480,10 +624,18 @@ const processRequestWithBody = async(req, res, body, actionHandlers, serviceName
           sidechain,
           exception: true
         };
-        if (i < jsons.length - 1) await processFn(actionHandlers, currentActionObject, true, serviceName, handlers);
+        if(simulated && lastProcessedData === currentActionObject.event.data) {
+          // logger.debug(`unable to fulfill requested data`)
+          res.status(r.status);
+          return res.send(resText);
+        }
+        lastProcessedData = currentActionObject.event.data;
+        if (i < jsons.length - 1) {
+          await processFn(actionHandlers, currentActionObject, true, serviceName, handlers);
+        } 
       }
       const event = currentEvent;
-      if (!event)
+      if (!event) 
         throw new Error("unable to parse service request. is nodeos missing 'contracts-console = true'?");
       event.sidechain = sidechain;
       const actionObject = {
@@ -492,15 +644,36 @@ const processRequestWithBody = async(req, res, body, actionHandlers, serviceName
         exception: true
       };
 
-      const endpoint = await processFn(actionHandlers, actionObject, true, serviceName, handlers);
-      logger.info(`endpoint: ${endpoint}`);
-      if (endpoint === 'retry') {
-        garbage.push({ ...actionObject, rollback: true });
-        logger.debug(`Service request done: ${trys++}`);
+      endpoint = await processFn(actionHandlers, actionObject, true, serviceName, handlers);
+      try {
+        if (endpoint.includes(`shouldAbort`) && JSON.parse(endpoint).shouldAbort) {
+          logger.debug(`shouldAbort detected`);
+          return res.send(endpoint);
+        }
+      } catch (e) {
+        logger.error(`error parsing endpoint.shouldAbort`);
+        logger.error(e);
+      }
+      // no garbage collection, local success
+      if(endpoint === 'local_success') {
+        simulated = true;
         continue;
       }
-
+      // handles response from generic service API service_request broadcast trx
+      if(endpoint === 'success') {
+        simulated = true;
+        logger.warn(`Service request completed, at least 1 DSP returned successful response, cleaning up RAM entries`);
+        garbage.push({ ...actionObject, rollback: true });
+        continue;
+      }
+      if (endpoint === 'retry') {
+        garbage.push({ ...actionObject, rollback: true });
+        logger.warn(`Service request completed, no successful broadcast, retrying: ${trys++}`);
+        continue;
+      }
+      // handles internal service request forwarding
       if (endpoint) {
+        if(process.env.DSP_VERBOSE_LOGS) logger.info(`forwarding internal service transaction: ${endpoint + uri}`)
         r = await fetch(endpoint + uri, { method: 'POST', body: JSON.stringify(body) });
         resText = await r.text();
         rText = JSON.parse(resText);
@@ -508,42 +681,39 @@ const processRequestWithBody = async(req, res, body, actionHandlers, serviceName
       if (r.status === 500) await rollBack(garbage, actionHandlers, serviceName, handlers);
       res.status(r.status);
       return res.send(resText);
-
-
     }
     catch (e) {
       await rollBack(garbage, actionHandlers, serviceName, handlers);
-      logger.warn(`exception running push_transaction: ${e}`);
+      logger.error(`exception running push_transaction: ${e} original trx error ${typeof(detailMsg)=="object"?JSON.stringify(detailMsg):detailMsg} for endpoint ${endpoint} and uri: ${uri}`);
       res.status(500);
       res.send(JSON.stringify({
         code: 500,
         error: {
-          details: [{ message: e.toString(), response: rText }]
+          details: [{ message: `${e.toString()}, endpoint: ${endpoint}`, response: rText }]
         }
       }));
     }
     return null;
   }
-  return notFound(res, `too many tries ${uri}`);
+  return notFound(res, `request retry failed for for ${serviceName} after ${trys} trys`);
 }
-const pjson = require('../../package.json');
-const genNode = async(actionHandlers, port, serviceName, handlers, abi, sidechain) => {
+const pjson = require('../../../../package.json');
+const genNode = async (actionHandlers, port, serviceName, handlers, abi, sidechain) => {
   if (handlers) handlers.abi = abi;
   const app = genApp();
-  app.use(async(req, res, next) => {
-    var uri = req.originalUrl;
-    logger.debug("received request: %s\t[%s] - %s", uri, req.ip, sidechain ? sidechain.name : "main");
-
-    var isServiceRequest = uri.indexOf('/event') === 0;
-    var isServiceAPIRequest = uri.indexOf('/v1/dsp/') === 0;
-    var isPushTransaction = uri.indexOf('/v1/chain/push_transaction') === 0 || uri.indexOf('/v1/chain/send_transaction') === 0;
-    var uriParts = uri.split('/');
+  app.use(async (req, res, next) => {
+    let uri = req.originalUrl;
+    const isServiceRequest = uri.indexOf('/event') === 0;
+    const isServiceAPIRequest = uri.indexOf('/v1/dsp/') === 0;
+    const isPushTransaction = uri.indexOf('/v1/chain/push_transaction') === 0 || uri.indexOf('/v1/chain/send_transaction') === 0;
+    const uriParts = uri.split('/');
     if (uri === '/v1/dsp/version')
       return res.send(pjson.version); // send response to contain the version
 
-    if (!isPushTransaction && !isServiceRequest && !isServiceAPIRequest) {
-      return proxy.web(req, res, { target: sidechain ? sidechain.nodeos_endpoint : nodeosMainnetEndpoint });
-    }
+      if (!isPushTransaction && !isServiceRequest && !isServiceAPIRequest) {
+        if(process.env.DSP_VERBOSE_LOGS) logger.info(`proxying${uri.indexOf('/v1/chain/') ? ' nodeos': ''} request ${uri}`);
+        return proxy.web(req, res, { target: sidechain ? sidechain.nodeos_endpoint : nodeosMainnetEndpoint });
+      }
 
     if (isServiceAPIRequest && serviceName === 'services') {
       if (uriParts.length < 5) return notFound(res, 'bad endpoint format');
@@ -564,23 +734,19 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi, sidechai
 
     getRawBody(req, {
       length: req.headers['content-length']
-    }, async function(err, string) {
+    }, async function (err, string) {
       if (err) return next(err);
       const body = JSON.parse(string.toString());
-
       let currentSidechain = sidechain;
       if (body.sidechain)
         currentSidechain = body.sidechain;
       if (req.headers['sidechain'] && serviceName !== 'services') {
-
         var sidechainName = req.headers['sidechain'];
-        logger.debug(`sidechain: ${sidechainName}`);
         const sidechains = await loadModels('eosio-chains');
-        currentSidechain = sidechains.find(s => s.Name = sidechainName);
+        currentSidechain = sidechains.find(s => s.name == sidechainName);
       }
       body.sidechain = currentSidechain;
-      return processRequestWithBody(req, res, body, actionHandlers, serviceName, handlers);
-
+      return processRequestWithBody(req, res, body, actionHandlers, serviceName, handlers, { uri, isServiceRequest, isServiceAPIRequest, isPushTransaction, uriParts, sidechain });
     });
   });
   app.listen(port, () => {
@@ -590,9 +756,11 @@ const genNode = async(actionHandlers, port, serviceName, handlers, abi, sidechai
   return app;
 };
 const genApp = () => {
+  const limit = process.env.DSP_LIQUIDSTORAGE_UPLOAD_LIMIT || "10mb";
   const app = express();
   app.use(cors());
-  app.use(bodyParser.json());
+  app.use(bodyParser.json({ limit }));
+  // app.use(bodyParser.urlencoded({ limit, extended: true, parameterLimit: 10000 }));
   return app;
 };
 const fullabi = (abi) => {
@@ -668,9 +836,9 @@ const generateCommandABI = (commandName, commandModel) => {
 
 const generateABI =
   (serviceModel) =>
-  Object.keys(serviceModel.commands).map(c => generateCommandABI(c, serviceModel.commands[c]));
+    Object.keys(serviceModel.commands).map(c => generateCommandABI(c, serviceModel.commands[c]));
 
-const detectXCallback = async(eos, contractName) => {
+const detectXCallback = async (eos, contractName) => {
   if (!contractName)
     contractName = dappServicesContract;
   var contract = await eos.contract(contractName);
@@ -681,7 +849,7 @@ const detectXCallback = async(eos, contractName) => {
 let enableXCallback = null;
 
 // returns a mainnet linked account for a service contract or service payer, or a dappservicex contract on a sidechain
-const getLinkedAccount = async(eosSideChain, eosMain, account, sidechainName, skipVerification) => {
+const getLinkedAccount = async (eosSideChain, eosMain, account, sidechainName, skipVerification) => {
   // TODO: add cache
   // get dappservices account link from mainnet
   // if no eosMainnet instance provided, fetch
@@ -712,12 +880,21 @@ const getLinkedAccount = async(eosSideChain, eosMain, account, sidechainName, sk
   const dappServicesSisterContract = await getLinkedAccount(eosSideChain, eosMain, 'dappservices', sidechainName);
   // returns account link map from side chain's dappservicex given a side chain account name
   const mainnetAccountList = await getTableRowsSec(eosSideChain.rpc, dappServicesSisterContract, 'accountlink', account, []);
-  if (!mainnetAccountList.length)
-    throw new Error(`no DSP link to mainnet account ${account}`);
-  const mainnetAccount = mainnetAccountList[0].mainnet_owner;
+
+  let contract;
+  if (!mainnetAccountList.length) {
+    let services = await loadModels('dapp-services');
+    let model = services.find(a => getContractAccountFor(a) == account);
+    if (!model)
+      throw new Error(`no DSP link to mainnet account ${account}`);
+    else
+      contract = getContractAccountFor(model);
+  }
+
+  const mainnetAccount = contract || mainnetAccountList[0].mainnet_owner;
 
   // if one way mapped (service), skipVerification = true, only check sidechain -> mainnet mapping with dappservicex contract
-  if (skipVerification)
+  if (skipVerification || contract)
     return mainnetAccount;
 
   // if !skipVerification (payer), check two way mapping via mainnet's liquidx contract' accountlink table
@@ -727,44 +904,49 @@ const getLinkedAccount = async(eosSideChain, eosMain, account, sidechainName, sk
   return mainnetAccount;
 }
 
-const getPayerPermissions = async(endpoint, dappContract, payer, provider, permission) => {
-  let authorization = [{actor: provider,permission}]; //backwards compatability
-  if(payer == dappContract) return authorization; //make this universal for emitting
+const getPayerPermissions = async (endpoint, dappContract, payer, provider, permission) => {
+  let authorization = [{ actor: provider, permission }]; //backwards compatability
+  if (payer == dappContract) return authorization; //make this universal for emitting
   try {
     let account = await endpoint.rpc.get_account(payer);
-    let dsp = account.permissions.find(p=>p.perm_name == "dsp");
-    if(!dsp) throw new Error('no dsp permission');
-    let found = dsp.required_auth.accounts.find(a=>a.permission.actor == provider && a.permission.permission == permission);
-    if(!found) {
-      logger.warn("CONSUMER ISSUE: %s is not on the DSP permission for %s",provider,payer);
+    let dsp = account.permissions.find(p => p.perm_name == "dsp");
+    if (!dsp) throw new Error('no dsp permission');
+    let found = dsp.required_auth.accounts.find(a => a.permission.actor == provider && a.permission.permission == permission);
+    if (!found) {
+      // logger.debug("CONSUMER: %s is not on the DSP permission for %s", provider, payer);
       throw new Error('this provider is not on the dsp permission list');
     }
-    authorization = [{actor: payer, permission: "dsp"}]; //if detected - we will use this
-  } catch(e) {    
-    let forcePayer = process.env.DSP_CONSUMER_PAYS === 'true' || process.env.DSP_CONSUMER_PAYS === true  ? true : false;
-    if(forcePayer) {
+    authorization = [{ actor: payer, permission: "dsp" }]; //if detected - we will use this
+  } catch (e) {
+    let forcePayer = process.env.DSP_CONSUMER_PAYS === 'true' || process.env.DSP_CONSUMER_PAYS === true ? true : false;
+    if (forcePayer) {
       throw e;
     } else {
-      logger.warn("CONSUMER ISSUE: %s does not have a valid DSP permission configured", payer);
+      // logger.debug("CONSUMER: %s does not have a valid DSP permission configured, thus DSP is paying for CPU", payer);
     }
   }
   return authorization;
 }
 
-const pushTransaction = async(endpoint, dappContract, payer, provider, action, payload, requestId = "", meta = {}, fail = false) => {
+const pushTransaction = async (endpoint, dappContract, payer, provider, action, payload, requestId = "", meta = {}, fail = false) => {
   dappContract = dappContract || dappServicesContract;
   var actions = [];
   if (enableXCallback === null) {
     enableXCallback = await detectXCallback(endpoint, dappContract);
   }
   let payerPermissions = await getPayerPermissions(endpoint, dappContract, payer, provider, paccountPermission);
-  
+
   actions.push({
     account: payer,
     name: action,
     authorization: payerPermissions,
     data: payload,
   });
+  // add nonce
+  meta = {
+    ...meta,
+    nonce: Math.floor(Math.random()*100000)
+  }
 
   if (enableXCallback === true) {
     actions.push({
@@ -781,7 +963,7 @@ const pushTransaction = async(endpoint, dappContract, payer, provider, action, p
       }
     });
 
-    if(fail) {
+    if (fail) {
       //move xcallback to be the first action
       //we don't care about the cpu payer cause this must fail
       let x = actions.pop();
@@ -794,10 +976,10 @@ const pushTransaction = async(endpoint, dappContract, payer, provider, action, p
           permission: paccountPermission,
         }],
         data: {}
-      });    
+      });
     }
   }
-  
+
   try {
     let tx = await endpoint.transact({
       actions
@@ -807,27 +989,32 @@ const pushTransaction = async(endpoint, dappContract, payer, provider, action, p
       broadcast: true,
       blocksBehind: 10
     });
-    if(fail) {
+    if (fail) {
       logger.info(`expectedFailTx = ${JSON.stringify(expectedFailTx)}`);
       throw new Error('simulated trx expected to fail');
     }
-    return tx;    
+    return tx;
   }
   catch (e) {
-    if(fail) return e;
-    logger.debug("TRANSMITTING ACTION FAILED: \n%j\n", JSON.stringify(actions));
-    throw e;    
+    if (fail) return e;
+    if(JSON.stringify(e).includes('abort_service_request') || JSON.stringify(e).includes('required service')) {
+      throw e;
+    } else {
+      logger.error("TRANSMITTING ACTION FAILED: %j", JSON.stringify(actions));
+      logger.debug(e);
+      throw e;
+    }
   }
 }
 
-const emitUsage = async(contract, service, quantity = 1, meta = {}, requestId = '') => {
+const emitUsage = async (contract, service, quantity = 1, meta = {}, requestId = '') => {
   const provider = paccount;
   const currentPackage = await resolveProviderPackage(contract, service, provider);
   const eosProv = await eosMainnet();
   if (enableXCallback === null) {
     enableXCallback = await detectXCallback(eosProv);
   }
-  var quantityAsset = typeof(quantity) === 'string' ? quantity : `${(quantity / 10000).toFixed(4)} QUOTA`;
+  var quantityAsset = typeof (quantity) === 'string' ? quantity : `${(quantity / 10000).toFixed(4)} QUOTA`;
   let report = {
     usage_report: {
       "provider": paccount,
@@ -837,6 +1024,11 @@ const emitUsage = async(contract, service, quantity = 1, meta = {}, requestId = 
       "quantity": quantityAsset,
       "success": true
     }
+  }
+  // add nonce
+  meta = {
+    ...meta,
+    nonce: Math.floor(Math.random()*100000)
   }
   try {
     await pushTransaction(
@@ -852,17 +1044,18 @@ const emitUsage = async(contract, service, quantity = 1, meta = {}, requestId = 
   }
   catch (e) {
     // fail if fails
-    logger.warn(`provisioning failed ${JSON.stringify(e)}`);
-    throw new Error("provisioning failed");
+    logger.warn(`usagex event billing failed ${JSON.stringify(e)}`);
+    return e;
   }
 
 }
-module.exports = { 
-  deserialize, generateABI, genNode, genApp, forwardEvent, 
-  resolveProviderData, resolveProvider, processFn, handleAction, 
-  paccount, proxy, eosMainnet, 
-  resolveProviderPackage, eosDSPGateway, paccountPermission, 
-  encodeName, decodeName, getProviders, getEosForSidechain, 
-  emitUsage, detectXCallback, getTableRowsSec, getLinkedAccount, 
-  parseEvents, pushTransaction, eosDSPEndpoint 
+module.exports = {
+  deserialize, generateABI, genNode, genApp, forwardEvent,
+  resolveProviderData, resolveProvider, processFn, handleAction,
+  paccount, proxy, eosMainnet,
+  resolveProviderPackage, eosDSPGateway, paccountPermission,
+  encodeName, decodeName, getProviders, getEosForSidechain,
+  emitUsage, detectXCallback, getTableRowsSec, getLinkedAccount,
+  parseEvents, pushTransaction, eosDSPEndpoint,
+  loggerHelper, getDfuseJwt, mainnetDfuseEnable
 };

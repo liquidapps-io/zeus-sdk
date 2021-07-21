@@ -12,7 +12,7 @@ export interface Accountext {
     package_started: number;
     package_end: number;
     status?: string;
-  }
+}
 
 export interface Package {
     id: number;
@@ -26,7 +26,21 @@ export interface Package {
     min_stake_quantity: string;
     min_unstake_period: number;
     enabled: number;
-  }
+}
+
+export interface Packagext {
+    id: number;
+    package_id: string;
+    service: string;
+    provider: string;
+    annual_inflation: number;
+    pricing: Pricing[]
+}
+
+export interface Pricing {
+    action: string;
+    cost_per_action: number;
+}
 
 export interface Staking {
     id: number;

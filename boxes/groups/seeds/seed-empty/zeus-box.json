@@ -1,11 +1,10 @@
 {
+  "version": "1.0.1",
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Unbox sample": "zeus unbox sample-eos-cpp"
   },
-  "hooks": {
-  }
+  "hooks": {}
 }

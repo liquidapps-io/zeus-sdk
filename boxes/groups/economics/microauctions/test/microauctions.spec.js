@@ -2,13 +2,13 @@ const { assert } = require('chai');
 require('mocha');
 
 
-
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
-const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getEos, getCreateAccount } = require('../extensions/tools/eos/utils');
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { requireBox } = require('@liquidapps/box-utils');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
+const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
+const { getEos, getCreateAccount } = requireBox('seed-eos/tools/eos/utils');
+const { eosio } = requireBox('test-extensions/lib/index');
 
 var args = getDefaultArgs();
 var systemToken = (args.creator !== 'eosio') ? 'EOS' : 'SYS';
@@ -188,7 +188,7 @@ describe(`${contractCode} Contract`, () => {
     var nextSlot = new Date().getTime() - startTime;
     var sleepTime = (cycleTime * 1000) - (nextSlot % (cycleTime * 1000));
 
-    return delay(sleepTime);
+    return eosio.delay(sleepTime);
   };
   it('auction didnt start yet', done => {
     (async () => {
@@ -457,7 +457,7 @@ describe(`${contractCode} Contract`, () => {
         var endTime = startTime + ((cycles + 1) * cycleTime) * 1000;
         var waitTime = endTime - new Date().getTime();
         if (waitTime > 0) {
-          await delay(waitTime);
+          await eosio.delay(waitTime);
         }
         var failed = false;
         try {

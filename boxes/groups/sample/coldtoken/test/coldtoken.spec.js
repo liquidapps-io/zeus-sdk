@@ -1,23 +1,20 @@
 require('mocha');
-
-
+const { requireBox } = require('@liquidapps/box-utils');
 const { assert } = require('chai'); // Using Assert style
-const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getNetwork } = require('../extensions/tools/eos/utils');
-const { getTestContract } = require('../extensions/tools/eos/utils');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
+const { getTestContract } = requireBox('seed-eos/tools/eos/utils');
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens, readVRAMData } = require('../extensions/tools/eos/dapp-services');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens, readVRAMData } = requireBox('dapp-services/tools/eos/dapp-services');
 
 var contractCode = 'coldtoken';
 var ctrt = artifacts.require(`./${contractCode}/`);
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { eosio } = requireBox('test-extensions/lib/index');
+
+const { parseTable } = requireBox('ipfs-dapp-service/utils/ipfs-service/get-table');
 
 describe(`${contractCode} Contract`, () => {
   var testcontract;
-  let txRes;
   const code = 'airairairair';
   const code2 = 'airairairai2';
   var testUser = "tt11";
@@ -40,7 +37,7 @@ describe(`${contractCode} Contract`, () => {
     })();
   });
   it('should increase the balance of receiver and decrease of the sender', done => {
-    (async() => {
+    (async () => {
       try {
         var symbol = 'AIRZ';
         // create token
@@ -73,7 +70,6 @@ describe(`${contractCode} Contract`, () => {
           broadcast: true,
           sign: true
         });
-        console.log(`transfer cpu us: ${txRes.processed.receipt.cpu_usage_us}`);
         const tableRes1 = await readVRAMData({
           contract: code,
           key: symbol,
@@ -88,7 +84,7 @@ describe(`${contractCode} Contract`, () => {
           scope: code2,
           keytype: 'symbol'
         });
-        await delay(2000);
+        await eosio.delay(2000);
         assert(tableRes1.row.balance == `500.0000 ${symbol}`, "wrong sender balance");
         assert(tableRes2.row.balance == `500.0000 ${symbol}`, "wrong receiver balance");
         done();
@@ -100,7 +96,7 @@ describe(`${contractCode} Contract`, () => {
   });
 
   it('shouldn\'t be able to transfer more than the balance', done => {
-    (async() => {
+    (async () => {
       try {
         var symbol = 'AIR';
         var failed = false;
@@ -124,7 +120,6 @@ describe(`${contractCode} Contract`, () => {
           broadcast: true,
           sign: true
         });
-        console.log(`issue cpu us: ${txRes.processed.receipt.cpu_usage_us}`);
         try {
           await testtoken.transfer({
             from: code,
@@ -163,7 +158,7 @@ describe(`${contractCode} Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(9000);
+        await eosio.delay(9000);
         var testtoken = testcontract;
         txRes = await testtoken.issue({
           to: testUser,
@@ -174,8 +169,7 @@ describe(`${contractCode} Contract`, () => {
           broadcast: true,
           sign: true
         });
-        console.log(`issue cpu us: ${txRes.processed.receipt.cpu_usage_us}`);
-        await delay(2000);
+        await eosio.delay(2000);
         var tableRes = await readVRAMData({
           contract: code,
           key: symbol,
@@ -193,7 +187,7 @@ describe(`${contractCode} Contract`, () => {
           broadcast: true,
           sign: true
         });
-        await delay(2000);
+        await eosio.delay(2000);
         tableRes = await readVRAMData({
           contract: code,
           key: symbol,
@@ -209,4 +203,21 @@ describe(`${contractCode} Contract`, () => {
       }
     })();
   });
+
+  it('Table can be parsed', done => {
+    (async () => {
+      try {
+        const contractName = 'airairairair';
+        const tableName = 'accounts';
+        const dspEndpoint = 'http://localhost:13015';
+        const table = await parseTable(contractName, tableName, dspEndpoint);
+        const balanceEntry = table.find(entry => (entry.scope === 'airairairair' && entry.key === '4149525a00000000'));
+        assert(balanceEntry.data.balance === '500.0000 AIRZ', 'airairairair balance of AIRZ not as expected');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  })
 });

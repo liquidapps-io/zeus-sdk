@@ -1,9 +1,11 @@
 {
     "name": "emptycontract-eos-cpp",
     "args":[
-        "contractname"
+        "contractname",
+        "templateName"
     ],
     "optionals":[
-        "contractname"
+        "contractname",
+        "templateName"
     ]
 }

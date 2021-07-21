@@ -1,14 +1,18 @@
 {
+  "version": "1.0.3",
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
-  "dependencies":["events","seed-microservices", "seed-models"],
+  "dependencies": {
+    "events": "^1.0.0",
+    "seed-microservices": "^1.0.0",
+    "seed-models": "^1.0.0"
+  },
   "install": {
-    "npm":{
-      "ipfs": true,
-      "go-ipfs-dep": true,
-      "ipfsd-ctl": "^0.47.4"
+    "npm": {
+      "go-ipfs": "0.8.0",
+      "ipfs": "0.54.2",
+      "ipfsd-ctl": "4.1.1"
     }
   }
 }

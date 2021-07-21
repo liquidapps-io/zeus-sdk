@@ -1,93 +1,92 @@
-const { getCreateKeys } = require('../../../extensions/helpers/key-utils');
-const { loadModels } = require('../../../extensions/tools/models');
-const { deserialize, eosDSPGateway, generateABI, genNode, eosPrivate, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission } = require('../../dapp-services-node/common');
-const logger = require('../../../extensions/helpers/logger');
-const loader = require("assemblyscript/lib/loader");
+const { requireBox } = require('@liquidapps/box-utils');
+const { loadModels } = requireBox('seed-models/tools/models');
+const { deserialize, eosDSPGateway, generateABI, genNode, eosPrivate, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission } = requireBox('dapp-services/services/dapp-services-node/common');
+const logger = requireBox('log-extensions/helpers/logger');
+const loader = require("@assemblyscript/loader");
 const fs = require('fs');
 const path = require('path');
-const util = require('util')
 
 const contractEnv = {
-    action_data_size: () => {},
-    current_receiver: () => {},
-    current_time: () => {},
-    db_find_i64: () => {},
-    db_get_i64: () => {},
-    db_remove_i64: () => {},
-    db_store_i64: () => {},
-    db_update_i64: () => {},
-    db_previous_i64: () => {},
-    db_idx256_store: () => {},
-    db_next_i64: () => {},
-    set_blockchain_parameters_packed: () => {},
-    get_blockchain_parameters_packed: () => {},
-    set_proposed_producers: () => {},
-    get_active_producers: () => {},
-    cancel_deferred: () => {},
-    db_idx128_store: () => {},
-    printhex: () => {},
-    db_lowerbound_i64: () => {},
-    tapos_block_prefix: () => {},
-    db_idx256_find_primary: () => {},
-    db_idx256_lowerbound: () => {},
-    db_idx128_update: () => {},
-    db_idx256_remove: () => {},
-    db_idx128_remove: () => {},
-    db_idx256_upperbound: () => {},
-    db_idx128_lowerbound: () => {},
-    db_idx256_update: () => {},
-    db_idx128_find_primary: () => {},
-    db_idx128_upperbound: () => {},
-    db_idx128_next: () => {},
-    db_idx256_next: () => {},
-    eosio_assert: () => {},
-    eosio_exit: () => {},
-    print: () => {},
-    is_account: () => {},
-    memcpy: () => {},
-    memset: () => {},
-    memmove: () => {},
-    read_action_data: () => {},
-    require_auth: () => {},
-    require_auth2: () => {},
-    require_recipient: () => {},
-    send_inline: () => {},
-    send_deferred: () => {},
-    __extendsftf2: () => {},
-    __floatsitf: () => {},
-    __multf3: () => {},
-    __letf2: () => {},
-    __ashlti3: () => {},
-    __netf2: () => {},
-    __subtf3: () => {},
-    __trunctfdf2: () => {},
-    __getf2: () => {},
-    __trunctfsf2: () => {},
-    __unordtf2: () => {},
-    __fixunstfsi: () => {},
-    __fixtfsi: () => {},
-    __floatunsitf: () => {},
-    __divtf3: () => {},
-    __addtf3: () => {},
-    __extenddftf2: () => {},
-    __eqtf2: () => {},
-    eosio_assert_code: () => {},
-    prints_l: () => {},
-    db_end_i64: () => {},
-    sha256: () => {},
-    sha1: () => {},
-    sha512: () => {},
-    assert_recover_key: () => {},
-    prints: () => {},
-    printn: () => {},
-    assert_sha1: () => {},
-    assert_sha256: () => {},
-    assert_sha512: () => {},
-    assert_ripemd160: () => {},
-    ripemd160: () => {},
-    recover_key: () => {},
-    transaction_size: () => {},
-    read_transaction: () => {},
+    action_data_size: () => { },
+    current_receiver: () => { },
+    current_time: () => { },
+    db_find_i64: () => { },
+    db_get_i64: () => { },
+    db_remove_i64: () => { },
+    db_store_i64: () => { },
+    db_update_i64: () => { },
+    db_previous_i64: () => { },
+    db_idx256_store: () => { },
+    db_next_i64: () => { },
+    set_blockchain_parameters_packed: () => { },
+    get_blockchain_parameters_packed: () => { },
+    set_proposed_producers: () => { },
+    get_active_producers: () => { },
+    cancel_deferred: () => { },
+    db_idx128_store: () => { },
+    printhex: () => { },
+    db_lowerbound_i64: () => { },
+    tapos_block_prefix: () => { },
+    db_idx256_find_primary: () => { },
+    db_idx256_lowerbound: () => { },
+    db_idx128_update: () => { },
+    db_idx256_remove: () => { },
+    db_idx128_remove: () => { },
+    db_idx256_upperbound: () => { },
+    db_idx128_lowerbound: () => { },
+    db_idx256_update: () => { },
+    db_idx128_find_primary: () => { },
+    db_idx128_upperbound: () => { },
+    db_idx128_next: () => { },
+    db_idx256_next: () => { },
+    eosio_assert: () => { },
+    eosio_exit: () => { },
+    print: () => { },
+    is_account: () => { },
+    memcpy: () => { },
+    memset: () => { },
+    memmove: () => { },
+    read_action_data: () => { },
+    require_auth: () => { },
+    require_auth2: () => { },
+    require_recipient: () => { },
+    send_inline: () => { },
+    send_deferred: () => { },
+    __extendsftf2: () => { },
+    __floatsitf: () => { },
+    __multf3: () => { },
+    __letf2: () => { },
+    __ashlti3: () => { },
+    __netf2: () => { },
+    __subtf3: () => { },
+    __trunctfdf2: () => { },
+    __getf2: () => { },
+    __trunctfsf2: () => { },
+    __unordtf2: () => { },
+    __fixunstfsi: () => { },
+    __fixtfsi: () => { },
+    __floatunsitf: () => { },
+    __divtf3: () => { },
+    __addtf3: () => { },
+    __extenddftf2: () => { },
+    __eqtf2: () => { },
+    eosio_assert_code: () => { },
+    prints_l: () => { },
+    db_end_i64: () => { },
+    sha256: () => { },
+    sha1: () => { },
+    sha512: () => { },
+    assert_recover_key: () => { },
+    prints: () => { },
+    printn: () => { },
+    assert_sha1: () => { },
+    assert_sha256: () => { },
+    assert_sha512: () => { },
+    assert_ripemd160: () => { },
+    ripemd160: () => { },
+    recover_key: () => { },
+    transaction_size: () => { },
+    read_transaction: () => { },
 }
 
 const env = {
@@ -129,23 +128,24 @@ function arrayBufferToBuffer(ab) {
 async function run(wasm, fn, payload) {
 
     module = loader.instantiateSync(wasm, {
-        env: { ...env,
+        env: {
+            ...env,
             prints: (str) => {
                 const U32 = new Uint8Array(module.memory.buffer);
                 for (var i = 0; i < 16; i++) {
-                    logger.debug(`got1 ${U32[str+i]}`);
+                    logger.debug(`got1 ${U32[str + i]}`);
                 }
             },
             print: (str) => {
                 const U32 = new Uint8Array(module.memory.buffer);
                 for (var i = 0; i < 16; i++) {
-                    logger.debug(`got2 ${U32[str+i]}`);
+                    logger.debug(`got2 ${U32[str + i]}`);
                 }
             },
             prints_l: (str, l) => {
                 const U32 = new Uint8Array(module.memory.buffer);
                 for (var i = 0; i < 16; i++) {
-                    logger.debug(`got3 ${U32[str+i]} ${l}`);
+                    logger.debug(`got3 ${U32[str + i]} ${l}`);
                 }
             },
             eosio_assert: (condition, str) => {
@@ -177,7 +177,7 @@ async function run(wasm, fn, payload) {
     logger.info(`res: ${Buffer.from(res).toString('hex')}`);
     return res;
 }
-module.exports = async({ event, rollback }, { uri, payload }, state) => {
+module.exports = async ({ event, rollback }, { uri, payload }, state) => {
     if (rollback) {
         event.action = 'vrunclean';
         console.log('vcpu after failed transaction', uri);

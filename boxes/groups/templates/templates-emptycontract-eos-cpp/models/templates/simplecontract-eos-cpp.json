@@ -1,0 +1,11 @@
+{
+    "name": "simplecontract-eos-cpp",
+    "args":[
+        "contractname",
+        "templateName"
+    ],
+    "optionals":[
+        "contractname",
+        "templateName"
+    ]
+}

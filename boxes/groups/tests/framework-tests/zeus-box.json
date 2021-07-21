@@ -1,20 +1,20 @@
 {
+  "version": "1.0.1",
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Run framework tests": "zeus test -c"
   },
-  "dependencies":[
-    "all-dapp-services",
-    "mocha",
-    "coldtoken",
-    "vgrab",
-    "microauctions",
-    "hooks-cpp-contracts"],
-  "install":{
-    "contracts":{
+  "dependencies": {
+    "all-dapp-services": "^1.0.0",
+    "mocha": "^1.0.0",
+    "coldtoken": "^1.0.0",
+    "vgrab": "^1.0.0",
+    "microauctions": "^1.0.0"
+  },
+  "install": {
+    "contracts": {
       "svcsconsumer": true
     }
   }

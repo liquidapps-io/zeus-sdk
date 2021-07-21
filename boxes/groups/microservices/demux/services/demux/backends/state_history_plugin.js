@@ -5,23 +5,24 @@ const { TextDecoder, TextEncoder } = require('text-encoding');
 const fetch = require('node-fetch');
 const WebSocket = require('ws');
 const pako = require('pako');
-const { loadModels } = require('../../../extensions/tools/models');
+const { requireBox } = require('@liquidapps/box-utils');
+const { loadModels } = requireBox('seed-models/tools/models');
 const { getAbis, getAbiAbi } = require('./state_history_abi');
-const logger = require('../../../extensions/helpers/logger');
-const dal = require('../../dapp-services-node/dal/dal');
-// currently the entire sidechain config is in the metadata, including the private key, not sure if this is just local, but doesn't need to be there anyways
+const logger = requireBox('log-extensions/helpers/logger');
+const dal = requireBox('dapp-services/services/dapp-services-node/dal/dal');
+
 const sidechainName = process.env.SIDECHAIN;
-const nodeosWebsocketPort = process.env.NODEOS_WEBSOCKET_PORT || '8889';
+const nodeosWebsocketPort = process.env.NODEOS_WEBSOCKET_PORT || '8887';
 const nodeosHost = process.env.NODEOS_HOST || 'localhost';
 const nodeosRpcPort = process.env.NODEOS_PORT || '8888';
 const nodeosUrl =
   `http${process.env.NODEOS_SECURED === 'true' || process.env.NODEOS_SECURED === true ? true : false ? 's' : ''}://${nodeosHost}:${nodeosRpcPort}`;
-const serviceResponseTimeout = parseInt(process.env.SERVICE_RESPONSE_TIMEOUT || 10000);
-const maxPendingMessages = parseInt(process.env.MAX_PENDING_MESSAGES || 1000);
+const serviceResponseTimeout = parseInt(process.env.SERVICE_RESPONSE_TIMEOUT_MS || 10000);
+const maxPendingMessages = parseInt(process.env.DEMUX_MAX_PENDING_MESSAGES || 5000);
+const processBlockCheckpoint = parseInt(process.env.DEMUX_PROCESS_BLOCK_CHECKPOINT || 1000);
 
 let abis = getAbis();
 let abiabi = getAbiAbi();
-let c = process.env.DEMUX_HEAD_BLOCK || 0;
 let c2 = 0;
 let types;
 let head_block = 0;
@@ -30,7 +31,7 @@ let pending = [];
 let genesisTimestampMs;
 let sidechain = null;
 let capturedEvents;
-const loadEvents = async() => {
+const loadEvents = async () => {
   if (!capturedEvents) {
     capturedEvents = {};
     let capturedEventsModels = await loadModels('captured-events');
@@ -75,6 +76,9 @@ const handlers = {
     else if (method == 'newaccount') {
       // console.log(`new account: ${actData.name}`);
     }
+    else if (account == 'eidosonecoin' || code == 'eidosonecoin' || account == 'gravyhftdefi' || code == 'gravyhftdefi') { // 
+      // console.log(`new account: ${actData.name}`);
+    }
     else if (method == 'setabi') {
       const localTypes = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), abiabi);
       const buf = Buffer.from(actData.abi, 'hex');
@@ -86,7 +90,7 @@ const handlers = {
 
       const abi = localTypes.get('abi_def').deserialize(buffer);
       abis[actData.account] = abi;
-      logger.debug(`setabi for ${actData.account} - updating Serializer`);
+      // logger.debug(`setabi for ${actData.account} - updating Serializer`);
     }
     return eventNum;
     // else
@@ -94,14 +98,18 @@ const handlers = {
   },
   '*': {
     '*': {
-      '*': async(txid, account, method, code, actData, event, eventNum, blockInfo, cbevent) => {
+      '*': async (txid, account, method, code, actData, event, eventNum, blockInfo, cbevent) => {
         // load from model.
 
         let events = await loadEvents();
         let curr = events;
-        logger.debug(`handling ${txid} ${eventNum} ${account} ${code} ${JSON.stringify(event)} ${method} ${cbevent}`);
+        logger.info(`handling ${txid} ${eventNum} ${account} ${code} ${JSON.stringify(event)} ${method} ${cbevent}`);
 
         if (!curr[event.etype]) return eventNum;
+        if (account == 'eidosonecoin' || code == 'eidosonecoin' || account == 'gravyhftdefi' || code == 'gravyhftdefi') { // 
+          // console.log(`new account: ${actData.name}`);
+          return eventNum;
+        }
         curr = curr[event.etype];
         if (!curr[code]) { curr = curr['*']; }
         else { curr = curr[code]; }
@@ -110,7 +118,7 @@ const handlers = {
         if (!curr[method]) { curr = curr['*']; }
         else { curr = curr[method]; }
         if (curr) {
-          const url = `http://localhost:${process.env.WEBHOOK_DAPP_PORT || 8112}`;
+          const url = `http://localhost:${process.env.WEBHOOK_DAPP_PORT || 8812}`;
           event.meta = {
             txId: txid,
             blockNum: blockInfo.number,
@@ -141,7 +149,7 @@ const handlers = {
             })
           ])
           const resText = await r.text();
-          logger.debug(`fired hooks: ${account} ${method} ${JSON.stringify(event, null, 2)} ${code}`);
+          // logger.debug(`fired hooks: ${account} ${method} ${JSON.stringify(event, null, 2)} ${code}`);
         }
         return eventNum;
         //     else
@@ -152,7 +160,7 @@ const handlers = {
 };
 async function recursiveHandle({ txid, account, method, code, actData, events }, depth = 0, currentHandlers = handlers, eventNum = 0, blockInfo, cbevent) {
   if (depth == 3) {
-    console.log('not supposed to get here')
+    logger.error(`Depth exceeded capacity: ${depth}`)
     return;
   }
 
@@ -163,7 +171,7 @@ async function recursiveHandle({ txid, account, method, code, actData, events },
       for (var i = 0; i < events.length; i++) {
         var currentEvent = events[i];
         var eventType = currentEvent.etype;
-        logger.debug(`event: ${JSON.stringify(currentEvent, null, 2)}`);
+        // logger.info(`event ${currentEvent.etype} | DSP ${currentEvent.provider} | payer :${currentEvent.payer} | service :${currentEvent.service} | action :${currentEvent.action} | package :${currentEvent.package} | data :${currentEvent.data}`);
         if (!eventType) { continue; }
         await recursiveHandle({ txid, account, method, code, actData, events: currentEvent }, depth, currentHandlers, eventNum + i, blockInfo, cbevent);
       }
@@ -223,7 +231,7 @@ function parseEvents(text) {
     try {
       return JSON.parse(a);
     }
-    catch (e) {}
+    catch (e) { }
   }).filter(a => a);
 }
 async function actionHandler(txid, action, maxEventNum, blockInfo, cbevent) {
@@ -256,21 +264,27 @@ async function transactionHandler(tx, blockInfo) {
   }
 }
 
-var last_processed = 0;
-async function messageHandler(data) {
-  var buffer = new Serialize.SerialBuffer({
+function deserializeStateHisData(data) {
+  const buffer = new Serialize.SerialBuffer({
     textEncoder: new TextEncoder(),
     textDecoder: new TextDecoder(),
     array: data
   });
+  const desData = types.get('result').deserialize(buffer);
+  return desData;
+}
 
-  const realData = types.get('result').deserialize(buffer);
-  if (++c % 10000 == 0 && current_block === 0) { logger.info(`syncing ${c / 1000000}M (${head_block / 1000000}M}`); }
-  head_block = realData[1].head.block_num;
-  const block_id = realData[1].head.block_id;
-  if (!realData[1].traces) { return; }
-  var traces = Buffer.from(realData[1].traces, 'hex');
-  current_block = realData[1].this_block.block_num;
+let last_processed_block = 0;
+async function messageHandler(data) {
+  //logger.info(JSON.stringify(data))
+  head_block = data[1].head.block_num;
+  const block_id = data[1].head.block_id;
+  if (!data[1].traces) {
+    logger.warn(`No traces detected, is trace-history = true enabled in nodeos config?`);
+    return;
+  }
+  var traces = Buffer.from(data[1].traces, 'hex');
+  current_block = data[1].this_block.block_num;
   if (++c2 % 10000 == 0) { logger.info('at %s', current_block - head_block); }
 
   const timestamp = await getBlockTimestamp(current_block);
@@ -296,12 +310,9 @@ async function messageHandler(data) {
       const transactionTrace = types.get('transaction_trace').deserialize(buffer2);
       await transactionHandler(transactionTrace[1], blockInfo);
     }
-    if (current_block - last_processed >= 10000) {
-      last_processed = current_block;
-      const newSettings = {};
-      if (sidechainName) { newSettings[sidechainName] = { last_processed_block: current_block } }
-      else { newSettings.last_processed_block = current_block };
-      await dal.updateSettings(newSettings);
+    if (current_block - last_processed_block >= processBlockCheckpoint) {
+      await setDatabaseBlockNumber(current_block);
+      last_processed_block = current_block;
       logger.info("Updated database with current block: %s", current_block);
     }
 
@@ -314,7 +325,11 @@ async function messageHandler(data) {
 var retries = 0;
 async function watchMessages() {
 
-  if (pending.length !== 0) {
+  const messageAmount = pending.length;
+  if (messageAmount > 0) {
+    if (messageAmount < maxPendingMessages / 2) {
+      startDemux();
+    }
     //always remove the message from pending
     const data = pending.shift();
     try {
@@ -345,11 +360,10 @@ async function watchMessages() {
 let ws, abi;
 let expectingABI = true;
 let heartBeat = Math.floor(Date.now() / 1000);
+let paused = false;
+let processingMessages = false;
+let last_received_block = 0;
 const connect = () => {
-  if (pending.length > maxPendingMessages) {
-    logger.warn(``);
-    setTimeout(connect, 15000);
-  }
   ws = new WebSocket(`ws://${nodeosHost}:${nodeosWebsocketPort}`, {
     perMessageDeflate: false
   });
@@ -357,28 +371,42 @@ const connect = () => {
     expectingABI = true;
     logger.info('ws connected');
   });
-  ws.on('error', function() {
-    logger.warn('ws error');
+  ws.on('error', function (err) {
+    logger.warn(`websocket error: ${err.message}`);
   });
-  ws.on('close', function() {
-    setTimeout(connect, 1000); //hardcoded interval
+  ws.on('close', function () {
+    if (!paused) {
+      logger.warn('websocket closed and not paused');
+      setTimeout(connect, 1000); //hardcoded interval
+      return;
+    }
+    logger.info('websocket closed.');
   });
   ws.on('message', async function incoming(data) {
+    if (paused) {
+      return;
+    }
     //start pushing messages after we received the ABI
     if (!expectingABI) {
-      if (pending.length > maxPendingMessages) {
-        logger.warn(``);
-      }
-      pending.push(data);
+      const desData = deserializeStateHisData(data);
+      // received incomplete message, ignore
+      if (!desData || !desData[1] || !desData[1].this_block) return;
+      pending.push(desData);
+      last_received_block = desData[1].this_block.block_num;
       let currTime = Math.floor(Date.now() / 1000);
       if ((currTime - heartBeat) >= 15) { //heartbeat every 15 seconds
         heartBeat = currTime;
-        logger.info("Demux heartbeat - Processed Block: %s Pending Messages: %s", current_block, pending.length);
+        const head_block_to_current_difference = (await getHeadBlockInfo()).head_block_num - current_block;
+        logger.info("Demux heartbeat - Processed Block: %s | Pending Messages: %s | Blocks Behind Head Block: %s", current_block, pending.length, head_block_to_current_difference);
+      }
+      if (pending.length >= maxPendingMessages) {
+        logger.warn(`reached maximum amount of pending messages: ${maxPendingMessages}`);
+        await pauseDemux();
       }
       return;
     }
 
-    logger.info('got abi');
+    // logger.info('got abi');
     abi = JSON.parse(data);
     types = Serialize.getTypesFromAbi(Serialize.createInitialTypes(), abi);
 
@@ -387,15 +415,19 @@ const connect = () => {
       textDecoder: new TextDecoder()
     });
 
-    let start_block_num;
+    let start_block_num = 0;
     try {
       start_block_num = await getStartingBlockNumber();
     }
     catch (e) {
       logger.error(`Error getting starting block number: ${JSON.stringify(e)}`);
-      start_block_num = c;
+      throw e;
     }
-    c = start_block_num;
+    if (last_received_block) {
+      // if last_received_block is defined the process
+      // stopped due to too many pending messages, start from there
+      start_block_num = last_received_block + 1;
+    }
     logger.info(`starting demux at block ${start_block_num}`);
 
     //we have the abi now, create a get blocks request
@@ -413,17 +445,38 @@ const connect = () => {
     //send the request, all future messages should be blocks
     ws.send(buffer.asUint8Array());
     logger.info("Starting demux processing");
-    watchMessages();
+    if (!processingMessages) {
+      processingMessages = true;
+      watchMessages();
+    }
   });
 }
 connect();
 
-async function setDatabaseBlockNumber() {
+async function pauseDemux() {
+  if (paused) return;
+  logger.info('pausing demux processing.');
+  paused = true;
+  await ws.close();
+}
+
+function startDemux() {
+  if (!paused) return;
+  logger.info('resuming demux processing.');
+  paused = false;
+  connect();
+}
+
+async function setDatabaseBlockNumber(blockNum) {
+  const newSettings = {};
+  if (sidechainName) { newSettings[sidechainName] = { last_processed_block: blockNum } }
+  else { newSettings.last_processed_block = blockNum };
+  await dal.updateSettings(newSettings);
 }
 
 async function getDatabaseBlockNumber() {
   const settings = await dal.getSettings();
-  if(sidechainName) {
+  if (sidechainName) {
     if (settings && settings.data && settings.data[sidechainName] && settings.data[sidechainName].last_processed_block)
       return settings.data[sidechainName].last_processed_block;
   }
@@ -433,16 +486,22 @@ async function getDatabaseBlockNumber() {
   }
 }
 
-async function getStartingBlockNumber() {
-  if(process.env.DEMUX_BYPASS_DATABASE_HEAD_BLOCK === 'true' || process.env.DEMUX_BYPASS_DATABASE_HEAD_BLOCK === true ? false : true) {
-    const res = await getDatabaseBlockNumber();
-    if (res) return res;
+async function getNonDatabaseStartBlock() {
+  if (process.env.DEMUX_HEAD_BLOCK && process.env.DEMUX_HEAD_BLOCK !== "0") {
+    return process.env.DEMUX_HEAD_BLOCK;
   }
 
-  if (process.env.DEMUX_HEAD_BLOCK)
-    return process.env.DEMUX_HEAD_BLOCK;
+  const headBlock = await getHeadBlockInfo();
+  return headBlock.head_block_num;
+}
 
-  return process.env.DAPPSERVICES_GENESIS_BLOCK || 1;
+async function getStartingBlockNumber() {
+  if (process.env.DEMUX_BYPASS_DATABASE_HEAD_BLOCK === 'true' || process.env.DEMUX_BYPASS_DATABASE_HEAD_BLOCK === true) {
+    return getNonDatabaseStartBlock();
+  }
+  const res = await getDatabaseBlockNumber();
+  if (res) return res;
+  return getNonDatabaseStartBlock();
 }
 
 async function getHeadBlockInfo() {

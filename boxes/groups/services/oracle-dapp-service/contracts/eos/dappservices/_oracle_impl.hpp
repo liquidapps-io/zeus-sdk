@@ -37,6 +37,8 @@ TABLE oracleentry {
 
 typedef eosio::multi_index<"oracleentry"_n, oracleentry, indexed_by<"byhash"_n, const_mem_fun<oracleentry, checksum256, &oracleentry::hash_key>>> oracleentries_t; 
 
+// empty definition
+#define ORACLE_HOOK_FILTER(uri, data)
 #define ORACLE_DAPPSERVICE_ACTIONS_MORE() \
 TABLE oracleentry {  \
    uint64_t                      id; \
@@ -94,10 +96,14 @@ static void updateOracleResult(std::vector<char> uri, name provider, std::vector
     provider_result new_result;\
     new_result.provider = provider;\
     new_result.result = result;\
-    if(existing != cidx.end())\
+    if(existing != cidx.end()) {\
+        auto existing_provider_result = existing->results;\
+        for(provider_result i : existing_provider_result)   /* ensure that each provider only returns one response */ \
+            eosio::check(i.provider != provider, "duplicate provider detected in responses, a provider may only return one response");\
         cidx.modify(existing,_self, [&]( auto& a ) {  \
                     a.results.emplace_back(new_result);\
         }); \
+    } \
     else entries.emplace(_self, [&]( auto& a ) {  \
                 a.id = entries.available_primary_key();  \
                 a.uri = uri;  \
@@ -105,6 +111,7 @@ static void updateOracleResult(std::vector<char> uri, name provider, std::vector
     }); \
 }  \
 SVC_RESP_ORACLE(geturi)(uint32_t size,std::vector<char> uri,std::vector<char> data, name current_provider){ \
+    ORACLE_HOOK_FILTER(uri, data) \
     updateOracleResult(uri, current_provider, data); \
 } \
 SVC_RESP_ORACLE(orcclean)(uint32_t size, std::vector<char> uri, name current_provider){ \

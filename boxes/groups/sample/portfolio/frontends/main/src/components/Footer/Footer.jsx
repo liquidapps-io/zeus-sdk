@@ -5,14 +5,13 @@ import Twitter from 'assets/Footer/twitter.svg';
 import LinkedIn from 'assets/Footer/linkedIn.svg';
 import Medium from 'assets/Footer/medium.svg';
 import Telegram from 'assets/Footer/telegram.svg';
-import Reddit from 'assets/Footer/reddit.svg';
 
 const footer = () => {
   return (
     <div className={classes.container}>
       <div className={classes.flexColumn}>
         <div className={classes.flexSubColumn}>
-          <div className={classes.columnTitleText}>DAPP NETWORK SERVICES</div>
+          <div className={classes.columnTitleText}>DAPP NETWORK SERVICES USED</div>
           <div className={classes.columnTextDiv}><a className={classes.columnText} href="https://liquidapps.io/vRam" rel="noopener noreferrer" target="_blank">vRAM</a></div>
           <div className={classes.columnTextDiv}><a className={classes.columnText} href="https://liquidapps.io/liquid-accounts" rel="noopener noreferrer" target="_blank">LiquidAccounts</a></div>
           <div className={classes.columnTextDiv}><a className={classes.columnText} href="https://liquidapps.io/liquid-oracles" rel="noopener noreferrer" target="_blank">LiquidOracles</a></div>
@@ -30,7 +29,6 @@ const footer = () => {
           <div className={classes.columnTextDiv}><a className={classes.columnText} href="https://www.linkedin.com/company/liquidapps/?viewAsMember=true" rel="noopener noreferrer" target="_blank"><img className={classes.footerImage} src={LinkedIn} alt="" />LinkedIn</a></div>
           <div className={classes.columnTextDiv}><a className={classes.columnText} href="https://medium.com/the-liquidapps-blog" rel="noopener noreferrer" target="_blank"><img className={classes.footerImage} src={Medium} alt="" />Medium</a></div>
           <div className={classes.columnTextDiv}><a className={classes.columnText} href="https://t.me/joinchat/IDQ7mRHawQ3a0H9pDt46fg" rel="noopener noreferrer" target="_blank"><img className={classes.footerImage} src={Telegram} alt="" />Telegram</a></div>
-          <div className={classes.columnTextDiv}><a className={classes.columnText} href="https://www.reddit.com/r/LiquidApps/" rel="noopener noreferrer" target="_blank"><img className={classes.footerImage} src={Reddit} alt="" />Reddit</a></div>
         </div>
       </div>
       <hr className={classes.footerHr}></hr>

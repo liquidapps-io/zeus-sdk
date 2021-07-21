@@ -1,18 +1,23 @@
 {
+  "version": "1.0.3",
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
-  "dependencies":["events","seed-microservices", "seed-models", "log-extensions"],
+  "dependencies": {
+    "events": "^1.0.0",
+    "seed-microservices": "^1.0.0",
+    "seed-models": "^1.0.0",
+    "log-extensions": "^1.0.0"
+  },
   "install": {
-    "npm":{
-      "zeromq": true, 
+    "npm": {
+      "zeromq": "^5.1.0",
       "@types/jest": "^23.3.1",
       "babel-polyfill": "^6.26.0",
       "eosjs-ecc": "^4.0.1",
       "text-encoding": "^0.6.4",
-      "ws":true,
-      "pako":true,
+      "ws": true,
+      "pako": true,
       "node-fetch": true
     }
   }

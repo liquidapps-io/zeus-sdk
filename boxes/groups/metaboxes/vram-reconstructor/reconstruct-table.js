@@ -1,6 +1,7 @@
 require("dotenv").config();
 const fetch = require("isomorphic-fetch");
 const BN = require('bignumber.js');
+const { requireBox } = require('@liquidapps/box-utils');
 const { createDfuseClient } = require("@dfuse/client");
 // const ApolloClient = require("apollo-client/ApolloClient");
 const { gql, ApolloClient } = require("apollo-boost");
@@ -8,8 +9,8 @@ const { HttpLink } = require("apollo-link-http");
 const { InMemoryCache } = require("apollo-cache-inmemory");
 const ws = require("ws");
 const { deserialize, decodeName } = require('./services/dapp-services-node/common');
-const { getEosWrapper } = require('./extensions/tools/eos/eos-wrapper');
-const { getCreateKeys } = require('./extensions/helpers/key-utils');
+const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
+const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
 
 global.WebSocket = ws;
 

@@ -24,13 +24,13 @@ ACTION BancorConverter::init(name smart_contract, asset smart_currency,
                              bool require_balance, uint64_t max_fee,
                              uint64_t fee) {
   require_auth(_self);
-  eosio_assert(max_fee <= 1000, "maximum fee must be lower or equal to 1000");
-  eosio_assert(fee <= 1000, "fee must be lower or equal to 1000");
-  eosio_assert(fee <= max_fee, "fee must be lower or equal to the maximum fee");
+  eosio::check(max_fee <= 1000, "maximum fee must be lower or equal to 1000");
+  eosio::check(fee <= 1000, "fee must be lower or equal to 1000");
+  eosio::check(fee <= max_fee, "fee must be lower or equal to the maximum fee");
 
   settings settings_table(_self, _self.value);
   bool settings_exists = settings_table.exists();
-  eosio_assert(!settings_exists, "settings already defined");
+  eosio::check(!settings_exists, "settings already defined");
 
   settings_t new_settings;
   new_settings.smart_contract = smart_contract;
@@ -47,11 +47,11 @@ ACTION BancorConverter::init(name smart_contract, asset smart_currency,
 ACTION BancorConverter::update(bool smart_enabled, bool enabled,
                                bool require_balance, uint64_t fee) {
   require_auth(_self);
-  eosio_assert(fee <= 1000, "fee must be lower or equal to 1000");
+  eosio::check(fee <= 1000, "fee must be lower or equal to 1000");
 
   settings settings_table(_self, _self.value);
   auto st = settings_table.get();
-  eosio_assert(fee <= st.max_fee,
+  eosio::check(fee <= st.max_fee,
                "fee must be lower or equal to the maximum fee");
 
   st.smart_enabled = smart_enabled;
@@ -64,12 +64,12 @@ ACTION BancorConverter::update(bool smart_enabled, bool enabled,
 ACTION BancorConverter::setreserve(name contract, asset currency,
                                    uint64_t ratio, bool p_enabled) {
   require_auth(_self);
-  eosio_assert(ratio > 0 && ratio <= 1000, "ratio must be between 1 and 1000");
+  eosio::check(ratio > 0 && ratio <= 1000, "ratio must be between 1 and 1000");
 
   reserves reserves_table(_self, _self.value);
   auto existing = reserves_table.find(currency.symbol.code().raw());
   if (existing != reserves_table.end()) {
-    eosio_assert(existing->contract == contract,
+    eosio::check(existing->contract == contract,
                  "cannot update the reserve contract name");
 
     reserves_table.modify(existing, _self, [&](auto &s) {
@@ -89,7 +89,7 @@ ACTION BancorConverter::setreserve(name contract, asset currency,
   for (auto &reserve : reserves_table)
     total_ratio += reserve.ratio;
 
-  eosio_assert(total_ratio <= 1000, "total ratio cannot exceed 1000");
+  eosio::check(total_ratio <= 1000, "total ratio cannot exceed 1000");
 
   settings settings_table(_self, _self.value);
   auto converter_settings = settings_table.get();
@@ -109,22 +109,22 @@ ACTION BancorConverter::setreserve(name contract, asset currency,
 
 void BancorConverter::convert(name from, eosio::asset quantity,
                               std::string memo, name code) {
-  eosio_assert(quantity.is_valid(), "invalid quantity");
-  eosio_assert(quantity.amount != 0, "zero quantity is disallowed");
+  eosio::check(quantity.is_valid(), "invalid quantity");
+  eosio::check(quantity.amount != 0, "zero quantity is disallowed");
   auto from_amount = quantity.amount / pow(10, quantity.symbol.precision());
   auto memo_object = parse_memo(memo);
-  eosio_assert(memo_object.path.size() > 1, "invalid memo format");
+  eosio::check(memo_object.path.size() > 1, "invalid memo format");
   settings settings_table(_self, _self.value);
   auto converter_settings = settings_table.get();
-  eosio_assert(converter_settings.enabled, "converter is disabled");
-  eosio_assert(converter_settings.network == from,
+  eosio::check(converter_settings.enabled, "converter is disabled");
+  eosio::check(converter_settings.network == from,
                "converter can only receive from network contract");
 
   auto contract_name = name(memo_object.path[0].c_str());
-  eosio_assert(contract_name == _self, "wrong converter");
+  eosio::check(contract_name == _self, "wrong converter");
   auto from_path_currency = quantity.symbol.code().raw();
   auto to_path_currency = symbol_code(memo_object.path[1].c_str()).raw();
-  eosio_assert(from_path_currency != to_path_currency,
+  eosio::check(from_path_currency != to_path_currency,
                "cannot convert to self");
   auto smart_symbol_name =
       converter_settings.smart_currency.symbol.code().raw();
@@ -145,8 +145,8 @@ void BancorConverter::convert(name from, eosio::asset quantity,
   auto from_ratio = from_token.ratio;
   auto to_ratio = to_token.ratio;
 
-  eosio_assert(from_token.p_enabled, "'from' token purchases disabled");
-  eosio_assert(code == from_contract, "unknown 'from' contract");
+  eosio::check(from_token.p_enabled, "'from' token purchases disabled");
+  eosio::check(code == from_contract, "unknown 'from' contract");
   auto current_from_balance =
       ((get_balance(from_contract, _self, from_currency.symbol.code())).amount +
        from_currency.amount - quantity.amount) /
@@ -199,7 +199,7 @@ void BancorConverter::convert(name from, eosio::asset quantity,
 
   auto issue = false;
   if (outgoing_smart_token) {
-    eosio_assert(memo_object.path.size() == 2,
+    eosio::check(memo_object.path.size() == 2,
                  "smart token must be final currency");
     to_tokens = smart_tokens;
     issue = true;
@@ -270,7 +270,7 @@ BancorConverter::get_reserve(uint64_t name, const settings_t &settings) {
 
   reserves reserves_table(_self, _self.value);
   auto existing = reserves_table.find(name);
-  eosio_assert(existing != reserves_table.end(), "reserve not found");
+  eosio::check(existing != reserves_table.end(), "reserve not found");
   return *existing;
 }
 
@@ -305,7 +305,7 @@ void BancorConverter::verify_entry(name account, name currency_contact,
                                    eosio::asset currency) {
   accounts accountstable(currency_contact, account.value);
   auto ac = accountstable.find(currency.symbol.code().raw());
-  eosio_assert(ac != accountstable.end(),
+  eosio::check(ac != accountstable.end(),
                "must have entry for token (claim token first)");
 }
 
@@ -315,7 +315,7 @@ void BancorConverter::verify_min_return(eosio::asset quantity,
                                         std::string min_return) {
   float ret = stof(min_return.c_str());
   int64_t ret_amount = (ret * pow(10, quantity.symbol.precision()));
-  eosio_assert(quantity.amount >= ret_amount, "below min return");
+  eosio::check(quantity.amount >= ret_amount, "below min return");
 }
 
 // given a token supply, reserve balance, ratio and a input amount (in the
@@ -393,7 +393,7 @@ void BancorConverter::transfer(name from, name to, asset quantity,
     return;
   }
 
-  convert(from, quantity, memo, _code);
+  convert(from, quantity, memo, _self);
 }
 
 extern "C" {

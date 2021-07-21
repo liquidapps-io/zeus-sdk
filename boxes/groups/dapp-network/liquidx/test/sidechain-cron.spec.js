@@ -1,18 +1,18 @@
 require('mocha');
 
-
+const { requireBox } = require('@liquidapps/box-utils');
 const { assert } = require('chai'); // Using Assert style
-const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getNetwork, getCreateAccount } = require('../extensions/tools/eos/utils');
-const { getEosWrapper } = require('../extensions/tools/eos/eos-wrapper');
+const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
+const { getNetwork, getCreateAccount } = requireBox('seed-eos/tools/eos/utils');
+const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 var Eos = require('eosjs');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
-const { loadModels } = require('../extensions/tools/models');
+const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
+const { loadModels } = requireBox('seed-models/tools/models');
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens, createLiquidXMapping } = require('../extensions/tools/eos/dapp-services');
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens, createLiquidXMapping } = requireBox('dapp-services/tools/eos/dapp-services');
+const { eosio } = requireBox('test-extensions/lib/index');
 
 var contractCode = 'cronxtest';
 var ctrt = artifacts.require(`./${contractCode}/`);
@@ -25,7 +25,7 @@ describe(`LiquidX Sidechain Cron Service Test Contract`, () => {
   var sidechain;
   before(done => {
     (async () => {
-      try {        
+      try {
         var sidechains = await loadModels('eosio-chains');
         sidechain = sidechains.find(a => a.name === sidechainName);
         await getCreateAccount(sister_code, null, false, sidechain);
@@ -76,7 +76,7 @@ describe(`LiquidX Sidechain Cron Service Test Contract`, () => {
   });
 
   var code = sister_code;
-  it('Cron test - every 2 seconds', done => {
+  it('Sidechain Cron test - every 2 seconds', done => {
     (async () => {
       try {
         var res = await testcontract.testschedule({}, {
@@ -84,8 +84,7 @@ describe(`LiquidX Sidechain Cron Service Test Contract`, () => {
           broadcast: true,
           sign: true
         });
-        console.log(JSON.stringify(res));
-        await delay(35000);
+        await eosio.delay(10000);
         res = await eosconsumer.getTableRows({
           'json': true,
           'scope': code,
@@ -94,7 +93,7 @@ describe(`LiquidX Sidechain Cron Service Test Contract`, () => {
           'limit': 100
         });
         var first = res.rows[0].counter;
-        await delay(10000);
+        await eosio.delay(10000);
         res = await eosconsumer.getTableRows({
           'json': true,
           'scope': code,
@@ -104,7 +103,7 @@ describe(`LiquidX Sidechain Cron Service Test Contract`, () => {
         });
         var second = res.rows[0].counter;
         assert.ok(second > first, 'counter did not increase');
-        await delay(10000);
+        await eosio.delay(10000);
         res = await eosconsumer.getTableRows({
           'json': true,
           'scope': code,
@@ -113,6 +112,13 @@ describe(`LiquidX Sidechain Cron Service Test Contract`, () => {
           'limit': 100
         });
         assert.ok(res.rows[0].counter > second, 'counter did not increase');
+        await testcontract.removetimer({
+          account: code
+        }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
         done();
       }
       catch (e) {

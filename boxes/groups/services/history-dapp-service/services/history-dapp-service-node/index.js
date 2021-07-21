@@ -1,13 +1,14 @@
-var { nodeFactory } = require('../dapp-services-node/generic-dapp-service-node');
-const { eosDSPGateway, paccount, resolveProviderPackage } = require('../dapp-services-node/common');
-const { loadModels } = require("../../extensions/tools/models");
+const { requireBox } = require('@liquidapps/box-utils');
+var { nodeFactory } = requireBox('dapp-services/services/dapp-services-node/generic-dapp-service-node');
+const { eosDSPGateway, paccount, resolveProviderPackage } = requireBox('dapp-services/services/dapp-services-node/common');
+const { loadModels } = requireBox('seed-models/tools/models');
 
 
 // todo: periodically call "usage" for hold and serve
 
 // todo: call store for active contracts
 nodeFactory('history', {
-  hstreg: async({ rollback, replay, exception }, { query }) => {
+  hstreg: async ({ rollback, replay, exception }, { query }) => {
     if (rollback) {
       return;
 
@@ -24,7 +25,7 @@ nodeFactory('history', {
     };
   },
   api: {
-    fetch: async({ body }, res) => {
+    fetch: async ({ body }, res) => {
       // verify api key or ref domain
 
     }

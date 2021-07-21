@@ -31,10 +31,13 @@ CONTRACT_START()
     statstable.set(newstats, _self);
 
     // reschedule
-    return (newstats.counter < 45);
+    return (newstats.counter < 999);
   }
  [[eosio::action]] void testschedule() {
     std::vector<char> payload;
     schedule_timer(_self, payload, 2);
   }
-CONTRACT_END((testschedule))
+  [[eosio::action]] void removetimer(name account) {
+      remove_timer(account);
+  }
+CONTRACT_END((testschedule)(removetimer))

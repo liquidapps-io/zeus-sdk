@@ -1,4 +1,5 @@
-const { getCreateAccount, loadSettings, deployer, artifacts } = require('../settings');
+const { requireBox } = require('@liquidapps/box-utils');
+const { getCreateAccount, loadSettings, deployer, artifacts } = requireBox('liquidapps-deployment/settings');
 
 module.exports = async function (args) {
   const settings = await loadSettings();

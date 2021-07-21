@@ -4,6 +4,7 @@ const {toBound} = common;
 import * as liquidaccount from "../types/dsp/liquid-account";
 const serviceContract = "accountless1";
 export const V1_DSP_PUSH_LIQUIDACCOUNT_ACTION = `/v1/dsp/${serviceContract}/push_action`;
+export const V1_DSP_GET_LIQUIDACCOUNT_NONCE = `/v1/dsp/${serviceContract}/get_nonce`;
 const ecc = require( "eosjs-ecc" );
 import { Serialize } from 'eosjs';
 
@@ -30,7 +31,7 @@ export default class LiquidAccountsService extends DSPServiceClient {
      * @param {string} action contract action
      * @param {any} payload transaction payload
      * @param {object} [options={}] optional params
-     * @param {number} [options.time_to_live=3600] transaction time to live before expiration
+     * @param {number} [options.time_to_live=120] transaction time to live before expiration
      * @example
      *
      * let response = await push_liquid_account_transaction(
@@ -76,6 +77,7 @@ export default class LiquidAccountsService extends DSPServiceClient {
         payload: liquidaccount.Payload,
         options: {
             time_to_live?: number,
+            alt_reg_action?: [string]
         } = {},
     )  => {
         const { 
@@ -95,7 +97,7 @@ export default class LiquidAccountsService extends DSPServiceClient {
         action: string,
         payload: liquidaccount.Payload,
         options: {
-            time_to_live?: number,
+            time_to_live?: number
         } = {},
     )  => {
         let buffer = new Serialize.SerialBuffer({
@@ -105,7 +107,7 @@ export default class LiquidAccountsService extends DSPServiceClient {
         const { time_to_live } = options;
         const expiry = Math.floor(Date.now() / 1000) + Number(time_to_live || 120); //two minute expiry
         buffer.pushNumberAsUint64(expiry);
-        const nonce = await this.get_nonce(contract, payload.vaccount, action);
+        const nonce = await this.get_nonce(contract, payload.vaccount);
 
         buffer.pushNumberAsUint64(nonce);
         const infoRes: any = await this.get( endpoints.V1_GET_INFO );
@@ -168,19 +170,17 @@ export default class LiquidAccountsService extends DSPServiceClient {
         },{ contract });
     }
 
-    private get_nonce = async (contract, vaccount, actionName) => {
-        let nonce = 0;
+    private get_nonce = async (contract, vaccount) => {
+        let nonce;
         try {
-            const tableRes = await this.ipfs.get_vram_row(
-                contract,
-                contract,
-                "vkey",
+            const nonceRes = await this.post<liquidaccount.Nonce>(V1_DSP_GET_LIQUIDACCOUNT_NONCE, {
+                contract_code: contract,
                 vaccount
-            );
-            nonce = tableRes.row.nonce;
+            });
+            nonce = nonceRes.nonce;
         }
         catch (e) {
-            if (actionName !== "regaccount") throw e;
+            throw e;
         }
         return nonce;
     }

@@ -1,10 +1,11 @@
 {
     "name": "storage",
     "port": 13142,
+    "alt": 26284,
     "contract": "liquidstorag",
     "prettyName": "LiquidStorage",
-    "stage":"Alpha",
-    "version": "0.5",
+    "stage":"Beta",
+    "version": "0.9",
     "description": "Distributed storage and hosting",
     "generateStubs": true,
     "commands": {
@@ -53,7 +54,7 @@
                 "permission":"active"
             }
         },
-        "ipfshttpgw":{
+        "get_uri":{
 
         }
     }

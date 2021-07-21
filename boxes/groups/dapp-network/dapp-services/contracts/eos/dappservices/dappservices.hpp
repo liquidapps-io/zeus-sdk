@@ -159,8 +159,10 @@ extern "C" {
     auto encodedData = fc::base64_encode(str);                                 \
     EMIT_REQUEST_SVC_EVENT(name(current_receiver()), service, actionName,      \
                            provider, encodedData.c_str());                     \
-    if (request.fail)                                                          \
-      eosio::check(false, "required service");                               \
+    if (request.fail)     { \
+      string assertion_message = std::string("required service: {'version':'1.0','etype':'service_request','payer':'") + name(current_receiver()).to_string() + std::string("','service':'") + service.to_string() + std::string("','action':'") + actionName.to_string() + std::string("','provider':'") + provider.to_string() + std::string("','data':'") + encodedData.c_str() + std::string("'}\n"); \
+      eosio::check(false, assertion_message); \
+    }                                                      \
   }                                                                            \
   SVC_ACTION_METHOD(aname, action_args)
 

@@ -1,12 +1,13 @@
 {
+  "version": "1.0.1",
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Watch": "zeus unlock"
   },
-  "dependencies":[ "seed-extensions" ],
-  "hooks": {
-  }
+  "dependencies": {
+    "seed-extensions": "^1.0.0"
+  },
+  "hooks": {}
 }

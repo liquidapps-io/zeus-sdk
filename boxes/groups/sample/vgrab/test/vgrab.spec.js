@@ -2,15 +2,16 @@ require('mocha');
 
 
 const { assert } = require('chai'); // Using Assert style
-const { getCreateKeys } = require('../extensions/helpers/key-utils');
+const { requireBox } = require('@liquidapps/box-utils');
+const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
 
 var contractCode = 'vgrab';
 var ctrt = artifacts.require(`./${contractCode}/`);
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { eosio } = requireBox('test-extensions/lib/index');
 
 describe(`${contractCode} Contract`, () => {
   var testcontract;
@@ -26,7 +27,7 @@ describe(`${contractCode} Contract`, () => {
         var deployedContract2 = await deployer.deploy(ctrt, code2);
         await genAllocateDAPPTokens(deployedContract, 'ipfs');
         // create token
-        const { getTestContract } = require('../extensions/tools/eos/utils');
+        const { getTestContract } = requireBox('seed-eos/tools/eos/utils');
         testcontract = await getTestContract(code);
 
         done();
@@ -68,7 +69,7 @@ describe(`${contractCode} Contract`, () => {
           keyProvider: [key.active.privateKey],
           sign: true
         });
-        await delay(3000);
+        await eosio.delay(3000);
         try {
           await testtoken.transfer({
             from: code2,
@@ -86,7 +87,7 @@ describe(`${contractCode} Contract`, () => {
           failed = true;
         }
         assert(failed, 'should have failed before withdraw');
-        await delay(3000);
+        await eosio.delay(3000);
 
         await testtoken.withdraw({
           to: code2,
@@ -109,7 +110,7 @@ describe(`${contractCode} Contract`, () => {
           keyProvider: [key.active.privateKey],
           sign: true
         });
-        await delay(3000);
+        await eosio.delay(3000);
         failed = false;
         try {
           await testtoken.transfer({

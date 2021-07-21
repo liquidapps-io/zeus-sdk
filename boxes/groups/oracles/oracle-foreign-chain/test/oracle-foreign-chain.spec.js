@@ -1,12 +1,12 @@
 
-
+const { requireBox } = require('@liquidapps/box-utils');
 require('mocha');
 const { assert } = require('chai'); // Using Assert style
-const { getTestContract } = require('../extensions/tools/eos/utils');
+const { getTestContract } = requireBox('seed-eos/tools/eos/utils');
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
 
 var contractCode = 'oracleconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
@@ -31,7 +31,7 @@ describe(`foreign_chain Oracle Service Test`, () => {
   });
 
   var account = code;
-  it('Chain Oracle XIBC - ethereum', done => {
+  it.skip('Chain Oracle XIBC - ethereum', done => {
     (async () => {
       try {
         var res = await testcontract.testget({
@@ -49,7 +49,7 @@ describe(`foreign_chain Oracle Service Test`, () => {
       }
     })();
   });
-  it.skip('Chain Oracle XIBC - tron', done => {
+  it('Chain Oracle XIBC - tron', done => {
     (async () => {
       try {
         var res = await testcontract.testget({
@@ -67,7 +67,7 @@ describe(`foreign_chain Oracle Service Test`, () => {
       }
     })();
   });
-  it('Chain Oracle XIBC - cardano', done => {
+  it.skip('Chain Oracle XIBC - cardano', done => {
     (async () => {
       try {
         var res = await testcontract.testget({

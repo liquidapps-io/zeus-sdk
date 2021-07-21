@@ -1,19 +1,17 @@
 require('mocha');
 
-
+const { requireBox } = require('@liquidapps/box-utils');
 const { assert } = require('chai'); // Using Assert style
-const { getNetwork, getCreateKeys, getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
-var Eos = require('eosjs');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
+const { getNetwork, getCreateKeys, getCreateAccount, getEos } = requireBox('seed-eos/tools/eos/utils');
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens, readVRAMData } = require('../extensions/tools/eos/dapp-services');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens, readVRAMData } = requireBox('dapp-services/tools/eos/dapp-services');
 
 var contractCode = 'dnsconsumer';
 var serviceName = 'dns'
 var ctrt = artifacts.require(`./${contractCode}/`);
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { eosio } = requireBox('test-extensions/lib/index');
 const util = require('util');
 
 describe(`${contractCode} Contract`, () => {
@@ -30,7 +28,6 @@ describe(`${contractCode} Contract`, () => {
         var s = '111111111111' + fivenum;
         var prefix = 'test';
         s = prefix + s.substr(s.length - (12 - prefix.length));
-        console.log(s);
         return s;
     };
     const code = 'dnstable1';
@@ -42,7 +39,7 @@ describe(`${contractCode} Contract`, () => {
             try {
                 var deployedContract = await deployer.deploy(ctrt, code);
                 await genAllocateDAPPTokens(deployedContract, serviceName);
-                const { getTestContract } = require('../extensions/tools/eos/utils');
+                const { getTestContract } = requireBox('seed-eos/tools/eos/utils');
                 testcontract = await getTestContract(code);
 
                 const { Resolver } = require('dns');
@@ -76,7 +73,7 @@ describe(`${contractCode} Contract`, () => {
                     keyProvider: [testAccountKeys.active.privateKey],
                 });
                 var resdns = await resolve(`${subdomain}.${owner}.${code}.example.com`, 'A');
-                console.log('res', resdns);
+                // console.log('res', resdns);
 
                 done();
             }

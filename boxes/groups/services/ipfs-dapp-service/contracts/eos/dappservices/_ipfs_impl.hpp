@@ -97,6 +97,31 @@ typedef eosio::multi_index<"ipfsentry"_n, ipfsentry,
                                &ipfsentry::hash_key> 
                 >> ipfsentries_t; 
 
+TABLE ipfsremote {  
+    uint64_t                      id;
+    uint32_t                      shard;
+    name                          code;
+    name                          table;
+    name                          chain;
+    std::vector<char>             data; 
+    uint64_t primary_key()const { return id; }  
+    checksum256 by_remote() const {
+        return _by_remote(shard, code, table, chain);
+    }
+    static checksum256 _by_remote(uint32_t shard, name code, name table, name chain) {
+      return checksum256::make_from_word_sequence<uint64_t>(shard, code.value, table.value, chain.value);
+    }
+    checksum256 hash_key()const { return uri_to_key256(data_to_uri(data)); }  
+};  
+typedef eosio::multi_index<"ipfsremote"_n, ipfsremote, 
+      indexed_by<"byhash"_n, 
+      const_mem_fun<ipfsremote, checksum256, 
+                               &ipfsremote::hash_key>>, 
+      indexed_by<"byremote"_n, 
+      const_mem_fun<ipfsremote, checksum256, 
+                               &ipfsremote::by_remote>>
+                               > ipfsremotes_t;                 
+
 #ifdef USE_ADVANCED_IPFS
 #define IPFS_DAPPSERVICE_TABLES \
 TABLE vmanifest { \
@@ -112,7 +137,31 @@ uint32_t shards; \
 uint32_t buckets_per_shard; \
 uint32_t revision; \
 };\
-typedef eosio::multi_index<".vconfig"_n, vconfig> vconfig_t_abi;
+typedef eosio::multi_index<".vconfig"_n, vconfig> vconfig_t_abi;\
+TABLE ipfsremote {  \
+    uint64_t                      id;\
+    uint32_t                      shard;\
+    name                          code;\
+    name                          table;\
+    name                          chain;\
+    std::vector<char>             data; \
+    uint64_t primary_key()const { return id; }  \
+    checksum256 by_remote() const {\
+        return _by_remote(shard, code, table, chain);\
+    }\
+    static checksum256 _by_remote(uint32_t shard, name code, name table, name chain) {\
+      return checksum256::make_from_word_sequence<uint64_t>(shard, code.value, table.value, chain.value);\
+    }\
+    checksum256 hash_key()const { return uri_to_key256(data_to_uri(data)); }  \
+};  \
+typedef eosio::multi_index<"ipfsremote"_n, ipfsremote, \
+      indexed_by<"byhash"_n, \
+      const_mem_fun<ipfsremote, checksum256, \
+                               &ipfsremote::hash_key>>, \
+      indexed_by<"byremote"_n, \
+      const_mem_fun<ipfsremote, checksum256, \
+                               &ipfsremote::by_remote>>\
+                               > ipfsremotes_t;
 #else
 #define IPFS_DAPPSERVICE_TABLES \
 TABLE vconfig { \
@@ -169,7 +218,9 @@ static std::vector<char> getRawData(std::string uri, bool pin = false, bool skip
             svc_ipfs_warmupcode(uri,code); \
         }\
         svc_ipfs_warmup(uri); \
-    } else if(skip_commit){ \
+    } \
+    auto data = existing->data;\
+    if(skip_commit){ \
         cidx.erase(existing); \
     } else if(!pin && !existing->pending_commit.value_or()) {\
         entries.modify(*existing, eosio::same_payer, [&]( auto& a ) {  \
@@ -177,7 +228,7 @@ static std::vector<char> getRawData(std::string uri, bool pin = false, bool skip
         }); \
         defer_commit(existing->data, short_hash(key), delay_sec); \
     }\
-    return existing->data;  \
+    return data;  \
 }  \
 static std::vector<char> getRawTreeData(std::string uri, name code, name table, uint64_t scope, uint8_t index_position, checksum256 castedKey, uint8_t keySize, bool pin = false, bool skip_commit = false, uint32_t delay_sec = 0){  \
     auto _self = name(current_receiver()); \
@@ -193,12 +244,27 @@ static std::vector<char> getRawTreeData(std::string uri, name code, name table, 
             if(r_existing != r_cidx.end()) return r_existing->data;\
         }\
         svc_ipfs_warmuprow(uri, code, table, scope, index_position, castedKey, keySize); \
-    } else if(skip_commit){ \
+    } \
+    auto data = existing->data;\
+    if(skip_commit){ \
         cidx.erase(existing); \
     }\
     else if(!pin)\
         defer_commit(existing->data, short_hash(key), delay_sec); \
-    return existing->data;  \
+    return data;  \
+}  \
+static std::vector<char> getRawCrosschainTreeData(uint32_t shard, name code, name table, name chain, uint64_t scope, uint8_t index_position, checksum256 castedKey, uint8_t keySize){  \
+    auto _self = name(current_receiver()); \
+    ipfsremotes_t entries(_self, _self.value);  \
+    auto cidx = entries.get_index<"byremote"_n>(); \
+    auto key =  ipfsremote::_by_remote(shard,code,table,chain); \
+    auto existing = cidx.find(key); \
+    if(existing == cidx.end()) {  \
+        svc_ipfs_warmupchain(shard, code, table, chain, scope, index_position, castedKey, keySize); \
+    }\
+    auto data = existing->data;\
+    cidx.erase(existing);\
+    return data; \
 }  \
 static std::string setRawData(std::vector<char> data, bool pin = false, uint32_t delay_sec = 0){  \
     auto _self = name(current_receiver()); \
@@ -232,6 +298,10 @@ static T getData(std::string uri, bool pin = false, bool skip_commit = false, ui
 template<typename T>  \
 static T getTreeData(std::string uri, name code, name table, uint64_t scope, uint8_t index_position, checksum256 castedKey, uint8_t keySize, bool pin = false, bool skip_commit = false, uint32_t delay_sec = 0){  \
     return eosio::unpack<T>(getRawTreeData(uri, code, table, scope, index_position, castedKey, keySize, pin, skip_commit, delay_sec)); \
+}  \
+template<typename T>  \
+static T getCrosschainTreeData(uint32_t shard, name code, name table, name chain, uint64_t scope, uint8_t index_position, checksum256 castedKey, uint8_t keySize){  \
+    return eosio::unpack<T>(getRawCrosschainTreeData(shard, code, table, chain, scope, index_position, castedKey, keySize)); \
 }  \
 template<typename T>  \
 static std::string setData(T  obj, bool pin = false, uint32_t delay_sec = 0){  \
@@ -280,8 +350,58 @@ SVC_RESP_IPFS(warmuprow)(uint32_t size, std::vector<std::string> uris, std::vect
         }); \
     } \
 } \
+SVC_RESP_IPFS(warmupchain)(uint32_t shard, name code, name table, name chain, uint32_t size, std::vector<std::string> uris, std::vector<std::vector<char>> data, name current_provider){ \
+    auto _self = name(current_receiver()); \
+    ipfsremotes_t shards(_self, _self.value);  \
+    auto shardCidx = shards.get_index<"byremote"_n>(); \
+    auto key = ipfsremote::_by_remote(shard,code,table,chain); \
+    auto existingShard = shardCidx.find(key); \
+    auto shardData = data[0]; \
+    if(existingShard == shardCidx.end()) {\
+        shards.emplace(DAPP_RAM_PAYER, [&]( auto& a ) {  \
+            a.id = shards.available_primary_key();  \
+            a.shard = shard;\
+            a.code = code;\
+            a.table = table;\
+            a.chain = chain;\
+            a.data = shardData;\
+        }); \
+    } else {\
+        shardCidx.modify(existingShard, eosio::same_payer, [&](auto& a) {\
+            a.data = shardData;\
+        });\
+    }\
+    ipfsentries_t entries(_self, _self.value);  \
+    for (auto i = 1; i < data.size(); i++) { \
+        auto currentData = data[i]; \
+        auto currentUri = data_to_uri(currentData); \
+        eosio::check(currentUri == uris[i], "wrong uri"); \
+        auto cidx = entries.get_index<"byhash"_n>(); \
+        auto existing = cidx.find(uri_to_key256(currentUri)); \
+        if(existing != cidx.end()) continue; \
+        entries.emplace(DAPP_RAM_PAYER, [&]( auto& a ) {  \
+                    a.id = entries.available_primary_key();  \
+                    a.data = currentData;  \
+        }); \
+    } \
+} \
 SVC_RESP_IPFS(cleanuprow)(uint32_t size, std::vector<std::string> uris, name current_provider){ \
     auto _self = name(current_receiver()); \
+    ipfsentries_t entries(_self, _self.value);  \
+    auto cidx = entries.get_index<"byhash"_n>(); \
+    for (auto i = 0; i < uris.size(); i++) { \
+        auto uri = uris[i]; \
+        auto existing = cidx.find(uri_to_key256(uri)); \
+        if(existing != cidx.end()) cidx.erase(existing); \
+    } \
+}  \
+SVC_RESP_IPFS(cleanchain)(uint32_t shard, name code, name table, name chain, uint32_t size, std::vector<std::string> uris, name current_provider){ \
+    auto _self = name(current_receiver()); \
+    ipfsremotes_t shards(_self, _self.value);  \
+    auto shardCidx = shards.get_index<"byremote"_n>(); \
+    auto key =  ipfsremote::_by_remote(shard,code,table,chain); \
+    auto existingShard = shardCidx.find(key); \
+    if(existingShard != shardCidx.end()) shardCidx.erase(existingShard); \
     ipfsentries_t entries(_self, _self.value);  \
     auto cidx = entries.get_index<"byhash"_n>(); \
     for (auto i = 0; i < uris.size(); i++) { \

@@ -26,13 +26,13 @@ module.exports = class extends Generator {
         );
 
         this.fs.copyTpl(
-            path.resolve('./templates/dsp-service/generators/app/test-templates/consumer.spec.js'),
+            path.resolve('zeus_boxes/templates-dsp-service/templates/dsp-service/generators/app/test-templates/consumer.spec.js'),
             this.destinationPath(`test/${name}consumer.spec.js`),
             this.options
         );
         this.fs.copyTpl(
-            path.resolve('./templates/dsp-service/generators/app/model-template/model.json'),
-            this.destinationPath(`models/dapp-services/${name}.json`),
+            path.resolve('zeus_boxes/templates-dsp-service/templates/dsp-service/generators/app/model-template/model.json'),
+            this.destinationPath(`zeus_boxes/models/dapp-services/${name}.json`),
             this.options
         );
 

@@ -1,7 +1,7 @@
+const { requireBox } = require('@liquidapps/box-utils');
 const fetch = require('node-fetch');
-const { getUrl } = require('../../../extensions/tools/eos/utils');
-const getDefaultArgs = require('../../../extensions/helpers/getDefaultArgs');
-const logger = require('../../../extensions/helpers/logger');
+const { getUrl } = requireBox('seed-eos/tools/eos/utils');
+const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 
 const url = getUrl(getDefaultArgs());
 const extractPath = (item, field) => {
@@ -10,7 +10,7 @@ const extractPath = (item, field) => {
     if (res)
         return Buffer.from(res.toString(), 'utf8');
 };
-module.exports = async({ proto, address }) => {
+module.exports = async ({ proto, address }) => {
     //  self_history://account/pos/offset/inner_offset/field
 
     const parts = address.split('/');

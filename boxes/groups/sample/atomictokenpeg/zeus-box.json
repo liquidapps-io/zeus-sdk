@@ -1,0 +1,24 @@
+{
+  "version": "1.0.1",
+  "ignore": [
+    "README.md"
+  ],
+  "commands": {
+    "Test atomictokenpeg message bridge": "zeus compile && zeus test atomictokenpeg"
+  },
+  "dependencies": {
+    "oracle-dapp-service": "^1.0.0",
+    "cron-dapp-service": "^1.0.0",
+    "sign-dapp-service": "^1.0.0",
+    "link": "^1.0.0",
+    "eth-extensions": "^1.0.0"
+  },
+  "install": {
+    "contracts": {
+      "atomictokenpeg": true,
+      "atomictokenpegeosio": true,
+      "atomictokenpegxeosio": true,
+      "atomicassets": true
+    }
+  }
+}

@@ -1,8 +1,9 @@
-var { loadModels } = require('./extensions/tools/models');
-const artifacts = require('./extensions/tools/eos/artifacts');
-const deployer = require('./extensions/tools/eos/deployer');
-const { getCreateAccount, getEos } = require('./extensions/tools/eos/utils');
-const { dappServicesContract } = require('./extensions/tools/eos/dapp-services');
+const { requireBox } = require('@liquidapps/box-utils');
+const { loadModels } = requireBox('seed-models/tools/models');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { getCreateAccount, getEos } = requireBox('seed-eos/tools/eos/utils');
+const { dappServicesContract } = requireBox('dapp-services/tools/eos/dapp-services');
 
 const loadSettings = async () => {
   var staging = dappServicesContract != 'dappservices';

@@ -1,0 +1,33 @@
+{
+  "version": "1.0.2",
+  "ignore": [
+    "README.md"
+  ],
+  "commands": {
+    "Deploy contract": "zeus migrate",
+    "Run frontend locally": "zeus run frontend main",
+    "Build frontend": "zeus build frontend main",
+    "Deploy frontend": "zeus deploy frontend main",
+    "Deploy and register frontend": "zeus deploy frontend main --ipfs --register portfolio"
+  },
+  "dependencies": {
+    "mocha": "^1.0.0",
+    "seed-eos": "^1.0.0",
+    "seed-migrations": "^1.0.0",
+    "ipfs-dapp-service": "^1.0.0",
+    "vaccounts-dapp-service": "^1.0.0",
+    "oracle-dapp-service": "^1.0.0",
+    "cron-dapp-service": "^1.0.0",
+    "eos-common": "^1.0.0",
+    "seed-frontends": "^1.0.0",
+    "seed-models": "^1.0.0",
+    "liquidx": "^1.0.0"
+  },
+  "install": {
+    "npm-in-dirs": {
+      "frontends/main": {
+        "npm": {}
+      }
+    }
+  }
+}

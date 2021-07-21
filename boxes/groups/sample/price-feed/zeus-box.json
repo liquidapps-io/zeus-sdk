@@ -1,0 +1,18 @@
+{
+  "version": "1.0.1",
+  "ignore": [
+    "README.md"
+  ],
+  "commands": {
+    "Test price feed": "zeus compile && zeus test pricefeed"
+  },
+  "dependencies": {
+    "oracle-dapp-service": "^1.0.0",
+    "cron-dapp-service": "^1.0.0"
+  },
+  "install": {
+    "contracts": {
+      "pricefeed": true
+    }
+  }
+}

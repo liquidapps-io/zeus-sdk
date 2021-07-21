@@ -1,27 +1,6 @@
 const fetch = require('node-fetch');
+const { resolveHistoryEndpointForSisterChain, extractPath } = require('./helpers')
 
-
-// Replace with self owned nodes
-const endpoints = {
-    'mainnet': 'http://api.eossweden.se',
-    'bos': 'https://api.bos.eostribe.io',
-    'telos': 'https://api.telos.eostribe.io',
-    'kylin': 'https://kylin.eoscanada.com',
-    'worbli': 'https://api.worbli.eostribe.io',
-    'jungle': 'https://junglehistory.cryptolions.io:4433',
-    'meetone': 'https://fullnode.meet.one'
-};
-const resolveHistoryEndpointForSisterChain = (chain) => {
-    const endpoint = endpoints[chain];
-    if (!endpoint) { throw new Error('endpoint not found for ' + chain); }
-    return endpoint;
-};
-const extractPath = (item, field) => {
-    const fieldPath = field.split('.');
-    const res = fieldPath.reduce((accumulator, currentPathPart) => accumulator[currentPathPart], item);
-    if (res)
-        return Buffer.from(res.toString(), 'utf8');
-};
 module.exports = async({ proto, address }) => {
     // sister_chain_block://chain/id/field
 

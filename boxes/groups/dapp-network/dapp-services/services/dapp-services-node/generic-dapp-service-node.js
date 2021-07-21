@@ -1,26 +1,32 @@
 #!/usr/bin/env node
-
-
-
 if (process.env.DAEMONIZE_PROCESS) { require('daemonize-process')(); }
+const allSettled = require('promise.allsettled');
 const path = require('path');
 const fs = require('fs');
-const logger = require('../../extensions/helpers/logger');
-const { loadModels } = require('../../extensions/tools/models');
-const { dappServicesContract, getContractAccountFor } = require('../../extensions/tools/eos/dapp-services');
-const { deserialize, generateABI, genNode, paccount, forwardEvent, resolveProviderData, resolveProvider, getProviders, resolveProviderPackage, paccountPermission, emitUsage, detectXCallback, getTableRowsSec, getLinkedAccount, parseEvents, pushTransaction, getEosForSidechain, eosMainnet } = require('./common');
+const { requireBox, getBoxesDir } = require('@liquidapps/box-utils');
+const { loadModels } = requireBox('seed-models/tools/models');
+const logger = requireBox('log-extensions/helpers/logger');
+const { dappServicesContract, getContractAccountFor } = requireBox('dapp-services/tools/eos/dapp-services');
+const { deserialize, generateABI, genNode, paccount, forwardEvent, 
+  resolveProviderData, resolveProvider, getProviders, 
+  resolveProviderPackage, paccountPermission, emitUsage, 
+  detectXCallback, getTableRowsSec, getLinkedAccount, 
+  parseEvents, pushTransaction, getEosForSidechain, 
+  eosMainnet, mainnetDfuseEnable, loggerHelper } = require('./common');
+const { json } = require('body-parser');
 
 var sidechainsDict = {};
+allSettled.shim();
 
 const actionHandlers = {
-  'service_request': async(act, simulated, serviceName, handlers) => {
+  'service_request': async (act, simulated, serviceName, handlers) => {
     let isReplay = act.replay;
     let { service, payer, provider, action, data, broadcasted, sidechain, meta } = act.event;
 
     if (!sidechain && meta && meta.sidechain) {
       sidechain = sidechainsDict[meta.sidechain.name];
     }
-    logger.info(`service_request ${provider} ${service} ${payer} ${sidechain ? sidechain.name:""}`)
+    if(process.env.DSP_VERBOSE_LOGS) logger.info(`service_request ${provider} | ${service}:${serviceName}:${action} | ${payer} | ${sidechain ? sidechain.name : ""} | ${broadcasted} | ${isReplay}`)
     var handler = handlers[action];
     var models = await loadModels('dapp-services');
     var serviceContractForLookup = service;
@@ -49,34 +55,60 @@ const actionHandlers = {
       //including ourselves
       act.event.broadcasted = true;
       let providers = await resolveProviderPackage(payer, service, false, sidechain, true);
-      logger.debug(`providers: ${JSON.stringify(providers)}`)
-      await Promise.all(providers.map(async(prov) => {
-        await forwardEvent(act, prov.data.endpoint, false);
+      // logger.debug(`providers: ${JSON.stringify(providers)}`)
+      const dspResponses = await Promise.allSettled(providers.map(async (prov) => {
+        return new Promise(async (resolve, reject) =>  {
+          setTimeout(reject, process.env.DSP_BROADCAST_EVENT_TIMEOUT || 10000, 'DSP failed to respond within timeout window');
+          try {
+            resolve({provider: prov.provider, result: await forwardEvent(act, prov.data.endpoint, false)});
+          } catch(e) {
+            reject(e);
+          }
+        });
       }));
-      return 'retry';
+      // logger.debug(`dspResponses: ${JSON.stringify(dspResponses)}`);
+      const goodResponse = dspResponses.find(x => x.status == "fulfilled");
+      const localSuccessResponse = dspResponses.find(x => x.status == 'fulfilled' && x.value && x.value.provider === paccount);
+      if(localSuccessResponse) {
+        return 'local_success';
+      } else if(goodResponse) {
+        return 'success';
+      } else {
+        return 'retry';
+      }
     }
     provider = await resolveProvider(payer, service, provider, sidechain);
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider, sidechain);
     if (provider !== paccount || service !== thisService) {
-      if(service !== thisService) 
+      if (service !== thisService)
         logger.warn("WARNING - Service Mixup: %s requested inside %s, forwarding event.", service, thisService);
       var providerData = await resolveProviderData(service, provider, packageid, sidechain);
-      if (!providerData) { return; }
+      if (!providerData) { 
+        logger.warn(`no provider data found`)
+        return; 
+      }
       return await forwardEvent(act, providerData.endpoint, act.exception);
     }
     if (!simulated) {
       if (!(getContractAccountFor(model, sidechain) == service && handler)) { return; }
-      await handleRequest(handler, act, packageid, model.name, handlers.abi);
-      return;
+      const res = await handleRequest(handler, act, packageid, model.name, handlers.abi);
+      return res;
     }
-    if (!act.exception) { return; }
+    if (!act.exception) { 
+      logger.debug(`!act.exception`);
+      return; 
+    }
     if (getContractAccountFor(model, sidechain) == service && handler) {
-      await handleRequest(handler, act, packageid, model.name, handlers.abi);
-      logger.debug(`retry after handle ${action}`);
-      return 'retry';
+      const res = await handleRequest(handler, act, packageid, model.name, handlers.abi);
+      if (res) {
+        return res;
+      } else {
+        logger.warn(`retry after handle ${action} ${res}`);
+        return 'retry';
+      }
     }
   },
-  'service_signal': async(act, simulated, serviceName, handlers) => {
+  'service_signal': async (act, simulated, serviceName, handlers) => {
     if (simulated) { return; }
     let { action, data } = act.event;
     let { sidechain, meta } = act.event;
@@ -96,7 +128,7 @@ const actionHandlers = {
     logger.debug(`service_signal handler`)
     await handler(sigData);
   },
-  'usage_report': async(act, simulated, serviceName, handlers) => {
+  'usage_report': async (act, simulated, serviceName, handlers) => {
     if (simulated) { return; }
     var handler = handlers[`_usage`];
     let { sidechain, meta } = act.event;
@@ -116,22 +148,54 @@ const actionHandlers = {
 
 let enableXCallback = null;
 
-const extractUsageQuantity = async(e) => {
+const extractUsageQuantity = async (e) => {
   const details = e.json.error.details;
-
-  const jsons = details[details.length - 1].message.split(': ', 2)[1].split('\n').filter(a => a.trim() != '');
+  // logger.error(JSON.stringify(details))
+  let jsons;
+  // if pending console does not contain usage report, use assertion message
+  if(!JSON.stringify(details[details.length - 1]).includes('usage_report')) {
+    if(details[details.length - 2] && details[details.length - 2].message) {
+      try {
+        jsons = details[details.length - 2].message.split(': ', 2)[1].split(`'`).join(`"`).split('\n').filter(a => a.trim() != '');
+      } catch(e) {
+        logger.error(`unable to parse usage event: ${typeof(details === "object" ? JSON.stringify(details) : details)}`);
+        throw e;
+      }
+    } else {
+      let errMsg = typeof(jsons) == "object" ? JSON.stringify(jsons) : jsons
+      if(!errMsg) errMsg = typeof(details) == "object" ? JSON.stringify(details) : details
+      logger.error(`usage event not found: ${errMsg}`)
+      if (!jsons.length) throw new Error('usage event not found');
+    }
+  } else {
+    if(details[details.length - 1] && details[details.length - 1].message) {
+      try {
+        jsons = details[details.length - 1].message.split(': ', 2)[1].split('\n').filter(a => a.trim() != '');
+      } catch(e) {
+        logger.error(`unable to parse usage event: ${typeof(details === "object" ? JSON.stringify(details) : details)}`);
+        throw e;
+      }
+    } else {
+      logger.error(`usage event not found: ${typeof(jsons) == "object" ? JSON.stringify(jsons) : jsons}`)
+      if (!jsons.length) throw new Error('usage event not found');
+    }
+  }
+  if(!jsons && mainnetDfuseEnable) logger.warn('usage event not found, network may need to update to latest dappservices contract');
   if (!jsons.length) {
+    logger.error(`usage event not found: ${typeof(jsons) == "object" ? JSON.stringify(jsons) : jsons}`)
+    throw new Error('usage event not found');
+  } 
+  const events = (await parseEvents(jsons.join('\n'))).filter(e => e.etype === 'usage_report');
+  if (!events.length) {
+    logger.warn(`is verbose-http-errors = true enabled in the nodeos config.ini?`);
     throw new Error('usage event not found');
   }
-  const events = (await parseEvents(jsons.join('\n'))).filter(e => e.etype === 'usage_report');
-
-  if (!events.length)
-    throw new Error('usage event not found');
   var usage_report_event = events[0];
+  logger.info(`usage processed: ${usage_report_event.payer} used ${usage_report_event.quantity} for ${usage_report_event.provider} ${usage_report_event.service}`)
   return { usageQuantity: usage_report_event.quantity, service: usage_report_event.service, provider: usage_report_event.provider, payer: usage_report_event.payer };
 }
 
-const handleRequest = async(handler, act, packageid, serviceName, abi) => {
+const handleRequest = async (handler, act, packageid, serviceName, abi) => {
   let { sidechain, event } = act;
   let { service, payer, provider, action, data } = event;
   const metadata = act.event.meta;
@@ -146,16 +210,17 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
   act.event.packageid = packageid;
   const eosMain = await eosMainnet();
   let eosSideChain = eosMain;
-  if (sidechain) {    
-    const models = await loadModels('liquidx-mappings');    
-    let mapEntry; 
+  if (sidechain) {
+    const models = await loadModels('liquidx-mappings');
+    let mapEntry;
     models.forEach(m => {
-      if(m.sidechain_name === sidechain.name && m.mainnet_account === paccount){
+      if (m.sidechain_name === sidechain.name && m.mainnet_account === paccount) {
         mapEntry = m;
       }
     })
-    if (!mapEntry)
+    if (!mapEntry) {
       throw new Error('mapping not found')
+    }
 
     sidechain_provider_on_mainnet = mapEntry.chain_account;
     act.event.current_provider = sidechain_provider_on_mainnet;
@@ -186,65 +251,80 @@ const handleRequest = async(handler, act, packageid, serviceName, abi) => {
     service_on_mainnet = await getLinkedAccount(eosSideChain, eosMain, service, sidechain.name, true);
     dappServicesSisterContract = await getLinkedAccount(eosSideChain, eosMain, 'dappservices', sidechain.name);
   }
-  
-  await Promise.all(responses.map(async(response) => {
-    if (enableXCallback === null) {
-      enableXCallback = await detectXCallback(eosSideChain, dappServicesSisterContract);
+
+  try {
+    await Promise.all(responses.map(async (response) => {
+      if (enableXCallback === null) {
+        enableXCallback = await detectXCallback(eosSideChain, dappServicesSisterContract);
+      }
+      if (enableXCallback) {
+        let e = await pushTransaction(
+          eosSideChain,
+          dappServicesSisterContract,
+          payer,
+          sidechain_provider_on_mainnet,
+          response.action,
+          response.payload,
+          requestId,
+          meta,
+          true
+        );
+        const details = e.json.error.details;
+        // update to 'abort' in contract and here, or something generic
+        // returns at location 0, but may need to find dynamically if message is not at position 0
+        if (details[0].message.includes('abort_service_request')) {
+          let abortError = new Error(`abort_service_request`);
+          abortError.details = details;
+          throw abortError;
+        }
+
+        // logger.info("CONFIRMING USAGE:\n%j", e);
+
+        // verify transaction emits usage
+        const usage_report = await extractUsageQuantity(e);
+        if (usage_report.service !== service) {
+          logger.warn(`wrong service ${usage_report.service} ${service}`);
+        }
+        if (usage_report.provider !== act.event.current_provider) {
+          logger.warn(`wrong provider ${usage_report.provider} ${act.event.current_provider}`);
+        }
+        if (usage_report.payer !== payer) {
+          logger.warn(`wrong payer ${usage_report.payer} ${payer}`);
+        }
+        if (sidechain)
+          await emitUsage(mainnet_account, service_on_mainnet, usage_report.usageQuantity, meta, requestId); // verify quota on provisioning chain    
+      }
+
+      try {
+        let tx = await pushTransaction(
+          eosSideChain,
+          dappServicesSisterContract,
+          payer,
+          sidechain_provider_on_mainnet,
+          response.action,
+          response.payload,
+          requestId,
+          meta,
+          false
+        );
+        logger.info(`processed ${act.event.etype} by ${act.event.current_provider} for ${act.event.service}:${act.event.action} for ${payer}:${response.action} trxid: ${tx.transaction_id}`);
+      } catch (e) {
+        if (e.json)
+          e.error = e.json.error;
+        logger.warn("REQUEST\n%j\nRESPONSE: [FAILED]\n%j", act, e);
+        if (e.toString().indexOf('duplicate') == -1) {
+          throw e;
+        }
+      }
+      // dispatch on chain response - call response.action with params with paccount permissions
+    }));
+  } catch (e) {
+    if (e.message.includes("abort_service_request")) {
+      return { message: e.message, shouldAbort: true, details: e.details };
     }
-    if (enableXCallback) {
-      let e = await pushTransaction(
-        eosSideChain,
-        dappServicesSisterContract,
-        payer,
-        sidechain_provider_on_mainnet,
-        response.action,
-        response.payload,
-        requestId,
-        meta,
-        true
-      );
-
-      logger.debug("CONFIRMING USAGE:\n%j", e);
-
-      // verify transaction emits usage
-      const usage_report = await extractUsageQuantity(e);
-      if (usage_report.service !== service) {
-        logger.warn(`wrong service ${usage_report.service} ${service}`);
-      }
-      if (usage_report.provider !== act.event.current_provider) {
-        logger.warn(`wrong provider ${usage_report.provider} ${act.event.current_provider}`);
-      }
-      if (usage_report.payer !== payer) {
-        logger.warn(`wrong payer ${usage_report.payer} ${payer}`);
-      }
-      if (sidechain)
-        await emitUsage(mainnet_account, service_on_mainnet, usage_report.usageQuantity, meta, requestId); // verify quota on provisioning chain    
-    }
-
-    try {
-      let tx = await pushTransaction(
-        eosSideChain,
-        dappServicesSisterContract,
-        payer,
-        sidechain_provider_on_mainnet,
-        response.action,
-        response.payload,
-        requestId,
-        meta,
-        false
-      );
-      logger.debug("REQUEST\n%j\nRESPONSE: [%s]\n%j", act, tx.transaction_id, response);
-    } catch(e) {
-      if (e.json)
-        e.error = e.json.error;
-      logger.warn("REQUEST\n%j\nRESPONSE: [FAILED]\n%j", act, e);
-      if (e.toString().indexOf('duplicate') == -1) {
-        console.log(`response error, could not call contract callback for ${response.action}`, e);
-        throw e;
-      }
-    }    
-    // dispatch on chain response - call response.action with params with paccount permissions
-  }));
+    logger.error(e);
+    throw e;
+  }
 };
 
 const respond = (request, packageid, payload) => {
@@ -257,16 +337,15 @@ const respond = (request, packageid, payload) => {
   }];
 };
 
-const loadIfExists = async(serviceName, suffix) => {
-  var reqPath = path.resolve(__dirname, `../${serviceName}-dapp-service-node/${suffix}`);
+const loadIfExists = async (serviceName, suffix) => {
+  const reqPath = path.resolve(`${getBoxesDir()}${serviceName}-dapp-service/services/${serviceName}-dapp-service-node/${suffix}`)
   if (fs.existsSync(reqPath + ".js"))
     return require(reqPath)
 }
 
-const nodeFactory = async(serviceName, handlers) => {
+const nodeFactory = async (serviceName, handlers) => {
   var models = await loadModels('dapp-services');
   var model = models.find(m => m.name == serviceName);
-  logger.info(`nodeFactory starting ${serviceName}`);
   var sidechains = await loadModels('eosio-chains');
   for (var i = 0; i < sidechains.length; i++) {
     var sidechain = sidechains[i];
@@ -275,10 +354,9 @@ const nodeFactory = async(serviceName, handlers) => {
   return genNode(actionHandlers, process.env.SVC_PORT || model.port, serviceName, handlers, await generateABI(model));
 };
 
-const nodeAutoFactory = async(serviceName) => {
+const nodeAutoFactory = async (serviceName) => {
   var state = {};
   logger.info(`nodeAutoFactory starting ${serviceName}`);
-
   var apiCommands = {};
   var models = await loadModels('dapp-services');
   var model = models.find(m => m.name == serviceName);
@@ -286,32 +364,38 @@ const nodeAutoFactory = async(serviceName) => {
   if (stateHandler)
     await stateHandler(state);
 
-
   if (model.api) {
     var apiActions = Object.keys(model.api);
     for (var i = 0; i < apiActions.length; i++) {
       var apiName = apiActions[i];
       var apiHandler = await loadIfExists(serviceName, `api/${apiName}`); // load from file
-      logger.debug(`registering api ${serviceName} ${apiName}`);
+      // logger.debug(`registering api ${serviceName} ${apiName}`);
       const authentication = model.api[apiName].authentication;
-      let authClient;
+      let authClient, AuthClientSetup;
       if (authentication && authentication.type === 'payer') {
+        AuthClientSetup = requireBox('auth-dapp-service/tools/auth-client');
         var apiID = `${paccount}-${serviceName}`;
-        var AuthClient = require('../../extensions/tools/auth-client');
-        authClient = new AuthClient(apiID, authentication.contract);
+        authClient = new AuthClientSetup(apiID, authentication.contract);
       }
 
-
-      apiCommands[apiName] = (async({ apiName, apiHandler, authClient }, opts, res) => {
+      apiCommands[apiName] = (async ({ apiName, apiHandler, authClient }, opts, res) => {
+        const sidechain = opts.body.sidechain;
+        if (authentication && authentication.type === 'payer') {
+          var apiID = `${paccount}-${serviceName}`;
+          authClient = new AuthClientSetup(apiID, authentication.contract, null, null, sidechain);
+        }
         try {
           if (!apiHandler)
             throw new Error('not implemented yet');
           if (authClient) {
-            logger.debug(`validating auth`);
-
-            await authClient.validate({ ...opts.body, req: opts.req, allowClientSide: false }, async({ clientCode, payload, account, permission }) => {
+            logger.info(`validating auth`);
+            await authClient.validate({ ...opts.body, req: opts.req, allowClientSide: false }, async ({ clientCode, payload, account, permission }) => {
               try {
-                const body = JSON.parse(payload);
+                let body = JSON.parse(payload);
+                body = {
+                  ...body,
+                  sidechain
+                }
                 if (permission !== authentication.permission) throw new Error(`wrong permissions (${authentication.permission} != ${permission})`);
 
                 const result = await apiHandler(body, state, model, { account, permission, clientCode });
@@ -322,7 +406,6 @@ const nodeAutoFactory = async(serviceName) => {
                 res.status(400);
                 res.send(JSON.stringify({ error: e.toString() }));
               }
-
             });
             return;
           }
@@ -346,7 +429,7 @@ const nodeAutoFactory = async(serviceName) => {
     var requestName = dspCommands[i];
     var dspRequestHandler = await loadIfExists(serviceName, `chain/${requestName}`); // load from file
     logger.debug(`registering chain handler ${serviceName} ${requestName}`);
-    handlers[requestName] = (async({ requestName, dspRequestHandler }, opts, req) => {
+    handlers[requestName] = (async ({ requestName, dspRequestHandler }, opts, req) => {
       if (!dspRequestHandler)
         throw new Error('not implemented yet');
       logger.debug(`running chain handler ${serviceName} ${requestName}`);

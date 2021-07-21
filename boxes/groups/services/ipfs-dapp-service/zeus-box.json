@@ -1,24 +1,25 @@
 {
+  "version": "1.0.5",
   "ignore": [
-    "README.md",
-    "LICENSE",    
-    "zeus-box.json"
+    "README.md"
   ],
-  "dependencies":[
-    "dapp-services",
-    "log-dapp-service",
-    "seed-utils-cleanup",
-    "mocha",
-    "hooks-cpp-contracts"],
-  "install":{
-    "contracts":{
+  "dependencies": {
+    "dapp-services": "^1.0.0",
+    "splitter": "^1.0.0",
+    "log-dapp-service": "^1.0.0",
+    "seed-utils-cleanup": "^1.0.0",
+    "mocha": "^1.0.0"
+  },
+  "install": {
+    "contracts": {
       "ipfsconsumer": true,
       "oldipfscons": true
     },
-    "npm":{
+    "npm": {
       "ipfs-api": "^24.0.2",
+      "bignumber.js":"^9.0.0",
       "lru-cache": true,
-      "dfuse-eoshttp-js":true,
+      "dfuse-eoshttp-js": true,
       "node-fetch": true
     }
   }

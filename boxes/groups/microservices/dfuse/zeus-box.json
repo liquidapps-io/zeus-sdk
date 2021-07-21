@@ -1,0 +1,17 @@
+{
+  "version": "1.0.2",
+  "ignore": [
+    "README.md"
+  ],
+  "dependencies": {
+    "events": "^1.0.0",
+    "seed-microservices": "^1.0.0",
+    "seed-models": "^1.0.0",
+    "log-extensions": "^1.0.0"
+  },
+  "install": {
+    "npm": {
+      "@dfuse/client": true
+    }
+  }
+}

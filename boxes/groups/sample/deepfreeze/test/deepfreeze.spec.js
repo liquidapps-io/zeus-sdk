@@ -2,19 +2,17 @@ require('mocha');
 
 
 const { assert } = require('chai'); // Using Assert style
-const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getCreateAccount, getNetwork } = require('../extensions/tools/eos/utils');
-var Eos = require('eosjs');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
-
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
+const { requireBox } = require('@liquidapps/box-utils');
+const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
+const { getCreateAccount, getNetwork } = requireBox('seed-eos/tools/eos/utils');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
 
 var contractCode = 'deepfreeze';
 var ctrt = artifacts.require(`./${contractCode}/`);
 var token_ctrt = artifacts.require(`./Token/`);
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { eosio } = requireBox('test-extensions/lib/index');
 
 describe(`${contractCode} Contract`, () => {
   var testcontract;
@@ -55,7 +53,7 @@ describe(`${contractCode} Contract`, () => {
           sign: true
         });
         await genAllocateDAPPTokens(deployedContract, 'ipfs');
-        const { getTestContract, getLocalDSPEos } = require('../extensions/tools/eos/utils');
+        const { getTestContract, getLocalDSPEos } = requireBox('seed-eos/tools/eos/utils');
         testcontract = await getTestContract(code);
         var dspeos = await getLocalDSPEos(code);
 

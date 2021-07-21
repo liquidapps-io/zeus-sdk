@@ -7,6 +7,25 @@ const accountData = (props) => {
       <div className={classes.title}>Account Data<span className={classes.asterik}>*</span></div>
       <div className={classes.dataBox}>
         <div className={classes.subDataBox}>
+          <div className={classes.dataTitle}>Total ETH Tokens Value</div>
+          <div className={classes.dataTotal}>${props.ethTotalTokenBalance.toLocaleString('en')}</div>
+        </div>
+        <div className={classes.verticalSpacingMobileTablet}></div>
+        <div className={classes.subDataBox}>
+          <div className={classes.dataTitle}>Total EOS Tokens Value</div>
+          <div className={classes.dataTotal}>${props.eosTotalTokenBalance.toLocaleString('en')}</div>
+        </div>
+        <div className={classes.verticalSpacingMobileTablet}></div>
+        <div className={classes.subDataBox}>
+          <div className={classes.dataTitle}>Total Tokens Value</div>
+          <div className={classes.dataTotal}>${(props.ethTotalTokenBalance + props.eosTotalTokenBalance).toLocaleString('en')}</div>
+        </div>
+      </div>
+      <div className={classes.verticalSpacingMobileTablet}></div>
+      <div className={classes.verticalSpacing}></div>
+      <div className={classes.mobileHorizontalLine}></div>
+      <div className={classes.dataBox}>
+        <div className={classes.subDataBox}>
           <div className={classes.dataTitle}>Total BTC Value</div>
           <div className={classes.dataTotal}>${props.btcTotalBalance.toLocaleString('en')}</div>
         </div>
@@ -22,26 +41,8 @@ const accountData = (props) => {
         </div>
         <div className={classes.verticalSpacingMobileTablet}></div>
         <div className={classes.subDataBox}>
-          <div className={classes.dataTitle}>Total Value</div>
+          <div className={classes.dataTitlePortfolio}>Total Portfolio Value</div>
           <div className={classes.dataTotal}>${(props.btcTotalBalance + props.ethTotalBalance + props.ethTotalTokenBalance + props.eosTotalBalance + props.eosTotalTokenBalance).toLocaleString('en')}</div>
-        </div>
-      </div>
-      <div className={classes.verticalSpacingMobileTablet}></div>
-      <div className={classes.verticalSpacing}></div>
-      <div className={classes.dataBox}>
-        <div className={classes.subDataBox}>
-          <div className={classes.dataTitle}>Total ETH Tokens Value</div>
-          <div className={classes.dataTotal}>${props.ethTotalTokenBalance.toLocaleString('en')}</div>
-        </div>
-        <div className={classes.verticalSpacingMobileTablet}></div>
-        <div className={classes.subDataBox}>
-          <div className={classes.dataTitle}>Total EOS Tokens Value</div>
-          <div className={classes.dataTotal}>${props.eosTotalTokenBalance.toLocaleString('en')}</div>
-        </div>
-        <div className={classes.verticalSpacingMobileTablet}></div>
-        <div className={classes.subDataBox}>
-          <div className={classes.dataTitle}>Total Tokens Value</div>
-          <div className={classes.dataTotal}>${(props.ethTotalTokenBalance + props.eosTotalTokenBalance).toLocaleString('en')}</div>
         </div>
       </div>
     </div>

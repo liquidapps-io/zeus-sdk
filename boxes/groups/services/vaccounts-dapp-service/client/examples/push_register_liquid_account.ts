@@ -8,6 +8,9 @@ import { getClient } from "./client";
         "regaccount",
         {
             vaccount: 'testing126' // increment to new account if fails
+        },
+        {
+            time_to_live: 120 // transaction time to live before expiration, default 120
         }
     );
     console.log(response);

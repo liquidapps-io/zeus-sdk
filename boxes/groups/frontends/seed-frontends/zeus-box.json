@@ -1,15 +1,16 @@
 {
+  "version": "1.0.1",
   "ignore": [
-    "README.md",
-    "zeus-box.json",
-    "zeus-config.js"
+    "README.md"
   ],
   "commands": {
     "Deploy Frontend": "zeus deploy frontend main",
     "Deploy Frontend To LiquidStorage": "zeus deploy frontend main --storage-provider pprovider1 --storage-account test1 --storage-key test1privatekey",
     "Run Locally": "zeus run frontend main"
   },
-  "dependencies":["seed","core-extensions"],
-  "hooks": {
-  }
+  "dependencies": {
+    "seed-zeus-support": "^1.0.0",
+    "core-extensions": "^1.0.0"
+  },
+  "hooks": {}
 }

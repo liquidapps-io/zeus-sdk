@@ -3,20 +3,20 @@
 
 
 if (process.env.DAEMONIZE_PROCESS) { require('daemonize-process')(); }
-const logger = require('../../extensions/helpers/logger');
 const { genNode, genApp, paccount, processFn, forwardEvent, resolveProviderData, resolveProvider, resolveProviderPackage, getLinkedAccount } = require('./common');
 const dal = require('./dal/dal');
-const { loadModels } = require('../../extensions/tools/models');
+const { requireBox } = require('@liquidapps/box-utils');
+const logger = requireBox('log-extensions/helpers/logger');
+const { loadModels } = requireBox('seed-models/tools/models');
 
 const actionHandlers = {
-  'service_request': async(act, simulated) => {
-    let { service, provider, sidechain, meta } = act.event;
+  'service_request': async (act, simulated, serviceName, handlers, isExternal) => {
+    let { service, provider, sidechain, meta, action } = act.event;
     if (!sidechain && meta && meta.sidechain) {
       sidechain = sidechainsDict[meta.sidechain.name];
     }
-    logger.debug(`service_request to: ${service}`)
-
     var payer = act.event.payer ? act.event.payer : act.receiver;
+    // if we are replaying, skip processing package
     let isReplay = act.replay;
     if (isReplay && provider == '') {
       provider = paccount;
@@ -25,10 +25,26 @@ const actionHandlers = {
       provider = await resolveProvider(payer, service, provider, sidechain);
     }
     var packageid = isReplay ? 'replaypackage' : await resolveProviderPackage(payer, service, provider, sidechain);
+    
+    if(process.env.DSP_VERBOSE_LOGS) logger.info(`received DSP API service request for ${service}:${action} payer ${payer} | DSP: ${provider}:${packageid} | exception: ${act.exception} | simulated: ${simulated} | service name: ${serviceName} | external: ${isExternal} | replay: ${isReplay}`)
+
     if (sidechain)
       service = await getLinkedAccount(null, null, service, sidechain.name, true);
+
+    const models = await loadModels('dapp-services');
+    const model = models.find(m => m.contract == service);
+    if(process.env.DSP_ALLOW_API_NON_BROADCAST.toString() === "false" && !model.commands[action].broadcast && isExternal) {
+      logger.warn(`Attempt to broadcast event for non broadcastable request, not processing trx, to enable non-broadcast events, set the allow_api_non_broadcast config.toml var to true under [dsp] section - ${JSON.stringify(act.event)}`);
+      return;
+    }
+    if(isExternal && model.name === "sign") {
+      logger.warn(`Sign request detected from external source, rejected`)
+      return;
+    }
+  
     var providerData = await resolveProviderData(service, provider, packageid, sidechain);
     if (!providerData) { throw new Error('provider data not found'); }
+    if (!model) { throw new Error('model not found'); }
     if (!act.exception && paccount !== provider)
       return;
 
@@ -41,7 +57,7 @@ const actionHandlers = {
         var serviceRequest = await dal.createServiceRequest(key);
 
         if (serviceRequest.request_block_num) {
-          logger.debug(`request already exists ${key}`);
+          logger.debug(`DSP API request already exists ${key}`);
           return;
         }
         // save the req block num and the request itself incase we need
@@ -57,19 +73,16 @@ const actionHandlers = {
             continue;
           else throw e;
         }
-        logger.info(`processing request: key: ${key} value: ${meta.blockNum}`);
+        logger.info(`processing DSP API request: ${account}:${act.event.action}`);
         break;
       }
       // TODO: if not synced, aggregate and dispatch pending requests when syncd.
       // todo: send events in recovery mode.
     }
-    logger.debug(`forwarding to: ${providerData.endpoint}`);
     act.sidechain = sidechain;
     return await forwardEvent(act, providerData.endpoint, act.exception && !act.event.broadcasted);
-
-
   },
-  'service_signal': async(act, simulated) => {
+  'service_signal': async (act, simulated) => {
     if (simulated) { return; }
     let { meta, service, provider, sidechain } = act.event;
 
@@ -99,7 +112,7 @@ const actionHandlers = {
             continue;
           else throw e;
         }
-        logger.debug(`forwarding signal ${key}`);
+        if(process.env.DSP_VERBOSE_LOGS) logger.debug(`forwarding signal ${key}`);
         break;
       }
     }
@@ -110,7 +123,7 @@ const actionHandlers = {
     act.sidechain = sidechain;
     return await forwardEvent(act, providerData.endpoint);
   },
-  'usage_report': async(act, simulated) => {
+  'usage_report': async (act, simulated) => {
     if (simulated) { return; }
     let { service, provider, sidechain, meta } = act.event;
     if (!sidechain && meta && meta.sidechain) {
@@ -141,7 +154,7 @@ const actionHandlers = {
             continue;
           else throw e;
         }
-        logger.debug(`forwarding usage ${key}`);
+        if(process.env.DSP_VERBOSE_LOGS) logger.debug(`forwarding usage ${key}`);
         break;
       }
     }
@@ -162,10 +175,10 @@ async function genAllNodes() {
   sidechains.forEach(sc => sidechainsDict[sc.name] = sc);
   const scName = process.env.SIDECHAIN;
   // if sidechain gateway (identified by ^)
-  if(scName) {
-      const sidechain = sidechains.find(sc => sc.name === scName);
-      if (!sidechain) throw new Error(`could not find sidechain ${scName} under models/eosio-chains`);
-      await genNode(actionHandlers, process.env.PORT || 3116, 'services', undefined, undefined, sidechain);
+  if (scName) {
+    const sidechain = sidechains.find(sc => sc.name === scName);
+    if (!sidechain) throw new Error(`could not find sidechain ${scName} under models/eosio-chains`);
+    await genNode(actionHandlers, process.env.PORT || 3116, 'services', undefined, undefined, sidechain);
   } else {
     await genNode(actionHandlers, process.env.PORT || 3115, 'services');
   }
@@ -175,7 +188,7 @@ genAllNodes();
 const bootTime = Date.now();
 let inRecoveryMode = false;
 const appWebHookListener = genApp();
-appWebHookListener.post('/', async(req, res) => {
+appWebHookListener.post('/', async (req, res) => {
   req.body.replay = inRecoveryMode;
   try {
     await processFn(actionHandlers, req.body);

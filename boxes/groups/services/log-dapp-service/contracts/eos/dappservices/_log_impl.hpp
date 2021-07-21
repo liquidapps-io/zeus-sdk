@@ -13,7 +13,7 @@ SVC_RESP_LOG(logclear)(uint32_t size, std::string reciept, name current_provider
     log_svc_helper::svc_log_logevent(current_time_point().time_since_epoch().count(),STR(level), __FILE__,STR(__LINE__),__FUNCTION__ , msg);
 
 #define LOG_TRACE(msg) \
-    LOG_TRACE(TRACE,msg)
+    LOG(TRACE,msg)
 
 #define LOG_DEBUG(msg) \
     LOG(DEBUG,msg)

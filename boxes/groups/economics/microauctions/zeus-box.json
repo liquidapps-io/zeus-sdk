@@ -1,14 +1,21 @@
 {
+  "version": "1.0.1",
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Test": "zeus test -c"
   },
-  "dependencies":["seed-eos", "events", "token", "mocha", "eos-common",  "hooks-cpp-contracts","eos-detective-reports"],
-  "install":{
-    "contracts":{
+  "dependencies": {
+    "seed-eos": "^1.0.0",
+    "events": "^1.0.0",
+    "token": "^1.0.0",
+    "mocha": "^1.0.0",
+    "eos-common": "^1.0.0",
+    "eos-detective-reports": "^1.0.0"
+  },
+  "install": {
+    "contracts": {
       "microauctions": true
     }
   }

@@ -32,6 +32,7 @@ public:
   using contract::contract;
 
   const name HODL_ACCOUNT = "dappairhodl1"_n;
+  const name GOV_ACCOUNT = "dappsplitter"_n;
   
   struct usage_t {
     asset quantity;
@@ -60,6 +61,11 @@ public:
     uint64_t last_inflation_ts;
     uint64_t primary_key() const { return staked.symbol.code().raw(); }
   };
+
+  TABLE govalloc {
+    double gov_allocation = 0;
+  };
+  typedef eosio::singleton<"govalloc"_n, govalloc> gov_allocation_t;
 
   //START THIRD PARTY STAKING MODS
   TABLE refundreq {
@@ -128,7 +134,6 @@ public:
 
     asset min_stake_quantity;
     uint32_t min_unstake_period; // commitment
-    // uint32_t min_staking_period;
     bool enabled;
     eosio::binary_extension<packagext> ext;
 
@@ -189,8 +194,6 @@ public:
   };
 
   //ADDING TYPE DEFS
-
-
   typedef eosio::multi_index<
       "refunds"_n, refundreq,
       indexed_by<"byprov"_n,
@@ -233,7 +236,7 @@ public:
                                >
       staking_t;
 
- [[eosio::action]] void create(uint64_t maximum_supply_amount, double inflation_per_block, uint64_t inflation_starts_at) {
+ [[eosio::action]] void create(uint64_t maximum_supply_amount, double inflation_per_block, uint64_t inflation_starts_at, double gov_allocation) {
     require_auth(_self);
     eosio::check(maximum_supply_amount > 0, "max-supply must be positive");
     auto issuer = _self;
@@ -250,6 +253,8 @@ public:
                  "token with symbol already exists");
     eosio::check(existingx == statxstable.end(),
                  "token with symbol already exists");
+    eosio::check(gov_allocation >= 0, "allocation must be >= 0");
+    eosio::check(gov_allocation <= 1, "allocation must be <= 1");
 
     statxstable.emplace(_self, [&](auto &s) {
       s.staked.symbol = maximum_supply.symbol;
@@ -261,7 +266,38 @@ public:
       s.max_supply = maximum_supply;
       s.issuer = issuer;
     });
+    gov_allocation_t gov_alloc_table(_self,_self.value);
+    auto existing_gov_alloc = gov_alloc_table.get_or_default();
+    existing_gov_alloc.gov_allocation = gov_allocation;
+    gov_alloc_table.set(existing_gov_alloc, _self);     
   }
+
+ [[eosio::action]] void updinflation(double inflation_per_block) {
+    require_auth(_self);
+    auto sym = DAPPSERVICES_SYMBOL;
+    stats_ext statxstable(_self, sym.code().raw());
+    auto existingx = statxstable.find(sym.code().raw());
+    const int64_t blocks_per_year = 2 * 60 * 60 * 24 * 365;
+    const double annual_inflation = 100.0 * (pow(1.0 + inflation_per_block, blocks_per_year) - 1.0);
+    eosio::check(existingx != statxstable.end(),
+                 "token with symbol does not exist, create first");
+    eosio::check(inflation_per_block >= 0, "inflation_per_block must be >= 0");
+    eosio::check(annual_inflation >= 0, "annual inflation must be >= 0");
+    statxstable.modify(existingx, _self, [&](auto &s) {
+      s.inflation_per_block = inflation_per_block;
+    });
+  }
+
+ [[eosio::action]] void updgovalloc(double gov_allocation) {
+    require_auth(_self);
+    gov_allocation_t gov_alloc_table(_self,_self.value);
+    auto existing_gov_alloc = gov_alloc_table.get_or_default();
+    eosio::check(gov_allocation >= 0, "allocation must be >= 0");
+    eosio::check(gov_allocation <= 1, "allocation must be <= 1");
+    existing_gov_alloc.gov_allocation = gov_allocation;
+    gov_alloc_table.set(existing_gov_alloc, _self);     
+  }
+
  [[eosio::action]] void regpkg(package newpackage) {
     require_auth(newpackage.provider);
 
@@ -270,7 +306,7 @@ public:
         newpackage.package_id, newpackage.service, newpackage.provider);
     auto cidx = packages.get_index<"bypkg"_n>();
     auto existing = cidx.find(idxKey);
-    eosio::check(existing == cidx.end(), "already exists");
+    eosio::check(existing == cidx.end(), "package already exists");
 
     eosio::check(newpackage.quota.symbol == DAPPSERVICES_QUOTA_SYMBOL, "wrong symbol (QUOTA) or precision (.0000)");
     eosio::check(newpackage.min_stake_quantity.symbol == DAPPSERVICES_SYMBOL, "wrong symbol (DAPP) or precision (.0000)");
@@ -287,11 +323,9 @@ public:
       r.min_unstake_period = newpackage.min_unstake_period;
       r.package_json_uri = newpackage.package_json_uri;
       r.api_endpoint = newpackage.api_endpoint;
-      // a.min_staking_period = newpackage.min_staking_period;
       r.package_period = newpackage.package_period;
     });
   }
-
 
  [[eosio::action]] void modifypkg(name provider, name package_id, name service, std::string api_endpoint, std::string package_json_uri) {
     require_auth(provider);
@@ -392,8 +426,6 @@ public:
 
     eosio::check(quantity.symbol == st.supply.symbol,
                  "symbol precision mismatch");
-    eosio::check(quantity.amount <= st.max_supply.amount - st.supply.amount,
-                 "quantity exceeds available supply");
 
     statstable.modify(st, eosio::same_payer,
                       [&](auto &s) { s.supply += quantity; });
@@ -709,11 +741,6 @@ public:
     auto sym = quantity.symbol;
 
     if(acct != cidxacct.end() && DAPPSERVICES_SYMBOL == sym){
-      // we don't need this because refunds never exceed stakes now
-      // if(quantity > acct->balance)
-      //   quantity = acct->balance;
-
-
       require_recipient(provider);
       require_recipient(service);
 
@@ -795,7 +822,6 @@ public:
         .send();
   }
 
-
   TABLE lastlog {
     std::vector<usage_t> usage_reports; // owner account on mainnet
   };
@@ -803,16 +829,19 @@ public:
 
   [[eosio::action]] void xfail() {
     lastlog_t lastlog_singleton(_self,_self.value);
+    string assertion_message;
     if(lastlog_singleton.exists()){
       auto lastlog_inst = lastlog_singleton.get();
       auto it = lastlog_inst.usage_reports.begin();
       while(it != lastlog_inst.usage_reports.end()) {
         EMIT_USAGE_REPORT_EVENT(*it);
+        string success = it->success?"true":"false";
+        assertion_message += std::string("{'version':'1.4','etype':'usage_report','payer':'") + (*it).payer.to_string() + std::string("','service':'") + (*it).service.to_string() + std::string("','provider':'") + (*it).provider.to_string() + std::string("','quantity':'") + (*it).quantity.to_string() + std::string("','success':'") + success + std::string("','package':'") + (*it).package.to_string() + std::string("'}\n");
         ++it;
       }
       lastlog_singleton.remove();      
     }
-    eosio::check( false, "always false assert");
+    eosio::check( false, assertion_message);
   }
 
 private: 
@@ -1045,7 +1074,6 @@ private:
     trx.send(defidx, _self, true);
   }
 
-
   void applyInflation() {
     auto sym = DAPPSERVICES_SYMBOL;
     stats_ext statsexts(_self, sym.code().raw());
@@ -1064,12 +1092,16 @@ private:
 
     uint64_t last_inflation_ts = stx.last_inflation_ts;
 
-    if(current_time_ms <= last_inflation_ts + 500)
+    if(current_time_ms <= last_inflation_ts + 500) {
+      updateMaxSupply();
       return;
+    }
 
     int64_t passed_blocks = (current_time_ms - last_inflation_ts) / 500;
-    if(passed_blocks <= 0)
+    if(passed_blocks <= 0) {
+      updateMaxSupply();
       return;
+    }
 
 
     // calc global inflation
@@ -1077,8 +1109,22 @@ private:
     asset inflation_asset;
     inflation_asset.symbol = sym;
     inflation_asset.amount = total_inflation_amount;
-    if(inflation_asset.amount <= 0)
+    if(inflation_asset.amount <= 0) {
+      updateMaxSupply();
       return;
+    }
+
+    gov_allocation_t gov_allocation_table(_self,_self.value);
+    auto existing_gov_allocation = gov_allocation_table.get_or_default();
+    const double gov_allocation = existing_gov_allocation.gov_allocation;
+
+    asset quantity_gov;
+    quantity_gov.symbol = DAPPSERVICES_SYMBOL;
+    quantity_gov.amount = total_inflation_amount * gov_allocation;
+
+    if(quantity_gov.amount > 0){
+      giveRewards(GOV_ACCOUNT, quantity_gov);
+    }
 
     // increase supply
     statstable.modify(st, eosio::same_payer,
@@ -1090,6 +1136,7 @@ private:
                       [&](auto &s) {
                         s.last_inflation_ts = current_time_ms;
                       });
+    updateMaxSupply();
   }
   uint64_t getUnstakeRemaining(name payer, name provider, name service) {
 
@@ -1207,13 +1254,17 @@ private:
         eosio::check(existing != statstable.end(),
                      "token with symbol does not exist");
         const auto &st = *existing;
+        gov_allocation_t gov_allocation_table(_self,_self.value);
+        auto existing_gov_allocation = gov_allocation_table.get_or_default();
+        const double gov_allocation = existing_gov_allocation.gov_allocation;
         auto totalStakeFactor = (1.0 * st.supply.amount) / stx.staked.amount;
-        amount = (pow(1.0 + inflation, passed_blocks) - 1.0) * (current_stake*totalStakeFactor);
+        amount = (pow(1.0 + inflation, passed_blocks) - 1.0) * (current_stake*totalStakeFactor*(1 - gov_allocation));
       }
 
       asset quantity;
       quantity.symbol = DAPPSERVICES_SYMBOL;
       quantity.amount = amount;
+
       if(quantity.amount > 0){
         giveRewards(provider, quantity);
       }
@@ -1235,9 +1286,6 @@ private:
 
     eosio::check(quantity.symbol == st.supply.symbol,
                  "symbol precision mismatch");
-    eosio::check(quantity.amount <= st.max_supply.amount - st.supply.amount,
-                 "quantity exceeds available supply");
-
 
     rewards_t rewards(_self, provider.value);
     auto reward = rewards.find(DAPPSERVICES_SYMBOL.code().raw());
@@ -1342,22 +1390,33 @@ private:
                  "token with symbol does not exist");
     return *existing;
   }
+
+  void updateMaxSupply() {
+    auto sym = DAPPSERVICES_SYMBOL;
+    stats statstable(_self, sym.code().raw());
+    auto existing = statstable.find(sym.code().raw());
+    if (existing->max_supply != existing->supply) {
+      statstable.modify(existing, _self, [&](auto &s) {
+        s.max_supply = s.supply;
+      });
+    }
+  }
 };
 
 extern "C" {
-void apply(uint64_t receiver, uint64_t code, uint64_t action) {
-  if (code == receiver) {
-    switch (action) {
-      EOSIO_DISPATCH_HELPER(
-          dappservices, (usage)(stake)(unstake)(refund)
-                        (staketo)(unstaketo)(refundto)(refreceipt)
-                        (claimrewards)(create)(issue)(transfer)
-                        (open)(close)(retire)(preselectpkg)(retirestake)(xcallback)
-                        (selectpkg)(regpkg)(closeprv)(modifypkg)(disablepkg)(enablepkg)(pricepkg)(usagex)(xfail))
+  void apply(uint64_t receiver, uint64_t code, uint64_t action) {
+    if (code == receiver) {
+      switch (action) {
+        EOSIO_DISPATCH_HELPER(
+            dappservices, (usage)(stake)(unstake)(refund)
+                          (staketo)(unstaketo)(refundto)(refreceipt)
+                          (claimrewards)(create)(updinflation)(updgovalloc)(issue)(transfer)
+                          (open)(close)(retire)(preselectpkg)(retirestake)(xcallback)
+                          (selectpkg)(regpkg)(closeprv)(modifypkg)(disablepkg)(enablepkg)(pricepkg)(usagex)(xfail))
+      }
+    } else {
+      switch (action) { EOSIO_DISPATCH_HELPER(dappservices, (xsignal)) }
     }
-  } else {
-    switch (action) { EOSIO_DISPATCH_HELPER(dappservices, (xsignal)) }
+    eosio_exit(0);
   }
-  eosio_exit(0);
-}
 }

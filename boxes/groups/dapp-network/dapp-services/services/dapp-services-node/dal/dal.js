@@ -1,4 +1,6 @@
 const db = require('./models');
+const { requireBox } = require('@liquidapps/box-utils');
+const logger = requireBox('log-extensions/helpers/logger');
 
 // gross syncing solution as sync() must be called in each method
 let synced = false;
@@ -52,6 +54,52 @@ async function createServiceRequest(key) {
   }
 }
 
+async function createCronInterval(key, timer, payload, seconds, event) {
+  await sync();
+  const res = await db.CronInterval.findOne({
+    where: { key }
+  });
+  while (true) {
+    if (!res) {
+      try {
+        return db.CronInterval.create({ key, timer, payload, seconds, event });
+      }
+      catch (e) {
+        if (e.name === 'SequelizeOptimisticLockError')
+          continue;
+        else throw e;
+      }
+    }
+    return res;
+  }
+}
+
+async function removeCronInterval(key) {
+  await sync();
+  var res = await db.CronInterval.destroy({
+    where: { key }
+  });
+  return res;
+}
+
+async function fetchCronInterval(key) {
+  await sync();
+  var res = await db.CronInterval.findOne({ where: { key } });
+  if (!res) {
+    return;
+  }
+  return res;
+}
+
+async function fetchAllCronInterval() {
+  await sync();
+  var res = await db.CronInterval.findAll();
+  if (!res) {
+    return;
+  }
+  return res;
+}
+
 // settings table contains singleton with key 'settings'
 async function getSettings() {
   await sync();
@@ -71,6 +119,26 @@ async function updateSettings(data) {
   }
 }
 
+async function fetchNonce(chain) {
+  await sync();
+  var res = await db.Nonce.findOne({ where: { key: chain } });
+  if (!res) {
+    return;
+  }
+  return res;
+}
+
+async function updateNonce(data, chain) {
+  await sync();
+  const currentNonce = await fetchNonce(chain);
+  if (currentNonce) {
+    data = { ...currentNonce.data, ...data };
+    await db.Nonce.update({ data }, { where: { key: chain }});
+  } else {
+    await db.Nonce.create({ key: chain, data });
+  }
+}
+
 async function sync() {
   if (synced)
     return;
@@ -84,6 +152,12 @@ module.exports = {
   updateServiceRequest,
   createServiceRequest,
   getSettings,
-  updateSettings
+  updateSettings,
+  updateNonce,
+  fetchNonce,
+  createCronInterval,
+  removeCronInterval,
+  fetchAllCronInterval,
+  fetchCronInterval
 };
 

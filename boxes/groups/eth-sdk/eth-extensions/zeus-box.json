@@ -1,0 +1,18 @@
+{
+  "version": "1.0.2",
+  "ignore": [
+    "README.md"
+  ],
+  "commands": {
+  },
+  "dependencies": {
+    "core-extensions": "^1.0.0"
+  },
+  "install": {
+    "npm": {
+      "glob": true,
+      "@openzeppelin/contracts":true,
+      "truffle":true
+    }
+  }
+}

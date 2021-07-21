@@ -1,6 +1,6 @@
 {
   "name": "@liquidapps/dapp-client",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "JS library for interacting with DAPP network services.",
   "main": "dist/src/dapp-client-lib.js",
   "types": "dist/src/dapp-client-lib.d.ts",
@@ -25,6 +25,7 @@
   "devDependencies": {},
   "homepage": "https://liquidapps.io",
   "dependencies": {
+    "@dfuse/client": "^0.3.0",
     "@types/debug": "^4.1.5",
     "@types/http-server": "^0.10.0",
     "@types/isomorphic-fetch": "0.0.35",
@@ -45,6 +46,7 @@
     "ts-jest": "^24.2.0",
     "ts-node": "^8.3.0",
     "tslint": "^5.20.1",
-    "typescript": "^3.7.4"
+    "typescript": "^3.7.4",
+    "ws": "^7.3.0"
   }
 }

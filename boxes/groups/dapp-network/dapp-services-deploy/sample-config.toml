@@ -7,24 +7,75 @@ account = "<DSP ACCOUNT>"
 private_key = "<DSP PRIVATE KEY>"
 port = 3115
 # configure available services: (comment for all services)
-# services_enabled = "ipfs,log,vaccounts,oracle,cron,readfn,auth,storage,history,sign"
-# account_permissions = "active"
+services_enabled = "ipfs,vaccounts,oracle,cron,auth,storage"
+# account_permissions = "active" # permission level used to sign DSP transactions, defaults to active
 # consumer_pays: setting this to true forces consumer to pay for all cpu/net/ram
 # however, if they don't have the correct permission setup, everything will fail
 # review consumer pays documentation prior to setting this to true
 consumer_pays = false
+verbose_logs = false # enable for verbose logs
+allow_api_non_broadcast = false # enable to use the replay script or the cleanup script, be sure to disable afterwards to prevent gaming the endpoint
+max_request_retries = 10 # max retries to fetch an oracle request or ipfs warmup, or any other blocking DSP service action
+
+# LiquidStorage params
+liquidstorage_upload_limit = "10mb" # upload limit for LiquidStorage
+
+# Push push guarantee
+push_guarantee = 'handoffs:2' # transaction guarantee (none, in-block, handoffs:1, handoffs:2, handoffs:3, irreversible)
+read_retries = 20 # number of times to attempt to verify transaction has satisfied push guarantee
+push_retries = 3 # number of times to retry pushing the transaction
+backoff_exponent = 1 # backoff multiplier for exponential backoff to prevent rate limiting
+backoff = 500 # time between checking status of transaction
+
+# push_guarantee = 'in-block'
+# read_retries = 5
+# push_retries = 3
+# backoff_exponent = 1
+# backoff = 500
+
+# push_guarantee = 'handoffs:1|2|3'
+# read_retries = 10 | 20 | 30
+# push_retries = 3
+# backoff_exponent = 1
+# backoff = 500
+
+# push_guarantee = 'irreversible'
+# read_retries = 150
+# push_retries = 3
+# backoff_exponent = 1
+# backoff = 500
+
+# custom per service push guarantee level, note these are separated with '|'
+push_guarantee_per_service = '{"name":"ipfs","push_guarantee":"in-block","read_retries":"5"}|{"name":"oracle","push_guarantee":"in-block","read_retries":"5"}|{"name":"cron","push_guarantee":"handoffs:2","read_retries":"10"}|{"name":"vaccounts","push_guarantee":"in-block","read_retries":"5"}|{"name":"storage","push_guarantee":"in-block","read_retries":"5"}'
+
+# timeout for broadcast events such as oracle trxs, if a DSP does not respond within the given window, the promise rejects
+# dspResponses: [{"status":"fulfilled","value":""},{"status":"fulfilled","value":""},{"status":"rejected","reason":"DSP failed to respond within timeout window"}]
+broadcast_event_timeout = 10000
 
 [database]
 # url syntax: postgres://user:pass@example.com:5432/dbname
 url = "postgres://user:pass@example.com:5432/dbname"
+timeout = 10000 # amount of time before database connection timesout
 
 # production (uses above url for database)
 node_env = "production"
+
+[oracles]
+# specify private suffix's such as private keys to be used on specified payer
+
+#    '{
+#        payer: 'mytestaccount',
+#        name: 'coinmarketcap',
+#        suffix: 'data.1765.quote.USD.price/pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?CMC_PRO_API_KEY=...&id=1765'
+#    }'
+
+prefixes = '{"payer":"test1","name":"ipfs","fullAddress":"ipfs.io/ipfs/Qmaisz6NMhDB51cCvNWa1GMS7LU1pAxdF4Ld6Ft9kZEP2a"}|{"payer":"mytestaccount","name":"dfuse","fullAddress":"dfuse.io"}'
 
 [nodeos]
 host = "localhost"
 port = 8888
 secured = false
+latest = true # if using 2.0+ version of nodeos, true, if less than 2.0, false
 
 # mainnet:
 chainid = "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906"
@@ -35,42 +86,100 @@ websocket_port = 8887
 
 [demux]
 socket_mode = "sub"
-# head block to sync demux from
-head_block = 35000000
+# a head block may be specified to sync demux from a specific block, the bypass_database_head_block must be set to true for this
+# if bypass_database_head_block is set to true and the head_block is commented out, the head block from the chain will automatically be used
+# head_block = 0 # set to 0 to autmatically use head block of chain
+
 # demux defaults to first pulling head block from toml file if postgres database is not set
-# after database is set, defaults to databse, to overwrite and default to toml file, pass true
+# after database is set, defaults to databse, to overwrite and default to toml file or the current head block, pass true
 bypass_database_head_block = false
+max_pending_messages = 5000 # amount of pending messages to add to the stack before disconnecting the demux websocket to allow pending messages to process
+process_block_checkpoint = 1000 # amount of blocks to pass before updating PostgreSQL database with the last processed block
+# max_memory_mb = # max amount of memory to be consumed by demux, defaults to 8196
+
+[dfuse]
+network = "mainnet" # testnet (eosio testnet), kylin, worbli, wax
+# for push_transaction ability
+push_enable = false # push_enable may be true, even if enable is false
+push_guarantee = "in-block" # handoff:1, handoffs:2, handoffs:9, irreversible
+# for using dfuse instead of demux
+enable = false # enables dfuse demux, not related to push_enable
+api_key = "" # long-lived API key, see https://docs.dfuse.io/guides/core-concepts/authentication/, e.g. (server_abcdef123123123000000000000000000)
+debug = false # enable web socket debug messages in pm2 logs
+authorization = false # if using community edition of dfuse, set to true so dfuse client does not specify API key and authorization:false
 
 [ipfs]
 protocol = "http"
 host = "localhost"
 port = 5001
 
+[evm] # if using LiquidLink (link) service for ethereum, binance, or other evm chain
+
+# default, will check for chain specific then default
+private_key = ""
+endpoint = ""
+gas_limit = ''
+
+# chain specific
+ethereum_private_key = ""
+ethereum_endpoint = ""
+ethereum_gas_price = '2000000'
+ethereum_gas_limit = '500000'
+ethereum_keys_per_consumer = '{"EVM_ETHEREUM_PRIVATE_KEY_CONSUMER1":"PRIVATE_KEY_HERE"},{"EVM_ETHEREUM_PRIVATE_KEY_CONSUMER2":"PRIVATE_KEY_HERE"}'
+ethereum_gas_price_mult = 1.2
+
+binance_private_key = ""
+binance_endpoint = ""
+binance_gas_price = '2000000'
+binance_gas_limit = '500000'
+binance_keys_per_consumer = '{"EVM_BINANCE_PRIVATE_KEY_CONSUMER1":"PRIVATE_KEY_HERE"},{"EVM_BINANCE_PRIVATE_KEY_CONSUMER2":"PRIVATE_KEY_HERE"}'
+binance_gas_price_mult = 1.2
+
+bsctest_private_key = ""
+bsctest_endpoint = "https://data-seed-prebsc-1-s1.binance.org:8545"
+bsctest_gas_limit = '700000'
+
+ropsten_private_key = ""
+ropsten_gas_limit = '700000'
+ropsten_endpoint  = "" # setup free account https://ropsten.infura.io/
+
 # sidechain section, if no sidechains, leave as [sidechains], can add additional sidechains with [sidechains.newchain] ...
 [sidechains]
-  [sidechains.test1]
-    # dsp
-    dsp_port = 3116 # dsp port to run new chain's services on, this is the port developers will push to, must be unique per new chain
-    dsp_account = "test1" # DSP Account on new chain
-    dsp_private_key = "" # DSP active private key on new chain
-    # nodeos
-    nodeos_host = "localhost" # nodeos host running new chain
-    nodeos_port = 8888 # nodeos host port
-    nodeos_secured = false # nodeos secured bool (true: https, false: http)
-    nodeos_chainid = "" # chainid of new chain
-    nodeos_websocket_port = 8887 # nodeos websocket port, can be same per nodeos instance
-    webhook_dapp_port = 8113 # nodeos webhook port, must be unique per chain
-    # demux
-    demux_webhook_port = 3196 # port demux runs on, must be unique per new chain
-    demux_socket_mode = "sub"
-    demux_head_block = 1
-    # demux defaults to first pulling head block from toml file if postgres database is not set
-    # after database is set, defaults to database, to overwrite and default to toml file, pass true
-    demux_bypass_database_head_block = false
-    # sidechain 
-    liquidx_contract = "liquidx.dsp" # liquidx contract on the EOS mainnet
-    name = "test1" # CHAIN_NAME - contract on the EOS mainnet that registered the new chain
-    # the mapping below contains the dappservices:dappservicex and mainnet DSP account to the new chain's DSP account mapping
-    mapping = "dappservices:dappservicex,heliosselene:heliosselene"
+  #[sidechains.test1]
+  #  # dsp
+  #  dsp_port = 3116 # dsp port to run new chain's services on, this is the port developers will push to, must be unique per new chain
+  #  dsp_account = "test1" # DSP Account on new chain
+  #  dsp_private_key = "" # DSP active private key on new chain
+  #  # dsp_account_permissions = "active" # permission level used to sign DSP transactions, defaults to active
+  #  # nodeos
+  #  nodeos_host = "localhost" # nodeos host running new chain
+  #  nodeos_port = 8888 # nodeos host port
+  #  nodeos_secured = false # nodeos secured bool (true: https, false: http)
+  #  nodoes_latest = true # if using 2.0+ version of nodeos, true, if less than 2.0, false
+  #  nodeos_chainid = "" # chainid of new chain
+  #  nodeos_websocket_port = 8887 # nodeos websocket port, can be same per nodeos instance
+  #  webhook_dapp_port = 8113 # nodeos webhook port, must be unique per chain
+  #  # demux
+  #  demux_webhook_port = 3196 # port demux runs on, must be unique per new chain
+  #  demux_socket_mode = "sub"
+  #  # demux_head_block = 0 # set to 0 to autmatically use head block of chain
+  #  # demux defaults to first pulling head block from toml file if postgres database is not set
+  #  # after database is set, defaults to database, to overwrite and default to toml file, pass true
+  #  demux_bypass_database_head_block = false
+  #  demux_max_pending_messages = 5000 # amount of pending messages to add to the stack before disconnecting the demux websocket to allow pending messages to process
+  #  demux_process_block_checkpoint = 1000 # amount of blocks to pass before updating PostgreSQL database with the last processed block
+  #  # demux_max_memory_mb = # max amount of memory to be consumed by demux, defaults to 8196
+  #  # dfuse
+  #  dfuse_network = "mainnet" # testnet (eosio testnet), kylin, worbli, wax
+  #  # for push_transaction ability
+  #  dfuse_push_enable = false # push_enable may be true, even if enable is false
+  #  dfuse_push_guarantee = "in-block" # handoff:1, handoffs:2, handoffs:3, irreversible
+  #  # for using dfuse instead of demux
+  #  dfuse_enable = false # enables dfuse demux, not related to push_enable
+  #  dfuse_api_key = "" # long-lived API key, see https://docs.dfuse.io/guides/core-concepts/authentication/, e.g. (server_abcdef123123123000000000000000000)
+  #  # sidechain 
+  #  name = "test1" # CHAIN_NAME - contract on the EOS mainnet that registered the new chain
+  #  # the mapping below contains the dappservices:dappservicex and mainnet DSP account to the new chain's DSP account mapping
+  #  mapping = "dappservices:dappservicex,heliosselene:heliosselene"
   # [sidechains.ANOTHER_CHAIN_NAME]
     # ...

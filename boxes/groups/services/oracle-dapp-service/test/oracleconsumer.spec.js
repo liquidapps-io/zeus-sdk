@@ -1,17 +1,16 @@
-
-
 require('mocha');
+const { requireBox } = require('@liquidapps/box-utils');
 const { assert } = require('chai'); // Using Assert style
-const { getTestContract } = require('../extensions/tools/eos/utils');
+const { getTestContract } = requireBox('seed-eos/tools/eos/utils');
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens } = require('../extensions/tools/eos/dapp-services');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
 
-var contractCode = 'oracleconsumer';
-var ctrt = artifacts.require(`./${contractCode}/`);
+const contractCode = 'oracleconsumer';
+const ctrt = artifacts.require(`./${contractCode}/`);
 describe(`Oracle Service Test Contract`, () => {
-  var testcontract;
+  let testcontract;
   const code = 'test1';
   before(done => {
     (async () => {
@@ -29,14 +28,4 @@ describe(`Oracle Service Test Contract`, () => {
       }
     })();
   });
-
-  var account = code;
-
-
-
-
-
-
-
-
 });

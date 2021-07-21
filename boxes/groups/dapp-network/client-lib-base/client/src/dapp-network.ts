@@ -3,12 +3,14 @@ import {
     Accountext,
     Staking,
     Refunds,
+    Packagext
 } from "./types/dappservices";
 import * as provider_info from "./types/dsp/provider_info";
 import { Fetch } from "./http-client";
 import { EosioClient } from "./eosio-client";
 import * as names from "./types/names";
 import {getTableBoundsForName} from './dapp-common'
+import { PushGuarantee } from "eosio-push-guarantee";
 
 /**
  * Dapp Network Client
@@ -19,8 +21,10 @@ import {getTableBoundsForName} from './dapp-common'
  * @param {string} network network
  * @param {object} [options={}] optional params
  * @param {string} [options.endpoint] dsp endpoint
- * @param {string} [options.dappservices="dappservices"] DAPP Services contract
  * @param {Fetch} [options.fetch=global.fetch] fetch
+ * @param {string} [options.dappservices="dappservices"] DAPP Services contract
+ * @param {string} [options.dfuse_key=""] Dfuse API key
+ * @param {string} [options.dfuse_guarantee="in-block"] Dfuse Push Guarantee
  * @example
  *
  * const endpoint = "https://kylin-dsp-2.liquidapps.io"
@@ -34,7 +38,9 @@ export class DappClient extends EosioClient {
         endpoint?: string,
         fetch?: Fetch,
         dappservices?: string,
-        api?: any
+        api?: any,
+        dfuse_key?: string
+        dfuse_guarantee?: string
     } = {} ) {
         super( network, options );
         this.dappservices = options.dappservices || this.dappservices;
@@ -79,7 +85,7 @@ export class DappClient extends EosioClient {
     }
 
     /**
-     * Get TABLE package by package name and dsp service - returns DSP packages from the dappservices package table that match the package and dsp service provided
+     * Get TABLE package by package name, dsp service, and dsp provider name - returns DSP packages from the dappservices package table that match the package and dsp service provided
      *
      * @param {string} package dsp package name
      * @param {string} service dsp service
@@ -110,6 +116,53 @@ export class DappClient extends EosioClient {
      */
     public get_table_package_by_package_service_provider( package_name: string, service: string, provider: string) {
         return this.get_table_package_by_package_service_provider_logic( package_name, service, provider);
+    }
+
+    /**
+     * Get TABLE packagext - returns a packages selected inflation rate and quota cost for actions
+     *
+     * @param {object} [options={}] optional params
+     * @param {string} [options.lower_bound] Filters results to return the first element that is not less than provided value in set
+     * @param {string} [options.upper_bound] Filters results to return the first element that is greater than provided value in set
+     * @param {number} [options.limit=1500] Limit the result amount
+     * @param {boolean} [options.show_payer=false] Show Payer
+     * @example
+     *
+     * const response = await client.get_table_packagext({ limit: 500 });
+     *
+     * for (const row of response.rows) {
+     *     console.log(row);
+     * }
+     */
+    public get_table_packagext( options: {
+        lower_bound?: string,
+        upper_bound?: string,
+        limit?: number,
+        show_payer?: boolean,
+    } = {} ) {
+        return this.get_all_table_rows<Packagext>( this.dappservices, this.dappservices, "packagext", "package_id", options );
+    }
+
+    /**
+     * Get TABLE packagext by package name, dsp service, and dsp provider name - returns DSP packagext entries that match the package and dsp service provided
+     *
+     * @param {string} package dsp package name
+     * @param {string} service dsp service
+     * @param {string} provider dsp account
+     * @param {object} [options={}] optional params
+     * @param {number} [options.limit=1500] Limit the result amount
+     * @param {boolean} [options.show_payer=false] Show Payer
+     * @example
+     *
+     * const response = await client.get_table_packagext_by_package_service_provider('package1', 'ipfsservice1', 'heliosselene' { limit: 500 });
+     *
+     * for (const row of response.rows) {
+     *     console.log(row);
+     * }
+     */
+
+    public get_table_packagext_by_package_service_provider( package_name: string, service: string, provider: string) {
+        return this.get_table_packagext_by_package_service_provider_logic( package_name, service, provider);
     }
 
     /**
@@ -297,6 +350,16 @@ export class DappClient extends EosioClient {
         return this.get_table_accountext_by_account_service_provider_logic( account, service, provider );
     }
 
+    public push_action( rpc: any, serializedTrx: any, options: {
+        pushGuarantee?: string, // push guarantee level for trx
+        readRetries?: number, // amount of times to try and verify trx before retrying trx
+        pushRetries?: number, // amount of times to retry trx before failing
+        backoff?: number, // time in ms between readRetries
+        backoffExponent?: number // multiplier backoff time for backoff (if 500ms and 1.1 multiplier then 550ms backoff next time, etc)
+    } = {} ) {
+        return this.push_action_hander( rpc, serializedTrx, options);
+    }
+
     public get_package_info = async ( contract: string, service: string) => {
         const provider_info: provider_info.Package = {
             api_endpoint: "",
@@ -335,22 +398,37 @@ export class DappClient extends EosioClient {
         let options:any = {};
         options.key_type = 'sha256';
         options.index_position = 2;
-        const packageHexLE = getTableBoundsForName(package_name).lower_bound;
-        const serviceBounds = getTableBoundsForName(service).lower_bound;
+        options.encode_type = 'hex';
+        const packageHexLE = getTableBoundsForName(package_name).lower_bound.match(/.{2}/g).reverse().join('');
+        const serviceBounds = getTableBoundsForName(service).lower_bound.match(/.{2}/g).reverse().join('');
         const providerBounds = getTableBoundsForName(provider);
-        options.lower_bound = `${packageHexLE}${`0`.repeat(16)}${providerBounds.lower_bound}${serviceBounds}`;
-        options.upper_bound = `${packageHexLE}${`0`.repeat(16)}${providerBounds.upper_bound}${serviceBounds}`;
+        options.lower_bound = `${`0`.repeat(16)}${packageHexLE}${serviceBounds}${providerBounds.lower_bound.match(/.{2}/g).reverse().join('')}`;
+        options.upper_bound = `${`0`.repeat(16)}${packageHexLE}${serviceBounds}${providerBounds.upper_bound.match(/.{2}/g).reverse().join('')}`;
         return this.get_table_rows<Package>( this.dappservices, this.dappservices, "package", options );
+    }
+
+    private get_table_packagext_by_package_service_provider_logic(package_name: string, service: string, provider: string) {
+        let options:any = {};
+        options.key_type = 'sha256';
+        options.index_position = 2;
+        options.encode_type = 'hex';
+        const packageHexLE = getTableBoundsForName(package_name).lower_bound.match(/.{2}/g).reverse().join('');
+        const serviceBounds = getTableBoundsForName(service).lower_bound.match(/.{2}/g).reverse().join('');
+        const providerBounds = getTableBoundsForName(provider);
+        options.lower_bound = `${`0`.repeat(16)}${packageHexLE}${serviceBounds}${providerBounds.lower_bound.match(/.{2}/g).reverse().join('')}`;
+        options.upper_bound = `${`0`.repeat(16)}${packageHexLE}${serviceBounds}${providerBounds.upper_bound.match(/.{2}/g).reverse().join('')}`;
+        return this.get_table_rows<Package>( this.dappservices, this.dappservices, "packagext", options );
     }
 
     private get_table_accountext_by_account_service_logic(account: string, service: string) {
         let options:any = {};
         options.key_type = 'i128';
         options.index_position = 3;
-        const accountHexLE = getTableBoundsForName(account).lower_bound;
+        options.encode_type = 'hex';
+        const accountHexLE = getTableBoundsForName(account).lower_bound.match(/.{2}/g).reverse().join('');
         const serviceBounds = getTableBoundsForName(service);
-        options.lower_bound = `0x${serviceBounds.lower_bound}${accountHexLE}`;
-        options.upper_bound = `0x${serviceBounds.upper_bound}${accountHexLE}`;
+        options.lower_bound = `0x${accountHexLE}${serviceBounds.lower_bound.match(/.{2}/g).reverse().join('')}`;
+        options.upper_bound = `0x${accountHexLE}${serviceBounds.upper_bound.match(/.{2}/g).reverse().join('')}`;
         return this.get_table_rows<Accountext>( this.dappservices, names.DAPP, "accountext", options );
     }
 
@@ -358,11 +436,23 @@ export class DappClient extends EosioClient {
         let options:any = {};
         options.key_type = 'sha256';
         options.index_position = 2;
-        const accountHexLE = getTableBoundsForName(account).lower_bound;
-        const serviceBounds = getTableBoundsForName(service).lower_bound;
+        options.encode_type = 'hex';
+        const accountHexLE = getTableBoundsForName(account).lower_bound.match(/.{2}/g).reverse().join('');
+        const serviceBounds = getTableBoundsForName(service).lower_bound.match(/.{2}/g).reverse().join('');
         const providerBounds = getTableBoundsForName(provider);
-        options.lower_bound = `${accountHexLE}${`0`.repeat(16)}${providerBounds.lower_bound}${serviceBounds}`;
-        options.upper_bound = `${accountHexLE}${`0`.repeat(16)}${providerBounds.upper_bound}${serviceBounds}`;
+        options.lower_bound = `${`0`.repeat(16)}${accountHexLE}${serviceBounds}${providerBounds.lower_bound.match(/.{2}/g).reverse().join('')}`;
+        options.upper_bound = `${`0`.repeat(16)}${accountHexLE}${serviceBounds}${providerBounds.upper_bound.match(/.{2}/g).reverse().join('')}`;
         return this.get_table_rows<Accountext>( this.dappservices, names.DAPP, "accountext", options );
+    }
+
+    private push_action_hander(rpc: any, serializedTrx: any, options: {
+        pushGuarantee?: string, // push guarantee level for trx
+        readRetries?: number, // amount of times to try and verify trx before retrying trx
+        pushRetries?: number, // amount of times to retry trx before failing
+        backoff?: number, // time in ms between readRetries
+        backoffExponent?: number // multiplier backoff time for backoff (if 500ms and 1.1 multiplier then 550ms backoff next time, etc)
+    } = {}) {
+        const push_guarantee_rpc = new PushGuarantee(rpc, options);
+        return push_guarantee_rpc.push_transaction(serializedTrx, options);
     }
 }

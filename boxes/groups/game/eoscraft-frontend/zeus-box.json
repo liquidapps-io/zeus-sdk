@@ -1,11 +1,13 @@
 {
+  "version": "1.0.1",
   "ignore": [
-    "README.md",
-    "zeus-box.json"
+    "README.md"
   ],
   "commands": {
     "Deploy Frontend": "zeus deploy frontend main",
     "Run Locally": "zeus run frontend main"
   },
-  "dependencies":["frontend-phaser"]
+  "dependencies": {
+    "frontend-phaser": "^1.0.0"
+  }
 }

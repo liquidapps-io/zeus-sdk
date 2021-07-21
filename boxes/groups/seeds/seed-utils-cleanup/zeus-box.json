@@ -1,10 +1,10 @@
 {
+  "version": "1.0.2",
   "ignore": [
-    "README.md",
-    "zeus-box.json",
-    "zeus-config.js"
+    "README.md"
   ],
-  "commands": {
-  },
-  "dependencies":["seed-utils"]
+  "commands": {},
+  "dependencies": {
+    "seed-utils": "^1.0.0"
+  }
 }

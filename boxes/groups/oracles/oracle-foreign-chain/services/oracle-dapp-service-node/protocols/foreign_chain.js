@@ -132,7 +132,7 @@ const foreignChains = {
   },
   'cardano': {
     'endpoints': [
-      'http://cardanoexplorer.com'
+      'https://explorer.cardano.org'
       // process.env.CARDANO_API || `http://localhost:8090`
     ],
     'blocks': async({ parts, address, endpoint }) => {
@@ -152,10 +152,7 @@ const foreignChains = {
     }
   },
   'ethereum': {
-    'endpoints': [
-      'https://main-rpc.linkpool.io/'
-      // process.env.ETHEREUM_JSONRPC_API || `http://localhost:....`
-    ],
+    'endpoints': ['https://main-light.eth.linkpool.io'],
     'block_number': async({ parts, address, endpoint }) => {
       const body = JSON.stringify({
         'jsonrpc': '2.0',
@@ -186,8 +183,6 @@ const foreignChains = {
         method: 'POST',
         body
       });
-      console.log('got here');
-
       return await r.json();
     },
     'balance': async({ parts, address, endpoint }) => {
@@ -233,36 +228,6 @@ const foreignChains = {
   },
   'tron': {
     'endpoints': [
-      'http://54.236.37.243:8090',
-      'http://52.53.189.99:8090',
-      'http://18.196.99.16:8090',
-      'http://34.253.187.192:8090',
-      'http://52.56.56.149:8090',
-      'http://35.180.51.163:8090',
-      'http://54.252.224.209:8090',
-      'http://18.228.15.36:8090',
-      'http://52.15.93.92:8090',
-      'http://34.220.77.106:8090',
-      'http://13.127.47.162:8090',
-      'http://13.124.62.58:8090',
-      'http://47.74.149.206:8090',
-      'http://47.90.240.187:8090',
-      'http://47.90.215.84:8090',
-      'http://47.254.77.146:8090',
-      'http://47.74.242.55:8090',
-      'http://47.75.249.119:8090',
-      'http://47.90.201.118:8090',
-      'http://47.74.21.68:8090',
-      'http://47.74.13.168:8090',
-      'http://47.74.33.41:8090',
-      'http://47.52.59.134:8090',
-      'http://47.74.229.70:8090',
-      'http://47.254.27.69:8090',
-      'http://47.89.243.195:8090',
-      'http://47.90.201.112:8090',
-      'http://47.88.174.175:8090',
-      'http://47.74.224.123:8090',
-      'http://47.75.249.4:8090',
       'https://api.trongrid.io'
     ],
     'balance': async({ parts, address, endpoint }) => {

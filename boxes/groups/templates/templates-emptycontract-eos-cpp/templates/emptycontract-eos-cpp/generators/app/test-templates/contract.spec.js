@@ -1,27 +1,25 @@
 require('mocha');
 
-
+const { requireBox } = require('@liquidapps/box-utils');
 const { assert } = require('chai'); // Using Assert style
-const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getNetwork } = require('../extensions/tools/eos/utils');
-const getDefaultArgs = require('../extensions/helpers/getDefaultArgs');
-const { getLocalDSPEos, getTestContract } = require('../extensions/tools/eos/utils');
+const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
+const { getNetwork, getTestContract, getUrl } = requireBox('seed-eos/tools/eos/utils');
+const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
 
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens, readVRAMData } = require('../extensions/tools/eos/dapp-services');
-const { loadModels } = require('../extensions/tools/models');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens, readVRAMData } = requireBox('dapp-services/tools/eos/dapp-services');
+const { loadModels } = requireBox('seed-models/tools/models');
 
 const fetch = require('node-fetch');
 const eosjs2 = require('eosjs');
 const { JsonRpc, Api, Serialize } = eosjs2;
-const { getUrl } = require('../extensions/tools/eos/utils');
 const url = getUrl(getDefaultArgs());
 const rpc = new JsonRpc(url, { fetch });
 
 const contractCode = '<%- contractname %>';
 const ctrt = artifacts.require(`./${contractCode}/`);
-const delay = ms => new Promise(res => setTimeout(res, ms));
+const { eosio } = requireBox('test-extensions/lib/index');
 
 describe(`${contractCode} Contract`, () => {
     const getTestAccountName = (num) => {
@@ -33,7 +31,7 @@ describe(`${contractCode} Contract`, () => {
         let s = '111111111111' + fivenum;
         let prefix = 'test';
         s = prefix + s.substr(s.length - (12 - prefix.length));
-        console.log(s);
+        // console.log(s);
         return s;
     };
     const code = getTestAccountName(Math.floor(Math.random() * 1000));
@@ -41,7 +39,7 @@ describe(`${contractCode} Contract`, () => {
     let chainId;
     let endpoint;
     before(done => {
-        (async() => {
+        (async () => {
             try {
                 const deployedContract = await deployer.deploy(ctrt, code);
                 const services = await loadModels('dapp-services');
@@ -80,7 +78,7 @@ describe(`${contractCode} Contract`, () => {
     });
 
     it('test1', done => {
-        (async() => {
+        (async () => {
             try {
                 done();
             }

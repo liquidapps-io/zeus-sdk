@@ -1,19 +1,19 @@
 require('mocha');
 
-
+const { requireBox } = require('@liquidapps/box-utils');
 const { assert } = require('chai'); // Using Assert style
-const { getCreateKeys } = require('../extensions/helpers/key-utils');
-const { getCreateAccount, getEos } = require('../extensions/tools/eos/utils');
-const artifacts = require('../extensions/tools/eos/artifacts');
-const deployer = require('../extensions/tools/eos/deployer');
-const { genAllocateDAPPTokens, dappServicesContract } = require('../extensions/tools/eos/dapp-services');
-const { loadModels } = require('../extensions/tools/models');
+const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
+const { getCreateAccount, getEos } = requireBox('seed-eos/tools/eos/utils');
+const artifacts = requireBox('seed-eos/tools/eos/artifacts');
+const deployer = requireBox('seed-eos/tools/eos/deployer');
+const { genAllocateDAPPTokens, dappServicesContract } = requireBox('dapp-services/tools/eos/dapp-services');
+const { loadModels } = requireBox('seed-models/tools/models');
 const contractCode = 'dappairhodl1';
 var contractCode2 = 'ipfsconsumer';
 var ctrt = artifacts.require(`./airhodl/`);
 var ctrt2 = artifacts.require(`./${contractCode2}/`);
-const delay = ms => new Promise(res => setTimeout(res, ms));
-const delaySec = sec => delay(sec * 1000);
+const { eosio } = requireBox('test-extensions/lib/index');
+const delaySec = sec => eosio.delay(sec * 1000);
 
 async function issueInitialSupply({ deployedContract }) {
   var key = await getCreateKeys(dappServicesContract);
@@ -303,9 +303,9 @@ async function deployConsumerContract(code, provider = "pprovider1") {
   await allocateDAPPTokens(deployedContract);
 
   var keys = await getCreateKeys(code);
-  const { getTestContract } = require('../extensions/tools/eos/utils');
+  const { getTestContract } = requireBox('seed-eos/tools/eos/utils');
   var testcontract = await getTestContract(code);
-  const { getLocalDSPEos } = require('../extensions/tools/eos/utils');
+  const { getLocalDSPEos } = requireBox('seed-eos/tools/eos/utils');
   var dspeos = await getLocalDSPEos(code);
 
   await (await dspeos.contract('eosio')).updateauth({

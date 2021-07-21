@@ -12,8 +12,9 @@ https://github.com/liquidapps-io/zeus-cmd
 
 ### Run a local EOSIO node, DAPP-Network system, DSP-Services and the deploy the game locally
 ```
+mkdir cardgame; cd cardgame
+zeus box create
 zeus unbox cardgame
-cd cardgame
 zeus migrate
 zeus deploy frontend main
 ```

@@ -1,21 +1,33 @@
 {
+  "version": "1.1.5",
   "ignore": [
-    "README.md",
-    "LICENSE",
-    "zeus-box.json"
+    "README.md"
   ],
-  "dependencies":["seed","seed-microservices","core-extensions","demux", "seed-eos", "events", "seed-models","hooks-cpp-contracts", "mocha", "client-lib-base","ipfs-daemon"],
-  "install":{
-    "contracts":{
+  "dependencies": {
+    "seed-zeus-support": "^1.0.0",
+    "seed-microservices": "^1.0.0",
+    "core-extensions": "^1.0.0",
+    "demux": "^1.0.0",
+    "dfuse": "^1.0.0",
+    "seed-eos": "^1.0.0",
+    "events": "^1.0.0",
+    "seed-models": "^1.0.0",
+    "mocha": "^1.0.0",
+    "client-lib-base": "^1.0.0",
+    "ipfs-daemon": "^1.0.0"
+  },
+  "install": {
+    "contracts": {
       "dappservices": true,
       "allservices": true
     },
     "npm": {
+      "@dfuse/client": "^0.3.0",
       "big-integer": "^1.6.36",
       "bytebuffer": "^5.0.1",
       "cors": "^2.8.4",
       "eosjs@20.0.0": true,
-      "express": "^4.16.3",
+      "express": "^4.17.1",
       "ipfs-api": "^24.0.2",
       "http-proxy": true,
       "raw-body": true,
@@ -25,8 +37,9 @@
       "mkdirp": "^0.5.1",
       "sequelize": "5.19.0",
       "pg": "7.12.1",
-      "minipass@2.7.0":true,
-      "sqlite3": "4.1.0"
+      "minipass@2.7.0": true,
+      "sqlite3": true,
+      "promise.allsettled": "^1.0.2"
     }
   }
 }

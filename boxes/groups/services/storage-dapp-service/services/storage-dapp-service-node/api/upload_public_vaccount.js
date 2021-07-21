@@ -1,15 +1,17 @@
+const { requireBox } = require('@liquidapps/box-utils');
 const ecc = require("eosjs-ecc");
 const fetch = require("node-fetch");
 const { JsonRpc } = require("eosjs");
 const { BigNumber } = require(`bignumber.js`);
-const { emitUsage } = require("../../dapp-services-node/common");
+const { emitUsage, getLinkedAccount } = requireBox('dapp-services/services/dapp-services-node/common');
+
 const {
   readVRAMData,
   getContractAccountFor,
   getEndpointForContract
-} = require("../../../extensions/tools/eos/dapp-services");
-const { unpack, saveDirToIPFS, saveToIPFS, hashData256 } = require("../common");
-const logger = require("../../../extensions/helpers/logger");
+} = requireBox('dapp-services/tools/eos/dapp-services')
+const { unpack, saveDirToIPFS, saveToIPFS, hashData256 } = requireBox('storage-dapp-service/services/storage-dapp-service-node/common');
+const logger = requireBox("log-extensions/helpers/logger");
 
 const getOrCreateDailyLimits = ({ sidechain, state, contract }) => {
   const sidechainIdentifier = sidechain || `mainnet`;
@@ -154,9 +156,12 @@ module.exports = async (body, res, model, state) => {
     hash,
     hashSignature,
     vaccountName,
-    contract
+    contract,
+    options
   } = body;
   try {
+    if (archive) throw new Error(`vaccount archive uploads not yet supported`);
+
     data = Buffer.from(data, `base64`);
     hashSignature = ecc.Signature.fromString(hashSignature);
     const vaccountPublicKey = await getVAccountPublicKey({
@@ -176,22 +181,11 @@ module.exports = async (body, res, model, state) => {
     checkLimits({ data, contractLimits, stateDailyLimits, vaccountName });
 
     let uri;
-    var length = 0;
-    if (archive) {
-      // unpack
-      var archiveData = archive.data;
-      var format = archive.format || "tar";
-      // upload files
-      var files = await unpack(Buffer.from(archiveData, "hex"), format);
-      length = archiveData.length / 2;
-      uri = await saveDirToIPFS(files);
-    } else {
-      uri = await saveToIPFS(data);
-      length = data.byteLength;
-    }
+    var length = data.byteLength;
+    uri = await saveToIPFS(data, options.rawLeaves);
 
     updateLimits({ data, stateDailyLimits, vaccountName });
-    await emitUsage(contract, getContractAccountFor(model), length, sidechain, {
+    await emitUsage(sidechain ? await getLinkedAccount(null, null, contract, sidechain.name) : contract, getContractAccountFor(model), length, sidechain, {
       uri
     });
 
