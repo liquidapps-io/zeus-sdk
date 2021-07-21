@@ -83,7 +83,7 @@ proxy.on('error', function (err, req, res) {
     'Content-Type': 'text/plain'
   });
 
-  res.end('DSP Proxy error.');
+  res.end(`DSP Proxy error: ${err}`);
 });
 const charmap = '.12345abcdefghijklmnopqrstuvwxyz'
 const charidx = ch => {
@@ -684,7 +684,7 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
     }
     catch (e) {
       await rollBack(garbage, actionHandlers, serviceName, handlers);
-      logger.error(`exception running push_transaction: ${e} original trx error ${detailMsg} for endpoint ${endpoint} and uri: ${uri}`);
+      logger.error(`exception running push_transaction: ${e} original trx error ${typeof(detailMsg)=="object"?JSON.stringify(detailMsg):detailMsg} for endpoint ${endpoint} and uri: ${uri}`);
       res.status(500);
       res.send(JSON.stringify({
         code: 500,

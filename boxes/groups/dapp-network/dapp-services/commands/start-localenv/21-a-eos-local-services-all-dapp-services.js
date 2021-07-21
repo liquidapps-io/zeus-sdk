@@ -71,16 +71,17 @@ module.exports = async (args) => {
       var key = await getCreateAccount(testProvider.account);
       await serviceRunner(`/dummy/${serviceModel.name}-dapp-service-node.js`, serviceModel.port * (pi + 1)).handler(args, {
         DSP_PRIVATE_KEY: key.active.privateKey,
-        EVM_EVMLOCALSIDECHAIN_PRIVATE_KEY: testProvider.sidechain_key,
-        EVM_PRIVATE_KEY: testProvider.key,
+        EVM_EVMLOCALSIDECHAIN_PRIVATE_KEY: args.externalEvmSisterPrivateKey?args.externalEvmSisterPrivateKey:testProvider.sidechain_key,
+        EVM_PRIVATE_KEY: args.externalEvmPrivateKey?args.externalEvmPrivateKey:testProvider.key,
         EVM_GAS_PRICE_MULT: 1.2,
-        EVM_EVMLOCALSIDECHAIN_ENDPOINT: "http://localhost:8546",
-        EVM_ENDPOINT: "http://localhost:8545",
+        EVM_EVMLOCALSIDECHAIN_ENDPOINT: args.externalEvmSisterEndpoint?args.externalEvmSisterEndpoint:`http://${args.evmSisterHost}:${args.evmSisterPort}`,
+        EVM_ENDPOINT: args.externalEvmEndpoint?args.externalEvmEndpoint:`http://${args.evmHost}:${args.evmPort}`,
         DSP_GATEWAY_MAINNET_ENDPOINT: `http://localhost:${13015 * (pi + 1)}`, // mainnet gateway
         DSP_ACCOUNT: testProvider.account,
         NODEOS_LATEST: true,
         SVC_PORT: serviceModel.port * (pi + 1),
-        DSP_PORT: 13015 * (pi + 1)
+        DSP_PORT: 13015 * (pi + 1),
+        ORACLE_PREFIX_TEST1_IPFS: "ipfs.io/ipfs/Qmaisz6NMhDB51cCvNWa1GMS7LU1pAxdF4Ld6Ft9kZEP2a"
       });
       await deployLocalService(serviceModel, testProvider.account, gatewayPort * (pi + 1));
     }

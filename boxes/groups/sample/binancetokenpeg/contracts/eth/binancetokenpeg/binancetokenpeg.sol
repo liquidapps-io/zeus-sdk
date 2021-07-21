@@ -35,6 +35,7 @@ contract binancetokenpeg is link {
     * @param recipient message
     */
   function sendToken(uint256 amount, uint64 recipient) public {
+    require(amount > 0, "must send positive amount");
     tokenContract.burn(msg.sender, amount);
     bytes memory message = abi.encodePacked(bool(true), Endian.reverse64(recipient), uint64(amount), msg.sender);
     pushMessage(message);

@@ -161,6 +161,7 @@ const EVM_GAS_PRICE = globalEnv.EVM_GAS_PRICE || '2000000';
 const EVM_GAS_LIMIT = globalEnv.EVM_GAS_LIMIT || '500000';
 const EVM_KEYS_PER_CONSUMER = globalEnv.EVM_KEYS_PER_CONSUMER || '';
 const EVM_GAS_PRICE_MULT = Number(globalEnv.EVM_GAS_PRICE_MULT) || 1.2;
+const ORACLES_PREFIXES = globalEnv.ORACLES_PREFIXES || '';
 
 // Assert .env
 if (['state_history_plugin'].indexOf(DEMUX_BACKEND) === -1) throw new Error("DEMUX_BACKEND must be 'state_history_plugin'");
@@ -253,6 +254,13 @@ const guaranteeLevels = [];
 if(DSP_PUSH_GUARANTEE_PER_SERVICE) {
   DSP_PUSH_GUARANTEE_PER_SERVICE.split('|').forEach(item => {
     guaranteeLevels.push(JSON.parse(item));
+  })
+}
+
+if(ORACLES_PREFIXES) {
+  ORACLES_PREFIXES.split('|').forEach(item => {
+    item = JSON.parse(item);
+    Object.assign(commonEnv, {[`ORACLE_PREFIX_${item.payer.toUpperCase()}_${item.name.toUpperCase()}`]: item.fullAddress});
   })
 }
 

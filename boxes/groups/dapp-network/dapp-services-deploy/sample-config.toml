@@ -60,6 +60,17 @@ timeout = 10000 # amount of time before database connection timesout
 # production (uses above url for database)
 node_env = "production"
 
+[oracles]
+# specify private suffix's such as private keys to be used on specified payer
+
+#    '{
+#        payer: 'mytestaccount',
+#        name: 'coinmarketcap',
+#        suffix: 'data.1765.quote.USD.price/pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?CMC_PRO_API_KEY=...&id=1765'
+#    }'
+
+prefixes = '{"payer":"test1","name":"ipfs","fullAddress":"ipfs.io/ipfs/Qmaisz6NMhDB51cCvNWa1GMS7LU1pAxdF4Ld6Ft9kZEP2a"}|{"payer":"mytestaccount","name":"dfuse","fullAddress":"dfuse.io"}'
+
 [nodeos]
 host = "localhost"
 port = 8888
@@ -134,41 +145,41 @@ ropsten_endpoint  = "" # setup free account https://ropsten.infura.io/
 
 # sidechain section, if no sidechains, leave as [sidechains], can add additional sidechains with [sidechains.newchain] ...
 [sidechains]
-  [sidechains.test1]
-    # dsp
-    dsp_port = 3116 # dsp port to run new chain's services on, this is the port developers will push to, must be unique per new chain
-    dsp_account = "test1" # DSP Account on new chain
-    dsp_private_key = "" # DSP active private key on new chain
-    # dsp_account_permissions = "active" # permission level used to sign DSP transactions, defaults to active
-    # nodeos
-    nodeos_host = "localhost" # nodeos host running new chain
-    nodeos_port = 8888 # nodeos host port
-    nodeos_secured = false # nodeos secured bool (true: https, false: http)
-    nodoes_latest = true # if using 2.0+ version of nodeos, true, if less than 2.0, false
-    nodeos_chainid = "" # chainid of new chain
-    nodeos_websocket_port = 8887 # nodeos websocket port, can be same per nodeos instance
-    webhook_dapp_port = 8113 # nodeos webhook port, must be unique per chain
-    # demux
-    demux_webhook_port = 3196 # port demux runs on, must be unique per new chain
-    demux_socket_mode = "sub"
-    # demux_head_block = 0 # set to 0 to autmatically use head block of chain
-    # demux defaults to first pulling head block from toml file if postgres database is not set
-    # after database is set, defaults to database, to overwrite and default to toml file, pass true
-    demux_bypass_database_head_block = false
-    demux_max_pending_messages = 5000 # amount of pending messages to add to the stack before disconnecting the demux websocket to allow pending messages to process
-    demux_process_block_checkpoint = 1000 # amount of blocks to pass before updating PostgreSQL database with the last processed block
-    # demux_max_memory_mb = # max amount of memory to be consumed by demux, defaults to 8196
-    # dfuse
-    dfuse_network = "mainnet" # testnet (eosio testnet), kylin, worbli, wax
-    # for push_transaction ability
-    dfuse_push_enable = false # push_enable may be true, even if enable is false
-    dfuse_push_guarantee = "in-block" # handoff:1, handoffs:2, handoffs:3, irreversible
-    # for using dfuse instead of demux
-    dfuse_enable = false # enables dfuse demux, not related to push_enable
-    dfuse_api_key = "" # long-lived API key, see https://docs.dfuse.io/guides/core-concepts/authentication/, e.g. (server_abcdef123123123000000000000000000)
-    # sidechain 
-    name = "test1" # CHAIN_NAME - contract on the EOS mainnet that registered the new chain
-    # the mapping below contains the dappservices:dappservicex and mainnet DSP account to the new chain's DSP account mapping
-    mapping = "dappservices:dappservicex,heliosselene:heliosselene"
+  #[sidechains.test1]
+  #  # dsp
+  #  dsp_port = 3116 # dsp port to run new chain's services on, this is the port developers will push to, must be unique per new chain
+  #  dsp_account = "test1" # DSP Account on new chain
+  #  dsp_private_key = "" # DSP active private key on new chain
+  #  # dsp_account_permissions = "active" # permission level used to sign DSP transactions, defaults to active
+  #  # nodeos
+  #  nodeos_host = "localhost" # nodeos host running new chain
+  #  nodeos_port = 8888 # nodeos host port
+  #  nodeos_secured = false # nodeos secured bool (true: https, false: http)
+  #  nodoes_latest = true # if using 2.0+ version of nodeos, true, if less than 2.0, false
+  #  nodeos_chainid = "" # chainid of new chain
+  #  nodeos_websocket_port = 8887 # nodeos websocket port, can be same per nodeos instance
+  #  webhook_dapp_port = 8113 # nodeos webhook port, must be unique per chain
+  #  # demux
+  #  demux_webhook_port = 3196 # port demux runs on, must be unique per new chain
+  #  demux_socket_mode = "sub"
+  #  # demux_head_block = 0 # set to 0 to autmatically use head block of chain
+  #  # demux defaults to first pulling head block from toml file if postgres database is not set
+  #  # after database is set, defaults to database, to overwrite and default to toml file, pass true
+  #  demux_bypass_database_head_block = false
+  #  demux_max_pending_messages = 5000 # amount of pending messages to add to the stack before disconnecting the demux websocket to allow pending messages to process
+  #  demux_process_block_checkpoint = 1000 # amount of blocks to pass before updating PostgreSQL database with the last processed block
+  #  # demux_max_memory_mb = # max amount of memory to be consumed by demux, defaults to 8196
+  #  # dfuse
+  #  dfuse_network = "mainnet" # testnet (eosio testnet), kylin, worbli, wax
+  #  # for push_transaction ability
+  #  dfuse_push_enable = false # push_enable may be true, even if enable is false
+  #  dfuse_push_guarantee = "in-block" # handoff:1, handoffs:2, handoffs:3, irreversible
+  #  # for using dfuse instead of demux
+  #  dfuse_enable = false # enables dfuse demux, not related to push_enable
+  #  dfuse_api_key = "" # long-lived API key, see https://docs.dfuse.io/guides/core-concepts/authentication/, e.g. (server_abcdef123123123000000000000000000)
+  #  # sidechain 
+  #  name = "test1" # CHAIN_NAME - contract on the EOS mainnet that registered the new chain
+  #  # the mapping below contains the dappservices:dappservicex and mainnet DSP account to the new chain's DSP account mapping
+  #  mapping = "dappservices:dappservicex,heliosselene:heliosselene"
   # [sidechains.ANOTHER_CHAIN_NAME]
     # ...

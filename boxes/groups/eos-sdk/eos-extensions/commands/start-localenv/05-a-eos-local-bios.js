@@ -11,7 +11,8 @@ module.exports = async (args) => {
   }
   var wallet = args.wallet;
   var creator = args.creator;
-  var systemToken = (args.creator !== 'eosio') ? 'EOS' : 'SYS';
+  var systemToken = args.customToken?args.customToken:(args.creator !== 'eosio') ? 'EOS' : 'SYS';
+  var precision = args.customTokenPrecision ? args.customTokenPrecision :4
 
   const systemAccountList = [
     'eosio.bpay',
@@ -54,12 +55,16 @@ module.exports = async (args) => {
   await uploadSystemContract(args, 'eosio.msig')
   let eos = await getEos('eosio.token', args)
   let contract = await eos.contract('eosio.token');
-  await contract.create('eosio', `10000000000.0000 ${systemToken}`, {
+  let precisionString = '';
+  for(let i = 0; i < precision; i++) {
+    precisionString += '0';
+  }
+  await contract.create('eosio', `10000000000.${precisionString} ${systemToken}`, {
     authorization: [`eosio.token@active`]
   });
   eos = await getEos('eosio', args);
   contract = await eos.contract('eosio.token');
-  await contract.issue('eosio', `1000000000.0000 ${systemToken}`, 'bootstrap', { authorization: [`eosio@active`] })
+  await contract.issue('eosio', `1000000000.${precisionString} ${systemToken}`, 'bootstrap', { authorization: [`eosio@active`] })
   if(args.enableFeatures) {
     await preactiveChain();
     await uploadSystemContract(args, 'eosio', 'eosio.boot')

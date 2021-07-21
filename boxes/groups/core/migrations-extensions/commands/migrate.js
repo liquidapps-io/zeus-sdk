@@ -47,9 +47,53 @@ module.exports = {
         describe: 'sidechain name to use for liquidx',
         default: ''
       })
+      .option('transfer', {
+        describe: 'account staking amount',
+        default: '1000'
+      })
+      .option('custom-token', {
+        describe: 'custom chain token',
+        default: ''
+      })
+      .option('custom-token-precision', {
+        describe: 'custom chain token permission',
+        default: 4
+      })
+      .option('evm-host', {
+        describe: 'custom evm host',
+        default: '127.0.0.1'
+      })
+      .option('evm-port', {
+        describe: 'custom evm port',
+        default: 8545
+      })
+      .option('evm-sister-host', {
+        describe: 'custom evm sister host',
+        default: '127.0.0.1'
+      })
+      .option('evm-sister-port', {
+        describe: 'custom evm sister port',
+        default: 8546
+      })
+      .option('external-evm-endpoint', {
+        describe: 'external evm endpoint',
+        default: ''
+      })
+      .option('external-evm-private-key', {
+        describe: 'external evm private key',
+        default: ''
+      })
+      .option('external-evm-sister-endpoint', {
+        describe: 'external evm sister endpoint',
+        default: ''
+      })
+      .option('external-evm-sister-private-key', {
+        describe: 'external evm sister private key',
+        default: ''
+      })
       .option('stake', {
         describe: 'account staking amount',
-        default: '300.0000'
+        default: '300'
       }).example(`$0 ${cmd} --no-compile-all --no-reset`);
   },
   command: cmd,
