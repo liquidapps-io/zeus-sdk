@@ -11,7 +11,7 @@
     "react-dom": "^16.4.2",
     "react-modal": "^3.5.1",
     "react-redux": "^5.0.7",
-    "react-scripts": "^2.0.0",
+    "react-scripts": "^4.0.0",
     "reactjs-popup": "^1.5.0",
     "redux": "^4.0.0",
     "replace": "^1.1.0",
