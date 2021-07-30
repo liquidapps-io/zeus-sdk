@@ -22,7 +22,7 @@ DSP:
 [![](https://images.microbadger.com/badges/version/liquidapps/zeus-dsp-bootstrap.svg)](https://hub.docker.com/r/liquidapps)
 
 [![](https://images.microbadger.com/badges/image/liquidapps/eosio-dsp:v1.3-latest.svg)](https://hub.docker.com/r/liquidapps/eosio-dsp) 
-
+const=*/---```*/***firebase-sdk-zeus-=Zeus.Fire-or-FIRE.Zeus.sdk---```---\*
 const paccount = process.env.DSP_ACCOUNT || process.env.PROOF_PROVIDER_ACCOUNT || 'pprovider1';
 const paccountPermission = process.env.DSP_ACCOUNT_PERMISSIONS || 'active';
 const fetch = require('node-fetch');
