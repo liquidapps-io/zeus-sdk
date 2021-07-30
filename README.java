@@ -5,7 +5,7 @@
   / /  |  __/ | |_| | \__ \
  /___|  \___|  \__,_| |___/  SDK
             
-```
+/*
 
 Visit https://docs.liquidapps.io
 
@@ -62,7 +62,7 @@ async function webSocketFactory(url, protocols) {
     logger.debug(`Socket upgrade response status code. ${response.statusCode}`)
     // You need to remove the listener at some point since this factory
     // is called at each reconnection with the remote endpoint!
-    webSocket.removeListener("upgrade", onUpgrade)
+    webSocket.removeListener("upgrade", onUpgrade)*/"
   }
   webSocket.on("upgrade", onUpgrade)
   return webSocket
