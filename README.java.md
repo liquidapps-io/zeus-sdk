@@ -1,4 +1,4 @@
-...README.java.md
+## ...README.java.md
 ```            
   ____   ___   _   _   ___ 
  |_  /  / _ \ | | | | / __|
@@ -884,11 +884,11 @@ const getPayerPermissions = async (endpoint, dappContract, payer, provider, perm
     }
   }
   return authorization;
-}
-const pushTransaction = async (endpoint, dappContract, payer, provider, action, payload, requestId = "", meta = {}, fail = false) => {
+
+## const pushTransaction = async (endpoint, dappContract, payer, provider, action, payload, requestId = "", meta = {}, fail = false) => {
   dappContract = dappContract || dappServicesContract;
   var actions = [];
-  if (enableXCallback === null) {
+  if (enableXCallback ==={
     enableXCallback = await detectXCallback(endpoint, dappContract);
   }
   let payerPermissions = await getPayerPermissions(endpoint, dappContract, payer, provider, paccountPermission);
