@@ -81,7 +81,9 @@ module.exports = async (args) => {
         NODEOS_LATEST: true,
         SVC_PORT: serviceModel.port * (pi + 1),
         DSP_PORT: 13015 * (pi + 1),
-        ORACLE_PREFIX_TEST1_IPFS: "ipfs.io/ipfs/Qmaisz6NMhDB51cCvNWa1GMS7LU1pAxdF4Ld6Ft9kZEP2a"
+        ORACLE_PREFIX_TEST1_IPFS: "ipfs.io/ipfs/Qmaisz6NMhDB51cCvNWa1GMS7LU1pAxdF4Ld6Ft9kZEP2a",
+        EVM_MAX_PRIORITY_FEE_PER_GAS: '',
+        EVM_MAX_FEE_PER_GAS: ''
       });
       await deployLocalService(serviceModel, testProvider.account, gatewayPort * (pi + 1));
     }

@@ -17,7 +17,7 @@
       "vaccountsremote": true
     },
     "npm": {
-      "node-fetch": true,
+      "node-fetch": "^2.6.0",
       "eosjs-ecc": true,
       "isomorphic-fetch": true
     }

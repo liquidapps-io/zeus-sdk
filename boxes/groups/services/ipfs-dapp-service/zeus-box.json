@@ -20,7 +20,7 @@
       "bignumber.js":"^9.0.0",
       "lru-cache": true,
       "dfuse-eoshttp-js": true,
-      "node-fetch": true
+      "node-fetch": "^2.6.0"
     }
   }
 }

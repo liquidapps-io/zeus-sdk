@@ -12,7 +12,7 @@
       "cronconsumer": true
     },
     "npm": {
-      "node-fetch": true
+      "node-fetch": "^2.6.0"
     }
   }
 }

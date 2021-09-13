@@ -119,12 +119,18 @@ port = 5001
 private_key = ""
 endpoint = ""
 gas_limit = ''
+gas_price = ''
+max_priority_fee_per_gas = ''
+max_fee_per_gas = ''
 
 # chain specific
 ethereum_private_key = ""
 ethereum_endpoint = ""
-ethereum_gas_price = '2000000'
+# do not include gas price, post eips.ethereum.org/EIPS/eip-1559
+# ethereum_gas_price = ''
 ethereum_gas_limit = '500000'
+ethereum_max_priority_fee_per_gas = ''
+ethereum_max_fee_per_gas = ''
 ethereum_keys_per_consumer = '{"EVM_ETHEREUM_PRIVATE_KEY_CONSUMER1":"PRIVATE_KEY_HERE"},{"EVM_ETHEREUM_PRIVATE_KEY_CONSUMER2":"PRIVATE_KEY_HERE"}'
 ethereum_gas_price_mult = 1.2
 
@@ -132,16 +138,23 @@ binance_private_key = ""
 binance_endpoint = ""
 binance_gas_price = '2000000'
 binance_gas_limit = '500000'
+binance_max_priority_fee_per_gas = ''
+binance_max_fee_per_gas = ''
 binance_keys_per_consumer = '{"EVM_BINANCE_PRIVATE_KEY_CONSUMER1":"PRIVATE_KEY_HERE"},{"EVM_BINANCE_PRIVATE_KEY_CONSUMER2":"PRIVATE_KEY_HERE"}'
 binance_gas_price_mult = 1.2
 
 bsctest_private_key = ""
 bsctest_endpoint = "https://data-seed-prebsc-1-s1.binance.org:8545"
 bsctest_gas_limit = '700000'
+bsctest_max_priority_fee_per_gas = ''
+bsctest_max_fee_per_gas = ''
 
 ropsten_private_key = ""
-ropsten_gas_limit = '700000'
+# do not include gas price, post eips.ethereum.org/EIPS/eip-1559
+# ropsten_gas_limit = ''
 ropsten_endpoint  = "" # setup free account https://ropsten.infura.io/
+ropsten_max_priority_fee_per_gas = '500000'
+ropsten_max_fee_per_gas = '500000'
 
 # sidechain section, if no sidechains, leave as [sidechains], can add additional sidechains with [sidechains.newchain] ...
 [sidechains]

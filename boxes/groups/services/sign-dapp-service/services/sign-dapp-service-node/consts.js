@@ -16,4 +16,6 @@ module.exports = {
   newEthAccountFundAmount: process.env.EVM_FUND_AMOUNT || '1000000000000000000',
   ethGasPrice: process.env.EVM_GAS_PRICE || '2000000000',
   ethGasLimit: process.env.EVM_GAS_LIMIT || '1000000',
+  maxPriorityFeePerGas: process.env.EVM_MAX_PRIORITY_FEE_PER_GAS || '',
+  maxFeePerGas: process.env.EVM_MAX_FEE_PER_GAS || ''
 }

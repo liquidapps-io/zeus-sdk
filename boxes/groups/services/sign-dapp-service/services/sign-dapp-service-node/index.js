@@ -13,7 +13,12 @@ const q = async.queue(async ({ id, destination, trx_data, chain, chain_type, sig
     const keypair = getCreateKeypair[chain_type](chain, consumer);
     const signedTx = await signFn[chain_type](destination, trx_data, chain, account, keypair);
     const web3 = getWeb3(chain);
-    const tx = await web3.eth.sendSignedTransaction(signedTx);
+    const tx = await web3.eth.sendSignedTransaction(signedTx, (err) => {
+      if(err) {
+        logger.error(err);
+      }
+      logger.info(signedTx)
+    });
     logger.info(`got tx: ${tx.transactionHash} gas used: ${tx.gasUsed} cumulative gas used: ${tx.cumulativeGasUsed}`)
     callback();
   } catch(e) {
@@ -65,25 +70,44 @@ const signFn = {
   "ethereum": async (destination, trx_data, chain, account, keypair) => {
     trx_data = trx_data.startsWith('0x') ? trx_data : `0x${trx_data}`;
     const nonce = await getNonce(keypair.publicKey, chain);
-    logger.info(`nonce: ${nonce}`)
     const privateKey = keypair.privateKey.startsWith('0x') ?
       keypair.privateKey.slice(2) : keypair.privateKey;
     const web3 = getWeb3(chain);
-    let gasLimit;
+    let gasLimit, maxPriorityFeePerGas, maxFeePerGas, gasPrice;
     if(chain && process.env[`EVM_${chain.toUpperCase()}_GAS_LIMIT`]) {
-      gasLimit = process.env[`EVM_${chain.toUpperCase()}_GAS_LIMIT`];
+      gasLimit = numberToHex(process.env[`EVM_${chain.toUpperCase()}_GAS_LIMIT`]);
     } else if(process.env[`EVM_GAS_LIMIT`]) {
-      gasLimit = process.env[`EVM_GAS_LIMIT`]
+      gasLimit = numberToHex(process.env[`EVM_GAS_LIMIT`])
     } else {
-      gasLimit = consts.ethGasLimit
+      gasLimit = consts.ethGasLimit ? numberToHex(consts.ethGasLimit) : undefined;
+    }
+    if(chain && process.env[`EVM_${chain.toUpperCase()}_MAX_PRIORITY_FEE_PER_GAS`]) {
+      maxPriorityFeePerGas = numberToHex(process.env[`EVM_${chain.toUpperCase()}_MAX_PRIORITY_FEE_PER_GAS`]);
+    } else if(process.env[`EVM_MAX_PRIORITY_FEE_PER_GAS`]) {
+      maxPriorityFeePerGas = numberToHex(process.env[`EVM_MAX_PRIORITY_FEE_PER_GAS`])
+    } else {
+      maxPriorityFeePerGas = consts.maxPriorityFeePerGas ? numberToHex(consts.maxPriorityFeePerGas) : undefined;
+    }
+    if(chain && process.env[`EVM_${chain.toUpperCase()}_MAX_FEE_PER_GAS`]) {
+      maxFeePerGas = numberToHex(process.env[`EVM_${chain.toUpperCase()}_MAX_FEE_PER_GAS`]);
+    } else if(process.env[`EVM_MAX_FEE_PER_GAS`]) {
+      maxFeePerGas = numberToHex(process.env[`EVM_MAX_FEE_PER_GAS`])
+    } else {
+      maxFeePerGas = consts.maxFeePerGas ? numberToHex(consts.maxFeePerGas) : undefined;
+    }
+    gasPrice = maxFeePerGas || maxPriorityFeePerGas ? '' : numberToHex(Math.round(Number(await web3.eth.getGasPrice()) * (Number(process.env.EVM_GAS_PRICE_MULT) || 1.2)))
+    if((maxPriorityFeePerGas && gasPrice) || (maxFeePerGas && gasPrice)) {
+      throw new Error('cannot include both gasPrice with maxPriorityFeePerGas or maxFeePerGas, only use gasPrice for non-eip 1559 chains')
     }
     const rawTx = {
       nonce: numberToHex(nonce),
       to: destination,
       data: trx_data,
       value: numberToHex(0),
-      gasPrice: numberToHex(Math.round(Number(await web3.eth.getGasPrice()) * (Number(process.env.EVM_GAS_PRICE_MULT) || 1.2))),
-      gasLimit: numberToHex(gasLimit)
+      maxPriorityFeePerGas,
+      maxFeePerGas,
+      gasPrice,
+      gasLimit
     }
     if(process.env.DSP_VERBOSE_LOGS) logger.debug(`destination: ${destination}, trx_data: ${JSON.stringify(trx_data)}, chain: ${chain}, account: ${account}, rawTrx: ${JSON.stringify(rawTx)}`);
     const tx = await web3.eth.accounts.signTransaction(rawTx, privateKey);

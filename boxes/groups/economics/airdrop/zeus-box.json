@@ -20,7 +20,7 @@
   "install": {
     "npm": {
       "aws-sdk": true,
-      "node-fetch": true,
+      "node-fetch": "^2.6.0",
       "async-csv": true
     },
     "contracts": {
