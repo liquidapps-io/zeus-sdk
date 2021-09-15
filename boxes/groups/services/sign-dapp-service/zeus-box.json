@@ -13,7 +13,7 @@
       "signer": true
     },
     "npm": {
-      "web3": "^1.2.11",
+      "web3": "^1.5.0",
       "ganache-cli": true,
       "@truffle/contract": true
     }

@@ -80,7 +80,7 @@
     "toml": "^3.0.0",
     "sequelize": "^5.19.0",
     "pg": "^7.12.1",
-    "web3": "^1.2.11",
+    "web3": "^1.5.0",
     "winston-daily-rotate-file": "^4.1.0",
     "winston": "^3.2.1"
   },
