@@ -28,7 +28,7 @@
       "cors": "^2.8.4",
       "eosjs@20.0.0": true,
       "express": "^4.17.1",
-      "ipfs-api": "^24.0.2",
+      "ipfs-api": "^26.1.2",
       "http-proxy": true,
       "raw-body": true,
       "content-type": true,

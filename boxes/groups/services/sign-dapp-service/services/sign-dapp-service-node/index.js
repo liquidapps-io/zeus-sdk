@@ -8,7 +8,7 @@ const consts = require('./consts');
 const { getWeb3 } = require('./helpers/ethereum/web3Provider');
 const { getNonce, incrementNonce, decrementNonce } = require('./helpers/ethereum/nonce');
 const async = require('async');
-const q = async.queue(async ({ id, destination, trx_data, chain, chain_type, sigs, account, sigs_required, consumer }, callback) => {
+const q = async.queue(async ({ id, destination, trx_data, chain, chain_type, sigs, account, sigs_required, consumer }) => {
   try {
     const keypair = getCreateKeypair[chain_type](chain, consumer);
     const signedTx = await signFn[chain_type](destination, trx_data, chain, account, keypair);
@@ -17,13 +17,12 @@ const q = async.queue(async ({ id, destination, trx_data, chain, chain_type, sig
       if(err) {
         logger.error(err);
       }
-      logger.info(signedTx)
+      logger.info(`signedTx: ${signedTx}`)
     });
     logger.info(`got tx: ${tx.transactionHash} gas used: ${tx.gasUsed} cumulative gas used: ${tx.cumulativeGasUsed}`)
-    callback();
   } catch(e) {
-    logger.error(`error running sign service trx: ${typeof(e) == "object" ? JSON.stringify(e) : e}`)
-    callback();
+    logger.error(`error running sign service trx`)
+    logger.error(e);
   }
 }, 64);
 // assign a callback
@@ -99,15 +98,26 @@ const signFn = {
     if((maxPriorityFeePerGas && gasPrice) || (maxFeePerGas && gasPrice)) {
       throw new Error('cannot include both gasPrice with maxPriorityFeePerGas or maxFeePerGas, only use gasPrice for non-eip 1559 chains')
     }
-    const rawTx = {
-      nonce: numberToHex(nonce),
-      to: destination,
-      data: trx_data,
-      value: numberToHex(0),
-      maxPriorityFeePerGas,
-      maxFeePerGas,
-      gasPrice,
-      gasLimit
+    let rawTx;
+    if(maxFeePerGas || maxPriorityFeePerGas) {
+      rawTx = {
+        nonce: numberToHex(nonce),
+        to: destination,
+        data: trx_data,
+        value: numberToHex(0),
+        maxPriorityFeePerGas,
+        maxFeePerGas,
+        gasLimit
+      }
+    } else {
+      rawTx = {
+        nonce: numberToHex(nonce),
+        to: destination,
+        data: trx_data,
+        value: numberToHex(0),
+        gasPrice,
+        gasLimit
+      }
     }
     if(process.env.DSP_VERBOSE_LOGS) logger.debug(`destination: ${destination}, trx_data: ${JSON.stringify(trx_data)}, chain: ${chain}, account: ${account}, rawTrx: ${JSON.stringify(rawTx)}`);
     const tx = await web3.eth.accounts.signTransaction(rawTx, privateKey);

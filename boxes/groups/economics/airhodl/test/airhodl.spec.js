@@ -400,6 +400,25 @@ describe(`AirHODL Tests`, () => {
     })();
   });
 
+  it('Multi stake', done => {
+    (async () => {
+      try {
+        var testContractAccount = 'consumer144';
+        var { testcontract, deployedContract } = await deployConsumerContract(testContractAccount);
+        await allocateHODLTokens(deployedContract);
+        await selectPackage({ deployedContract });
+        await grab({ deployedContract, owner: testContractAccount, ram_payer: testContractAccount });
+        await stake({ deployedContract, amount: '1.0000' });
+        await selectPackage({ deployedContract, provider:'pprovider2', package_id: 'foobar' });
+        await stake({ deployedContract, amount: '1.0000' });
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
   it('Unstake more than staked', done => {
     (async () => {
       try {

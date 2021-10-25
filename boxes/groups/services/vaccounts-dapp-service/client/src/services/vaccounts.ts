@@ -22,7 +22,7 @@ export default class LiquidAccountsService extends DSPServiceClient {
         this.ipfs = new (require('./ipfs').default)(api, contract, config);
     }
     /**
-     * [POST /v1/dsp/accountless1/push_action](https://docs.liquidapps.io/en/stable/services/vaccounts-service.html)
+     * [POST /v1/dsp/accountless1/push_action](http://liquidapps.gitbook.io/)
      *
      * Push Liquid Account Transaction - creates and pushes LiquidAccount transaction
      *

@@ -153,8 +153,15 @@ ropsten_private_key = ""
 # do not include gas price, post eips.ethereum.org/EIPS/eip-1559
 # ropsten_gas_limit = ''
 ropsten_endpoint  = "" # setup free account https://ropsten.infura.io/
-ropsten_max_priority_fee_per_gas = '500000'
-ropsten_max_fee_per_gas = '500000'
+ropsten_max_priority_fee_per_gas = '500000000'
+ropsten_max_fee_per_gas = '500000000'
+
+rinkeby_private_key = ""
+# do not include gas price, post eips.ethereum.org/EIPS/eip-1559
+# rinkeby_gas_limit = ''
+rinkeby_endpoint  = "" # setup free account https://rinkeby.infura.io/
+rinkeby_max_priority_fee_per_gas = '500000000'
+rinkeby_max_fee_per_gas = '500000000'
 
 # sidechain section, if no sidechains, leave as [sidechains], can add additional sidechains with [sidechains.newchain] ...
 [sidechains]

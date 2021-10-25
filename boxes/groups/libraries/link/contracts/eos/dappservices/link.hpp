@@ -248,6 +248,7 @@ bool handle_push_messages() {
     }
     settings.last_pushed_batch_id += 1;
     settings_singleton.set(settings, _self);
+    eosio::check(settings.processing_enabled,"processing disabled");
     return settings.processing_enabled;
 }
 #endif
@@ -303,6 +304,7 @@ bool handle_get_batches() {
     settings.next_inbound_batch_id++;
     settings_singleton.set(settings, _self);
     // if processing enabled, reschedule cron
+    eosio::check(settings.processing_enabled,"processing disabled");
     return settings.processing_enabled;
 }
 
@@ -363,6 +365,7 @@ bool handle_unpack_batches() {
     // update settings
     settings_singleton.set(settings, _self);
     // if processing enabled, reschedule cron
+    eosio::check(settings.processing_enabled,"processing disabled");
     return settings.processing_enabled;
 }
 
@@ -441,6 +444,7 @@ bool handle_pack_batches() {
     //Update settings
     settings_singleton.set(settings, _self);
     // if processing enabled, reschedule cron
+    eosio::check(settings.processing_enabled,"processing disabled");
     return settings.processing_enabled;
 }
 
@@ -702,6 +706,7 @@ bool handle_message() {\
         }\
         message_singleton.remove();\
     }\
+    eosio::check(settings.processing_enabled,"processing disabled");\
     return settings.processing_enabled;\
 }\
 void setlinkstate (state_params new_state) {\
@@ -813,6 +818,7 @@ bool handle_message() {\
         }\
         message_singleton.remove();\
     }\
+    eosio::check(settings.processing_enabled,"processing disabled");\
     return settings.processing_enabled;\
 }\
 void setlinkstate (state_params new_state) {\

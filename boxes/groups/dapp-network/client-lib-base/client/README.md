@@ -527,7 +527,7 @@ for (const row of response.rows) {
 
 ### get_vram_row
 
-[GET /v1/dsp/ipfsservice1/get_table_row](https://docs.liquidapps.io/en/stable/developers/vram-getting-started.html)
+[GET /v1/dsp/ipfsservice1/get_table_row](http://liquidapps.gitbook.io/)
 
 Get vRAM Row - returns get table row call for dapp::multi_index containers
 
@@ -581,7 +581,7 @@ console.log(response);
 
 ### push_liquid_account_transaction
 
-[POST /v1/dsp/accountless1/push_action](https://docs.liquidapps.io/en/stable/services/vaccounts-service.html)
+[POST /v1/dsp/accountless1/push_action](http://liquidapps.gitbook.io/)
 
 Push Liquid Account Transaction - creates and pushes LiquidAccount transaction
 
@@ -636,7 +636,7 @@ console.log( response );
 
 ### push_readfn_transaction
 
-[POST /v1/dsp/readfndspsvc/read](https://docs.liquidapps.io/en/stable/services/readfn-service.html)
+[POST /v1/dsp/readfndspsvc/read](http://liquidapps.gitbook.io/)
 
 Push Readfn Transaction - creates and pushes ReadFN transaction
 

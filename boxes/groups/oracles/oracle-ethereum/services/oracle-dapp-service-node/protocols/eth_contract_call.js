@@ -13,11 +13,15 @@ const web3MainnetProvider = process.env.EVM_ENDPOINT || 'http://localhost:8545';
 const getEndpoint = (chainId) => {
   const endpoints = {
     "1": web3MainnetProvider, // for mainnet, should be env var
-    "ropsten": "", //TODO: add ropsten endpoint here
+    "ropsten": process.env.EVM_ROPSTEN_ENDPOINT, //TODO: add ropsten endpoint here
+    "rinkeby": process.env.EVM_RINKEBY_ENDPOINT,
+    "matic": process.env.EVM_MATIC_ENDPOINT,
+    "mumbai": process.env.EVM_MUMBAI_ENDPOINT,
+    "ethereum": process.env.EVM_ETHEREUM_ENDPOINT,
     "evmlocal": "http://localhost:8545",
     "evmlocalsidechain": "http://localhost:8546",
-    "bsc": "https://bsc-dataseed1.binance.org:443",
-    "bsctest": "https://data-seed-prebsc-1-s1.binance.org:8545"
+    "bsc": process.env.EVM_BINANCE_ENDPOINT || "https://bsc-dataseed1.binance.org:443",
+    "bsctest": process.env.EVM_BSCTEST_ENDPOINT || "https://data-seed-prebsc-1-s1.binance.org:8545"
   }
   return endpoints[chainId];
 }

@@ -676,7 +676,11 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
         if(process.env.DSP_VERBOSE_LOGS) logger.info(`forwarding internal service transaction: ${endpoint + uri}`)
         r = await fetch(endpoint + uri, { method: 'POST', body: JSON.stringify(body) });
         resText = await r.text();
-        rText = JSON.parse(resText);
+        try {
+          rText = JSON.parse(resText);
+        } catch(e) {
+          logger.error(`error parsing json: ${e.toString()}`)
+        }
       }
       if (r.status === 500) await rollBack(garbage, actionHandlers, serviceName, handlers);
       res.status(r.status);

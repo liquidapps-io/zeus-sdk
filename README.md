@@ -6,9 +6,9 @@
             
 ```
 
-Visit https://docs.liquidapps.io
+Visit http://liquidapps.gitbook.io/
 
-[![Documentation Status](https://readthedocs.org/projects/liquidapps/badge/?version=stable)](https://docs.liquidapps.io)
+[![Documentation Status](https://readthedocs.org/projects/liquidapps/badge/?version=stable)](http://liquidapps.gitbook.io/)
 
 Zeus
 

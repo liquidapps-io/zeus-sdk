@@ -1,4 +1,6 @@
 //SPDX-License-Identifier: UNLICENSED
+// for compiler purposes only! set 
+// to your own version
 pragma solidity >0.6.0;
 
 abstract contract link {
