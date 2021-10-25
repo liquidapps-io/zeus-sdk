@@ -10,9 +10,10 @@
   },
   "install": {
     "npm": {
-      "go-ipfs": "0.8.0",
-      "ipfs": "0.54.2",
-      "ipfsd-ctl": "4.1.1"
+      "go-ipfs": "^0.10.0",
+      "ipfs": "^0.59.1",
+      "ipfsd-ctl": "^10.0.4",
+      "ipfs-http-client": "^53.0.1"
     }
   }
 }

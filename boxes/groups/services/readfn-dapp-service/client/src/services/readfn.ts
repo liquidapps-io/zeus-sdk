@@ -8,7 +8,7 @@
 // export default class ReadFNService extends DSPServiceClient {
 
 //     /**
-//      * [POST /v1/dsp/readfndspsvc/read](https://docs.liquidapps.io/en/stable/services/readfn-service.html)
+//      * [POST /v1/dsp/readfndspsvc/read](http://liquidapps.gitbook.io/)
 //      *
 //      * Push Readfn Transaction - creates and pushes ReadFN transaction
 //      *

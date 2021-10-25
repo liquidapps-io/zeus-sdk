@@ -750,13 +750,13 @@ public:
 
       action(permission_level{_self, "active"_n},
         _self, "refreceipt"_n,
-        std::make_tuple(from, to, quantity))
+        std::make_tuple(from, to, quantity, provider))
       .send();
     }
     cidx.erase(req);
   }
 
-  [[eosio::action]] void refreceipt(name from, name to, asset quantity) {
+  [[eosio::action]] void refreceipt(name from, name to, asset quantity, name provider) {
     require_auth(_self);
     require_recipient(from);
     require_recipient(to);

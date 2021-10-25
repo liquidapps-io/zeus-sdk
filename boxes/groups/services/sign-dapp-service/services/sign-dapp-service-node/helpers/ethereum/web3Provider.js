@@ -13,8 +13,11 @@ function getWeb3(chain) {
   } else {
     endpoint = 'http://localhost:8545'
   }
-  // return new Web3(endpoint);
-  return new Web3(new Web3.providers.WebsocketProvider(endpoint));
+  if(process.env[`EVM_${chain.toUpperCase()}_WS_PROVIDER`]) {
+    return new Web3(new Web3.providers.WebsocketProvider(endpoint));
+  } else {
+    return new Web3(endpoint);
+  }
 }
 
 module.exports = {

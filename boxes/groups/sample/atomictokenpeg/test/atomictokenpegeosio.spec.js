@@ -18,7 +18,6 @@ const ctrtx = artifacts.require(`./${contractCodeX}/`);
 const { eosio,atomic } = requireBox('test-extensions/lib/index');
 const nftTokenContract = artifacts.require('./atomicassets/');
 const nftTokenAccount = 'atomicasset2';
-// const asset_id = 1099511627776;,
 const testNftAuthor = 'testpegmnown';
 
 describe(`Atomic NFT Token bridge Test EOSIO <> EOSIO`, () => {
@@ -26,24 +25,22 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EOSIO`, () => {
   const tokenpegMainnet = 'nftpegmn';
   const tokenpegSidechain = 'nftpegsc';
   const sidechainName = 'test1';
-  // const testAccMainnet = 'nfttestpegmn';
   const testAccMainnet = 'testaccmn';
   const testAccSidechain = 'testaccsc';
-  const atomicMainnet = 'atomicassemn';
-  const atomicSidechain = 'atomicassesc';
+  const atomicMainnet = 'atomicassets';
+  const atomicSidechain = 'atomicassets';
   let dspeos, sidechain;
+  let sent_asset_id;
   let eosconsumerX;
   let eostestMainnet, eostestSidechain;
   let nftTokenMainnetContract, nfttokenSidechainContract, deployedAtomicatomicSidechain, deployedAtomicNft, tokenMainnet;
   before(done => {
     (async () => {
       try {
-
         // staking to 2 DSPs for the oracle and cron services for mainnet contract
         const deployedContract = await deployer.deploy(ctrt, tokenpegMainnet);
         // deploy token on mainnet
         deployedAtomicNft = await deployer.deploy(nftTokenContract, atomicMainnet);
-        // await getCreateAccount(testAccMainnet);
         keys = await getCreateAccount(testAccMainnet);
         const eosTestAcc = getEosWrapper({
           keyProvider: keys.active.privateKey,
@@ -72,6 +69,7 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EOSIO`, () => {
         await getCreateAccount(tokenpegSidechain, null, false, sidechain);
         const deployedContractX = await deployer.deploy(ctrtx, tokenpegSidechain, null, sidechain);
         testcontractX = deployedContractX.contractInstance;
+        
         // deploy token on sidechain
         deployedAtomicatomicSidechain = await deployer.deploy(nftTokenContract, atomicSidechain, null, sidechain);
         await deployedAtomicatomicSidechain.contractInstance.init({}, {
@@ -82,7 +80,7 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EOSIO`, () => {
         await genAllocateDAPPTokens({ address: tokenpegMainnet }, 'ipfs', '', 'default');
         // await genAllocateDAPPTokens({ address: tokenpegMainnet }, 'ipfs', '', 'foobar');
         await genAllocateDAPPTokens({ address: tokenpegMainnet }, 'oracle', '', 'default');
-        // await genAllocateDAPPTokens({ address: tokenpegMainnet }, 'oracle', '', 'foobar'); 
+        // await genAllocateDAPPTokens({ address: tokenpegMainnet }, 'oracle', '', 'foobar');
         await createLiquidXMapping(sidechain.name, tokenpegMainnet, tokenpegSidechain);
 
         const mapEntry = (loadModels('liquidx-mappings')).find(m => m.sidechain_name === sidechain.name && m.mainnet_account === 'dappservices');
@@ -105,7 +103,6 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EOSIO`, () => {
           httpEndpoint: `http://localhost:${sidechain.nodeos_port}`,
           keyProvider: sidechainKeys.active.privateKey
         });
-        //testcontractX = await eosconsumerX.contract(tokenpegSidechain);
 
         const dappservicexInstance = await eosconsumerX.contract(dappservicex);
         await dappservicexInstance.adddsp({ owner: tokenpegSidechain, dsp: 'xprovider1' }, {
@@ -139,7 +136,6 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EOSIO`, () => {
           this_chain_name: "localmainnet",
           processing_enabled: true,
           token_contract: atomicMainnet,
-          // min_transfer: "10000",
           transfers_enabled: true,
           can_issue: false // true if token is being bridged to this chain, else false
         }, {
@@ -151,7 +147,6 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EOSIO`, () => {
           this_chain_name: "test1",
           processing_enabled: true,
           token_contract: atomicSidechain,
-          // min_transfer: "10000",
           transfers_enabled: true,
           can_issue: true // true if token is being bridged to this chain, else false
         }, {
@@ -168,35 +163,121 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EOSIO`, () => {
   it('Atomic NFT Token bridge mainnet to sidechain', done => {
     (async () => {
       try {
-        const asset_id = await atomic.createNft(deployedAtomicNft, dspeos, testAccMainnet, true,atomicMainnet,false,tokenpegMainnet);
-        await atomic.createNft(deployedAtomicatomicSidechain, eosconsumerX, testAccSidechain, true,atomicSidechain,true,tokenpegSidechain,sidechain);
-        const nftOwnerKeys = await getCreateAccount(testNftAuthor);
+        const author = "authorsixmn";
+        const author_sidechain = "authorsixsc";
+        const collection_name = "colectionsix";
+        const schema_name = "schemasix";
+        const template_id = await atomic.returnNextTemplateId({dspeos});
+        const ownerKeys = await getCreateAccount(author);
+        await atomic.createcol({
+          deployed_contract: deployedAtomicNft,
+          author,
+          collection_name,
+          authorized_account: tokenpegMainnet,
+        });
+        await atomic.createschema({
+          deployed_contract: deployedAtomicNft,
+          authorized_creator: author,
+          collection_name,
+          schema_name,
+          schema_format: atomic.schema_format
+        });
+        await atomic.createtempl({
+          deployed_contract: deployedAtomicNft,
+          authorized_creator: author,
+          collection_name,
+          schema_name,
+          immutable_data: atomic.immutable_data
+        });
+        await atomic.mintasset({
+            deployed_contract: deployedAtomicNft,
+            authorized_minter: author,
+            collection_name,
+            schema_name,
+            template_id,
+            new_asset_owner: testAccMainnet,
+            immutable_data: atomic.immutable_data,
+        });
+        sent_asset_id = await atomic.returnAssetId({
+          dspeos,
+          owner: testAccMainnet
+        });
+
+        // register sidechain map post creation
+        const template_id_sidechain = await atomic.returnNextTemplateId({dspeos: eosconsumerX});
+        const diff_collection_name = "diffcollnm33";
+        const diff_schema_name = "diffschemanm";
         await testcontract.regmapping({
-          template_id: 1,
-          schema_name: atomic.schema_name,
-          collection_name: atomic.collection_name,
+          collection_name,
+          schema_name,
+          template_id,
+          collection_name_mapping: diff_collection_name,
+          schema_name_mapping: diff_schema_name,
+          template_id_mapping: template_id_sidechain,
           immutable_data: atomic.immutable_data,
         }, {
-          authorization: [`${testNftAuthor}@active`],
-          keyProvider: [nftOwnerKeys.active.privateKey]
+          authorization: [`${author}@active`],
+          keyProvider: [ownerKeys.active.privateKey]
         });
-        const pre_balance = await atomic.returnAssetId(eosconsumerX, testAccSidechain,atomicSidechain);
+
+        const ownerKeysSidechain = await getCreateAccount(author_sidechain, null, false, sidechain);
+        await atomic.createcol({
+          deployed_contract: deployedAtomicatomicSidechain,
+          author: author_sidechain,
+          collection_name: diff_collection_name,
+          authorized_account: tokenpegSidechain,
+          sidechain
+        });
+        await atomic.createschema({
+          deployed_contract: deployedAtomicatomicSidechain,
+          authorized_creator: author_sidechain,
+          collection_name: diff_collection_name,
+          schema_name: diff_schema_name,
+          schema_format: atomic.schema_format,
+          sidechain
+        });
+        await atomic.createtempl({
+          deployed_contract: deployedAtomicatomicSidechain,
+          authorized_creator: author_sidechain,
+          collection_name: diff_collection_name,
+          schema_name: diff_schema_name,
+          immutable_data: atomic.immutable_data,
+          sidechain
+        });
+
+        // register mainnet map post creation
+        await testcontractX.regmapping({
+          collection_name: diff_collection_name,
+          schema_name: diff_schema_name,
+          template_id: template_id_sidechain,
+          collection_name_mapping: collection_name,
+          schema_name_mapping: schema_name,
+          template_id_mapping: template_id,
+          immutable_data: atomic.immutable_data
+        }, {
+          authorization: [`${author_sidechain}@active`],
+          keyProvider: [ownerKeysSidechain.active.privateKey]
+        });
+
         const transferMemo = `${testAccSidechain},test1`;
+        const next_asset_id = await atomic.returnNextAssetId({
+          dspeos: eosconsumerX
+        })
         await nftTokenMainnetContract.transfer({
           from: testAccMainnet,
           to: tokenpegMainnet,
-          asset_ids: [asset_id],
+          asset_ids: [sent_asset_id],
           memo: transferMemo
         }, {
           authorization: [`${testAccMainnet}@active`],
           keyProvider: [keys.active.privateKey]
         });
-        // await eosio.awaitTable(dspeos,tokenpegMainnet,"parcels",tokenpegMainnet,"response_message",`${message2} pong`,maxDelay);
-        await eosio.awaitTable(eosconsumerX,atomicSidechain,"assets",testAccSidechain,"asset_id",asset_id,50000);
-        // await eosio.delay(50000);
-        const post_balance = await atomic.returnAssetId(eosconsumerX, testAccSidechain,atomicSidechain);
-        // console.log(post_balance)
-        assert.equal(post_balance - pre_balance,1,"balance did not increase on sidechain");
+        await eosio.awaitTable(eosconsumerX,atomicSidechain,"assets",testAccSidechain,"asset_id",next_asset_id,150000);
+        const post_balance = await atomic.returnAssetId({
+          dspeos: eosconsumerX,
+          owner:testAccSidechain
+        });
+        assert.equal(post_balance,next_asset_id,"balance did not increase on sidechain");
         done();
       } catch(e) {
         done(e);
@@ -207,17 +288,12 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EOSIO`, () => {
   it('Atomic NFT Token bridge sidechain to mainnet account doesnt exist', done => {
     (async () => {
       try {
-        // const asset_id = await atomic.createNft(deployedAtomicNft, dspeos, testAccMainnet, true,atomicMainnet,false,tokenpegMainnet);
-        // const asset_id = await atomic.createNft(deployedAtomicatomicSidechain, eosconsumerX, testAccSidechain, false,atomicSidechain,false,tokenpegSidechain,sidechain);
-        const pre_balance = await atomic.returnAssetId(eosconsumerX, testAccSidechain,atomicSidechain);
-        // const pre_balance = await atomic.returnAssetId(dspeos, testAccMainnet,atomicMainnet);
-        assert.equal(pre_balance,1,"no existing balance");
-        // console.log(`pre balance ${pre_balance}`)
-        const asset_id = await atomic.returnAssetId(eosconsumerX, testAccSidechain,atomicSidechain,true);
-        // console.log(`asset_id ${asset_id}`)
+        const asset_id = await atomic.returnAssetId({
+          dspeos:eosconsumerX,
+          owner: testAccSidechain
+        });
         const transferMemo = `mnacctnoexst,localmainnet`;
         keys = await getCreateAccount(testAccSidechain, null, false, sidechain);
-        const preBurnBalance = await atomic.returnAssetId(eosconsumerX, tokenpegSidechain,atomicSidechain);
         await nfttokenSidechainContract.transfer({
           from: testAccSidechain,
           to: tokenpegSidechain,
@@ -227,17 +303,9 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EOSIO`, () => {
           authorization: [`${testAccSidechain}@active`],
           keyProvider: [keys.active.privateKey]
         });
-        const postBurnBalance = await atomic.returnAssetId(eosconsumerX, tokenpegSidechain,atomicSidechain);
-        assert.equal(preBurnBalance,postBurnBalance,"no balance should exist, nft burned");
-        // console.log(new Date())
         await eosio.awaitTable(eosconsumerX,atomicSidechain,"assets",testAccSidechain,"asset_id",asset_id,240000);
-        // console.log(new Date())
-        const post_balance = await atomic.returnAssetId(eosconsumerX, testAccSidechain,atomicSidechain);
-        // const post_balance = await atomic.returnAssetId(dspeos, testAccMainnet,atomicMainnet);
-        // console.log(post_balance)
-        const asset_id_after = await atomic.returnAssetId(eosconsumerX, testAccSidechain,atomicSidechain,true);
-        // console.log(`asset_id_after ${asset_id_after}`)
-        assert.equal(pre_balance,post_balance,"balance changed");
+        const post_balance = await atomic.returnAssetId({dspeos:eosconsumerX,owner:testAccSidechain});
+        assert(post_balance == ((Number(asset_id) + 1)),"balance changed");
         done();
       } catch(e) {
         done(e);
@@ -248,15 +316,12 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EOSIO`, () => {
   it('Atomic NFT Token bridge sidechain to mainnet', done => {
     (async () => {
       try {
-        // const asset_id = await atomic.createNft(deployedAtomicNft, dspeos, testAccMainnet, true,atomicMainnet,false,tokenpegMainnet);
-        // await atomic.createNft(deployedAtomicatomicSidechain, eosconsumerX, testAccSidechain, true,atomicSidechain,true,tokenpegSidechain,sidechain);
-        const pre_balance = await atomic.returnAssetId(dspeos, testAccMainnet,atomicMainnet);
-        // console.log(`pre balance ${pre_balance}`)
-        const asset_id = await atomic.returnAssetId(eosconsumerX, testAccSidechain,atomicSidechain,true);
-        // console.log(`asset_id ${asset_id}`)
+        const asset_id = await atomic.returnAssetId({
+          dspeos: eosconsumerX,
+          owner: testAccSidechain
+        });
         const transferMemo = `${testAccMainnet},localmainnet`;
         keys = await getCreateAccount(testAccSidechain, null, false, sidechain);
-        const preBurnBalance = await atomic.returnAssetId(eosconsumerX, tokenpegSidechain,atomicSidechain);
         await nfttokenSidechainContract.transfer({
           from: testAccSidechain,
           to: tokenpegSidechain,
@@ -266,15 +331,12 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EOSIO`, () => {
           authorization: [`${testAccSidechain}@active`],
           keyProvider: [keys.active.privateKey]
         });
-        const postBurnBalance = await atomic.returnAssetId(eosconsumerX, tokenpegSidechain,atomicSidechain);
-        assert.equal(preBurnBalance,postBurnBalance,"no balance should exist, nft burned");
-        // console.log(new Date())
         await eosio.awaitTable(dspeos,atomicMainnet,"assets",testAccMainnet,"asset_id",asset_id,100000);
-        // console.log(new Date())
-        // await eosio.delay(50000);
-        const post_balance = await atomic.returnAssetId(dspeos, testAccMainnet,atomicMainnet);
-        // console.log(post_balance)
-        assert.equal(post_balance - pre_balance,1,"balance did not increase on mainnet");
+        const post_balance = await atomic.returnAssetId({
+          dspeos,
+          owner: testAccMainnet
+        });
+        assert(post_balance  == sent_asset_id,"token not returned on mainnet");
         done();
       } catch(e) {
         done(e);
@@ -285,13 +347,10 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EOSIO`, () => {
   it('Atomic NFT Token bridge mainnet to sidechain account doesnt exist', done => {
     (async () => {
       try {
-        // const asset_id = await atomic.createNft(deployedAtomicNft, dspeos, testAccMainnet, false,atomicMainnet,false,tokenpegMainnet);
-        // await atomic.createNft(deployedAtomicatomicSidechain, eosconsumerX, testAccSidechain, true,atomicSidechain,true,tokenpegSidechain,sidechain);
-        const pre_balance = await atomic.returnAssetId(dspeos, testAccMainnet,atomicMainnet);
-        assert.equal(pre_balance,1,"no existing balance");
-        // console.log(`pre balance ${pre_balance}`)
-        const asset_id = await atomic.returnAssetId(dspeos, testAccMainnet,atomicMainnet,true);
-        // console.log(`asset_id ${asset_id}`)
+        const asset_id = await atomic.returnAssetId({
+          dspeos,
+          owner: testAccMainnet
+        });
         const transferMemo = `scacctnoexis,test1`;
         keys = await getCreateAccount(testAccMainnet);
         await nftTokenMainnetContract.transfer({
@@ -303,19 +362,19 @@ describe(`Atomic NFT Token bridge Test EOSIO <> EOSIO`, () => {
           authorization: [`${testAccMainnet}@active`],
           keyProvider: [keys.active.privateKey]
         });
-        // await eosio.delay(50000);
-        // console.log(new Date())
         await eosio.awaitTable(dspeos,atomicMainnet,"assets",testAccMainnet,"asset_id",asset_id,240000);
-        // console.log(new Date())
-        const post_balance = await atomic.returnAssetId(dspeos, testAccMainnet,atomicMainnet);
-        // console.log(post_balance)
-        assert.equal(pre_balance,post_balance,"balance changed");
+        const post_balance = await atomic.returnAssetId({
+          dspeos,
+          owner: testAccMainnet
+        });
+        assert.equal(post_balance,asset_id,"balance changed");
         done();
       } catch(e) {
         done(e);
       }
     })()
   });
+
   it('Atomic NFT Token bridge mainnet/sidechain stop intervals', done => {
     (async () => {
       try {

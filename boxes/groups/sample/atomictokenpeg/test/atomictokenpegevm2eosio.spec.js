@@ -18,49 +18,40 @@ const ctrt = artifacts.require(`./${contractCode}/`);
 const nftTokenContract = artifacts.require('./atomicassets/');
 
 const Web3 = require('web3');
-const provider = new Web3.providers.HttpProvider('http://localhost:8545');
+const provider = new Web3.providers.WebsocketProvider('ws://localhost:8545');
 const web3 = new Web3(provider);
 
 const 
-tokenpegMainnet = 'atomictknpez', 
-testAccMainnet = 'testpegmn1', 
-testAccMainnetUint64 = "14605625119638831104", 
-atomicMainnet = 'atomicassets', 
-tokenId = 1099511627776;
-
-const logBatch = async (dspeos,atomictokenpeg) => {
-  const settings = await eosio.parseTable(dspeos,tokenpegMainnet,tokenpegMainnet,'settings')
-  const batch = await atomictokenpeg.getBatch(settings.next_inbound_batch_id-1);
-  console.log(JSON.stringify(batch))
-  console.log(settings.next_inbound_batch_id)
-  // return batch
-}
+bridge = 'atomictknpez', 
+account = 'testpegmn1', 
+account64 = "14605625119638831104", 
+atomicassets = 'atomicassets',
+collection_id = 1;
 
 describe(`Atomic NFT Token bridge Test EVM <> EOSIO`, () => {
-  let erc721Contract, atomictokenpeg, deployedAtomicNft, atomicMainnetContract, keys = "", testAddressEth, tokenpegCpp, dspeos, masterAccountVar,dspSigners,deployedContract;
+  let ethToken, atomictokenpeg, deployedAtomicNft, atomicassetsContract, keys = "", testAddressEth, bridgeContract, dspeos, masterAccountVar,dspSigners,deployedContract;
   before(done => {
     (async () => {
       try {
         const accounts = await web3.eth.getAccounts();
         testAddressEth = accounts[5];
-        console.log("Sending tokens to: ", testAddressEth);
 
         // staking to 2 DSPs for the oracle and cron services for mainnet contract
-        deployedContract = await deployer.deploy(ctrt, tokenpegMainnet);
-        tokenpegCpp = deployedContract.contractInstance;
+        deployedContract = await deployer.deploy(ctrt, bridge);
+        bridgeContract = deployedContract.contractInstance;
 
         // deploy eos token
-        deployedAtomicNft = await deployer.deploy(nftTokenContract, atomicMainnet);
+        deployedAtomicNft = await deployer.deploy(nftTokenContract, atomicassets);
 
-        keys = await getCreateAccount(testAccMainnet);
+        keys = await getCreateAccount(account);
         const eosTestAcc = getEosWrapper({
           keyProvider: keys.active.privateKey,
           httpEndpoint: 'http://localhost:8888'
         });
-        atomicMainnetContract = await eosTestAcc.contract(atomicMainnet);
+        atomicassetsContract = await eosTestAcc.contract(atomicassets);
 
         await deployedAtomicNft.contractInstance.init({}, {
-            authorization: `${atomicMainnet}@active`,
+            authorization: `${atomicassets}@active`,
         });
         await genAllocateDAPPTokens(deployedContract, "oracle", "pprovider1", "default");
         await genAllocateDAPPTokens(deployedContract, "oracle", "pprovider2", "foobar");
@@ -70,28 +61,27 @@ describe(`Atomic NFT Token bridge Test EVM <> EOSIO`, () => {
         await genAllocateDAPPTokens(deployedContract, "sign", "pprovider2", "foobar");
         await genAllocateDAPPTokens(deployedContract, "cron", "pprovider1", "default");
         await genAllocateDAPPTokens(deployedContract, "cron", "pprovider2", "default");
-        dspeos = await getLocalDSPEos(tokenpegMainnet);
+        dspeos = await getLocalDSPEos(bridge);
 
-        const { token, tokenpeg, signers } = await deployEthContracts();
-        erc721Contract = token;
+        const { token, tokenpeg, signers, ownerAcc } = await deployEthContracts();
+        ethToken = token;
         atomictokenpeg = tokenpeg;
-        dspSigners = signers;        
+        dspSigners = signers; 
+        owner = ownerAcc;   
 
         // set up bridge contracts
-        await tokenpegCpp.init({
+        await bridgeContract.init({
           sister_address: atomictokenpeg.address,
-          //sister_msig_address: ethMultisig.address,
           sister_msig_address: atomictokenpeg.address, // remove
           sister_chain_name: "evmlocal",
           this_chain_name: "localmainnet",
           processing_enabled: true,
-          token_contract: atomicMainnet,
-          // token_symbol: "4,TKN",
+          token_contract: atomicassets,
           min_transfer: "10000",
           transfers_enabled: true,
           can_issue: true // true if token is being bridged to this chain, else false
         }, {
-          authorization: `${tokenpegMainnet}@active`
+          authorization: `${bridge}@active`
         });
         // initialize atomic side
         done();
@@ -105,33 +95,65 @@ describe(`Atomic NFT Token bridge Test EVM <> EOSIO`, () => {
   it('Transfers ERC721 from EVM to EOSIO', done => {
     (async () => {
       try {
-        await atomic.createNft(deployedAtomicNft, dspeos, testAccMainnet,true,atomicMainnet,true,tokenpegMainnet,null,"nftauthcoll2");
-        await atomic.setupEosio(deployedContract,tokenpegMainnet,null,"nftauthcoll2",3)
-        // const asset_id = await atomic.returnAssetId(dspeos, testAccMainnet,atomicMainnet,true);
-        const asset_id = 1;
-        const availableAccounts = await web3.eth.getAccounts();
-        const masterAccount = availableAccounts[0];
-        await erc721Contract.mint(testAddressEth, asset_id,{
-          from: masterAccount,
+        const author = "authornine";
+        const collection_name = "colectionine";
+        const schema_name = "schemanine";
+        const asset_id = await atomic.returnNextAssetId({dspeos});
+        const template_id = await atomic.returnNextTemplateId({dspeos});
+        await atomic.createcol({
+          deployed_contract: deployedAtomicNft,
+          author,
+          collection_name,
+          authorized_account: bridge,
+        });
+        await atomic.createschema({
+          deployed_contract: deployedAtomicNft,
+          authorized_creator: author,
+          collection_name,
+          schema_name,
+          schema_format: atomic.schema_format
+        });
+        await atomic.createtempl({
+          deployed_contract: deployedAtomicNft,
+          authorized_creator: author,
+          collection_name,
+          schema_name,
+          immutable_data: atomic.immutable_data
+        });
+        await atomic.setupEvmMap({
+          bridgeContract,
+          bridge,
+          collection_name,
+          template_id,
+          token_address: ethToken.address,
+          schema_name,
+          collection_id,
+          immutable_data: atomic.immutable_data
+        })
+
+        await ethToken.mint(testAddressEth, collection_id,{
+          from: owner,
           gas: '5000000'
         });
-        await erc721Contract.setApprovalForAll(atomictokenpeg.address, 1,{
+        console.log(`minted: ${(await ethToken.balanceOf(testAddressEth)).toString()}`)
+        await ethToken.setApprovalForAll(atomictokenpeg.address, 1,{
           from: testAddressEth,
           gas: '5000000'
         });
-        await atomictokenpeg.sendToken(asset_id, testAccMainnetUint64, erc721Contract.address, {
+        await atomictokenpeg.sendToken(collection_id, account64, ethToken.address, {
           from: testAddressEth,
           gasLimit: '1000000'
         });
         await eosio.delay(80000);
-        const ethBalance = (await erc721Contract.balanceOf(testAddressEth)).toString();
-        const ownerOfToken = (await erc721Contract.ownerOf(asset_id)).toString();
-        console.log(`ethBalance: ${ethBalance}`)
-        console.log(`ownerOfToken: ${ownerOfToken}`)
+        const ethBalance = (await ethToken.balanceOf(testAddressEth)).toString();
+        const ownerOfToken = (await ethToken.ownerOf(collection_id)).toString();
         assert.equal(ethBalance, "0");
         assert.equal(ownerOfToken, atomictokenpeg.address);
-        const postTokenpegBalance = await atomic.returnAssetId(dspeos,testAccMainnet,atomicMainnet);
-        assert(postTokenpegBalance == 1, "ID should exist");
+        const postTokenpegBalance = await atomic.returnAssetId({
+          dspeos,
+          owner: account
+        });
+        assert(postTokenpegBalance == asset_id, "ID should exist");
         done();
       } catch(e) {
         done(e);
@@ -142,40 +164,20 @@ describe(`Atomic NFT Token bridge Test EVM <> EOSIO`, () => {
   it('Auto refund to sender when eth address doesn\'t exist', done => {
     (async () => {
       try {
-        // create another
-        // const asset_id = await atomic.createNft(deployedAtomicNft, dspeos, testAccMainnet,false,atomicMainnet,true,tokenpegMainnet);
-        // create
-        // const asset_id = await atomic.createNft(deployedAtomicNft, dspeos, testAccMainnet,true,atomicMainnet,false,tokenpegMainnet);
-        // no create
-        const asset_id = await atomic.returnAssetId(dspeos, testAccMainnet,atomicMainnet,true);
-        console.log(asset_id);
-        // should be 1
-        const prevEosBalance = await atomic.returnAssetId(dspeos,testAccMainnet,atomicMainnet);
-        assert(prevEosBalance !=0, "ID should exist");
-        // await logBatch(dspeos,atomictokenpeg);
-        await atomicMainnetContract.transfer({
-          from: testAccMainnet,
-          to: tokenpegMainnet,
+        const asset_id = await atomic.returnAssetId({dspeos,owner:account});
+        await atomicassetsContract.transfer({
+          from: account,
+          to: bridge,
           asset_ids: [asset_id],
-          memo: `0x0,${erc721Contract.address}`
+          memo: `0x0`
         }, {
-          authorization: [`${testAccMainnet}@active`],
+          authorization: [`${account}@active`],
           keyProvider: [keys.active.privateKey]
         });
-        // await logBatch(dspeos,atomictokenpeg);
-        const midEosBalance = await atomic.returnAssetId(dspeos,testAccMainnet,atomicMainnet);
-        // assert(midEosBalance ==0, "ID should not exist");
-        // await eosio.delay(70000);
-        console.log(new Date())
-        await eosio.awaitTable(dspeos,atomicMainnet,"assets",testAccMainnet,"asset_id",asset_id,60000);
-        // await logBatch(dspeos,atomictokenpeg);
-        console.log(new Date())
-        const postEosBalance = await atomic.returnAssetId(dspeos,testAccMainnet,atomicMainnet);
-        console.log(postEosBalance)
-        assert(postEosBalance == 1, "ID should exist because NFT returned");
-        // const postTokenpegBalance = await atomic.returnAssetId(dspeos,tokenpegMainnet,atomicMainnet);
-        // console.log(postTokenpegBalance)
-        // assert(postTokenpegBalance == 0, "ID should not exist because NFT burned");
+        await eosio.awaitTable(dspeos,atomicassets,"assets",account,"asset_id",asset_id,60000);
+        const postEosBalance = await atomic.returnAssetId({dspeos,owner:account});
+        // add 1, burnt and re-minted
+        assert(postEosBalance == (Number(asset_id) + 1), "ID should exist because NFT returned");
         done();
       } catch(e) {
         done(e);
@@ -186,27 +188,25 @@ describe(`Atomic NFT Token bridge Test EVM <> EOSIO`, () => {
   it('Transfers ERC721 from EOSIO to EVM', done => {
     (async () => {
       try {
-        const prevEosBalance = await atomic.returnAssetId(dspeos,testAccMainnet,atomicMainnet);
-        console.log(prevEosBalance)
-        const asset_id = await atomic.returnAssetId(dspeos, testAccMainnet,atomicMainnet,true);
-        console.log(asset_id)
-        await atomicMainnetContract.transfer({
-          from: testAccMainnet,
-          to: tokenpegMainnet,
+        const asset_id = await atomic.returnAssetId({dspeos,owner:account});
+        console.log(asset_id);
+        await atomicassetsContract.transfer({
+          from: account,
+          to: bridge,
           asset_ids: [asset_id],
-          memo: `${testAddressEth},${erc721Contract.address}`
+          memo: `${testAddressEth}`
         }, {
-          authorization: [`${testAccMainnet}@active`],
+          authorization: [`${account}@active`],
           keyProvider: [keys.active.privateKey]
         });
+        // await atomictokenpeg.contract.events.Failure({}, function(error, event){
+        //     console.log(error);
+        //     console.log(event); 
+        // })
         await eosio.delay(10000)
-        // await eosio.awaitTable(dspeos,atomicMainnet,"assets",testAccMainnet,"asset_id",asset_id,200000);
-        const postEosBalance = await atomic.returnAssetId(dspeos,testAccMainnet,atomicMainnet);
-        assert.equal(postEosBalance, prevEosBalance - 1, "post balance not 0");
-        const postTokenpegBalance = (await erc721Contract.balanceOf(testAddressEth)).toString();
+        const postTokenpegBalance = (await ethToken.balanceOf(testAddressEth)).toString();
+        console.log(postTokenpegBalance)
         assert(postTokenpegBalance == 1, "NFT should exist");
-        // awaiting receipt
-        // await eosio.delay(300000);
         done();
       } catch(e) {
         done(e);
@@ -217,33 +217,28 @@ describe(`Atomic NFT Token bridge Test EVM <> EOSIO`, () => {
   it('Manual refund to sender when eos account doesn\'t exist', done => {
     (async () => {
       try {
-        const prevBalance = (await erc721Contract.balanceOf(testAddressEth)).toString();
-        await erc721Contract.setApprovalForAll(atomictokenpeg.address, 1,{
+        const prevBalance = (await ethToken.balanceOf(testAddressEth)).toString();
+        await ethToken.setApprovalForAll(atomictokenpeg.address, 1,{
           from: testAddressEth,
           gas: '5000000'
         });
-        await atomictokenpeg.sendToken(1, 12345, erc721Contract.address, {
+        await atomictokenpeg.sendToken(collection_id, 12345, ethToken.address, {
           from: testAddressEth,
           gasLimit: '1000000'
         });
-        const midBalance = (await erc721Contract.balanceOf(testAddressEth)).toString();
+        const midBalance = (await ethToken.balanceOf(testAddressEth)).toString();
         assert.equal(parseInt(prevBalance) - parseInt(midBalance), 1);
         await eosio.delay(130000);
         // failed so refund manually
-        await tokenpegCpp.refund({
+        await bridgeContract.refund({
           receipt_id: 2147483649
         }, {
-          authorization: [`${tokenpegMainnet}@active`]
+          authorization: [`${bridge}@active`]
         });
         await eosio.delay(10000);
-        // await atomictokenpeg.mintToken(tokenId, testAddressEth,{
-        //   from: dspSigners[0],
-        //   gas: '5000000'
-        // });
-        const postBalance = (await erc721Contract.balanceOf(testAddressEth)).toString();
-        console.log(postBalance)
+        const postBalance = (await ethToken.balanceOf(testAddressEth)).toString();
         assert.equal(parseInt(postBalance) - parseInt(prevBalance), 0);
-        const postTokenpegBalance = (await erc721Contract.balanceOf(atomictokenpeg.address)).toString();
+        const postTokenpegBalance = (await ethToken.balanceOf(atomictokenpeg.address)).toString();
         assert(postTokenpegBalance == 0, "NFT should not exist because NFT burned");
         done();
       } catch(e) {
@@ -255,40 +250,40 @@ describe(`Atomic NFT Token bridge Test EVM <> EOSIO`, () => {
   it('Token peg mainnet/sidechain stop intervals', done => {
     (async () => {
       try {
-        await tokenpegCpp.disable({
+        await bridgeContract.disable({
           timer: "packbatches",
           processing_enabled: false,
           transfers_enabled: false
         }, {
-          authorization: `${tokenpegMainnet}@active`
+          authorization: `${bridge}@active`
         });
-        await tokenpegCpp.disable({
+        await bridgeContract.disable({
           timer: "getbatches",
           processing_enabled: false,
           transfers_enabled: false
         }, {
-          authorization: `${tokenpegMainnet}@active`
+          authorization: `${bridge}@active`
         });
-        await tokenpegCpp.disable({
+        await bridgeContract.disable({
           timer: "unpkbatches",
           processing_enabled: false,
           transfers_enabled: false
         }, {
-          authorization: `${tokenpegMainnet}@active`
+          authorization: `${bridge}@active`
         });
-        await tokenpegCpp.disable({
+        await bridgeContract.disable({
           timer: "hndlmessage",
           processing_enabled: false,
           transfers_enabled: false
         }, {
-          authorization: `${tokenpegMainnet}@active`
+          authorization: `${bridge}@active`
         });
-        await tokenpegCpp.disable({
+        await bridgeContract.disable({
           timer: "pushbatches",
           processing_enabled: false,
           transfers_enabled: false
         }, {
-          authorization: `${tokenpegMainnet}@active`
+          authorization: `${bridge}@active`
         });
         done();
       } catch(e) {
@@ -302,7 +297,7 @@ async function deployEthContracts() {
   const tokenpegAbiBin = JSON.parse(fs.readFileSync(path.resolve('./build/contracts/atomictokenpegevm2eosio.json')));
   const erc721AbiBin = JSON.parse(fs.readFileSync(path.resolve('./build/contracts/atomicnft.json')));
   const availableAccounts = await web3.eth.getAccounts();
-  const masterAccount = availableAccounts[0];
+  const ownerAcc = availableAccounts[0];
   const dsp1 = availableAccounts[8];
   const dsp2 = availableAccounts[9];
   const signers = [dsp1, dsp2];
@@ -317,23 +312,12 @@ async function deployEthContracts() {
   nftContract.setProvider(web3.currentProvider);
   tokenpegContract.setProvider(web3.currentProvider);
   const deployedToken = await nftContract.new("Bridged NFT", "NFT", "QmWx6jv5rQufPu5zbRkC2NADZnaXoBqdiYWDwBqaM3fFnM",{
-    from: masterAccount,
+    from: ownerAcc,
     gas: '5000000'
   });
-  // console.log(`Token address: ${deployedToken.address}`);
   const deployedTokenpeg = await tokenpegContract.new(signers, 1, {
-    from: masterAccount,
+    from: ownerAcc,
     gas: '5000000'
   });
-  // await deployedToken.transferOwnership(deployedTokenpeg.address, {
-  //   from: masterAccount,
-  //   gas: '5000000'
-  // });
-  // await deployedTokenpeg.acceptTokenOwnership({
-  //   from: masterAccount,
-  //   gas: '5000000'
-  // });
-  console.log(`erc721 token address ${deployedToken.address}`)
-  console.log(`atomictokenpeg contract address ${deployedTokenpeg.address}`)
-  return { token: deployedToken, tokenpeg: deployedTokenpeg, signers };
+  return { token: deployedToken, tokenpeg: deployedTokenpeg, signers, ownerAcc };
 }

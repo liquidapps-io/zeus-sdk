@@ -1,0 +1,17 @@
+{
+  "version": "1.0.1",
+  "ignore": [
+    "README.md"
+  ],
+  "commands": {
+    "Test atomicassets message bridge": "zeus compile && zeus test atomicassets"
+  },
+  "dependencies": {
+    "eth-extensions": "^1.0.0"
+  },
+  "install": {
+    "contracts": {
+      "atomicassets": true
+    }
+  }
+}

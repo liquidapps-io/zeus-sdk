@@ -11,7 +11,7 @@ export default class VRAMService extends DSPServiceClient {
     }
 
  /**
-     * [GET /v1/dsp/ipfsservice1/get_table_row](https://docs.liquidapps.io/en/stable/developers/vram-getting-started.html)
+     * [GET /v1/dsp/ipfsservice1/get_table_row](http://liquidapps.gitbook.io/)
      *
      * Get vRAM Row - returns get table row call for dapp::multi_index containers
      *

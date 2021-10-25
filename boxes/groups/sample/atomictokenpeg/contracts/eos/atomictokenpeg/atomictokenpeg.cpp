@@ -35,6 +35,22 @@ CONTRACT_START()
     checksum160 token_address;
   };
 
+  struct asset_mapping_t {
+    checksum160      token_address;
+    name             collection_name;
+    name             schema_name;
+    int32_t          template_id;
+    vector <uint8_t> immutable_serialized_data;
+    vector <uint8_t> mutable_serialized_data;
+  };
+
+  TABLE assets_mapping_s {
+    uint64_t bridge_owner;
+    vector<asset_mapping_t> mappings;
+  };
+  typedef eosio::singleton<"assets"_n, assets_mapping_s> assets_mapping_singleton_t;
+
+
   TABLE assets_s {
     uint64_t         asset_id;
     name             collection_name;
@@ -47,7 +63,6 @@ CONTRACT_START()
     uint64_t primary_key() const { return asset_id; };
   };
   typedef multi_index <name("assets"), assets_s> assets_t;
-  typedef eosio::singleton<"assets"_n, assets_s> assets_singleton_t;
 
   TABLE collections_s {
       name             collection_name;
@@ -80,9 +95,8 @@ CONTRACT_START()
 
   typedef multi_index <name("templatemap"), templatemap_s> templatemap_t;
 
-  //Scope: collection_name
   TABLE schemas_s {
-    name            schema_name;
+    name                        schema_name;
     vector <atomicdata::FORMAT> format;
     uint64_t primary_key() const { return schema_name.value; }
   };
@@ -159,10 +173,8 @@ CONTRACT_START()
 
   TABLE token_settings_t {
     name token_contract;
-    // symbol token_symbol;
-    // uint64_t min_transfer;
     bool transfers_enabled;
-    bool can_issue; // true if token is being bridged to this chain, else false 
+    bool can_issue;
   };
   typedef eosio::singleton<"config"_n, token_settings_t> token_settings_table;
   typedef eosio::multi_index<"config"_n, token_settings_t> token_settings_table_abi;
@@ -179,6 +191,7 @@ CONTRACT_START()
   TABLE mapping_s {
     uint64_t                 current_id;
     uint64_t                 transferred_asset_id;
+    checksum160              token_address;
     uint64_t primary_key() const { return current_id; };
   };
   typedef multi_index <name("nftmapping"), mapping_s> mapping_t;
@@ -191,10 +204,8 @@ CONTRACT_START()
     string this_chain_name,
     bool processing_enabled,
     name token_contract,
-    // symbol token_symbol,
-    // uint64_t min_transfer,
     bool transfers_enabled,
-    bool can_issue // true if token is being bridged to this chain, else false 
+    bool can_issue
   )
   {
       require_auth(_self);
@@ -208,8 +219,6 @@ CONTRACT_START()
       token_settings_table settings_singleton(_self, _self.value);
       token_settings_t settings = settings_singleton.get_or_default();
       settings.token_contract = token_contract;
-      // settings.token_symbol = token_symbol;
-      // settings.min_transfer = min_transfer;
       settings.can_issue = can_issue;
       settings.transfers_enabled = transfers_enabled;
       settings_singleton.set(settings, _self);
@@ -262,23 +271,60 @@ CONTRACT_START()
     histories.erase(iterator);
   }
   
-  // used if bridging existing erc721
+  // register mapping for evm originating 721 nft
   [[eosio::action]]
-  void evmeossetup(name collection_name, name schema_name, int32_t template_id, atomicdata::ATTRIBUTE_MAP immutable_data, atomicdata::ATTRIBUTE_MAP mutable_data) {
+  void evmeossetup(
+    string token_address,
+    name collection_name,
+    name schema_name,
+    int32_t template_id,
+    atomicdata::ATTRIBUTE_MAP immutable_data,
+    atomicdata::ATTRIBUTE_MAP mutable_data
+  ) {
     require_auth(_self);
-    assets_singleton_t settings_singleton(_self, _self.value);
-    assets_s settings = settings_singleton.get_or_default();
-    settings.collection_name = collection_name;
-    settings.schema_name = schema_name;
-    settings.template_id = template_id;
-    schemas_t schema_formats(NFT_ACCOUNT,collection_name.value);	
-    auto schema_itr = schema_formats.find(settings.schema_name.value);
-    settings.immutable_serialized_data = serialize(immutable_data, schema_itr->format);
-    settings.mutable_serialized_data = serialize(mutable_data, schema_itr->format);
-    settings_singleton.set(settings, _self);
+    check(token_address.length() == 42, "requires valid eth address");
+    assets_mapping_singleton_t assets_mapping_singleton(_self, _self.value);
+    assets_mapping_s singleton = assets_mapping_singleton.get_or_default();
+
+    schemas_t schema_formats(NFT_ACCOUNT,collection_name.value);
+    auto schema_itr = schema_formats.find(schema_name.value);
+
+    vector <uint8_t> immutable_serialized_data = serialize(immutable_data, schema_itr->format);
+    vector<asset_mapping_t> asset_entries;
+    bool found = false;
+    for (asset_mapping_t mapping : singleton.mappings) {
+      if(
+        (
+          mapping.template_id == template_id
+          && mapping.schema_name == schema_name
+          && mapping.collection_name == collection_name
+          && mapping.immutable_serialized_data == immutable_serialized_data
+        )
+      // ensure each token_address is unique
+      || mapping.token_address == HexToAddress(token_address)
+      // ensure immutable data is unique
+      || mapping.immutable_serialized_data == immutable_serialized_data
+      ) {
+        found = true;
+      }
+      asset_entries.push_back(mapping);
+    }
+    check(!found,"nft already mapped");
+    asset_mapping_t new_entry;
+    new_entry.collection_name = collection_name;
+    new_entry.schema_name = schema_name;
+    new_entry.template_id = template_id;
+
+    new_entry.immutable_serialized_data = immutable_serialized_data;
+    new_entry.mutable_serialized_data = serialize(mutable_data, schema_itr->format);
+    new_entry.token_address = HexToAddress(token_address);
+
+    asset_entries.push_back(new_entry);
+
+    singleton.mappings = asset_entries;
+    assets_mapping_singleton.set(singleton,_self);
   }
 
-  // register mapping
   [[eosio::action]]
   void regmapping(
     int32_t template_id, 
@@ -304,52 +350,38 @@ CONTRACT_START()
     templatemap_t templatemap_table(_self,collection.author.value);
     auto templatemap = templatemap_table.find(collection.author.value);
     if(templatemap == templatemap_table.end()) {
-      templatemap_table.emplace(_self, [&](auto& a){
+      templatemap_table.emplace(collection.author, [&](auto& a){
           a.author = collection.author;
           a.asset_entries = asset_entries;
       });
     } else {
       bool found = false;
       for(auto template_id_itr : templatemap->asset_entries) {
-        // check for exact match
         if((
           template_id_itr.template_id == template_id
           && template_id_itr.schema_name == schema_name
           && template_id_itr.collection_name == collection_name
-          && template_id_itr.address == HexToAddress(address)
           && template_id_itr.immutable_serialized_data == immutable_serialized_data
         )
         // ensure each address is unique
-        || template_id_itr.address == HexToAddress(address)) {
+        || template_id_itr.address == HexToAddress(address)
+        // ensure immutable data is unique
+        || template_id_itr.immutable_serialized_data == immutable_serialized_data
+        ) {
           found = true;
         }
         asset_entries.push_back(template_id_itr);
       }
-      check(!found,"template already mapped");
-      templatemap_table.modify(templatemap,_self, [&]( auto& a ){
+      check(!found,"nft already mapped");
+      templatemap_table.modify(templatemap,collection.author, [&]( auto& a ){
         a.asset_entries = asset_entries;
       });
     }
-  }
-
-  vector<string> split(const string& str, const string& delim) {
-    vector<string> tokens;
-    size_t prev = 0, pos = 0;
-    do {
-      pos = str.find(delim, prev);
-      if (pos == string::npos) pos = str.length();
-      string token = str.substr(prev, pos-prev);
-      tokens.push_back(token);
-      prev = pos + delim.length();
-    } while (pos < str.length() && prev < str.length());
-
-    return tokens;
   }
   
   void transfer(name from, name to, vector <uint64_t> asset_ids, string memo) {
     token_settings_table settings_singleton(_self, _self.value);
     token_settings_t settings = settings_singleton.get_or_default();
-    // validate proper transfer
     if (get_first_receiver() != settings.token_contract || from == _self || get_first_receiver() != NFT_ACCOUNT || to != get_self()) {
       return;
     }
@@ -358,17 +390,12 @@ CONTRACT_START()
     
     for (uint64_t asset_id : asset_ids) {
       if(settings.can_issue) {
-        vector<string> split_memo = split(memo, ",");
-        check(split_memo[0].length() > 0,"no destination account");
-        check(split_memo[1].length() > 0,"no destination contract");
-        // create custom message_t message
+        check(memo.length() > 0,"no destination account");
         mapping_t mapping_table(_self,asset_id);
         auto existing = mapping_table.find(asset_id);
         if(existing != mapping_table.end()) {
-          message_t new_transfer = { true, from, existing->transferred_asset_id, HexToAddress(split_memo[0]),HexToAddress(split_memo[1]) };
+          message_t new_transfer = { true, from, existing->transferred_asset_id, HexToAddress(memo), existing->token_address };
           auto transfer = pack(new_transfer);
-
-          // burn nft
           action(permission_level{_self, "active"_n}, settings.token_contract, "burnasset"_n,
             std::make_tuple(_self, asset_id))
           .send();
@@ -387,7 +414,6 @@ CONTRACT_START()
           check(false,"should not get here");
         }
       } else {
-        // verify mapping
         checksum160 address = verifyMapping(asset_id);
         message_t new_transfer = { true, from, asset_id, HexToAddress(memo), address };
         auto transfer = pack(new_transfer);
@@ -418,7 +444,6 @@ CONTRACT_START()
       if(asset_entry.template_id == asset.template_id
         && asset_entry.schema_name == asset.schema_name
         && asset_entry.collection_name == asset.collection_name
-        // && asset_entry.address == HexToAddress(address)
         && asset_entry.immutable_serialized_data == asset.immutable_serialized_data
       ) {
         address = asset_entry.address;
@@ -435,16 +460,15 @@ CONTRACT_START()
     auto orig_data = data;      
     auto transfer_data = unpack(data);
 
-    string memo = "LiquidApps LiquidLink Transfer - Received from Ethereum account 0x";// + AddressToHex(transfer_data.address);
+    string memo = "LiquidApps LiquidLink Transfer - Received from Ethereum account 0x";
 
-    //TODO: We should check for things like destination account exists, funds are available, a token account exists, etc
-    // and then we should be able to return that the message is a failure if those conditions don't pass
-    // asset quantity = asset(transfer_data.amount, settings.token_symbol);    
     uint64_t asset_id = transfer_data.asset_id;    
     vector<uint64_t> asset_ids;    
     asset_ids.push_back(asset_id);
+    history_table histories(_self, _self.value);
+    uint64_t id = histories.available_primary_key();
     if (settings.can_issue) {
-      mint_asset(asset_id,name(transfer_data.account),settings.token_contract);
+      mint_asset(asset_id,name(transfer_data.account),settings.token_contract, transfer_data.token_address, data, id);
     } else {
       action(permission_level{_self, "active"_n}, settings.token_contract, "transfer"_n,
         make_tuple(_self, name(transfer_data.account), asset_ids, memo))
@@ -452,9 +476,8 @@ CONTRACT_START()
     }
 
     #ifdef LINK_DEBUG  
-      history_table histories(_self, _self.value);
       histories.emplace(_self, [&]( auto& a ){
-        a.id = histories.available_primary_key();
+        a.id = id;
         a.data = orig_data;
         a.msg = transfer_data;
         a.type = "incomingMessage";
@@ -484,20 +507,19 @@ CONTRACT_START()
   }
 
   void receipt_received(const vector<char>& data) {
-    // deserialize original message to get the quantity and original sender to refund
     token_settings_table settings_singleton(_self, _self.value);
     token_settings_t settings = settings_singleton.get_or_default();
     auto transfer_receipt = unpack(data);
 
-    string memo = "LiquidApps LiquidLink Transfer Failed - Attempted to send to Ethereum account 0x";// + AddressToHex(transfer_receipt.address);
+    string memo = "LiquidApps LiquidLink Transfer Failed - Attempted to send to Ethereum account 0x";
     uint64_t asset_id = transfer_receipt.asset_id;    
     vector<uint64_t> asset_ids;    
     asset_ids.push_back(asset_id);
-
+    history_table histories(_self, _self.value);
+    uint64_t id = histories.available_primary_key();   
     if (!transfer_receipt.success) {
-      // return locked tokens in case of failure
       if (settings.can_issue) {
-        mint_asset(asset_id,name(transfer_receipt.account),settings.token_contract);
+        mint_asset(asset_id,name(transfer_receipt.account),settings.token_contract,transfer_receipt.token_address, data, id);
       } else {
         action(permission_level{_self, "active"_n}, settings.token_contract, "transfer"_n,
           make_tuple(_self, name(transfer_receipt.account), asset_ids, memo))
@@ -505,9 +527,8 @@ CONTRACT_START()
       }
 
       #ifdef LINK_DEBUG 
-        history_table histories(_self, _self.value);
         histories.emplace(_self, [&]( auto& a ){
-          a.id = histories.available_primary_key();
+          a.id = id;
           a.data = data;
           a.msg = transfer_receipt;
           a.type = "receiptFailure";
@@ -518,7 +539,7 @@ CONTRACT_START()
         //TODO: should we burn the tokens or send them to a "holding account"
         history_table histories(_self, _self.value);
         histories.emplace(_self, [&]( auto& a ){
-          a.id = histories.available_primary_key();
+          a.id = id;
           a.data = data;
           a.msg = transfer_receipt;
           a.type = "receiptSuccess";
@@ -544,7 +565,7 @@ CONTRACT_START()
     }
   }
 
-  void create_mapping(uint64_t transferred_asset_id) {
+  void create_mapping(uint64_t transferred_asset_id, checksum160 token_address) {
     config_t config_table(NFT_ACCOUNT,NFT_ACCOUNT.value);
     config_s current_config = config_table.get();
     uint64_t new_asset_id = current_config.asset_counter;
@@ -554,6 +575,7 @@ CONTRACT_START()
         mapping_table.emplace(_self, [&](auto& a){
             a.current_id = new_asset_id;
             a.transferred_asset_id = transferred_asset_id;
+            a.token_address = token_address;
         });
     }
   }
@@ -568,24 +590,51 @@ CONTRACT_START()
     }
   }
 
-  void mint_asset(uint64_t asset_id, name to, name token_contract) {
-    assets_singleton_t settings_singleton(_self, _self.value);
-    assets_s settings = settings_singleton.get_or_default();
-    schemas_t schema_formats(NFT_ACCOUNT,settings.collection_name.value);	
-    auto schema_itr = schema_formats.find(settings.schema_name.value);
-    vector <eosio::asset> tokens_to_back;
-    atomicdata::ATTRIBUTE_MAP deserialized_immutable_data = deserialize(
-      settings.immutable_serialized_data,
-      schema_itr->format
-    );
-    atomicdata::ATTRIBUTE_MAP deserialized_mutable_data = deserialize(
-      settings.mutable_serialized_data,
-      schema_itr->format
-    );
-    action(permission_level{_self, "active"_n}, token_contract, "mintasset"_n,
-      make_tuple(_self, settings.collection_name, settings.schema_name, settings.template_id, to, deserialized_immutable_data, deserialized_mutable_data, tokens_to_back))
-    .send();
-    create_mapping(asset_id);
+  void mint_asset(uint64_t asset_id, name to, name token_contract, checksum160 token_address, const vector<char>& data, uint64_t id) {
+    assets_mapping_singleton_t assets_mapping_singleton(_self, _self.value);
+    assets_mapping_s singleton = assets_mapping_singleton.get_or_default();
+    assets_t assets_table(NFT_ACCOUNT,_self.value);
+    vector<asset_mapping_t> asset_entries;
+    bool found = false;
+    for (asset_mapping_t mapping : singleton.mappings) {
+      if(mapping.token_address == token_address) {
+        found = true;
+        schemas_t schema_formats(NFT_ACCOUNT,mapping.collection_name.value);	
+        auto schema_itr = schema_formats.find(mapping.schema_name.value);
+        vector <eosio::asset> tokens_to_back;
+        atomicdata::ATTRIBUTE_MAP deserialized_immutable_data = deserialize(
+          mapping.immutable_serialized_data,
+          schema_itr->format
+        );
+        atomicdata::ATTRIBUTE_MAP deserialized_mutable_data = deserialize(
+          mapping.mutable_serialized_data,
+          schema_itr->format
+        );
+        action(permission_level{_self, "active"_n}, token_contract, "mintasset"_n,
+          make_tuple(_self, mapping.collection_name, mapping.schema_name, mapping.template_id, to, deserialized_immutable_data, deserialized_mutable_data, tokens_to_back))
+        .send();
+        create_mapping(asset_id, token_address);
+      }
+    }
+
+    if(found == false) {
+      auto transfer_data = unpack(data);
+      transfer_data.success = false;
+      auto packed_data = pack(transfer_data);
+      history_table histories(_self, _self.value);
+      histories.emplace(_self, [&]( auto& a ){
+        a.id = histories.available_primary_key();
+        a.data = packed_data;
+        a.msg = transfer_data;
+        a.type = "incomingMessageFailureNftMapNotFound";
+      });
+      refunds_table refunds(_self, _self.value);
+      refunds.emplace(_self, [&]( auto& a ){
+        a.data = packed_data;
+        a.receipt_id = id;
+        a.msg = transfer_data;
+      });
+    }
   }
 };
 

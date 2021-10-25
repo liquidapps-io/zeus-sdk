@@ -12,7 +12,9 @@
     "npm": {
       "glob": true,
       "@openzeppelin/contracts":true,
-      "truffle":true
+      "eth-gas-reporter": true,
+      "truffle":true,
+      "hardhat":true
     }
   }
 }

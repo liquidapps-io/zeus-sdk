@@ -19,8 +19,8 @@ const footer = () => {
         </div>
         <div className={classes.flexSubColumnCenter}>
           <div className={classes.columnTitleText}>DOCUMENTATION</div>
-          <div className={classes.columnTextDiv}><a className={classes.columnText} href="https://docs.liquidapps.io/en/stable/dsps.html" rel="noopener noreferrer" target="_blank">Become a DAPP Service Provider</a></div>
-          <div className={classes.columnTextDiv}><a className={classes.columnText} href="https://docs.liquidapps.io/en/stable/developers.html" rel="noopener noreferrer" target="_blank">DAPP Network Tools & Services</a></div>
+          <div className={classes.columnTextDiv}><a className={classes.columnText} href="http://liquidapps.gitbook.io/" rel="noopener noreferrer" target="_blank">Become a DAPP Service Provider</a></div>
+          <div className={classes.columnTextDiv}><a className={classes.columnText} href="http://liquidapps.gitbook.io/" rel="noopener noreferrer" target="_blank">DAPP Network Tools & Services</a></div>
         </div>
         <div className={classes.flexSubColumn}>
           <div className={classes.columnTitleText}>FOLLOW US</div>

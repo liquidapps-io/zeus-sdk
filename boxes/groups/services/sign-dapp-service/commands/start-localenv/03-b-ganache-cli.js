@@ -7,7 +7,7 @@ const ganachePath = path.resolve('./node_modules/ganache-cli/cli.js');
 const mnemonic = 'either ostrich protect kingdom jump flat neck cabin sock they vast merit'
 
 module.exports = async (args) => {
-  await killIfRunning();
+  await killIfRunning(args.evmSisterPort);
   if(args.kill) { return; }
   if(!args.multiEvm) return;
   if(args.singleChain) { return; } // don't run on command
@@ -15,7 +15,7 @@ module.exports = async (args) => {
   await execPromise(command);
 }
 
-const killIfRunning = async () => {
+const killIfRunning = async (port) => {
   try {
     await kill(port);
   }

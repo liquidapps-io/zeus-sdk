@@ -1,5 +1,5 @@
 {
-  "version": "1.0.7",
+  "version": "1.0.8",
   "ignore": [
     "README.md"
   ],
@@ -17,6 +17,7 @@
     "ethtokenpeg": "^1.0.0",
     "binancetokenpeg": "^1.0.0",
     "atomictokenpeg": "^1.0.0",
+    "atomiccolpeg": "^1.0.0",
     "portfolio": "^1.0.0",
     "price-feed": "^1.0.0",
     "simple-assets-peg": "^1.0.0",
