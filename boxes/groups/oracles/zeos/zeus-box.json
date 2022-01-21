@@ -1,0 +1,15 @@
+{
+    "version": "1.0.1",
+    "ignore": [
+      "README.md"
+    ],
+    "dependencies": {
+      "oracle-dapp-service": "^1.0.0"
+    },
+    "install": {
+      "npm": {
+        "node-fetch": "^2.6.0",
+        "@liquidapps/dapp-client": "^2.0.3107"
+      }
+    }
+}
