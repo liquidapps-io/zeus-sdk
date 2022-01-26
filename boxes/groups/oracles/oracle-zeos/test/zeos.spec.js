@@ -13,7 +13,6 @@ const { createClient } = requireBox("client-lib-base/client/dist/src/dapp-client
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
 const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
-const { getIpfsFileAsBuffer } = requireBox("storage-dapp-service/services/storage-dapp-service-node/common.js")
 
 //dappclient requirement
 global.fetch = fetch;
@@ -28,7 +27,7 @@ var ctrtStorage = artifacts.require(`./${contractCode}/`);
 describe(`ZEOS Test`, async () => {
   var testcontract;
   const code = "thezeostoken";
-  let dappClient;
+  let dappClient, vramClient;
   const boxDir = getBoxesDir();
   const permission = "active";
   const keys = await getCreateKeys(code);
