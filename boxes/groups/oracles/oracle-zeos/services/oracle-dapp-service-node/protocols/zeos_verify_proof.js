@@ -18,7 +18,7 @@ module.exports = async ({ proto, address }) => {
 
   // fetch verifier key from vram
   // TODO: for zeus use port 13015, for live environment on DSPs use port 3115
-  let dappClient = await createClient({ httpEndpoint: "http://localhost:3115", fetch });
+  let dappClient = await createClient({ httpEndpoint: `http://localhost:${process.env.DSP_PORT || 3115}`, fetch });
   let vramClient = await dappClient.service("ipfs", "thezeostoken");
   var response = await vramClient.get_vram_row("thezeostoken", vk_code, "verifierkey", vk_id);
   var vk_str = response.row.vk;
