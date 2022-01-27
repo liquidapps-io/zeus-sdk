@@ -13,7 +13,7 @@ const sidechainName = process.env.SIDECHAIN;
 const mainnetDfuseEnable = process.env.DFUSE_PUSH_ENABLE || false;
 const mainnetDfuseGuarantee = process.env.DFUSE_PUSH_GUARANTEE || 'in-block';
 const mainnetDfuseApiKey = process.env.DFUSE_API_KEY || '';
-const mainnetDfuseNetwork = process.env.DFUSE_NETWORK || 'mainnet.eos.dfuse.io';
+const mainnetDfuseNetwork = process.env.DFUSE_NETWORK || 'eos.dfuse.eosnation.io';
 
 const contractAccount = process.env.CONTRACT;
 const endpoint = process.env.DSP_ENDPOINT || 'http://127.0.0.1:13015';
