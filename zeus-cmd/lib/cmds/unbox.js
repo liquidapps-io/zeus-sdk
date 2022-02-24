@@ -253,11 +253,15 @@ const handler = async (args, globalCopyList = []) => {
     throw new Error(`Cannot parse box '${boxName}' URI: ${boxUri}`);
   }
 
+  const admzip = require('adm-zip');
+
   await (() => new Promise((resolve, reject) => {
-    var extractor = require('unzipper').Extract({ path: extractPath });
-    extractor.on('close', resolve);
-    extractor.on('error', reject);
-    fs.createReadStream(inputPath).pipe(extractor);
+    var zip = new admzip(inputPath);
+    zip.extractAllTo(extractPath);
+    // var extractor = require('adm-zip').Extract({ path: extractPath });
+    // extractor.on('close', resolve);
+    // extractor.on('error', reject);
+    // fs.createReadStream(inputPath).pipe(extractor);
   })
   )();
 
