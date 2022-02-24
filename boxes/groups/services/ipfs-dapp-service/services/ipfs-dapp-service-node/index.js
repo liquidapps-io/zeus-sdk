@@ -31,10 +31,11 @@ const ipfsTimeoutSeconds = process.env.IPFS_TIMEOUT_SECONDS || 5;
 const ipfsTimeout = ipfsTimeoutSeconds * 1000;
 var LRU = require("lru-cache"),
   options = {
-    max: 1024 * 1024 * cacheMB,
+    max: 500,
+    maxSize: 5000,
     updateAgeOnGet: true,
-    length: function (n, key) { return n.length },
-    maxAge: 1000 * 60 * cacheMinutes
+    sizeCalculation: function (n, key) { return n.length },
+    ttl: 1000 * 60 * cacheMinutes
   },
   cache = new LRU(options)
 

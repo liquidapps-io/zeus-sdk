@@ -148,8 +148,8 @@ const actionHandlers = {
 
 let enableXCallback = null;
 
-const extractUsageQuantity = async (e) => {
-  const details = e.json.error.details;
+const extractUsageQuantity = async (event) => {
+  const details = event.json.error.details;
   // logger.error(JSON.stringify(details))
   let jsons;
   // if pending console does not contain usage report, use assertion message
@@ -158,7 +158,7 @@ const extractUsageQuantity = async (e) => {
       try {
         jsons = details[details.length - 2].message.split(': ', 2)[1].split(`'`).join(`"`).split('\n').filter(a => a.trim() != '');
       } catch(e) {
-        logger.error(`unable to parse usage event: ${typeof(details === "object" ? JSON.stringify(details) : details)}`);
+        logger.error(`unable to parse usage event: ${typeof(details === "object" ? JSON.stringify(details) : details)}`,event);
         throw e;
       }
     } else {
@@ -172,7 +172,7 @@ const extractUsageQuantity = async (e) => {
       try {
         jsons = details[details.length - 1].message.split(': ', 2)[1].split('\n').filter(a => a.trim() != '');
       } catch(e) {
-        logger.error(`unable to parse usage event: ${typeof(details === "object" ? JSON.stringify(details) : details)}`);
+        logger.error(`unable to parse usage event: ${typeof(details === "object" ? JSON.stringify(details) : details)}`,event);
         throw e;
       }
     } else {
@@ -278,7 +278,7 @@ const handleRequest = async (handler, act, packageid, serviceName, abi) => {
           throw abortError;
         }
 
-        // logger.info("CONFIRMING USAGE:\n%j", e);
+        logger.info("CONFIRMING USAGE:\n%j", e);
 
         // verify transaction emits usage
         const usage_report = await extractUsageQuantity(e);
