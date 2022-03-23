@@ -18,7 +18,7 @@
     "npm": {
       "ipfs-api": "^26.1.2",
       "bignumber.js":"^9.0.0",
-      "lru-cache": true,
+      "lru-cache": "^6.0.0",
       "dfuse-eoshttp-js": true,
       "node-fetch": "^2.6.0"
     }
