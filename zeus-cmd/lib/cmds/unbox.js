@@ -254,7 +254,9 @@ const handler = async (args, globalCopyList = []) => {
   }
 
   await (() => new Promise((resolve, reject) => {
+    console.log(`extractPath`,extractPath);
     var extractor = require('unzipper').Extract({ path: extractPath });
+    console.log('made it here')
     extractor.on('close', resolve);
     extractor.on('error', reject);
     fs.createReadStream(inputPath).pipe(extractor);
