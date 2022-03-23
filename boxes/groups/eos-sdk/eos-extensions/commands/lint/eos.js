@@ -28,7 +28,7 @@ const reformat = (line) => {
   }
   return res;
 };
-var colors = require('colors');
+var colors = require('@colors/colors');
 
 module.exports = async (args) => {
   await dockerrm('zeus-make');

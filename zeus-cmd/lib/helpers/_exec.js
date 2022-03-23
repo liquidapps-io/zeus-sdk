@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const isWsl = require('is-wsl');
 var emoji = require('node-emoji');
-var colors = require('colors');
+var colors = require('@colors/colors');
 
 const execPromise2 = function(cmd, options) {
   return new Promise(function(resolve, reject) {

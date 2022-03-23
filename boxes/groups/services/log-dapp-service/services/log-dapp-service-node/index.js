@@ -1,5 +1,5 @@
 const { requireBox } = require('@liquidapps/box-utils');
-var colors = require('colors');
+var colors = require('@colors/colors');
 var { nodeFactory } = requireBox('dapp-services/services/dapp-services-node/generic-dapp-service-node');
 const logger = requireBox('log-extensions/helpers/logger');
 
