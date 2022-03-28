@@ -3,72 +3,29 @@ require('mocha');
 const { requireBox } = require('@liquidapps/box-utils');
 const { assert } = require('chai'); // Using Assert style
 const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
-const { getNetwork, getTestContract, getUrl } = requireBox('seed-eos/tools/eos/utils');
-const getDefaultArgs = requireBox('seed-zeus-support/getDefaultArgs');
+const { getCreateAccount } = requireBox('seed-eos/tools/eos/utils');
 
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
-// const { genAllocateDAPPTokens, readVRAMData } = requireBox('dapp-services/tools/eos/dapp-services');
-const { loadModels } = requireBox('seed-models/tools/models');
-
-const fetch = require('node-fetch');
-const eosjs2 = require('eosjs');
-const { JsonRpc, Api, Serialize } = eosjs2;
-const url = getUrl(getDefaultArgs());
-const rpc = new JsonRpc(url, { fetch });
+const { getEosWrapper } = requireBox('seed-eos/tools/eos/eos-wrapper');
 
 const contractCode = '<%- contractname %>';
 const ctrt = artifacts.require(`./${contractCode}/`);
 const { eosio } = requireBox('test-extensions/lib/index');
+let deployedContract;
 
 describe(`${contractCode} Contract`, () => {
-    const getTestAccountName = (num) => {
-        let fivenum = num.toString(5).split('');
-        for (let i = 0; i < fivenum.length; i++) {
-            fivenum[i] = String.fromCharCode(fivenum[i].charCodeAt(0) + 1);
-        }
-        fivenum = fivenum.join('');
-        let s = '111111111111' + fivenum;
-        let prefix = 'test';
-        s = prefix + s.substr(s.length - (12 - prefix.length));
-        // console.log(s);
-        return s;
-    };
-    const code = getTestAccountName(Math.floor(Math.random() * 1000));
-    let account = code;
-    let chainId;
-    let endpoint;
+    const code = '<%- contractname %>';
     before(done => {
         (async () => {
             try {
-                const deployedContract = await deployer.deploy(ctrt, code);
-                const services = await loadModels('dapp-services');
-                // for (let i = 0; i < services.length; i++) {
-                //     let service = services[i];
-                //     await genAllocateDAPPTokens(deployedContract, service.name);
-                // }
-                // create token
-                endpoint = "http://localhost:13015";
-                const testcontract = await getTestContract(code);
-
-                let info = await rpc.get_info();
-                chainId = info.chain_id;
-                // let res = await testcontract.xvinit({
-                //     chainid: chainId
-                // }, {
-                //     authorization: `${code}@active`,
-                // });
-
-                const selectedNetwork = getNetwork(getDefaultArgs());
-                const config = {
-                    expireInSeconds: 120,
-                    sign: true,
-                    chainId: selectedNetwork.chainId
-                };
-                if (account) {
-                    const keys = await getCreateKeys(account);
-                    config.keyProvider = keys.active.privateKey;
-                }
+                await deployer.deploy(ctrt, code);
+                const keys = await getCreateAccount(code);
+                const eosTestAcc = getEosWrapper({
+                  keyProvider: keys.active.privateKey,
+                  httpEndpoint: 'http://localhost:8888'
+                });
+                deployedContract = await eosTestAcc.contract(code);
                 done();
             }
             catch (e) {
@@ -77,9 +34,33 @@ describe(`${contractCode} Contract`, () => {
         })();
     });
 
-    it('test1', done => {
+    it('test', done => {
         (async () => {
             try {
+                await deployedContract.print({
+                    message: "hello"
+                }, {
+                  authorization: `${code}@active`,
+                  broadcast: true,
+                  sign: true
+                });
+                
+                let failed = false;
+                try {
+                    await deployedContract.print({
+                        message: "nothello"
+                    }, {
+                      authorization: `${code}@active`,
+                      broadcast: true,
+                      sign: true
+                    });
+                } catch(e) {
+                    failed = true;
+                }
+                assert(failed,"should have failed");
+                
+                const newAccountKeys = await getCreateAccount("newaccount");
+                
                 done();
             }
             catch (e) {

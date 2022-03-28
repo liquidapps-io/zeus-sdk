@@ -2,12 +2,11 @@
 
 using namespace eosio;
 
-CONTRACT <%- contractname %> : public eosio::contract {
+CONTRACT hello : public eosio::contract {
   using contract::contract;
   public:
 
-  [[eosio::action]]
-  void hello(std::string message) {
-    print(message);
+  [[eosio::action]] void print(std::string message) {
+    check(message == "hello","not hello");
   }
 };
