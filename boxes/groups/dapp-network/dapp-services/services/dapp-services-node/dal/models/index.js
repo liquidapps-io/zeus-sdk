@@ -8,7 +8,7 @@ const { requireBox } = require('@liquidapps/box-utils');
 const logger = requireBox('log-extensions/helpers/logger');
 
 var env = process.env.DATABASE_NODE_ENV || 'development';
-const dbTimeout = process.env.DATABASE_TIMEOUT || '10000';
+const dbTimeout = process.env.DATABASE_TIMEOUT || '20000';
 
 if (process.env.DATABASE_URL && process.env.DATABASE_URL !== "false") {
   env = 'production';
