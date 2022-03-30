@@ -1,6 +1,6 @@
 {
   "name": "@liquidapps/dsp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -88,6 +88,6 @@
     "setup-dsp": "./zeus_boxes/dapp-services-deploy/setup.js"
   },
   "engines": {
-    "node": ">=12.0.0 <14.0.0"
+    "node": ">=16.0.0"
   }
 }
