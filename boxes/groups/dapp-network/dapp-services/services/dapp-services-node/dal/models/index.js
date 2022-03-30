@@ -32,6 +32,15 @@ catch (e) {
   throw e;
 }
 
+try {
+  sequelize.authenticate();
+  sequelize.sync();
+  logger.info('Connection has been established successfully.');
+} catch (error) {
+  logger.error('Unable to connect to the database:', error);
+}
+
+
 fs
   .readdirSync(__dirname)
   .filter(file => {
