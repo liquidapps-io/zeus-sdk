@@ -42,7 +42,7 @@ function getEosWrapper(config) {
         let actionNames = actions.keys();
         for (let nameIter of actionNames) {
             let action = actions.get(nameIter);
-            let name = action.name;
+            let name = nameIter;
             let newFunc = async(action, name, config, ...args) => {
                 let options = args[args.length - 1];
                 let transformedData = args.slice(0, args.length - 1);
