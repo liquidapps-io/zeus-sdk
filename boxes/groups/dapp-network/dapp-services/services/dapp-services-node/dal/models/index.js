@@ -2,7 +2,7 @@
 
 var fs = require('fs');
 var path = require('path');
-var Sequelize = require('@sequelize/core');
+var Sequelize = require('sequelize');
 var basename = path.basename(__filename);
 const { requireBox } = require('@liquidapps/box-utils');
 const logger = requireBox('log-extensions/helpers/logger');

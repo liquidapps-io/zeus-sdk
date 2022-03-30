@@ -1,4 +1,4 @@
-const Sequelize = require('@sequelize/core');
+const Sequelize = require('sequelize');
 const eosjs2 = require('eosjs');
 const { TextDecoder, TextEncoder } = require('text-encoding');
 const { Serialize, JsonRpc } = eosjs2;
