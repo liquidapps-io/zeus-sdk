@@ -127,9 +127,13 @@ async function fetchAllCronInterval() {
 async function getSettings() {
   try {
     await sync();
-    return db.Settings.findOne({
+    const res = db.Settings.findOne({
       where: { key: 'settings' }
     });
+    if (!res) {
+      return;
+    }
+    return res;
   } catch(e) {
     logger.error(e);
   }
