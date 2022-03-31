@@ -1,7 +1,7 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
   const CronInterval = sequelize.define('CronInterval', {
-    key: { type: DataTypes.STRING },
+    key: { type: DataTypes.STRING, unique: true },
     event: DataTypes.JSON,
     timer: DataTypes.STRING,
     payload: DataTypes.JSON,

@@ -56,15 +56,19 @@ async function createServiceRequest(key) {
 
 async function createCronInterval(key, timer, payload, seconds, event) {
   await sync();
+  logger.debug(`db.CronInterval.findOne`)
   const res = await db.CronInterval.findOne({
     where: { key }
   });
   while (true) {
     if (!res) {
       try {
+        logger.debug(`db.CronInterval.create`)
         return db.CronInterval.create({ key, timer, payload, seconds, event });
       }
       catch (e) {
+        logger.debug(`createCronInterval error`,e)
+        logger.debug(e.name)
         if (e.name === 'SequelizeOptimisticLockError')
           continue;
         else throw e;
@@ -76,6 +80,7 @@ async function createCronInterval(key, timer, payload, seconds, event) {
 
 async function removeCronInterval(key) {
   await sync();
+  logger.debug(`db.CronInterval.destroy`)
   var res = await db.CronInterval.destroy({
     where: { key }
   });
@@ -84,6 +89,7 @@ async function removeCronInterval(key) {
 
 async function fetchCronInterval(key) {
   await sync();
+  logger.debug(`db.CronInterval.findOne`)
   var res = await db.CronInterval.findOne({ where: { key } });
   if (!res) {
     return;
@@ -93,6 +99,7 @@ async function fetchCronInterval(key) {
 
 async function fetchAllCronInterval() {
   await sync();
+  logger.debug(`db.CronInterval.findAll`)
   var res = await db.CronInterval.findAll();
   if (!res) {
     return;
@@ -120,7 +127,9 @@ async function updateSettings(data) {
 }
 
 async function fetchNonce(chain) {
+  logger.debug('fetchNonce')
   await sync();
+  logger.debug('db.Nonce.findOne')
   var res = await db.Nonce.findOne({ where: { key: chain } });
   if (!res) {
     return;
@@ -129,12 +138,16 @@ async function fetchNonce(chain) {
 }
 
 async function updateNonce(data, chain) {
+  logger.debug('fetchNonce')
   await sync();
+  logger.debug('currentNonce')
   const currentNonce = await fetchNonce(chain);
   if (currentNonce) {
     data = { ...currentNonce.data, ...data };
+    logger.debug('db.Nonce.update')
     await db.Nonce.update({ data }, { where: { key: chain }});
   } else {
+    logger.debug('db.Nonce.create')
     await db.Nonce.create({ key: chain, data });
   }
 }
