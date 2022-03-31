@@ -153,6 +153,7 @@ async function updateNonce(data, chain) {
 }
 
 async function sync() {
+  logger.debug('syncing')
   if (synced)
     return;
 
