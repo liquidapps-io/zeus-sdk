@@ -1,5 +1,5 @@
 {
-  "version": "1.0.3",
+  "version": "1.0.4",
   "ignore": [
     "README.md"
   ],
@@ -24,6 +24,7 @@
     "oracle-sql": "^1.0.0",
     "oracle-vcpu": "^1.0.0",
     "oracle-echo": "^1.0.0",
+    "oracle-zeos": "^1.0.0",
     "sign-dapp-service": "^1.0.0"
   }
 }

@@ -475,14 +475,18 @@ async function setDatabaseBlockNumber(blockNum) {
 }
 
 async function getDatabaseBlockNumber() {
-  const settings = await dal.getSettings();
-  if (sidechainName) {
-    if (settings && settings.data && settings.data[sidechainName] && settings.data[sidechainName].last_processed_block)
-      return settings.data[sidechainName].last_processed_block;
-  }
-  else {
-    if (settings && settings.data && settings.data.last_processed_block)
-      return settings.data.last_processed_block;
+  try {
+    const settings = await dal.getSettings();
+    if (sidechainName) {
+      if (settings && settings.data && settings.data[sidechainName] && settings.data[sidechainName].last_processed_block)
+        return settings.data[sidechainName].last_processed_block;
+    }
+    else {
+      if (settings && settings.data && settings.data.last_processed_block)
+        return settings.data.last_processed_block;
+    }
+  } catch(e) {
+    logger.warn(e);
   }
 }
 

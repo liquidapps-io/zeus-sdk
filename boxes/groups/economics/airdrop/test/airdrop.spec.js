@@ -169,7 +169,7 @@ describe(`${contractCode} Contract`, () => {
       keyProvider: [key.active.privateKey]
     });
   }
-  it('readamount', done => {
+  it.skip('readamount', done => {
     (async () => {
       try {
         var token_contract = "tsttkn1";
@@ -185,7 +185,7 @@ describe(`${contractCode} Contract`, () => {
     })();
   });
 
-  it('grab', done => {
+  it.skip('grab', done => {
     (async () => {
       try {
         var token_contract = "tsttkn2";
@@ -227,7 +227,7 @@ describe(`${contractCode} Contract`, () => {
       }
     })();
   });
-  it('double grab', done => {
+  it.skip('double grab', done => {
     (async () => {
       try {
         var token_contract = "tsttkn3";
@@ -265,7 +265,7 @@ describe(`${contractCode} Contract`, () => {
     })();
   });
 
-  it('cleanup', done => {
+  it.skip('cleanup', done => {
     (async () => {
       try {
         // create airdrop

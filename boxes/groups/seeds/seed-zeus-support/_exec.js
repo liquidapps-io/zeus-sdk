@@ -4,7 +4,7 @@ const { lstatSync, readdirSync } = fs;
 const { join } = require('path');
 var emoji = require('node-emoji');
 const isWsl = require('is-wsl');
-require('colors');
+require('@colors/colors');
 
 function onData(printCB, printStream, outObj, key) {
   return function(data) {

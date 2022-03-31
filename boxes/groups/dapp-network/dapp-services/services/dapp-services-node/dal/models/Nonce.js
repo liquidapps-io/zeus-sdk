@@ -4,8 +4,5 @@ module.exports = (sequelize, DataTypes) => {
     key: DataTypes.STRING,
     data: DataTypes.JSON
   }, {});
-  Nonce.associate = function(models) {
-    // associations can be defined here
-  };
   return Nonce;
 };

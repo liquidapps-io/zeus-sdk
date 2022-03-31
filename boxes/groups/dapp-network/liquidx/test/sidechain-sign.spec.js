@@ -93,7 +93,7 @@ describe(`LiquidX Sidechain Sign Service Test Contract`, () => {
         const prevBalance = (await web3.eth.getBalance(randomEthAddress)).toString();
         const data = getEthMultisigTxData(randomEthAddress, '1'); 
         await sendSigRequest('1', ethMultiSig.address, data, 'evmlocal', 'ethereum', '0', '1', 1);
-        await sleep(2000)
+        await sleep(4000)
         const postBalance = (await web3.eth.getBalance(randomEthAddress)).toString();
         console.log(`${postBalance} - ${prevBalance}`)
         assert.equal(postBalance - prevBalance, 1, 'eth address balance should be 1');

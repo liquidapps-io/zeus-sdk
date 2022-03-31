@@ -8,7 +8,7 @@ const { requireBox } = require('@liquidapps/box-utils');
 const logger = requireBox('log-extensions/helpers/logger');
 
 var env = process.env.DATABASE_NODE_ENV || 'development';
-const dbTimeout = process.env.DATABASE_TIMEOUT || '10000';
+const dbTimeout = process.env.DATABASE_TIMEOUT || '20000';
 
 if (process.env.DATABASE_URL && process.env.DATABASE_URL !== "false") {
   env = 'production';
@@ -32,13 +32,22 @@ catch (e) {
   throw e;
 }
 
+try {
+  sequelize.authenticate();
+  sequelize.sync();
+  logger.info('Connection has been established successfully.');
+} catch (error) {
+  logger.error('Unable to connect to the database:', error);
+}
+
+
 fs
   .readdirSync(__dirname)
   .filter(file => {
     return (file.indexOf('.') !== 0) && (file !== basename) && (file.slice(-3) === '.js');
   })
   .forEach(file => {
-    var model = sequelize['import'](path.join(__dirname, file));
+    var model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes)
     db[model.name] = addTimeoutProxy(model, dbTimeout, model.name);
   });
 

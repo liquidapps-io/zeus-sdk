@@ -6,10 +6,14 @@ const logger = requireBox('log-extensions/helpers/logger');
 let synced = false;
 
 async function getServiceRequest(key) {
-  await sync();
-  return db.ServiceRequest.findOne({
-    where: { key }
-  });
+  try {
+    await sync();
+    return db.ServiceRequest.findOne({
+      where: { key }
+    });
+  } catch(e) {
+    logger.error(e);
+  }
 }
 
 // pass in new fields to be set
@@ -75,76 +79,112 @@ async function createCronInterval(key, timer, payload, seconds, event) {
 }
 
 async function removeCronInterval(key) {
-  await sync();
-  var res = await db.CronInterval.destroy({
-    where: { key }
-  });
-  return res;
+  try {
+    await sync();
+    var res = await db.CronInterval.destroy({
+      where: { key }
+    });
+    return res;
+  } catch(e) {
+    logger.error(e);
+  }
 }
 
 async function fetchCronInterval(key) {
-  await sync();
-  var res = await db.CronInterval.findOne({ where: { key } });
-  if (!res) {
-    return;
-  }
-  return res;
+  try {
+    await sync();
+    var res = await db.CronInterval.findOne({ where: { key } });
+    if (!res) {
+      return;
+    }
+    return res;
+  } catch(e) {
+    logger.error(e);
+}
 }
 
 async function fetchAllCronInterval() {
-  await sync();
-  var res = await db.CronInterval.findAll();
-  if (!res) {
-    return;
+  try {
+    await sync();
+    var res = await db.CronInterval.findAll();
+    if (!res) {
+      return;
+    }
+    return res;
+  } catch(e) {
+    logger.error(e);
   }
-  return res;
 }
 
 // settings table contains singleton with key 'settings'
 async function getSettings() {
-  await sync();
-  return db.Settings.findOne({
-    where: { key: 'settings' }
-  });
+  try {
+    await sync();
+    const res = db.Settings.findOne({
+      where: { key: 'settings' }
+    });
+    if (!res) {
+      return;
+    }
+    return res;
+  } catch(e) {
+    logger.error(e);
+  }
 }
 
 async function updateSettings(data) {
-  await sync();
-  const currentSettings = await getSettings();
-  if (currentSettings) {
-    data = { ...currentSettings.data, ...data };
-    await db.Settings.update({ data }, { where: { key: 'settings' }});
-  } else {
-    await db.Settings.create({ key: 'settings', data });
+  try {
+    await sync();
+    const currentSettings = await getSettings();
+    if (currentSettings) {
+      data = { ...currentSettings.data, ...data };
+      await db.Settings.update({ data }, { where: { key: 'settings' }});
+    } else {
+      await db.Settings.create({ key: 'settings', data });
+    }
+  } catch(e) {
+    logger.error(e);
   }
 }
 
 async function fetchNonce(chain) {
-  await sync();
-  var res = await db.Nonce.findOne({ where: { key: chain } });
-  if (!res) {
-    return;
+  try {
+    await sync();
+    var res = await db.Nonce.findOne({ where: { key: chain } });
+    if (!res) {
+      return;
+    }
+    return res;
+  } catch(e) {
+    logger.error(e);
   }
-  return res;
 }
 
 async function updateNonce(data, chain) {
-  await sync();
-  const currentNonce = await fetchNonce(chain);
-  if (currentNonce) {
-    data = { ...currentNonce.data, ...data };
-    await db.Nonce.update({ data }, { where: { key: chain }});
-  } else {
-    await db.Nonce.create({ key: chain, data });
+  try {
+    await sync();
+    const currentNonce = await fetchNonce(chain);
+    if (currentNonce) {
+      data = { ...currentNonce.data, ...data };
+      await db.Nonce.update({ data }, { where: { key: chain }});
+    } else {
+      await db.Nonce.create({ key: chain, data });
+    }
+  } catch(e) {
+    logger.error(e);
   }
 }
 
 async function sync() {
-  if (synced)
-    return;
+  try {
+    if (synced)
+      return;
 
-  await db.sequelize.sync();
-  synced = true;
+    await db.sequelize.sync();
+    synced = true;
+  } catch(e) {
+    logger.error(e);
+  }
 }
 
 module.exports = {

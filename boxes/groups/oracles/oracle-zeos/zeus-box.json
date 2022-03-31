@@ -1,0 +1,19 @@
+{
+    "version": "1.0.1",
+    "ignore": [
+      "README.md"
+    ],
+    "dependencies": {
+      "ipfs-dapp-service": "^1.0.0",
+      "oracle-dapp-service": "^1.0.0"
+    },
+    "install": {
+      "contracts": {
+        "thezeostoken": true
+      },
+      "npm": {
+        "node-fetch": "^2.6.0",
+        "@liquidapps/dapp-client": "^2.0.3107"
+      }
+    }
+}
