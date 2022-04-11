@@ -144,7 +144,7 @@ nodeFactory('cron', {
             message = `STAKE MORE CPU/NET resetting timer ${payer} ${timer} for ${nextTrySeconds}`
           } else if(JSON.stringify(e).includes('string is too long to be a valid name') || JSON.stringify(e).includes('tx_net_usage_exceeded')) {
             message = `invalid name, resetting timer ${payer} ${timer} for ${nextTrySeconds}`
-          } else if(JSON.stringify(e).includes('string is too long to be a valid name') || JSON.stringify(e).includes('leeway_deadline_exception')) {
+          } else if(JSON.stringify(e).includes('leeway_deadline_exception')) {
             message = `Transaction reached the deadline set due to leeway on account CPU limits, resetting timer ${payer} ${timer} for ${nextTrySeconds}`
           } else {
             message = `to account does not exist, resetting timer ${payer} ${timer} for ${nextTrySeconds}`
