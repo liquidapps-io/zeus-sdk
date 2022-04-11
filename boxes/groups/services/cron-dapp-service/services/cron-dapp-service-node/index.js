@@ -122,6 +122,7 @@ nodeFactory('cron', {
         //TODO: verify usage, emit if sidechain
       }
       catch (e) {
+        const nextTrySeconds = Math.min(seconds, Math.pow(2, n)) * 1000;
         if (JSON.stringify(e).includes('duplicate') 
             || JSON.stringify(e).includes('abort_service_request') 
             || JSON.stringify(e).includes('required service') 
@@ -132,7 +133,7 @@ nodeFactory('cron', {
             || JSON.stringify(e).includes('leeway_deadline_exception')
         ) {
           // schedule cron based on interval specified as a guarantee, if fail, exponential backoff
-          const nextTrySeconds = Math.min(seconds, Math.pow(2, n)) * 1000;
+          
           let message;
           if(JSON.stringify(e).includes('duplicate')) {
             message = `duplicate trx detected, resetting timer ${payer} ${timer} for ${nextTrySeconds}`
@@ -155,6 +156,10 @@ nodeFactory('cron', {
         } else {
           console.error("error:", e);
           logger.error(`Error executing schedule transaction: ${e.json ? JSON.stringify(e.json) : JSON.stringify(e)}`);
+          if(process.env.DSP_CRON_SCHEDULE_RETRY_ON_FAILURE.toString() === "true") {
+            if(process.env.DSP_VERBOSE_LOGS) logger.warn(`cron schedule retry on failure enabled, retrying`,process.env.CRON_SCHEDULE_RETRY_ON_FAILURE)
+            timers[`SCHEDULE_${payer}_${timer}_${sidechain ? sidechain.name : "PROVISIONING_X"}`] = setTimeout(() => fn(n + 1), nextTrySeconds);
+          }
         }
       }
     });

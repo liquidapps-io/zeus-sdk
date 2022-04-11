@@ -17,6 +17,9 @@ verbose_logs = false # enable for verbose logs
 allow_api_non_broadcast = false # enable to use the replay script or the cleanup script, be sure to disable afterwards to prevent gaming the endpoint
 max_request_retries = 10 # max retries to fetch an oracle request or ipfs warmup, or any other blocking DSP service action
 
+# LiquidScheduler related
+cron_schedule_retry_on_failure = false # retries schedule type intervals even if they fail by unrecognized error
+
 # LiquidStorage params
 liquidstorage_upload_limit = "10mb" # upload limit for LiquidStorage
 
