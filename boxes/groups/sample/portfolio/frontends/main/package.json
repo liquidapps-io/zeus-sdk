@@ -31,7 +31,7 @@
     "axios": "^0.21.1",
     "bignumber.js": "^9.0.0",
     "crypto": "^1.0.1",
-    "eosjs": "^20.0.0",
+    "eosjs": "^22.0.0",
     "eslint-plugin-react": "^7.16.0",
     "eslint-plugin-sonarjs": "^0.4.0",
     "node-sass": "^4.12.0",

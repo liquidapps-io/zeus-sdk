@@ -5,7 +5,7 @@
   "dependencies": {
     "@liquidapps/dapp-client": "^2.0.0",
     "chess.js": "^0.10.2",
-    "eosjs": "^20.0.0",
+    "eosjs": "^22.0.0",
     "react": "^16.4.2",
     "react-chess": "^1.1.1",
     "react-dom": "^16.4.2",
