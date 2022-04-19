@@ -57,6 +57,7 @@ broadcast_event_timeout = 10000
 
 # aws kms settings for eth sign service
 aws_kms_enabled = false
+# aws_kms_address = # evm public key for aws kms
 # aws_kms_access_key_id = "AKIAxxxxxxxxxxxxxxxx" # credentials for your IAM user with KMS access
 # aws_kms_secret_access_key = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", # credentials for your IAM user with KMS access
 # aws_kms_region = "ap-southeast-1"

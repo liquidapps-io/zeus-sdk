@@ -26,7 +26,7 @@ let ethMultiSig;
 const code = 'signservice1';
 const randomEthAddress = '0x654Cf0636b0e85b3379BcD773672CA4B4AEf8Dc0';
 
-const AWS_KMS_KEY = '0x9d8e2c06e418e6c61785a7e4c65dd447ddc25aa0'S;
+const AWS_KMS_KEY = '0x9d8e2c06e418e6c61785a7e4c65dd447ddc25aa0';
 
 describe(`Sign DAPP Service Test Contract`, () => {
   var testcontracta;
