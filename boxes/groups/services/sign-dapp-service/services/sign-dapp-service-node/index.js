@@ -7,7 +7,9 @@ const os = require('os');
 const consts = require('./consts');
 const { getWeb3 } = require('./helpers/ethereum/web3Provider');
 const { getNonce, incrementNonce, decrementNonce } = require('./helpers/ethereum/nonce');
+const { AwsKmsSigner } = require ("ethers-aws-kms-signer");
 const async = require('async');
+
 const q = async.queue(async ({ id, destination, trx_data, chain, chain_type, sigs, account, sigs_required, consumer }) => {
   try {
     const keypair = getCreateKeypair[chain_type](chain, consumer);
@@ -120,8 +122,20 @@ const signFn = {
       }
     }
     if(process.env.DSP_VERBOSE_LOGS) logger.debug(`destination: ${destination}, trx_data: ${JSON.stringify(trx_data)}, chain: ${chain}, account: ${account}, rawTrx: ${JSON.stringify(rawTx)}`);
-    const tx = await web3.eth.accounts.signTransaction(rawTx, privateKey);
-    return tx.rawTransaction;
+    if(process.env.DSP_AWS_KMS_ENABLED && process.env.DSP_AWS_KMS_ENABLED.toString() == "true") {
+      const kmsCredentials = {
+        accessKeyId: process.env.DSP_AWS_KMS_ACCESS_KEY_ID || "AKIAxxxxxxxxxxxxxxxx", // credentials for your IAM user with KMS access
+        secretAccessKey: process.env.DSP_AWS_KMS_SECRET_ACCESS_KEY || "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", // credentials for your IAM user with KMS access
+        region: process.env.DSP_AWS_KMS_REGION || "ap-southeast-1",
+        keyId: process.env.DSP_AWS_KMS_KEY_ID || "arn:aws:kms:ap-southeast-1:123456789012:key/123a1234-1234-4111-a1ab-a1abc1a12b12",
+      };
+      
+      const signer = new AwsKmsSigner(kmsCredentials);    
+      return await signer.signTransaction(utx);
+    } else {
+      const tx = await web3.eth.accounts.signTransaction(rawTx, privateKey);
+      return tx.rawTransaction;
+    }
   }
 }
 // we have different handlers for different chains since the flow can be
