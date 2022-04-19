@@ -28,7 +28,7 @@ const randomEthAddress = '0x654Cf0636b0e85b3379BcD773672CA4B4AEf8Dc0';
 
 const AWS_KMS_KEY = '0x9d8e2c06e418e6c61785a7e4c65dd447ddc25aa0';
 
-describe(`Sign DAPP Service Test Contract`, () => {
+describe.skip(`Sign DAPP Service Test Contract`, () => {
   var testcontracta;
   var endpoint;
   var eosvram;
@@ -101,6 +101,22 @@ describe(`Sign DAPP Service Test Contract`, () => {
         });
         await sleep(2000)
         const postBalance = (await token.balanceOf(randomEthAddress)).toString();
+        assert.equal(postBalance - prevBalance, 1, 'eth address balance should be 1');
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  })
+
+  it('sends 1 wei from the multisig to a random address (internal encoding)', done => {
+    (async() => {
+      try {
+        const prevBalance = (await web3.eth.getBalance(randomEthAddress)).toString();
+        await sendEth(ethMultiSig.address, randomEthAddress, 1, "evmlocal");
+        await sleep(2000)
+        const postBalance = (await web3.eth.getBalance(randomEthAddress)).toString();
         assert.equal(postBalance - prevBalance, 1, 'eth address balance should be 1');
         done();
       }
@@ -186,6 +202,11 @@ async function deployEthMultiSig() {
   const masterAccount = availableAccounts[0];
   const dsp1 = AWS_KMS_KEY;
   const dspSigners = [dsp1];
+  await web3.eth.sendTransaction({
+    from: availableAccounts[1],
+    to: dsp1,
+    value: '10000000000000000000'
+  });
 
   const multiSigContract = contract({
     abi: multiSigAbi,
