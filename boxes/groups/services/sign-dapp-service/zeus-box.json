@@ -13,9 +13,10 @@
       "signer": true
     },
     "npm": {
-      "web3": "^1.5.0",
+      "web3": "^1.7.0",
       "ganache-cli": true,
-      "@truffle/contract": true
+      "@truffle/contract": true,
+      "ethers-aws-kms-signer":"1.3.2"
     }
   }
 }

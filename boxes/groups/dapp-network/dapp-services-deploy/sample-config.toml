@@ -55,6 +55,14 @@ push_guarantee_per_service = '{"name":"ipfs","push_guarantee":"in-block","read_r
 # dspResponses: [{"status":"fulfilled","value":""},{"status":"fulfilled","value":""},{"status":"rejected","reason":"DSP failed to respond within timeout window"}]
 broadcast_event_timeout = 10000
 
+# aws kms settings for eth sign service
+aws_kms_enabled = false
+# aws_kms_address = # evm public key for aws kms
+# aws_kms_access_key_id = "AKIAxxxxxxxxxxxxxxxx" # credentials for your IAM user with KMS access
+# aws_kms_secret_access_key = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", # credentials for your IAM user with KMS access
+# aws_kms_region = "ap-southeast-1"
+# aws_kms_key_id = "arn:aws:kms:ap-southeast-1:123456789012:key/123a1234-1234-4111-a1ab-a1abc1a12b12"
+
 [database]
 # url syntax: postgres://user:pass@example.com:5432/dbname
 url = "postgres://user:pass@example.com:5432/dbname"
