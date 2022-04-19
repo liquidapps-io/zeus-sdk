@@ -59,8 +59,6 @@ const getCreateKeypair = {
     }
     const web3 = getWeb3(chain);
     if(process.env.DSP_AWS_KMS_ENABLED && process.env.DSP_AWS_KMS_ENABLED.toString() == "true") {
-      logger.debug('using kms key')
-      logger.debug(process.env.DSP_AWS_KMS_ADDRESS)
       return {
         privateKey: process.env.DSP_AWS_KMS_ADDRESS,
         publicKey: process.env.DSP_AWS_KMS_ADDRESS
@@ -131,7 +129,6 @@ const signFn = {
     }
     if(process.env.DSP_VERBOSE_LOGS) logger.debug(`destination: ${destination}, trx_data: ${JSON.stringify(trx_data)}, chain: ${chain}, account: ${account}, rawTrx: ${JSON.stringify(rawTx)}`);
     if(process.env.DSP_AWS_KMS_ENABLED && process.env.DSP_AWS_KMS_ENABLED.toString() == "true") {
-      logger.debug('using kms')
       const kmsCredentials = {
         accessKeyId: process.env.DSP_AWS_KMS_ACCESS_KEY_ID || "AKIAxxxxxxxxxxxxxxxx", // credentials for your IAM user with KMS access
         secretAccessKey: process.env.DSP_AWS_KMS_SECRET_ACCESS_KEY || "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", // credentials for your IAM user with KMS access
