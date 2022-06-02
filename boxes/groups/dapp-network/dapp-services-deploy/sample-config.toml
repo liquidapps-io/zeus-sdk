@@ -16,6 +16,7 @@ consumer_pays = false
 verbose_logs = false # enable for verbose logs
 allow_api_non_broadcast = false # enable to use the replay script or the cleanup script, be sure to disable afterwards to prevent gaming the endpoint
 max_request_retries = 10 # max retries to fetch an oracle request or ipfs warmup, or any other blocking DSP service action
+eosio_transaction_expiration = 180
 
 # LiquidScheduler related
 cron_schedule_retry_on_failure = false # retries schedule type intervals even if they fail by unrecognized error
@@ -133,6 +134,7 @@ gas_limit = ''
 gas_price = ''
 max_priority_fee_per_gas = ''
 max_fee_per_gas = ''
+transaction_polling_timeout = 750 # https://web3js.readthedocs.io/en/v1.7.3/web3-eth.html?highlight=transactionPollingTimeout#transactionpollingtimeout | https://ethereum.stackexchange.com/questions/80145/error-transaction-was-not-mined-within-750-seconds-please-make-sure-your-trans
 
 # chain specific
 ethereum_private_key = ""

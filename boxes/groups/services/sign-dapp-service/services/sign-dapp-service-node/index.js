@@ -15,6 +15,7 @@ const q = async.queue(async ({ id, destination, trx_data, chain, chain_type, sig
     const keypair = getCreateKeypair[chain_type](chain, consumer);
     const signedTx = await signFn[chain_type](destination, trx_data, chain, account, keypair);
     const web3 = getWeb3(chain);
+    web3.eth.transactionPollingTimeout = Number(process.env.EVM_TRANSACTION_POLLING_TIMEOUT) || 750;
     const tx = await web3.eth.sendSignedTransaction(signedTx, (err) => {
       if(err) {
         logger.error(err);

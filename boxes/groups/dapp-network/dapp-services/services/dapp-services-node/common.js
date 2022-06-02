@@ -590,6 +590,7 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
       let detailsAssertionSvcReq;
       rText = JSON.parse(resText);
       detailMsg = rText.error.details;
+      if(process.env.DSP_DEBUG_LOGS) logger.debug(typeof(detailMsg) === "object"? JSON.stringify(detailMsg) : detailMsg);
       if(!detailMsg) throw new Error('no service request found');
       const detailsAssertion = detailMsg.find(d => d.message.indexOf(': required service') != -1);
       if(detailsAssertion) {

@@ -131,6 +131,7 @@ nodeFactory('cron', {
             || JSON.stringify(e).includes('tx_net_usage_exceeded')
             || JSON.stringify(e).includes('string is too long to be a valid name')
             || JSON.stringify(e).includes('leeway_deadline_exception')
+            || JSON.stringify(e).includes('expired_tx_exception')
         ) {
           // schedule cron based on interval specified as a guarantee, if fail, exponential backoff
           
@@ -147,6 +148,8 @@ nodeFactory('cron', {
             message = `invalid name, resetting timer ${payer} ${timer} for ${nextTrySeconds}`
           } else if(JSON.stringify(e).includes('leeway_deadline_exception')) {
             message = `Transaction reached the deadline set due to leeway on account CPU limits, resetting timer ${payer} ${timer} for ${nextTrySeconds}`
+          } else if(JSON.stringify(e).includes('expired_tx_exception')) {
+            message = `Transaction expired, resetting timer ${payer} ${timer} for ${nextTrySeconds} ${process.env.DSP_EOSIO_TRANSACTION_EXPIRATION}`
           } else {
             message = `to account does not exist, resetting timer ${payer} ${timer} for ${nextTrySeconds}`
           }
@@ -157,7 +160,7 @@ nodeFactory('cron', {
           console.error("error:", e);
           logger.error(`Error executing schedule transaction: ${e.json ? JSON.stringify(e.json) : JSON.stringify(e)}`);
           if(process.env.DSP_CRON_SCHEDULE_RETRY_ON_FAILURE.toString() === "true") {
-            if(process.env.DSP_VERBOSE_LOGS) logger.warn(`cron schedule retry on failure enabled, retrying`,process.env.CRON_SCHEDULE_RETRY_ON_FAILURE)
+            if(process.env.DSP_VERBOSE_LOGS) logger.warn(`cron schedule retry on failure enabled, retrying`,process.env.DSP_CRON_SCHEDULE_RETRY_ON_FAILURE)
             timers[`SCHEDULE_${payer}_${timer}_${sidechain ? sidechain.name : "PROVISIONING_X"}`] = setTimeout(() => fn(n + 1), nextTrySeconds);
           }
         }
