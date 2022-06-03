@@ -42,6 +42,11 @@ public:
     name package;
     bool success = false;
   };
+  
+  TABLE blacklist_tbl {
+     name  account;
+     uint64_t primary_key()const { return account.value; }
+  };
 
   TABLE account {
     asset balance;
@@ -211,6 +216,7 @@ public:
       packages_t;
 
   typedef eosio::multi_index<"stat"_n, currency_stats> stats;
+  typedef eosio::multi_index<"blacklist"_n, blacklist_tbl> blacklist_t;
   typedef eosio::multi_index<"statext"_n, currency_stats_ext> stats_ext;
   typedef eosio::multi_index<"accounts"_n, account> accounts;
   typedef eosio::multi_index<"stakingext"_n, stakingext> staking_ext_t;
@@ -286,6 +292,24 @@ public:
     statxstable.modify(existingx, _self, [&](auto &s) {
       s.inflation_per_block = inflation_per_block;
     });
+  }
+
+  [[eosio::action]] void addbl(name account) {
+    require_auth(_self);
+    blacklist_t blacklist( _self, _self.value );
+    auto row = blacklist.find( account.value );
+    check(row == blacklist.end(), "This account is already blacklisted");
+      blacklist.emplace( _self, [&]( auto& a ){
+      a.account = account;
+    });
+  }
+
+ [[eosio::action]] void rmbl(name account) {
+    require_auth(_self);
+    blacklist_t blacklist( _self, _self.value );
+    auto row = blacklist.find( account.value );
+    check(row != blacklist.end(), "This account is not blacklisted");
+    blacklist.erase(row);
   }
 
  [[eosio::action]] void updgovalloc(double gov_allocation) {
@@ -466,6 +490,9 @@ public:
     eosio::check(from != to, "cannot transfer to self");
     require_auth(from);
     eosio::check(is_account(to), "to account does not exist");
+    blacklist_t blacklist( _self, _self.value );
+    auto existing = blacklist.find(from.value);
+    eosio::check(existing == blacklist.end(), "Your account is blacklisted");
     auto sym = quantity.symbol.code().raw();
     stats statstable(_self, sym);
     const auto &st = statstable.get(sym);
@@ -1408,7 +1435,7 @@ extern "C" {
     if (code == receiver) {
       switch (action) {
         EOSIO_DISPATCH_HELPER(
-            dappservices, (usage)(stake)(unstake)(refund)
+            dappservices, (usage)(stake)(unstake)(refund)(addbl)(rmbl)
                           (staketo)(unstaketo)(refundto)(refreceipt)
                           (claimrewards)(create)(updinflation)(updgovalloc)(issue)(transfer)
                           (open)(close)(retire)(preselectpkg)(retirestake)(xcallback)

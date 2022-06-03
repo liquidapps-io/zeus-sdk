@@ -10,7 +10,7 @@ const { PushGuarantee } = require("eosio-push-guarantee");
 
 function getEosWrapper(config) {
     const defaults = {
-        expireSeconds: 180,
+        expireSeconds: process.env.DSP_EOSIO_TRANSACTION_EXPIRATION || 180,
         sign: true,
         broadcast: true,
         blocksBehind: 3,

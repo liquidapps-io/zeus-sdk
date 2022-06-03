@@ -424,6 +424,106 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
     //   })();
     // });
 
+  it('Blacklist', done => {
+    (async () => {
+      try {
+        var testContractAccount = 'blklisttst1';
+        var testContractAccount2 = 'blklisttst2';
+        const keys = await getCreateAccount(testContractAccount);
+        const keys2 = await getCreateAccount(testContractAccount2);
+        var eos = await getEos(dappServicesContract);
+        let servicesTokenContract = await eos.contract(dappServicesContract);
+        await servicesTokenContract.issue({
+          to: testContractAccount,
+          quantity: "1000.0000 DAPP",
+          memo: ''
+        }, {
+          authorization: `${dappServicesContract}@active`,
+        });
+        var eos = await getEos('pprovider1');
+        let table = await eos.getTableRows({
+          code: dappServicesContract,
+          scope: testContractAccount,
+          table: 'accounts',
+          json: true,
+        });
+        console.log(table);
+        const balance0 = parseFloat(table.rows[0].balance.replace(' DAPP', ''));
+        console.log('balance0',balance0);
+        await servicesTokenContract.transfer({
+          from: testContractAccount,
+          to: testContractAccount2,
+          quantity: "1.0000 DAPP",
+          memo: ''
+        }, {
+          authorization: `${testContractAccount}@active`,
+          keyProvider: [keys.active.privateKey]
+        });
+        table = await eos.getTableRows({
+          code: dappServicesContract,
+          scope: testContractAccount,
+          table: 'accounts',
+          json: true,
+        });
+        console.log(table);
+        const balance1 = parseFloat(table.rows[0].balance.replace(' DAPP', ''));
+        console.log('balance1',balance1);
+        assert(balance1 < balance0, 'balance should have increased');
+        await servicesTokenContract.addbl({
+          account: testContractAccount
+        }, {
+          authorization: `${dappServicesContract}@active`,
+        });
+        table = await eos.getTableRows({
+          code: dappServicesContract,
+          scope: dappServicesContract,
+          table: 'blacklist',
+          json: true,
+        });
+        console.log(table);
+        console.log('here')
+        try {
+          await servicesTokenContract.transfer({
+            from: testContractAccount,
+            to: testContractAccount2,
+            quantity: "1.0000 DAPP",
+            memo: ''
+          }, {
+            authorization: `${testContractAccount}@active`,
+            keyProvider: [keys.active.privateKey]
+          });
+        } catch(e) {
+          console.log(e);
+          console.log(e.details);
+          console.log(e.message);
+        }
+        await servicesTokenContract.rmbl({
+          account: testContractAccount
+        }, {
+          authorization: `${dappServicesContract}@active`,
+        });
+        await servicesTokenContract.transfer({
+          from: testContractAccount,
+          to: testContractAccount2,
+          quantity: "1.0000 DAPP",
+          memo: ''
+        }, {
+          authorization: `${testContractAccount}@active`,
+          keyProvider: [keys.active.privateKey]
+        });
+        // transfer
+        // blacklist
+        // transfer fail
+        // whitelist
+        // transfer pass
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+
   it('Simple package and action', done => {
     (async () => {
       try {
