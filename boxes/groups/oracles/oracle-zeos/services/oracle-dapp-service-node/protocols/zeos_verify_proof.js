@@ -27,7 +27,7 @@ module.exports = async ({ proto, address }) => {
   var vk_id = payloadParts[idx++];
   var proof_str = payloadParts[idx++];
   var inputs_str = payloadParts[idx++];
-  
+
   // fetch verifier key from vram
   // TODO: for zeus use port 13015, for live environment on DSPs use port 3115
   let dappClient = await createClient({ httpEndpoint: `http://localhost:${process.env.DSP_PORT || 3115}`, fetch });
@@ -61,6 +61,6 @@ module.exports = async ({ proto, address }) => {
   {
     res = "0";
   }
-  
+
   return new Buffer(res, "utf-8");
 };
