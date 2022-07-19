@@ -1,0 +1,11 @@
+{
+  "name": "zeos-verifier",
+  "version": "0.1.0",
+  "files": [
+    "zeos_verifier_bg.wasm",
+    "zeos_verifier.js",
+    "zeos_verifier.d.ts"
+  ],
+  "main": "zeos_verifier.js",
+  "types": "zeos_verifier.d.ts"
+}
