@@ -2,6 +2,7 @@
 
 ARCH=$( uname )
 NODEOS_VERSION=2.1.0
+MANDEL_VERSION=3.1.0-rc3
 if [ "$ARCH" == "Darwin" ] ; then
     OS_NAME=MacOSX
     OS_VER=$(sw_vers -productVersion)
@@ -93,20 +94,24 @@ if [ "$ARCH" == "Linux" ]; then
         fi
     ;;
     "Ubuntu")
-    	if [ "${OS_MAJ}" -lt 16 ] ; then
-    		printf "You must be running Ubuntu 16.04.x or higher to install EOSIO.\\n"
+    	if [ "${OS_MAJ}" -lt 18 ] ; then
+    		printf "You must be running Ubuntu 18.04.x or higher to install EOSIO.\\n"
     		printf "Exiting now.\\n"
     		exit 1
     	fi
         if ! [ -x "$(command -v nodeos)" ]; then
-    		if [ $OS_MAJ -gt 16 ]; then
-    		    wget https://github.com/EOSIO/eos/releases/download/v${NODEOS_VERSION}/eosio_${NODEOS_VERSION}-1-ubuntu-18.04_amd64.deb
-                sudo apt install -y ./eosio_${NODEOS_VERSION}-1-ubuntu-18.04_amd64.deb
-                rm ./eosio_${NODEOS_VERSION}-1-ubuntu-18.04_amd64.deb
-            else 
-                wget https://github.com/EOSIO/eos/releases/download/v${NODEOS_VERSION}/eosio_${NODEOS_VERSION}-1-ubuntu-16.04_amd64.deb
-                sudo apt install -y ./eosio_${NODEOS_VERSION}-1-ubuntu-16.04_amd64.deb
-                rm ./eosio_${NODEOS_VERSION}-1-ubuntu-16.04_amd64.deb
+    		if [ "$OS_MAJ" = 22 ]; then
+    		    wget https://github.com/eosnetworkfoundation/mandel/releases/download/v${MANDEL_VERSION}/mandel-${MANDEL_VERSION}-ubuntu22.04-x86_64.deb
+                sudo apt install -y ./mandel-${MANDEL_VERSION}-ubuntu22.04-x86_64.deb
+                rm ./mandel-${MANDEL_VERSION}-ubuntu22.04-x86_64.deb
+            elif [[ "$OS_MAJ" = 20 ]]; then
+    		    wget https://github.com/eosnetworkfoundation/mandel/releases/download/v${MANDEL_VERSION}/mandel-${MANDEL_VERSION}-ubuntu20.04-x86_64.deb
+                sudo apt install -y ./mandel-${MANDEL_VERSION}-ubuntu20.04-x86_64.deb
+                rm ./mandel-${MANDEL_VERSION}-ubuntu20.04-x86_64.deb
+            elif [[ "$OS_MAJ" = 18 ]]; then
+    		    wget https://github.com/eosnetworkfoundation/mandel/releases/download/v${MANDEL_VERSION}/mandel-${MANDEL_VERSION}-ubuntu18.04-x86_64.deb
+                sudo apt install -y ./mandel-${MANDEL_VERSION}-ubuntu18.04-x86_64.deb
+                rm ./mandel-${MANDEL_VERSION}-ubuntu18.04-x86_64.deb
     		fi
             printf "\\nnodeos installed.\\n"
         else

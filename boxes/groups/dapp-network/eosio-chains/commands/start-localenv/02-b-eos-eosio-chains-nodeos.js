@@ -29,14 +29,11 @@ var generateNodeos = async (model, args) => {
     '--plugin eosio::producer_plugin',
     '--plugin eosio::producer_api_plugin',
     '--disable-replay-opts',
-    '--plugin eosio::history_plugin',
     '--plugin eosio::chain_api_plugin',
     '--plugin eosio::chain_plugin',
-    '--plugin eosio::history_api_plugin',
     '--plugin eosio::http_plugin',
     '--delete-all-blocks',
     `--p2p-listen-endpoint 127.0.0.1:${nodeosP2PPort}`,
-    '--filter-on=*',
     `-d ~/.zeus/nodeos-${name}/data`,
     `--config-dir ~/.zeus/nodeos-${name}/config`,
     `--http-server-address=0.0.0.0:${nodeosPort}`,
@@ -74,7 +71,7 @@ var generateNodeos = async (model, args) => {
         nodeosArgs = [...nodeosArgs,
           '--trace-history',
           '--plugin eosio::state_history_plugin',
-        `--state-history-endpoint 0.0.0.0:${stateHistoryPort}`
+          `--state-history-endpoint 0.0.0.0:${stateHistoryPort}`
         ];
         ports = [...ports,
         `-p ${stateHistoryPort}:${stateHistoryPort}`
@@ -89,6 +86,16 @@ var generateNodeos = async (model, args) => {
     try {
       const res = await execPromise(`nodeos --version`, {});
       if (res < "v2.0.0") throw new Error();
+      if(res > "v3.0.0") {
+        nodeosArgs = [...nodeosArgs,
+          '--block-log-retain-blocks=1000',
+          '--state-history-log-retain-blocks=1000',
+          '--disable-subjective-billing=true',
+          // '--transaction-retry-max-expiration-sec=180',
+          // '--p2p-dedup-cache-expire-time-sec=3',
+          // '--transaction-retry-interval-sec=6'
+        ];
+      }
     }
     catch (e) {
       throw new Error('Nodeos versions < 2.0.0 not supported. See https://github.com/EOSIO/eos/releases');

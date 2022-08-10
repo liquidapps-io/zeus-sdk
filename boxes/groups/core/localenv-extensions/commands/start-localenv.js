@@ -25,7 +25,7 @@ module.exports = {
         default: 'development'
       }).option('chain', {
         describe: 'chain to work on',
-        default: 'eos'
+        default: ''
       })
       .option('services', {
         describe: 'service APIs to run',

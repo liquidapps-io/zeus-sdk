@@ -29,13 +29,10 @@ module.exports = async (args) => {
     '--plugin eosio::producer_plugin',
     '--plugin eosio::producer_api_plugin',
     '--disable-replay-opts',
-    '--plugin eosio::history_plugin',
     '--plugin eosio::chain_api_plugin',
     '--plugin eosio::chain_plugin',
-    '--plugin eosio::history_api_plugin',
     '--plugin eosio::http_plugin',
     '--delete-all-blocks',
-    '--filter-on=*',
     '-d ~/.zeus/nodeos/data',
     '--config-dir ~/.zeus/nodeos/config',
     '--http-server-address=0.0.0.0:8888',
@@ -91,6 +88,16 @@ module.exports = async (args) => {
     try {
       const res = await execPromise(`nodeos --version`, {});
       if (res < "v2.0.0") throw new Error();
+      if(res > "v3.0.0") {
+        nodeosArgs = [...nodeosArgs,
+          '--block-log-retain-blocks=1000',
+          '--state-history-log-retain-blocks=1000',
+          '--disable-subjective-billing=true',
+          // '--transaction-retry-max-expiration-sec=180',
+          // '--p2p-dedup-cache-expire-time-sec=3',
+          // '--transaction-retry-interval-sec=6'
+        ];
+      }
     }
     catch (e) {
       throw new Error('Nodeos versions < 2.0.0 not supported. See https://github.com/EOSIO/eos/releases');

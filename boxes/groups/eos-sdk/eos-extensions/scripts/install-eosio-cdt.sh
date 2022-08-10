@@ -17,7 +17,7 @@ printf "\\nOS VERSION: %s\\n" "${OS_VER}"
 function install_deb {
     # https://github.com/EOSIO/eosio.cdt/releases/download/v1.8.0-rc2/eosio.cdt_1.8.0-rc2-ubuntu-18.04_amd64.deb
     # https://github.com/EOSIO/eosio.cdt/releases/download/v1.6.3/eosio.cdt_1.6.3-1-ubuntu-18.04_amd64.deb
-    wget https://github.com/EOSIO/eosio.cdt/releases/download/v$1/eosio.cdt_$1-ubuntu-18.04_amd64.deb
+    wget https://github.com/EOSIO/eosio.cdt/releases/download/v$1/eosio.cdt_$1-1-ubuntu-18.04_amd64.deb
     sudo apt install -y ./eosio.cdt_$1-1-ubuntu-18.04_amd64.deb
     rm ./eosio.cdt_$1-1-ubuntu-18.04_amd64.deb
     printf "\\neosio.cdt installed.\\n"

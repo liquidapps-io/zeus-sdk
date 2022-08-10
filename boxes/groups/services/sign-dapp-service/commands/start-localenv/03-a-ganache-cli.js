@@ -10,6 +10,7 @@ const pot =
 module.exports = async (args) => {
   await killIfRunning(args.evmPort);
   if(args.kill) { return; }
+  if(args.chain === "eos") { return; }
   const command = `nohup node ${ganachePath} -h ${args.evmHost} -m \"${mnemonic}\" -b 1 -p ${args.evmPort} >> logs/ganache.log 2>&1 &`
   await execPromise(command);
 }

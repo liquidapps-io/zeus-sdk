@@ -10,8 +10,8 @@ const partyMigrate = async (args, {network, account, contract}) => {
   if(!args.creator) args.creator = account;
   if(!args.contract) args.contract = contract;
   var contractI = artifacts.require(`./${contract}/`);
-  console.log(`${emojMap.airplane} deploying ${contract} to ${account}`);
-  var deployedContract = await deployer.deploy(contractI, account);
+  console.log(`${emojMap.airplane} deploying ${contract} to ${account} on ${args.network}`);
+  var deployedContract = await deployer.deploy(contractI, account.toString());
   console.log(`${emojMap.zap} deployed ${contract} to ${deployedContract.address}`);
   if (args.creator === 'eosio') {
     var models = await loadModels('dapp-services');

@@ -11,6 +11,7 @@ module.exports = async (args) => {
   if(args.kill) { return; }
   if(!args.multiEvm) return;
   if(args.singleChain) { return; } // don't run on command
+  if(args.chain === "eos") { return; }
   const command = `nohup node ${ganachePath} -h ${args.evmSisterHost} -m \"${mnemonic}\" -b 1 -p ${args.evmSisterPort} >> logs/ganache-sidechain.log 2>&1 &`
   await execPromise(command);
 }

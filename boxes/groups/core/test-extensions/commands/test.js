@@ -27,7 +27,7 @@ module.exports = {
         default: true
       }).option('chain', {
         describe: 'chain to work on',
-        default: 'eos'
+        default: ''
       }).option('network', {
         describe: 'network to work on',
         default: 'development'
