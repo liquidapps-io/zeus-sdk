@@ -374,22 +374,20 @@ const nodeAutoFactory = async (serviceName) => {
       let authClient, AuthClientSetup;
       if (authentication && authentication.type === 'payer') {
         AuthClientSetup = requireBox('auth-dapp-service/tools/auth-client');
-        var apiID = `${paccount}-${serviceName}`;
-        authClient = new AuthClientSetup(apiID, authentication.contract);
+        authClient = new AuthClientSetup();
       }
 
-      apiCommands[apiName] = (async ({ apiName, apiHandler, authClient }, opts, res) => {
+      apiCommands[apiName] = (async ({ apiHandler, authClient }, opts, res) => {
         const sidechain = opts.body.sidechain;
         if (authentication && authentication.type === 'payer') {
-          var apiID = `${paccount}-${serviceName}`;
-          authClient = new AuthClientSetup(apiID, authentication.contract, null, null, sidechain);
+          authClient = new AuthClientSetup(null, null, null, sidechain);
         }
         try {
           if (!apiHandler)
             throw new Error('not implemented yet');
           if (authClient) {
             logger.info(`validating auth`);
-            await authClient.validate({ ...opts.body, req: opts.req, allowClientSide: false }, async ({ clientCode, payload, account, permission }) => {
+            await authClient.validate({ ...opts.body }, async ({ clientCode, payload, account, permission }) => {
               try {
                 let body = JSON.parse(payload);
                 body = {

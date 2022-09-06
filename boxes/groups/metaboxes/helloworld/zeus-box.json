@@ -10,6 +10,6 @@
   },
   "hooks": {},
   "dependencies": {
-    "sample-eos-cpp": "^1.0.0"
+    "templates-emptycontract-eos-cpp": "^1.0.0"
   }
 }

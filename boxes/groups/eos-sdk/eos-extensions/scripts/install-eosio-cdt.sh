@@ -2,6 +2,7 @@
 
 ARCH=$( uname )
 EOSIO_CDT_VERSION=1.8.1
+CDT_VERSION=3.0.0-rc3
 if [ "$ARCH" == "Darwin" ] ; then
     OS_NAME=MacOSX
     OS_VER=$(sw_vers -productVersion)
@@ -15,18 +16,16 @@ printf "\\nOS NAME: %s" "${OS_NAME}"
 printf "\\nOS VERSION: %s\\n" "${OS_VER}"
 
 function install_deb {
-    # https://github.com/EOSIO/eosio.cdt/releases/download/v1.8.0-rc2/eosio.cdt_1.8.0-rc2-ubuntu-18.04_amd64.deb
-    # https://github.com/EOSIO/eosio.cdt/releases/download/v1.6.3/eosio.cdt_1.6.3-1-ubuntu-18.04_amd64.deb
-    wget https://github.com/EOSIO/eosio.cdt/releases/download/v$1/eosio.cdt_$1-ubuntu-18.04_amd64.deb
-    sudo apt install -y ./eosio.cdt_$1-1-ubuntu-18.04_amd64.deb
-    rm ./eosio.cdt_$1-1-ubuntu-18.04_amd64.deb
+    wget https://github.com/AntelopeIO/cdt/releases/download/v$1/cdt_$1_amd64.deb
+    sudo apt install -y ./cdt_$1_amd64.deb
+    rm ./cdt_$1_amd64.deb
     printf "\\neosio.cdt installed.\\n"
 }
 
 function install_rpm {
-    wget https://github.com/EOSIO/eosio.cdt/releases/download/v$1/eosio.cdt-$1-1.el7.x86_64.rpm
-    sudo yum install -y ./eosio.cdt-$1-1.el7.x86_64.rpm
-    rm ./eosio.cdt-$1-1.el7.x86_64.rpm
+    wget https://github.com/eosnetworkfoundation/mandel.cdt/releases/download/v$1/cdt_$1_arm64.deb
+    sudo yum install -y ./cdt_$1_arm64.deb
+    rm ./cdt_$1_arm64.deb
     printf "\\neosio.cdt installed.\\n"
 }
 
@@ -60,7 +59,7 @@ if [ "$ARCH" == "Linux" ]; then
     ;;
     "elementary OS")
         if ! [ -x "$(command -v eosio-cpp)" ] ; then
-            install_deb ${EOSIO_CDT_VERSION}
+            install_deb ${CDT_VERSION}
         else 
             printf "\\neosio.cdt already installed.\\n"
         fi
@@ -84,19 +83,19 @@ if [ "$ARCH" == "Linux" ]; then
             exit 1
         fi
         if ! [ -x "$(command -v eosio-cpp)" ] ; then
-            install_deb ${EOSIO_CDT_VERSION}
+            install_deb ${CDT_VERSION}
         else 
             printf "\\neosio.cdt already installed.\\n"
         fi
     ;;
     "Ubuntu")
-    	if [ "${OS_MAJ}" -lt 16 ] ; then
-    		printf "You must be running Ubuntu 16.04.x or higher to install EOSIO.\\n"
+    	if [ "${OS_MAJ}" -lt 18 ] ; then
+    		printf "You must be running Ubuntu 18.04.x or higher to install EOSIO.\\n"
     		printf "Exiting now.\\n"
     		exit 1
     	fi
-        if ! [ -x "$(command -v eosio-cpp)" ] ; then
-            install_deb ${EOSIO_CDT_VERSION}
+        if ! [ -x "$(command -v cdt-cpp)" ] ; then
+            install_deb ${CDT_VERSION}
         else 
             printf "\\neosio.cdt already installed.\\n"
         fi
@@ -108,7 +107,7 @@ if [ "$ARCH" == "Linux" ]; then
     		exit 1
     	fi
         if ! [ -x "$(command -v eosio-cpp)" ] ; then
-            install_deb ${EOSIO_CDT_VERSION}
+            install_deb ${CDT_VERSION}
         else 
             printf "\\neosio.cdt already installed.\\n"
         fi

@@ -27,7 +27,7 @@ module.exports = {
         default: true
       }).option('chain', {
         describe: 'chain to work on',
-        default: 'eos'
+        default: ''
       }).option('network', {
         describe: 'network to work on',
         default: 'development'
@@ -73,7 +73,11 @@ module.exports = {
       })
       .option('enable-features', {
         describe: 'enables eosio features',
-        default: false
+        default: true
+      })
+      .option('enable-features-list', {
+        describe: 'enables eosio features, list: KV_DATABASE,ACTION_RETURN_VALUE,CONFIGURABLE_WASM_LIMITS,BLOCKCHAIN_PARAMETERS,ONLY_BILL_FIRST_AUTHORIZER,DISALLOW_EMPTY_PRODUCER_SCHEDULE,ONLY_LINK_TO_EXISTING_PERMISSION,FIX_LINKAUTH_RESTRICTION,RAM_RESTRICTIONS,REPLACE_DEFERRED,NO_DUPLICATE_DEFERRED_ID,RESTRICT_ACTION_TO_SELF,FORWARD_SETCODE,GET_SENDER,WEBAUTHN_KEY,CONFIGURABLE_WASM_LIMITS2,WTMSIG_BLOCK_SIGNATURES,GET_CODE_HASH,CRYPTO_PRIMITIVES,GET_BLOCK_NUM',
+        default: ''
       })
       .option('single-chain', {
         describe: 'run without LiquidX',
@@ -119,11 +123,21 @@ module.exports = {
         describe: 'external evm sister private key',
         default: ''
       })
+      .option('kill-services', {
+        describe: 'kill all current running nodes and services after running tests',
+        default: true
+      })
+      .option('legacy-cdt', {
+        describe: 'unbox cmake files using cdt version < 3.0.0',
+        default: false
+      })
       .example('$0 test contract')
       .example('$0 test')
+      .example('$0 test --kill-services')
       .example('$0 test contract -c')
       .example('$0 test -c')
-      .example('$0 test --services "ipfs,cron,oracle,sign"');
+      .example('$0 test --services "ipfs,cron,oracle,sign,vaccounts"')
+      .example('$0 test --services "ipfs,cron,oracle,sign,vaccounts" --chain eos --single-chain');
   },
   command: 'test [contract]',
 
@@ -165,6 +179,12 @@ module.exports = {
       console.log(emojMap.ok + 'tests ok');
     }
     catch (e) {
+      try {
+        if(args.killServices === true) {
+          console.log(emojMap.ok + 'shutting down nodeos and all other services');
+          await execPromise(`zeus start-localenv --kill`);
+        }
+      } catch(e) {}
       throw emojMap.white_frowning_face + 'Test failed';
     }
   }

@@ -478,7 +478,7 @@ const handleAction = async (actionHandlers, action, simulated, serviceName, hand
 };
 
 const rollBack = async (garbage, actionHandlers, serviceName, handlers) => {
-  return await Promise.all(garbage.map(async rollbackAction => {
+  return await Promise.allSettled(garbage.map(async rollbackAction => {
     try {
       return await processFn(actionHandlers, rollbackAction, true, serviceName, handlers);
     }
@@ -689,12 +689,13 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
     }
     catch (e) {
       await rollBack(garbage, actionHandlers, serviceName, handlers);
-      logger.error(`exception running push_transaction: ${e} original trx error ${typeof(detailMsg)=="object"?JSON.stringify(detailMsg):detailMsg} for endpoint ${endpoint} and uri: ${uri}`);
+      const originalTrx = typeof(detailMsg)=="object"?JSON.stringify(detailMsg):detailMsg
+      logger.error(`exception submitting transaction: ${e} original trx error ${originalTrx} for endpoint ${endpoint} and uri: ${uri}`);
       res.status(500);
       res.send(JSON.stringify({
         code: 500,
         error: {
-          details: [{ message: `${e.toString()}, endpoint: ${endpoint}`, response: rText }]
+          details: [{ message: `${e.toString()}, error: ${originalTrx}`, response: rText }]
         }
       }));
     }
@@ -710,7 +711,7 @@ const genNode = async (actionHandlers, port, serviceName, handlers, abi, sidecha
     let uri = req.originalUrl;
     const isServiceRequest = uri.indexOf('/event') === 0;
     const isServiceAPIRequest = uri.indexOf('/v1/dsp/') === 0;
-    const isPushTransaction = uri.indexOf('/v1/chain/push_transaction') === 0 || uri.indexOf('/v1/chain/send_transaction') === 0;
+    const isPushTransaction = uri.indexOf('/v1/chain/push_transaction') === 0 || uri.indexOf('/v1/chain/send_transaction') === 0 || uri.indexOf('/v1/chain/send_transaction2') === 0;
     const uriParts = uri.split('/');
     if (uri === '/v1/dsp/version')
       return res.send(pjson.version); // send response to contain the version
@@ -763,7 +764,9 @@ const genNode = async (actionHandlers, port, serviceName, handlers, abi, sidecha
 const genApp = () => {
   const limit = process.env.DSP_LIQUIDSTORAGE_UPLOAD_LIMIT || "10mb";
   const app = express();
-  app.use(cors());
+  app.use(cors({
+    origin: true
+  }));
   app.use(bodyParser.json({ limit }));
   // app.use(bodyParser.urlencoded({ limit, extended: true, parameterLimit: 10000 }));
   return app;
@@ -933,6 +936,14 @@ const getPayerPermissions = async (endpoint, dappContract, payer, provider, perm
   return authorization;
 }
 
+const arrayToHex = (data) => {
+  let result = '';
+  for (const x of data) {
+      result += ('00' + x.toString(16)).slice(-2);
+  }
+  return result;
+};
+
 const pushTransaction = async (endpoint, dappContract, payer, provider, action, payload, requestId = "", meta = {}, fail = false) => {
   dappContract = dappContract || dappServicesContract;
   var actions = [];
@@ -986,16 +997,47 @@ const pushTransaction = async (endpoint, dappContract, payer, provider, action, 
   }
 
   try {
-    let tx = await endpoint.transact({
-      actions
-    }, {
-      expireSeconds: 120,
-      sign: true,
-      broadcast: true,
-      blocksBehind: 10
-    });
+    let tx;
+    if(
+      Number(process.env.NODEOS_MANDEL_RETRY_BLOCKS) > 0 || 
+      (process.env.NODEOS_MANDEL_RETRY_IRREVERSIBLE && process.env.NODEOS_MANDEL_RETRY_IRREVERSIBLE.toString() === "true")
+    ) {
+      tx = await endpoint.transact({
+        actions
+      }, {
+        expireSeconds: Number(process.env.DSP_EOSIO_TRANSACTION_EXPIRATION) || 300,
+        sign: true,
+        broadcast: false,
+        blocksBehind: 10
+      });
+      let body = {
+          transaction: {
+              signatures:tx.signatures,
+              compression: "none",
+              packed_context_free_data: arrayToHex(tx.serializedContextFreeData || new Uint8Array(0)),
+              packed_trx: arrayToHex(tx.serializedTransaction),
+          },
+          return_failure_trace: false,
+          retry_trx: true
+      }
+      if(Number(process.env.NODEOS_MANDEL_RETRY_BLOCKS) > 0) {
+        body = {
+          ...body,
+          retry_trx_num_blocks: Number(process.env.NODEOS_MANDEL_RETRY_BLOCKS)
+        }
+      }
+      tx = await endpoint.rpc.fetch(`/v1/chain/send_transaction2`,body);
+    } else {
+      tx = await endpoint.transact({
+        actions
+      }, {
+        expireSeconds: 120,
+        sign: true,
+        broadcast: true,
+        blocksBehind: 10
+      });
+    }
     if (fail) {
-      logger.info(`expectedFailTx = ${JSON.stringify(expectedFailTx)}`);
       throw new Error('simulated trx expected to fail');
     }
     return tx;

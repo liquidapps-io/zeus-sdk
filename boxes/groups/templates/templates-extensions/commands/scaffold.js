@@ -11,7 +11,8 @@ module.exports = {
   command: 'scaffold <template_name>',
   handler: async (args) => {
     if(!fs.existsSync('contracts')) {
-        await execPromise('zeus compile');
+        await execPromise(`zeus compile ${args.legacyCdt ? '--legacy-cdt':''}`);
+        console.log(`Compiled contracts/eos/`);
     }
     await scaffold(args.templateName, args);
     if (fs.existsSync(`contracts/eos/${args.contractname}/main.cpp`)) {

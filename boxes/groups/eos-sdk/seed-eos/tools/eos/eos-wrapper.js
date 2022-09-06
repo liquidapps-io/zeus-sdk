@@ -7,10 +7,17 @@ const fetch = require('node-fetch'); // node only; not needed in browsers
 const { TextEncoder, TextDecoder } = require('util'); // node only; native TextEncoder/Decoder
 const { PushGuarantee } = require("eosio-push-guarantee");
 
+const arrayToHex = (data) => {
+    let result = '';
+    for (const x of data) {
+        result += ('00' + x.toString(16)).slice(-2);
+    }
+    return result;
+};
 
 function getEosWrapper(config) {
     const defaults = {
-        expireSeconds: process.env.DSP_EOSIO_TRANSACTION_EXPIRATION || 180,
+        expireSeconds: Number(process.env.DSP_EOSIO_TRANSACTION_EXPIRATION) || 300,
         sign: true,
         broadcast: true,
         blocksBehind: 3,
@@ -81,14 +88,49 @@ function getEosWrapper(config) {
                 }
                 let result;
                 try {
-                    result = await currentApi.transact({
-                        actions: [{
-                            account,
-                            name,
-                            authorization,
-                            data: transformedData,
-                        }]
-                    }, finalOpts);
+                    if(
+                      Number(process.env.NODEOS_MANDEL_RETRY_BLOCKS) > 0 || 
+                      (process.env.NODEOS_MANDEL_RETRY_IRREVERSIBLE && process.env.NODEOS_MANDEL_RETRY_IRREVERSIBLE.toString() === "true")
+                    ) {
+                        finalOpts = {
+                            ...finalOpts,
+                            broadcast: false
+                        }
+                        result = await currentApi.transact({
+                            actions: [{
+                                account,
+                                name,
+                                authorization,
+                                data: transformedData,
+                            }]
+                        }, finalOpts);
+                        let body = {
+                            transaction: {
+                                signatures:tx.signatures,
+                                compression: "none",
+                                packed_context_free_data: arrayToHex(tx.serializedContextFreeData || new Uint8Array(0)),
+                                packed_trx: arrayToHex(tx.serializedTransaction),
+                            },
+                            return_failure_trace: false,
+                            retry_trx: true
+                        }
+                        if(Number(process.env.NODEOS_MANDEL_RETRY_BLOCKS) > 0) {
+                          body = {
+                            ...body,
+                            retry_trx_num_blocks: Number(process.env.NODEOS_MANDEL_RETRY_BLOCKS)
+                          }
+                        }
+                        result = await currentApi.rpc.fetch(`/v1/chain/send_transaction2`,body);
+                    } else {
+                        result = await currentApi.transact({
+                            actions: [{
+                                account,
+                                name,
+                                authorization,
+                                data: transformedData,
+                            }]
+                        }, finalOpts);
+                    }
                 }
                 catch (e) {
                     if (e.json)

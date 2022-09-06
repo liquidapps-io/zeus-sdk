@@ -16,7 +16,8 @@ consumer_pays = false
 verbose_logs = false # enable for verbose logs
 allow_api_non_broadcast = false # enable to use the replay script or the cleanup script, be sure to disable afterwards to prevent gaming the endpoint
 max_request_retries = 10 # max retries to fetch an oracle request or ipfs warmup, or any other blocking DSP service action
-eosio_transaction_expiration = 180
+eosio_transaction_expiration = 300
+cluster_mode = false # use pm2 cluster mode https://pm2.keymetrics.io/docs/usage/cluster-mode/
 
 # LiquidScheduler related
 cron_schedule_retry_on_failure = false # retries schedule type intervals even if they fail by unrecognized error
@@ -88,6 +89,8 @@ host = "localhost"
 port = 8888
 secured = false
 latest = true # if using 2.0+ version of nodeos, true, if less than 2.0, false
+mandel_retry_blocks = 12 # number of blocks to pass before trx deemed successful, be sure to update --transaction-retry-max-expiration-sec to the nunber of blocks in your config.ini for nodeos 
+# mandel_retry_irreversible = false # can only use mandel_retry_blocks OR mandel_retry_irreversible
 
 # mainnet:
 chainid = "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906"
@@ -189,6 +192,8 @@ rinkeby_max_fee_per_gas = '500000000'
   #  nodeos_port = 8888 # nodeos host port
   #  nodeos_secured = false # nodeos secured bool (true: https, false: http)
   #  nodoes_latest = true # if using 2.0+ version of nodeos, true, if less than 2.0, false
+  #  nodeos_mandel_retry_blocks = 60 # enable if using mandel version of nodeos, aka 3.1+, be sure to update --transaction-retry-max-expiration-sec to the nunber of blocks in your config.ini for nodeos 
+  #  nodeos_mandel_irreversible = false # cannot be used with retry blocks, must choose one or the other, will retry until trx is irreversible, about 180s 
   #  nodeos_chainid = "" # chainid of new chain
   #  nodeos_websocket_port = 8887 # nodeos websocket port, can be same per nodeos instance
   #  webhook_dapp_port = 8113 # nodeos webhook port, must be unique per chain

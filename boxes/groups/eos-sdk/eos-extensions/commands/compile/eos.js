@@ -143,12 +143,12 @@ module.exports = async (args) => {
 
   }
 
-  const dockerImage = process.env.CDT_DOCKER || 'liquidapps/eosio-cdt:v1.6.1';
+  const dockerImage = process.env.CDT_DOCKER || 'natpdev/leap-cdt';
   try {
     var cmake = process.env.CMAKE;
     var make = process.env.MAKE;
     if (!cmake) {
-      if (!process.env.CDT_DOCKER && which.sync('eosio-cc', { nothrow: true })) {
+      if (!process.env.CDT_DOCKER && args.legacyCdt ? which.sync('eosio-cc', { nothrow: true }) : which.sync('cdt-cc', { nothrow: true }) ) {
         cmake = which.sync('cmake3', { nothrow: true });
         if (!cmake) { cmake = which.sync('cmake', { nothrow: true }); }
         make = which.sync('make', { nothrow: true });
@@ -158,14 +158,18 @@ module.exports = async (args) => {
     let localTools = {};
     if (cmake && cmake.indexOf('docker') !== -1) {
       localTools = {
-        CC: process.env.CC || which.sync('eosio-cc', { nothrow: true }),
-        CXX: process.env.CXX || which.sync('eosio-cpp', { nothrow: true })
+        CC: process.env.CC || args.legacyCdt ? which.sync('eosio-cc', { nothrow: true }) : which.sync('cdt-cc', { nothrow: true }),
+        CXX: process.env.CXX || args.legacyCdt ? which.sync('eosio-cpp', { nothrow: true }) : which.sync('cdt-cpp', { nothrow: true })
       };
     }
-    if(!which.sync('eosio-cpp', { nothrow: true })) {
-      throw new Error('install eosio-cpp')
+    if(!args.docker && !(args.legacyCdt ? which.sync('eosio-cpp', { nothrow: true }) : which.sync('cdt-cpp', { nothrow: true })) ) {
+      throw new Error('install cdt-cpp or cdt-cpp')
     }
-    let stdout = await execPromise(`${cmake || `docker run -e CXX=$CXX -e CC=$CC  -w /contracts -u $(id -u \$USER) --name zeus-make -i --rm -v ${path.resolve('./contracts/eos')}:/contracts ${dockerImage} cmake`} .`, {
+    let cmd = `${cmake || `docker run -e CXX=$CXX -e CC=$CC  -w /contracts -u $(id -u \$USER) --name zeus-make -i --rm -v ${path.resolve('./contracts/eos')}:/contracts ${dockerImage} cmake`} .`
+    if(args.docker){ 
+      cmd = `docker run -e CXX=$CXX -e CC=$CC  -w /contracts -u $(id -u \$USER) --name zeus-make -i --rm -v ${path.resolve('./contracts/eos')}:/contracts ${dockerImage} cmake .`
+    }
+    let stdout = await execPromise(cmd, {
       cwd: path.resolve('contracts/eos'),
       printOutStream: process.stdout,
       printErrStream: process.stderr,
@@ -176,7 +180,11 @@ module.exports = async (args) => {
         ...localTools
       }
     });
-    stdout = await execPromise(`${make || `docker run -w /contracts -u $(id -u \$USER) --name zeus-make -i --rm -v ${path.resolve('./contracts/eos')}:/contracts ${dockerImage} make clean`} ${args.contract ? args.contract : ''}`, {
+    cmd = `${make || `docker run -w /contracts -u $(id -u \$USER) --name zeus-make -i --rm -v ${path.resolve('./contracts/eos')}:/contracts ${dockerImage} make clean`} ${args.contract ? args.contract : ''}`
+    if(args.docker) {
+      cmd = `${`docker run -w /contracts -u $(id -u \$USER) --name zeus-make -i --rm -v ${path.resolve('./contracts/eos')}:/contracts ${dockerImage} make clean`} ${args.contract ? args.contract : ''}`
+    }
+    stdout = await execPromise(cmd, {
       cwd: path.resolve('contracts/eos'),
       printOutStream: process.stdout,
       printErrStream: process.stderr,
@@ -184,7 +192,11 @@ module.exports = async (args) => {
       printOutCB: processStdOut
     });
 
-    stdout = await execPromise(`${make || `docker run -w /contracts -u $(id -u\ $USER) --name zeus-make -i --rm -v ${path.resolve('./contracts/eos')}:/contracts ${dockerImage} make`} ${args.contract ? args.contract : ''}`, {
+    cmd = `${make || `docker run -w /contracts -u $(id -u\ $USER) --name zeus-make -i --rm -v ${path.resolve('./contracts/eos')}:/contracts ${dockerImage} make`} ${args.contract ? args.contract : ''}`
+    if(args.docker) {
+      cmd = `${`docker run -w /contracts -u $(id -u\ $USER) --name zeus-make -i --rm -v ${path.resolve('./contracts/eos')}:/contracts ${dockerImage} make`} ${args.contract ? args.contract : ''}`
+    }
+    stdout = await execPromise(cmd, {
       cwd: path.resolve('contracts/eos'),
       printOutStream: process.stdout,
       printErrStream: process.stderr,
@@ -195,6 +207,6 @@ module.exports = async (args) => {
     // await execPromise(`cp -rf contracts contracts`);
   } catch (e) {
     if (e.stderr && e.stderr.includes('No rule to make target')) throw new Error(`${emojMap.white_frowning_face} ${args.contract} was not found, please ensure the file exists`);
-    throw emojMap.white_frowning_face + 'eos contracts compile failed';
+    throw emojMap.white_frowning_face + 'eos contracts compile failed, if you want to use docker add --docker=true, or for an older cdt --legacy-cdt';
   }
 };

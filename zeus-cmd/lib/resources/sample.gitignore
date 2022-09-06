@@ -2,15 +2,15 @@ zeus_boxes/
 **/node_modules/
 **/dist/
 **/build/
-**/*.wasm
-**/*.abi
+**/Common/
 
 **/Makefile
 **/CMakeCache.txt
 **/CMakeFiles/**
 **/CMakeFiles
 **/cmake_install.cmake
-**/CMakeLists.txt
+**/.placeholder
+**/*-prefix
 
 .idea/
 .env

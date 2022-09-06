@@ -332,27 +332,44 @@ const enableEosioFeature = async (args, name, feature_digest, sidechain) => {
 }
 
 const eosioFeatures = [
-  {"KV_DATABASE": "825ee6288fb1373eab1b5187ec2f04f6eacb39cb3a97f356a07c91622dd61d16"},
-  {"ACTION_RETURN_VALUE": "c3a6138c5061cf291310887c0b5c71fcaffeab90d5deb50d3b9e687cead45071"},
-  {"CONFIGURABLE_WASM_LIMITS": "bf61537fd21c61a60e542a5d66c3f6a78da0589336868307f94a82bccea84e88"},
-  {"BLOCKCHAIN_PARAMETERS": "5443fcf88330c586bc0e5f3dee10e7f63c76c00249c87fe4fbf7f38c082006b4"},
   {"ONLY_BILL_FIRST_AUTHORIZER": "8ba52fe7a3956c5cd3a656a3174b931d3bb2abb45578befc59f283ecd816a405"},
   {"DISALLOW_EMPTY_PRODUCER_SCHEDULE": "68dcaa34c0517d19666e6b33add67351d8c5f69e999ca1e37931bc410a297428"},
   {"ONLY_LINK_TO_EXISTING_PERMISSION": "1a99a59d87e06e09ec5b028a9cbb7749b4a5ad8819004365d02dc4379a8b7241"},
   {"FIX_LINKAUTH_RESTRICTION": "e0fb64b1085cc5538970158d05a009c24e276fb94e1a0bf6a528b48fbc4ff526"},
   {"RAM_RESTRICTIONS": "4e7bf348da00a945489b2a681749eb56f5de00b900014e137ddae39f48f69d67"},
-  // disabled by default
-  // {"REPLACE_DEFERRED": "ef43112c6543b88db2283a2e077278c315ae2c84719a8b25f25cc88565fbea99"},
-  // {"NO_DUPLICATE_DEFERRED_ID": "4a90c00d55454dc5b059055ca213579c6ea856967712a56017487886a4d4cc0f"},
-  // {"RESTRICT_ACTION_TO_SELF": "ad9e3d8f650687709fd68f4b90b41f7d825a365b02c23a636cef88ac2ac00c43"},
-  // {"FORWARD_SETCODE": "2652f5f96006294109b3dd0bbde63693f55324af452b799ee137a81a905eed25"},
-  // {"GET_SENDER": "f0af56d2c5a48d60a4a5b5c903edfb7db3a736a94ed589d0b797df33ff9d3e1d"},
-  // {"WEBAUTHN_KEY": "4fca8bd82bbd181e714e283f83e1b45d95ca5af40fb89ad3977b653c448f78c2"},
+  {"GET_SENDER": "f0af56d2c5a48d60a4a5b5c903edfb7db3a736a94ed589d0b797df33ff9d3e1d"},
   {"WTMSIG_BLOCK_SIGNATURES": "299dcb6af692324b899b39f16d5a530a33062804e41f09dc97e9f156b4476707"},
+  {"REPLACE_DEFERRED": "ef43112c6543b88db2283a2e077278c315ae2c84719a8b25f25cc88565fbea99"},
+  {"WEBAUTHN_KEY": "4fca8bd82bbd181e714e283f83e1b45d95ca5af40fb89ad3977b653c448f78c2"},
+  {"GET_CODE_HASH": "bcd2a26394b36614fd4894241d3c451ab0f6fd110958c3423073621a70826e99"},
+  {"CRYPTO_PRIMITIVES": "6bcb40a24e49c26d0a60513b6aeb8551d264e4717f306b81a37a5afb3b47cedc"},
+  {"GET_BLOCK_NUM": "35c2186cc36f7bb4aeaf4487b36e57039ccf45a9136aa856a5d569ecca55ef2b"},
+  {"NO_DUPLICATE_DEFERRED_ID": "4a90c00d55454dc5b059055ca213579c6ea856967712a56017487886a4d4cc0f"}
 ]
 
-const enableEosioFeatures = async (args, name, sidechain, alternativeFeatureList = []) => {
-  const list = alternativeFeatureList.length ? alternativeFeatureList : eosioFeatures
+const eosioFeaturesAll = [
+  ...eosioFeatures,
+  // disabled by default
+  {"RESTRICT_ACTION_TO_SELF": "ad9e3d8f650687709fd68f4b90b41f7d825a365b02c23a636cef88ac2ac00c43"},
+  {"FORWARD_SETCODE": "2652f5f96006294109b3dd0bbde63693f55324af452b799ee137a81a905eed25"},
+  {"CONFIGURABLE_WASM_LIMITS2": "d528b9f6e9693f45ed277af93474fd473ce7d831dae2180cca35d907bd10cb40"},
+  {"KV_DATABASE": "825ee6288fb1373eab1b5187ec2f04f6eacb39cb3a97f356a07c91622dd61d16"},
+  {"ACTION_RETURN_VALUE": "c3a6138c5061cf291310887c0b5c71fcaffeab90d5deb50d3b9e687cead45071"},
+  {"CONFIGURABLE_WASM_LIMITS": "bf61537fd21c61a60e542a5d66c3f6a78da0589336868307f94a82bccea84e88"},
+  {"BLOCKCHAIN_PARAMETERS": "5443fcf88330c586bc0e5f3dee10e7f63c76c00249c87fe4fbf7f38c082006b4"},
+]
+
+const enableEosioFeatures = async (args, name, sidechain, alternativeFeatureList = '') => {
+  let list = eosioFeatures;
+  if(alternativeFeatureList.length > 0) {
+    list = [];
+    alternativeFeatureList = alternativeFeatureList.split(',');
+    for(let i = 0; i < eosioFeaturesAll.length; i++) {
+      if(alternativeFeatureList.includes(Object.keys(eosioFeaturesAll[i])[0]) === true) {
+        list.push(eosioFeaturesAll[i]);
+      }
+    }
+  }
   for(const el of list) {
     console.log(`${emojMap.zap}enabling: ${Object.keys(el)}`)
     await enableEosioFeature(args, name, el[Object.keys(el)], sidechain)

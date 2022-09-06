@@ -11,11 +11,13 @@ module.exports = class extends Generator {
         // Calling the super constructor is important so our generator is correctly set up
         super(args, opts);
         this.argument('servicename', { type: String, required: true });
+        this.argument('legacyCdt', { type: Boolean, required: false });
 
     }
 
     write1() {
         var name = _.kebabCase(this.options.servicename);
+        var legacyCdt = _.kebabCase(this.options.legacyCdt);
         this.options.consumercontractname = `${name}consumer`;
         this.options.serviceuppername = this.options.servicename.toUpperCase();
 
@@ -44,15 +46,15 @@ module.exports = class extends Generator {
         const toAppendContent = `\n
 # building:${name}\n
 ExternalProject_Add(
-   ${name}consumer
-   SOURCE_DIR ${name}consumer
-   BINARY_DIR ${name}consumer
-   CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=\${EOSIO_CDT_ROOT}/lib/cmake/eosio.cdt/EosioWasmToolchain.cmake
-   UPDATE_COMMAND ""
-   PATCH_COMMAND ""
-   TEST_COMMAND ""
-   INSTALL_COMMAND ""
-   BUILD_ALWAYS 1
+    ${name}consumer
+    SOURCE_DIR ${name}consumer
+    BINARY_DIR ${name}consumer
+    CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=${legacyCdt ? `\${EOSIO_CDT_ROOT}/lib/cmake/eosio.cdt/EosioWasmToolchain.cmake`:`\${CDT_ROOT}/lib/cmake/cdt/CDTWasmToolchain.cmake`}
+    UPDATE_COMMAND ""
+    PATCH_COMMAND ""
+    TEST_COMMAND ""
+    INSTALL_COMMAND ""
+    BUILD_ALWAYS 1
 )\n`;
         fs.writeFileSync(this.destinationPath('', 'contracts/eos/CMakeLists.txt'), originalContent.concat(toAppendContent));
     }

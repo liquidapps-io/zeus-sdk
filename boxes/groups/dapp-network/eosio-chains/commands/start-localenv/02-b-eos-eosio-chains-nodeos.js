@@ -15,8 +15,8 @@ var generateNodeos = async (model, args) => {
   var nodeosP2PPort = model.nodeos_p2p_port;
   var stateHistoryPort = model.nodeos_state_history_port;
   if(args.kill) {
-    await killIfRunning(nodeosPort);
     await dockerrm(`zeus-eosio-${name}`);
+    await killIfRunning(nodeosPort);
     return;
   }
 
@@ -29,16 +29,13 @@ var generateNodeos = async (model, args) => {
     '--plugin eosio::producer_plugin',
     '--plugin eosio::producer_api_plugin',
     '--disable-replay-opts',
-    '--plugin eosio::history_plugin',
     '--plugin eosio::chain_api_plugin',
     '--plugin eosio::chain_plugin',
-    '--plugin eosio::history_api_plugin',
     '--plugin eosio::http_plugin',
     '--delete-all-blocks',
     `--p2p-listen-endpoint 127.0.0.1:${nodeosP2PPort}`,
-    '--filter-on=*',
-    `-d ~/.zeus/nodeos-${name}/data`,
-    `--config-dir ~/.zeus/nodeos-${name}/config`,
+    `-d ${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/data`,
+    `--config-dir ${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/config`,
     `--http-server-address=0.0.0.0:${nodeosPort}`,
     '--access-control-allow-origin=*',
     '--contracts-console',
@@ -49,7 +46,7 @@ var generateNodeos = async (model, args) => {
     '--trace-history-debug-mode',
     '--delete-state-history',
     '--max-irreversible-block-age=-1',
-    `--genesis-json=${os.homedir()}/.zeus/nodeos-${name}/config/genesis.json`,
+    `--genesis-json=${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/config/genesis.json`,
     '--chain-threads=2',
     '--abi-serializer-max-time-ms=100',
     '--max-block-cpu-usage-threshold-us=50000'
@@ -74,7 +71,7 @@ var generateNodeos = async (model, args) => {
         nodeosArgs = [...nodeosArgs,
           '--trace-history',
           '--plugin eosio::state_history_plugin',
-        `--state-history-endpoint 0.0.0.0:${stateHistoryPort}`
+          `--state-history-endpoint 0.0.0.0:${stateHistoryPort}`
         ];
         ports = [...ports,
         `-p ${stateHistoryPort}:${stateHistoryPort}`
@@ -89,6 +86,16 @@ var generateNodeos = async (model, args) => {
     try {
       const res = await execPromise(`nodeos --version`, {});
       if (res < "v2.0.0") throw new Error();
+      if(res > "v3.0.0") {
+        nodeosArgs = [...nodeosArgs,
+          '--block-log-retain-blocks=1000',
+          '--state-history-log-retain-blocks=1000',
+          '--disable-subjective-billing=true',
+          // '--transaction-retry-max-expiration-sec=180',
+          // '--p2p-dedup-cache-expire-time-sec=3',
+          // '--transaction-retry-interval-sec=6'
+        ];
+      }
     }
     catch (e) {
       throw new Error('Nodeos versions < 2.0.0 not supported. See https://github.com/EOSIO/eos/releases');
@@ -96,11 +103,14 @@ var generateNodeos = async (model, args) => {
     await execPromise(`nohup nodeos ${nodeosArgs.join(' ')} >> ./logs/nodeos-${name}.log 2>&1 &`, { unref: true });
   }
   else {
-    var nodeos = process.env.DOCKER_NODEOS || 'liquidapps/eosio-plugins:v1.6.1';
-    await execPromise(`docker run --name zeus-eosio-${name} --rm -d ${ports.join(' ')} ${nodeos} /bin/bash -c "nodeos ${nodeosArgs.join(' ')}"`);
+    nodeosArgs[nodeosArgs.indexOf(`-d ${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/data`)] = `-d /home/ubuntu/.zeus/nodeos/data`
+    nodeosArgs[nodeosArgs.indexOf(`--config-dir ${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/config`)] = `--config-dir /home/ubuntu/.zeus/nodeos/config`
+    nodeosArgs[nodeosArgs.indexOf(`--genesis-json=${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/config/genesis.json`)] = `--genesis-json=/home/ubuntu/.zeus/nodeos/config/genesis.json`
+    var nodeos = process.env.DOCKER_NODEOS || 'natpdev/leap-cdt';
+    const volume = `${os.homedir()}:/home/ubuntu`
+    const cmd = `docker run --name zeus-eosio-${name} --rm -v ${volume} -d ${ports.join(' ')} ${nodeos} /bin/bash -c "nodeos ${nodeosArgs.join(' ')}"`
+    await execPromise(cmd);
   }
-
-
 }
 module.exports = async (args) => {
   if (args.creator !== 'eosio') { 

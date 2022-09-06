@@ -11,6 +11,9 @@ module.exports = {
       default: 'cpp'
     }).option('template', {
       default: 'emptycontract'
+    }).option('legacy-cdt', {
+      describe: 'unbox cmake files using cdt version < 3.0.0',
+      default: false
     }).example('$0 create contract testcontract --chain=eos --language=cpp --template=emptycontract');
   },
   command: 'contract <contractname>',

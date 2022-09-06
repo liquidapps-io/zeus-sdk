@@ -10,7 +10,7 @@ const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-servi
 
 var contractCode = 'oracleconsumer';
 var ctrt = artifacts.require(`./${contractCode}/`);
-describe(`History Oracle Service Test`, () => {
+describe.skip(`History Oracle Service Test`, () => {
   var testcontract;
   const code = 'testselfhis';
   before(done => {

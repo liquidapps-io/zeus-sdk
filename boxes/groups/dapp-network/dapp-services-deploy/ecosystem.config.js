@@ -101,6 +101,8 @@ const DSP_AWS_KMS_ACCESS_KEY_ID = globalEnv.DSP_AWS_KMS_ACCESS_KEY_ID || '';
 const DSP_AWS_KMS_SECRET_ACCESS_KEY = globalEnv.DSP_AWS_KMS_SECRET_ACCESS_KEY || '';
 const DSP_AWS_KMS_REGION = globalEnv.DSP_AWS_KMS_REGION || '';
 const DSP_AWS_KMS_KEY_ID = globalEnv.DSP_AWS_KMS_KEY_ID || '';
+const DSP_CLUSTER_MODE = globalEnv.DSP_CLUSTER_MODE || false;
+
 const DATABASE_NODE_ENV = globalEnv.DATABASE_NODE_ENV || 'production';
 const DATABASE_TIMEOUT = globalEnv.DATABASE_TIMEOUT || 10000;
 
@@ -112,6 +114,8 @@ const NODEOS_HOST = globalEnv.NODEOS_HOST || 'localhost';
 const NODEOS_PORT = globalEnv.NODEOS_PORT || 8888;
 const NODEOS_SECURED = globalEnv.NODEOS_SECURED || false;
 const NODEOS_LATEST = globalEnv.NODEOS_LATEST || true;
+const NODEOS_MANDEL_RETRY_BLOCKS = globalEnv.NODEOS_MANDEL_RETRY_BLOCKS || 0;
+const NODEOS_MANDEL_RETRY_IRREVERSIBLE = globalEnv.NODEOS_MANDEL_RETRY_IRREVERSIBLE || false;
 
 // Liquidstorage
 const DSP_LIQUIDSTORAGE_UPLOAD_LIMIT = globalEnv.DSP_LIQUIDSTORAGE_UPLOAD_LIMIT || "10mb";
@@ -216,6 +220,7 @@ const ORACLES_PREFIXES = globalEnv.ORACLES_PREFIXES || '';
 if (['state_history_plugin'].indexOf(DEMUX_BACKEND) === -1) throw new Error("DEMUX_BACKEND must be 'state_history_plugin'");
 if (['http', 'https'].indexOf(IPFS_PROTOCOL) === -1) throw new Error("IPFS_PROTOCOL must be either 'http' or 'https'");
 if ([true, false].indexOf(NODEOS_SECURED) === -1) throw new Error("NODEOS_SECURED must be either true or false");
+if (NODEOS_MANDEL_RETRY_BLOCKS > 0 && NODEOS_MANDEL_RETRY_IRREVERSIBLE) throw new Error("NODEOS_MANDEL_RETRY_BLOCKS cannot be used with NODEOS_MANDEL_RETRY_IRREVERSIBLE");
 
 const { lstatSync, readdirSync } = fs;
 const { join } = require('path');
@@ -244,6 +249,8 @@ let commonEnv = {
   NODEOS_PORT,
   NODEOS_SECURED,
   NODEOS_LATEST,
+  NODEOS_MANDEL_RETRY_BLOCKS,
+  NODEOS_MANDEL_RETRY_IRREVERSIBLE,
   IPFS_HOST,
   IPFS_PORT,
   IPFS_PROTOCOL,
@@ -374,6 +381,14 @@ if(EVM_ETHEREUM_KEYS_PER_CONSUMER) {
   })
 }
 
+let clusterParams;
+if(DSP_CLUSTER_MODE) {
+  clusterParams = {
+    instances : "max",
+    exec_mode : "cluster"
+  }
+}
+
 const createDSPSidechainServices = (sidechain) => {
   // Assert .env
   const reqFields = ['dsp_account', 'nodeos_chainid', 'name'];
@@ -396,6 +411,8 @@ const createDSPSidechainServices = (sidechain) => {
     NODEOS_PORT: sidechain.nodeos_port || 8888,
     NODEOS_SECURED: sidechain.nodeos_secured || false,
     NODEOS_LATEST: sidechain.nodeos_latest || true,
+    NODEOS_MANDEL_RETRY_BLOCKS: sidechain.nodeos_mandel_retry_blocks || 0,
+    NODEOS_MANDEL_RETRY_IRREVERSIBLE: sidechain.NODEOS_MANDEL_RETRY_IRREVERSIBLE || false,
     NODEOS_CHAINID: sidechain.nodeos_chainid,
     DSP_PORT: sidechain.dsp_port || 3116,
     DSP_ACCOUNT_PERMISSIONS: sidechain.dsp_account_permissions || 'active',
@@ -407,6 +424,7 @@ const createDSPSidechainServices = (sidechain) => {
       name: `${sidechain.name}-dapp-services-node`,
       script: path.join(getBoxesDir(), getBoxName(`services/dapp-services-node/index.js`),  'services', 'dapp-services-node', 'index.js'),
       autorestart: true,
+      ...clusterParams,
       cwd: __dirname,
       log_date_format: "YYYY-MM-DDTHH:mm:ss",
       env: {
@@ -421,6 +439,7 @@ const createDSPSidechainServices = (sidechain) => {
         name: `${sidechain.name}-dfuse`,
         script: path.join(getBoxesDir(), 'dfuse', `dist`, 'services', 'dfuse', 'index.js'),
         autorestart: true,
+        ...clusterParams,
         cwd: __dirname,
         log_date_format: "YYYY-MM-DDTHH:mm:ss",
         env: {
@@ -438,6 +457,7 @@ const createDSPSidechainServices = (sidechain) => {
         name: `${sidechain.name}-demux`,
         script: path.join(getBoxesDir(), 'demux',  'services', 'demux', 'index.js'),
         autorestart: true,
+        ...clusterParams,
         cwd: __dirname,
         log_date_format: "YYYY-MM-DDTHH:mm:ss",
         env: {
@@ -466,6 +486,7 @@ const createDSPServiceApp = (name) => {
     name: `${name}-dapp-service-node`,
     script: path.join(getBoxesDir(), getBoxName(`services/${name}-dapp-service-node/index.js`),  'services', `${name}-dapp-service-node`, 'index.js'),
     autorestart: true,
+    ...clusterParams,
     cwd: __dirname,
     log_date_format: "YYYY-MM-DDTHH:mm:ss",
     env: {
@@ -494,6 +515,7 @@ const apps = [
     name: 'dapp-services-node',
     script: path.join(getBoxesDir(), getBoxName(`services/dapp-services-node/index.js`),  'services', `dapp-services-node`, 'index.js'),
     autorestart: true,
+    ...clusterParams,
     cwd: __dirname,
     log_date_format: "YYYY-MM-DDTHH:mm:ss",
     env: {
@@ -512,6 +534,7 @@ if(DFUSE_ENABLE) {
       name: 'dfuse',
       script: path.join(getBoxesDir(), 'dfuse', `dist`, 'services', 'dfuse', 'index.js'),
       autorestart: true,
+      ...clusterParams,
       cwd: __dirname,
       log_date_format: "YYYY-MM-DDTHH:mm:ss",
       env: {
@@ -526,6 +549,7 @@ if(DFUSE_ENABLE) {
     name: 'demux',
     script: path.join(getBoxesDir(), 'demux',  'services', `demux`, 'index.js'),
     autorestart: true,
+    ...clusterParams,
     cwd: __dirname,
     log_date_format: "YYYY-MM-DDTHH:mm:ss",
     env: {

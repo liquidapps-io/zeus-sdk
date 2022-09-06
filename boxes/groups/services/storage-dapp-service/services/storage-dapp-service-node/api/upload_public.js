@@ -4,7 +4,7 @@ const { getContractAccountFor } = requireBox('dapp-services/tools/eos/dapp-servi
 const { unpack, saveDirToIPFS, saveToIPFS } = requireBox('storage-dapp-service/services/storage-dapp-service-node/common');
 const logger = requireBox('log-extensions/helpers/logger');
 
-module.exports = async (body, state, model, { account, permission, clientCode }) => {
+module.exports = async (body, state, model, { account, permission }) => {
     let { data, archive, sidechain, contract, options } = body;
 
     if (account !== contract) throw new Error('not allowed');
@@ -25,7 +25,15 @@ module.exports = async (body, state, model, { account, permission, clientCode })
         uri = await saveToIPFS(data, rawLeaves);
         length = data.byteLength;
     }
-    await emitUsage(sidechain ? await getLinkedAccount(null, null, contract, sidechain.name) : contract, getContractAccountFor(model), length, { uri })
+    await emitUsage(
+        sidechain ? 
+            await getLinkedAccount(null, null, contract, sidechain.name) 
+            : 
+            contract, 
+        getContractAccountFor(model), 
+        length, 
+        { uri }
+    )
 
     return { uri };
 }

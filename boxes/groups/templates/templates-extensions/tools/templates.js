@@ -19,7 +19,7 @@ const scaffold = async (name, zeusargs) => {
     keyArg = keyArgs[i];
     if (zeusargs[keyArg]) { optionals[keyArg] = zeusargs[keyArg]; }
   }
-  await execPromise(`node_modules/.bin/yo ./zeus_boxes/templates-emptycontract-eos-cpp/templates/${name}/generators/app ${args.join(' ')} ${Object.keys(optionals).map(a => `--${a} ${args[a]}`).join(' ')}`);
+  await execPromise(`node_modules/.bin/yo ./zeus_boxes/templates-emptycontract-eos-cpp/templates/${name}/generators/app ${args.join(' ')} ${Object.keys(optionals).map((a,i) => `--${a} ${args[i]}`).join(' ')}`);
 };
 
 module.exports = { scaffold };

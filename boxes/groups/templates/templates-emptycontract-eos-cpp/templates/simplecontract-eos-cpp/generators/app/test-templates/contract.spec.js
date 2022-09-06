@@ -16,10 +16,11 @@ let deployedContract;
 
 describe(`${contractCode} Contract`, () => {
     const code = '<%- contractname %>';
+    let tableHelper;
     before(done => {
         (async () => {
             try {
-                await deployer.deploy(ctrt, code);
+                tableHelper = await deployer.deploy(ctrt, code);
                 const keys = await getCreateAccount(code);
                 const eosTestAcc = getEosWrapper({
                   keyProvider: keys.active.privateKey,
@@ -34,10 +35,10 @@ describe(`${contractCode} Contract`, () => {
         })();
     });
 
-    it('test', done => {
+    it('test assert', done => {
         (async () => {
             try {
-                await deployedContract.print({
+                await deployedContract.testassert({
                     message: "hello"
                 }, {
                   authorization: `${code}@active`,
@@ -47,7 +48,7 @@ describe(`${contractCode} Contract`, () => {
                 
                 let failed = false;
                 try {
-                    await deployedContract.print({
+                    await deployedContract.testassert({
                         message: "nothello"
                     }, {
                       authorization: `${code}@active`,
@@ -61,6 +62,47 @@ describe(`${contractCode} Contract`, () => {
                 
                 const newAccountKeys = await getCreateAccount("newaccount");
                 
+                done();
+            }
+            catch (e) {
+                done(e);
+            }
+        })();
+    });
+
+    it('test console print', done => {
+        (async () => {
+            try {
+                const message = "testing";
+                const res = await deployedContract.testprint({
+                    message
+                }, {
+                  authorization: `${code}@active`,
+                  broadcast: true,
+                  sign: true
+                });
+                const console_print = res.processed.action_traces[0].console;
+                assert(console_print,message);
+                done();
+            }
+            catch (e) {
+                done(e);
+            }
+        })();
+    });
+
+    it('test get table', done => {
+        (async () => {
+            try {
+                const res = await tableHelper.eos.getTableRows({
+                    code: "eosio.token",
+                    scope: code,
+                    table: "accounts",
+                    json: true
+                });
+                // console.log(res.rows[0]);
+                const balance = res.rows[0].balance.replace(' SYS', '');
+                assert.equal(balance, '1000.0000');
                 done();
             }
             catch (e) {

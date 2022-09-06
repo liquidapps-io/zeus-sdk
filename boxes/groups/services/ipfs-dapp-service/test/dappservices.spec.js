@@ -447,9 +447,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
           table: 'accounts',
           json: true,
         });
-        console.log(table);
         const balance0 = parseFloat(table.rows[0].balance.replace(' DAPP', ''));
-        console.log('balance0',balance0);
         await servicesTokenContract.transfer({
           from: testContractAccount,
           to: testContractAccount2,
@@ -465,9 +463,7 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
           table: 'accounts',
           json: true,
         });
-        console.log(table);
         const balance1 = parseFloat(table.rows[0].balance.replace(' DAPP', ''));
-        console.log('balance1',balance1);
         assert(balance1 < balance0, 'balance should have increased');
         await servicesTokenContract.addbl({
           account: testContractAccount
@@ -480,8 +476,6 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
           table: 'blacklist',
           json: true,
         });
-        console.log(table);
-        console.log('here')
         try {
           await servicesTokenContract.transfer({
             from: testContractAccount,
@@ -493,9 +487,6 @@ describe(`DAPP Services Provider & Packages Tests`, () => {
             keyProvider: [keys.active.privateKey]
           });
         } catch(e) {
-          console.log(e);
-          console.log(e.details);
-          console.log(e.message);
         }
         await servicesTokenContract.rmbl({
           account: testContractAccount
