@@ -117,7 +117,6 @@ describe(`LiquidStorage Test`, async () => {
           data,
           key,
           permission,
-          null,
           options
         );
         assert.equal(
@@ -143,7 +142,6 @@ describe(`LiquidStorage Test`, async () => {
           data,
           key,
           permission,
-          null,
           options
         );
         const res = await fetch('http://localhost:13015/v1/dsp/liquidstorag/get_uri', {
@@ -261,7 +259,6 @@ describe(`LiquidStorage Test`, async () => {
           key,
           permission,
           'tar',
-          null,
           options
         );
         assert.equal(
@@ -405,7 +402,6 @@ describe(`LiquidStorage Test`, async () => {
           data,
           key,
           permission,
-          null,
           options
         );
         assert.equal(

@@ -15,8 +15,8 @@ module.exports = async (args) => {
     return;
   } // only local
   if(args.kill) {
-    await killIfRunning();
     await dockerrm('zeus-eosio');
+    await killIfRunning();
     return;
   }
 
@@ -33,8 +33,8 @@ module.exports = async (args) => {
     '--plugin eosio::chain_plugin',
     '--plugin eosio::http_plugin',
     '--delete-all-blocks',
-    '-d ~/.zeus/nodeos/data',
-    '--config-dir ~/.zeus/nodeos/config',
+    `-d ${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/data`,
+    `--config-dir ${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/config`,
     '--http-server-address=0.0.0.0:8888',
     '--access-control-allow-origin=*',
     '--contracts-console',
@@ -46,7 +46,7 @@ module.exports = async (args) => {
     '--delete-state-history',
     '--wasm-runtime=eos-vm',
     '--max-irreversible-block-age=-1',
-    `--genesis-json=${os.homedir()}/.zeus/nodeos/config/genesis.json`,
+    `--genesis-json=${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/config/genesis.json`,
     '--chain-threads=2',
     '--abi-serializer-max-time-ms=100',
     '--max-block-cpu-usage-threshold-us=50000'
@@ -111,9 +111,13 @@ module.exports = async (args) => {
     await execPromise(`nohup nodeos ${nodeosArgs.join(' ')} >> ./logs/nodeos.log 2>&1 &`, { unref: true });
   }
   else {
-    throw new Error("install nodeos");
-    // var nodeos = process.env.DOCKER_NODEOS || 'liquidapps/eosio-plugins:v1.6.1';
-    // await execPromise(`docker run --name zeus-eosio --rm -d ${ports.join(' ')} ${nodeos} /bin/bash -c "nodeos ${nodeosArgs.join(' ')}"`);
+    nodeosArgs[nodeosArgs.indexOf(`-d ${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/data`)] = `-d /home/ubuntu/.zeus/nodeos/data`
+    nodeosArgs[nodeosArgs.indexOf(`--config-dir ${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/config`)] = `--config-dir /home/ubuntu/.zeus/nodeos/config`
+    nodeosArgs[nodeosArgs.indexOf(`--genesis-json=${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/config/genesis.json`)] = `--genesis-json=/home/ubuntu/.zeus/nodeos/config/genesis.json`
+    var nodeos = process.env.DOCKER_NODEOS || 'natpdev/leap-cdt';
+    const volume = `${os.homedir()}:/home/ubuntu`
+    const cmd = `docker run --name zeus-eosio --rm -v ${volume} -d ${ports.join(' ')} ${nodeos} /bin/bash -c "nodeos ${nodeosArgs.join(' ')}"`
+    await execPromise(cmd);
   }
 };
 

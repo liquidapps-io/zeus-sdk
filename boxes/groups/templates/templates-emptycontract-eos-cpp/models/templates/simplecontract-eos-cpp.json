@@ -2,10 +2,12 @@
     "name": "simplecontract-eos-cpp",
     "args":[
         "contractname",
-        "templateName"
+        "templateName",
+        "legacyCdt"
     ],
     "optionals":[
         "contractname",
-        "templateName"
+        "templateName",
+        "legacyCdt"
     ]
 }

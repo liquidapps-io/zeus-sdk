@@ -66,7 +66,7 @@ module.exports = async (args) => {
     if(args.enableFeatures) {
       await preactiveChain(sidechain);
       await uploadSystemContract(args, 'eosio', 'eosio.boot', sidechain);
-      await enableEosioFeatures(args, 'eosio', sidechain);
+      await enableEosioFeatures(args, 'eosio', sidechain, args.enableFeaturesList);
       await uploadSystemContract(args, 'eosio', 'eosio.system', sidechain)	
       await setPriv(args, sidechain);
     } else {

@@ -383,7 +383,12 @@ module.exports = {
     }).option('update', {
       // describe: '',
       default: true
-    }).example('$0 unbox seed --test --no-update');
+    }).option('legacy-cdt', {
+      describe: 'unbox cmake files using cdt version < 3.0.0',
+      default: false
+    })
+    .example('$0 unbox seed --test --no-update')
+    .example('$0 unbox seed --legacy-cdt');
   },
   command: 'unbox [boxes..]',
   handler

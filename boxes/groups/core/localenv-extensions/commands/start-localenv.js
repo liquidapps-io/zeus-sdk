@@ -57,7 +57,11 @@ module.exports = {
       })
       .option('enable-features', {
         describe: 'enables eosio features',
-        default: false
+        default: true
+      })
+      .option('enable-features-list', {
+        describe: 'enables eosio features, list: KV_DATABASE,ACTION_RETURN_VALUE,CONFIGURABLE_WASM_LIMITS,BLOCKCHAIN_PARAMETERS,ONLY_BILL_FIRST_AUTHORIZER,DISALLOW_EMPTY_PRODUCER_SCHEDULE,ONLY_LINK_TO_EXISTING_PERMISSION,FIX_LINKAUTH_RESTRICTION,RAM_RESTRICTIONS,REPLACE_DEFERRED,NO_DUPLICATE_DEFERRED_ID,RESTRICT_ACTION_TO_SELF,FORWARD_SETCODE,GET_SENDER,WEBAUTHN_KEY,CONFIGURABLE_WASM_LIMITS2,WTMSIG_BLOCK_SIGNATURES,GET_CODE_HASH,CRYPTO_PRIMITIVES,GET_BLOCK_NUM',
+        default: ''
       })
       .option('single-chain', {
         describe: 'run without LiquidX',

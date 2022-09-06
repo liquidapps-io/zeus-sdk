@@ -15,7 +15,6 @@ export default class LiquidStorageService extends DSPServiceClient {
         buffer: any,
         key: any,
         permission:string = "uploader",
-        apiID?:string,
         options: {
             // if true, DAG leaves will contain raw file data and not be wrapped in a protobuf
             rawLeaves?: boolean
@@ -23,7 +22,6 @@ export default class LiquidStorageService extends DSPServiceClient {
     )  => {
         options.rawLeaves == false ? false : true;
         return await this.auth.invokeAuthedCall({ 
-            apiID, 
             payload: { 
                 data: buffer.toString('base64'), 
                 contract: this.contract, 
@@ -42,7 +40,6 @@ export default class LiquidStorageService extends DSPServiceClient {
         key: any,
         permission:string = "uploader",
         format:string = `tar`,
-        apiID?:string,
         options: {
             // if true, DAG leaves will contain raw file data and not be wrapped in a protobuf
             rawLeaves?:boolean
@@ -50,7 +47,6 @@ export default class LiquidStorageService extends DSPServiceClient {
     )  => {
         options.rawLeaves == false ? false : true;
         return await this.auth.invokeAuthedCall({ 
-            apiID, 
             payload: {
                 archive: 
                     { 
@@ -97,10 +93,9 @@ export default class LiquidStorageService extends DSPServiceClient {
     public unpin = async (
         uri: any,
         key: any,
-        permission:string = "deleter",
-        apiID?:string
+        permission:string = "deleter"
     )  => {
-        return await this.auth.invokeAuthedCall({ apiID, payload: { uri, contract: this.contract }, service: serviceContract, account:this.contract, permission, key, action: "unpin"});
+        return await this.auth.invokeAuthedCall({ payload: { uri, contract: this.contract }, service: serviceContract, account:this.contract, permission, key, action: "unpin"});
     }
 
 }

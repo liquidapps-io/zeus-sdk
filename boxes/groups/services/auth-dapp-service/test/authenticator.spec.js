@@ -4,35 +4,34 @@ require('mocha');
 const { assert } = require('chai'); // Using Assert style
 const { requireBox } = require('@liquidapps/box-utils');
 const { getCreateKeys } = requireBox('eos-keystore/helpers/key-utils');
-const { getNetwork, getCreateAccount } = requireBox('seed-eos/tools/eos/utils');
 
 const artifacts = requireBox('seed-eos/tools/eos/artifacts');
 const deployer = requireBox('seed-eos/tools/eos/deployer');
 const { genAllocateDAPPTokens } = requireBox('dapp-services/tools/eos/dapp-services');
+const { getNetwork, getCreateAccount, getEos,getLocalDSPEos } = requireBox('seed-eos/tools/eos/utils');
 
-
-var contractCode = 'authenticator';
-var ctrt = artifacts.require(`./${contractCode}/`);
-var AuthClient = requireBox('auth-dapp-service/tools/auth-client');
+const contractCode = 'authenticator';
+const ctrt = artifacts.require(`./${contractCode}/`);
+const AuthClient = requireBox('auth-dapp-service/tools/auth-client');
 const code = 'authentikeos';
-var apiID = 'ssAuthAPI';
+const apiID = 'ssAuthAPI';
 
-var authClient = new AuthClient(apiID,
+const authClient = new AuthClient(
   code,
-  "aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906",
+  "0065e5c9f6008f54fb79853a3c8c9b031d05ff1678fa44c00197618ebc612d24",
   'http://localhost:13015' // use DSP service to authenticate
 );
-describe.skip(`Auth DAPP Service Test Contract`, () => {
-  var dspeos;
+describe(`Auth DAPP Service Test Contract`, () => {
+  let dspeos;
   before(done => {
     (async () => {
       try {
-        var deployedContract = await deployer.deploy(ctrt, code);
+        let deployedContract = await deployer.deploy(ctrt, code);
 
         await genAllocateDAPPTokens(deployedContract, 'auth');
         // create token
-        const { getLocalDSPEos } = requireBox('seed-eos/tools/eos/utils');
-        dspeos = await getLocalDSPEos(code);
+        const eos = await getEos('eosio');
+        dspeos = await eos.contract('eosio');
 
         done();
       }
@@ -42,20 +41,20 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
     })();
   });
 
-  var account = code;
+  let account = code;
   it('Authed call - permission - non-existing', done => {
     (async () => {
       try {
-        var testUser = "testuse11"
+        let testUser = "testuse11"
 
-        var keys = await getCreateAccount(testUser);
-        var permission = "none";
-        var testnum = 123;
+        let keys = await getCreateAccount(testUser);
+        let permission = "none";
+        let testnum = 123;
         try {
           await authClient.invokeAuthedCall({ payload: { testnum }, account: testUser, permission, keys });
         }
         catch (e) {
-          assert.equal(e.message, "Error: action's authorizations include a non-existent permission: {permission}");
+          assert.equal(e.error.name, `unsatisfied_authorization`);
           done();
           return;
         }
@@ -69,11 +68,11 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
   it('Authed call - active permission', done => {
     (async () => {
       try {
-        var testUser = "testuser1"
-        var keys = await getCreateAccount(testUser);
-        var permission = "active";
-        var testnum = 123;
-        var res = await authClient.invokeAuthedCall({ payload: { testnum }, account: testUser, permission, keys });
+        let testUser = "testuser1"
+        let keys = await getCreateAccount(testUser);
+        let permission = "active";
+        let testnum = 123;
+        let res = await authClient.invokeAuthedCall({ payload: { testnum }, account: testUser, permission, keys });
         assert.equal(res.permission, permission);
         done();
       }
@@ -85,17 +84,17 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
   it('Authed call - api permission', done => {
     (async () => {
       try {
-        var testUser = "testuser2"
-        var keys = await getCreateAccount(testUser);
-        var apikeys = await getCreateKeys("randomkey1");
-        var permission = "api";
+        let testUser = "testuser2"
+        let keys = await getCreateAccount(testUser);
+        let apikeys = await getCreateKeys("randomkey1");
+        let permission = "api";
         await dspeos.updateauth({
           account: testUser,
           permission,
           parent: 'active',
           auth: {
             threshold: 1,
-            keys: [{ key: apikeys.publicKey, weight: 1 }],
+            keys: [{ key: apikeys.active.publicKey, weight: 1 }],
             accounts: [],
             waits: []
           }
@@ -113,8 +112,8 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
           keyProvider: [keys.active.privateKey]
         });
 
-        var testnum = 123;
-        var res = await authClient.invokeAuthedCall({ payload: { testnum }, account: testUser, permission, keys: apikeys });
+        let testnum = 123;
+        let res = await authClient.invokeAuthedCall({ payload: { testnum }, account: testUser, permission, keys: apikeys });
         assert.equal(res.permission, permission);
 
         done();
@@ -127,20 +126,19 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
   it('Authed call - api permission - wrong key', done => {
     (async () => {
       try {
-        var testUser = "testuser3"
-        var keys = await getCreateAccount(testUser);
-        var apikeys = await getCreateKeys("randomkey2");
-        var permission = "api";
+        let testUser = "testuser3"
+        let keys = await getCreateAccount(testUser);
+        let apikeys = await getCreateKeys("randomkey2");
+        let permission = "api";
         await dspeos.updateauth({
           account: testUser,
           permission,
           parent: 'active',
           auth: {
             threshold: 1,
-            keys: [{ key: apikeys.publicKey, weight: 1 }],
+            keys: [{ key: apikeys.active.publicKey, weight: 1 }],
             accounts: [],
             waits: []
-
           }
         }, {
           authorization: `${testUser}@active`,
@@ -155,12 +153,12 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
           authorization: `${testUser}@active`,
           keyProvider: [keys.active.privateKey]
         });
-        var testnum = 123;
+        let testnum = 123;
         try {
           await authClient.invokeAuthedCall({ payload: { testnum }, account: testUser, permission, keys });
         }
         catch (e) {
-          assert.include(e.message, `transaction declares authority \'{"actor":"${testUser}","permission":"${permission}"}\', but does not have signatures for it under`);
+          assert.equal(e.error.name, "unsatisfied_authorization");
           done();
           return;
         }
@@ -171,45 +169,4 @@ describe.skip(`Auth DAPP Service Test Contract`, () => {
       }
     })();
   });
-  it('Anonymous call', done => {
-    (async () => {
-      try {
-        var testUser = "............"
-        var permission = "api";
-        var testnum = 123;
-        var keys = await getCreateAccount("randomkey5");
-
-        var res = await authClient.invokeClientAuthedCall({ payload: { testnum }, permission, keys });
-        assert.equal(res.permission, permission);
-        done();
-      }
-      catch (e) {
-        done(e);
-      }
-    })();
-  });
-  it('Anonymous call to authed API', done => {
-    (async () => {
-      try {
-        var permission = "api";
-        var testnum = 123;
-        var keys = await getCreateAccount("randomke22");
-        try {
-          await authClient.invokeClientAuthedCall({ payload: { testnum }, permission, keys });
-        }
-        catch (e) {
-          assert.equal(e.message, "Error: anonymous actions not allowed");
-          done();
-          return;
-        }
-        throw new Error('should have failed auth');
-      }
-      catch (e) {
-        done(e);
-      }
-    })();
-  });
-
-
-
 });

@@ -18,6 +18,12 @@ module.exports = {
       }).option('phase', {
         describe: 'select compile option [dapp-services-eos, eos]',
         default: ''
+      }).option('docker', {
+        describe: 'enable to use docker',
+        default: false
+      }).option('legacy-cdt', {
+        describe: 'unbox cmake files using cdt version < 3.0.0',
+        default: false
       }).example('$0 compile --all').example('$0 compile helloworld');
   },
   command: 'compile [contract]',

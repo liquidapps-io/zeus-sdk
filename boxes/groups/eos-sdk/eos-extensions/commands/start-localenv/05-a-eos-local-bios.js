@@ -51,6 +51,7 @@ module.exports = async (args) => {
       await sleep(500);
     }
   }
+  if(tries == 0) console.log('nodeos not running? try adding --docker=true');
   await uploadSystemContract(args, 'eosio.token')
   await uploadSystemContract(args, 'eosio.msig')
   let eos = await getEos('eosio.token', args)
@@ -68,7 +69,7 @@ module.exports = async (args) => {
   if(args.enableFeatures) {
     await preactiveChain();
     await uploadSystemContract(args, 'eosio', 'eosio.boot')
-    await enableEosioFeatures(args, 'eosio');
+    await enableEosioFeatures(args, 'eosio', null, args.enableFeaturesList);
     await uploadSystemContract(args, 'eosio', 'eosio.system')
     await setPriv(args);
   } else {

@@ -11,10 +11,14 @@ module.exports = class extends Generator {
         // Calling the super constructor is important so our generator is correctly set up
         super(args, opts);
         this.argument('contractname', { type: String, required: true });
+        this.argument('templateName', { type: String, required: true });
+        this.argument('legacyCdt', { type: Boolean, required: false });
     }
 
     write1() {
         var name = _.kebabCase(this.options.contractname);
+        var legacyCdt = _.kebabCase(this.options.legacyCdt);
+        var templateName = _.kebabCase(this.options.templateName);
         this.fs.copyTpl(
             this.templatePath('**'),
             this.destinationPath(`contracts/eos/${name}/`),
@@ -23,7 +27,7 @@ module.exports = class extends Generator {
 
         this.fs.copyTpl(
             path.resolve(`zeus_boxes/templates-emptycontract-eos-cpp/templates/${templateName}/generators/app/test-templates/contract.spec.js`),
-            this.destinationPath(`zeus_boxes/test/${name}.spec.js`),
+            this.destinationPath(`test/${name}.spec.js`),
             this.options
         );
 
@@ -36,7 +40,7 @@ ExternalProject_Add(
     ${name}
     SOURCE_DIR ${name}
     BINARY_DIR ${name}
-    CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=\${EOSIO_CDT_ROOT}/lib/cmake/eosio.cdt/EosioWasmToolchain.cmake
+    CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=${legacyCdt ? `\${EOSIO_CDT_ROOT}/lib/cmake/eosio.cdt/EosioWasmToolchain.cmake`:`\${CDT_ROOT}/lib/cmake/cdt/CDTWasmToolchain.cmake`}
     UPDATE_COMMAND ""
     PATCH_COMMAND ""
     TEST_COMMAND ""
