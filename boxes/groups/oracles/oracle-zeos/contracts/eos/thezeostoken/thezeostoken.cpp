@@ -5,7 +5,7 @@ thezeostoken::thezeostoken(name self, name code, datastream<const char *> ds) :
 {
 }
 
-void thezeostoken::setvk(const name& code, const name& id, const vector<uint8_t>& vk)
+void thezeostoken::setvk(const name& code, const name& id, const string& vk)
 {
     require_auth(code);
     
@@ -39,18 +39,14 @@ void thezeostoken::setvk(const name& code, const name& id, const vector<uint8_t>
 
 void thezeostoken::verifyproof(const string& type, const name& code, const name& id, const string& proof, const string& inputs)
 {
-    /* TODO: this check should not be commented out! I only did this because of a DAPP error caused by the transfer key for whatever reason
-    PROBABLY BECAUSE OF NOT ENOUGH RAM TO LOAD THE KEY FROM VRAM TO EOS RAM???
     vk_t vks(get_self(), code.value);
     auto c = vks.find(id.value);
     check(c != vks.end(), "vk id doesn't exist");
-    */
+
     string str = "zeos_verify_proof://";
     str.append(type);
     str.append("/");
-    str.append(code.to_string());
-    str.append("/");
-    str.append(id.to_string());
+    str.append(c->vk);
     str.append("/");
     str.append(proof);
     str.append("/");

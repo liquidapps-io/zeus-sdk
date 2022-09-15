@@ -15,25 +15,25 @@ function hex2Bytes(hex)
 }
 
 module.exports = async ({ proto, address }) => {
-  // Format:
-  // zeos_verify_proof://halo2|groth16/thezeostoken/testkeyzeos1/[..]/[..]
-  //        proto       |             address
-  
+
   // split address to extract parameters
   const payloadParts = address.split('/');
   let idx = 0;
-  var type = payloadParts[idx++];       // 'groth16' or 'halo2'
-  var vk_code = payloadParts[idx++];
-  var vk_id = payloadParts[idx++];
+  var type = payloadParts[idx++]; // 'groth16' or 'halo2'
+  var vk_ipfs_uri = payloadParts[idx++];
   var proof_str = payloadParts[idx++];
   var inputs_str = payloadParts[idx++];
 
   // fetch verifier key from vram
   // TODO: for zeus use port 13015, for live environment on DSPs use port 3115
-  let dappClient = await createClient({ httpEndpoint: `http://localhost:${process.env.DSP_PORT || 3115}`, fetch });
-  let vramClient = await dappClient.service("ipfs", "thezeostoken");
-  var response = await vramClient.get_vram_row("thezeostoken", vk_code, "vk", vk_id);
-  var vk_str = response.row.vk;
+  //process.env.DSP_PORT = 13015;
+  const response = await fetch(`http://localhost:${process.env.DSP_PORT || 3115}` + '/v1/dsp/liquidstorag/get_uri', {
+    method: 'POST',
+    mode: 'cors',
+    body: JSON.stringify({ uri: 'ipfs://' + vk_ipfs_uri })
+  });
+  const resJson = await response.json();
+  var vk_str = Buffer.from(resJson.data, 'base64').toString();
   
   var res = false;
   await zeos.then(m => {
