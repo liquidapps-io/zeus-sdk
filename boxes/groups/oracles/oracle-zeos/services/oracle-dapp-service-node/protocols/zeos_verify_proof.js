@@ -22,9 +22,10 @@ module.exports = async ({ proto, address }) => {
   var type = payloadParts[idx++]; // 'groth16' or 'halo2'
   var vk_ipfs_uri = payloadParts[idx++];
   var proof_str = payloadParts[idx++];
+  var inline_proof = payloadParts[idx++];
   var inputs_str = payloadParts[idx++];
 
-  // fetch verifier key from vram
+  // fetch verifier key from liquid storage
   // TODO: for zeus use port 13015, for live environment on DSPs use port 3115
   //process.env.DSP_PORT = 13015;
   const response = await fetch(`http://localhost:${process.env.DSP_PORT || 3115}` + '/v1/dsp/liquidstorag/get_uri', {
@@ -35,6 +36,18 @@ module.exports = async ({ proto, address }) => {
   const resJson = await response.json();
   var vk_str = Buffer.from(resJson.data, 'base64').toString();
   
+  // fetch proof from liquid storage if it is not passed inline
+  if(inline_proof == "0")
+  {
+    const _response = await fetch(`http://localhost:${process.env.DSP_PORT || 3115}` + '/v1/dsp/liquidstorag/get_uri', {
+      method: 'POST',
+      mode: 'cors',
+      body: JSON.stringify({ uri: 'ipfs://' + proof_str })
+    });
+    const _resJson = await _response.json();
+    proof_str = Buffer.from(_resJson.data, 'base64').toString();
+  }
+
   var res = false;
   await zeos.then(m => {
     switch(type)

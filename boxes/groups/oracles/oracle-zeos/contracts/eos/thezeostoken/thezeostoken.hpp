@@ -171,6 +171,7 @@ CONTRACT_START()
                        const name& code,
                        const name& id,
                        const string& proof,
+                       const bool& inline_proof,
                        const string& inputs);
 
     // init

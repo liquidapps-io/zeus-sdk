@@ -37,7 +37,7 @@ void thezeostoken::setvk(const name& code, const name& id, const string& vk)
     }
 }
 
-void thezeostoken::verifyproof(const string& type, const name& code, const name& id, const string& proof, const string& inputs)
+void thezeostoken::verifyproof(const string& type, const name& code, const name& id, const string& proof, const bool& inline_proof, const string& inputs)
 {
     vk_t vks(get_self(), code.value);
     auto c = vks.find(id.value);
@@ -49,7 +49,7 @@ void thezeostoken::verifyproof(const string& type, const name& code, const name&
     str.append(c->vk);
     str.append("/");
     str.append(proof);
-    str.append("/");
+    inline_proof ? str.append("/1/") : str.append("/0/");
     str.append(inputs);
 
     //uint32_t dsp_count = 0;
