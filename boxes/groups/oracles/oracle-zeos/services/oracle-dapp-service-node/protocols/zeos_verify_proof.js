@@ -22,7 +22,6 @@ module.exports = async ({ proto, address }) => {
   var type = payloadParts[idx++]; // 'groth16' or 'halo2'
   var vk_ipfs_uri = payloadParts[idx++];
   var proof_str = payloadParts[idx++];
-  var inline_proof = payloadParts[idx++];
   var inputs_str = payloadParts[idx++];
 
   // fetch verifier key from liquid storage
@@ -37,7 +36,7 @@ module.exports = async ({ proto, address }) => {
   var vk_str = Buffer.from(resJson.data, 'base64').toString();
   
   // fetch proof from liquid storage if it is not passed inline
-  if(inline_proof == "0")
+  if(proof_str.substr(0, 1) == "z")
   {
     const _response = await fetch(`http://localhost:${process.env.DSP_PORT || 3115}` + '/v1/dsp/liquidstorag/get_uri', {
       method: 'POST',
