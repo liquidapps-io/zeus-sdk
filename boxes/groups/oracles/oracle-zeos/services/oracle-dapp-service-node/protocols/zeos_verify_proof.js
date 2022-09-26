@@ -26,7 +26,7 @@ module.exports = async ({ proto, address }) => {
 
   // fetch verifier key from liquid storage
   // TODO: for zeus use port 13015, for live environment on DSPs use port 3115
-  //process.env.DSP_PORT = 13015;
+  process.env.DSP_PORT = 13015;
   const response = await fetch(`http://localhost:${process.env.DSP_PORT || 3115}` + '/v1/dsp/liquidstorag/get_uri', {
     method: 'POST',
     mode: 'cors',
@@ -57,6 +57,10 @@ module.exports = async ({ proto, address }) => {
 
       case "groth16":
         res = m.verify_groth16_proof(hex2Bytes(proof_str), hex2Bytes(inputs_str), hex2Bytes(vk_str));
+        break;
+
+      case "zeos":
+        res = m.verify_zeos_proof(hex2Bytes(proof_str), hex2Bytes(inputs_str), hex2Bytes(vk_str));
         break;
 
       default:

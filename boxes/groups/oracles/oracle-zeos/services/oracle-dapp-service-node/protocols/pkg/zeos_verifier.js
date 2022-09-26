@@ -61,6 +61,23 @@ module.exports.verify_groth16_proof = function(proof, inputs, vk) {
     return ret !== 0;
 };
 
+/**
+* @param {Uint8Array} proof
+* @param {Uint8Array} inputs
+* @param {Uint8Array} vk
+* @returns {boolean}
+*/
+module.exports.verify_zeos_proof = function(proof, inputs, vk) {
+    const ptr0 = passArray8ToWasm0(proof, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray8ToWasm0(inputs, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passArray8ToWasm0(vk, wasm.__wbindgen_malloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ret = wasm.verify_zeos_proof(ptr0, len0, ptr1, len1, ptr2, len2);
+    return ret !== 0;
+};
+
 module.exports.__wbindgen_throw = function(arg0, arg1) {
     throw new Error(getStringFromWasm0(arg0, arg1));
 };
