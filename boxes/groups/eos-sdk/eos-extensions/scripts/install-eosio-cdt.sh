@@ -2,7 +2,7 @@
 
 ARCH=$( uname )
 EOSIO_CDT_VERSION=1.8.1
-CDT_VERSION=3.0.0-rc3
+CDT_VERSION=3.0.1
 if [ "$ARCH" == "Darwin" ] ; then
     OS_NAME=MacOSX
     OS_VER=$(sw_vers -productVersion)

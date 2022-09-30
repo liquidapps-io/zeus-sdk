@@ -1,7 +1,12 @@
 {
     "networks": {
         "mainnet": "https://mainnet.eosn.io",
-        "kylin": "https://kylin-dsp-2.liquidapps.io",
-        "jungle": "https://jungle2.cryptolions.io:443"
+        "kylin": "https://kylin-dsp-1.liquidapps.io",
+        "jungle3": "https://jungle3.eosn.io",
+        "jungle4": "https://jungle4.eosn.io",
+        "waxtest": "https://waxtest.eosn.io",
+        "wax": "https://wax.eosn.io",
+        "telos": "https://telos.eosn.io",
+        "telostest": "https://telostest.eosn.io"
     }
 }
