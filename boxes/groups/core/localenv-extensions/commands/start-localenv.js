@@ -115,6 +115,10 @@ module.exports = {
       .option('phase', {
         describe: 'phase of local env step to start',
         default: ''
+      })
+      .option('docker', {
+        describe: 'enable to use docker',
+        default: false
       }).example(`$0 ${cmd}`);
   },
   command: cmd,

@@ -128,7 +128,11 @@ module.exports = {
         default: true
       })
       .option('legacy-cdt', {
-        describe: 'unbox cmake files using cdt version < 3.0.0',
+        describe: 'compile cmake files using cdt version < 3.0.0',
+        default: false
+      })
+      .option('docker', {
+        describe: 'enable to use docker',
         default: false
       })
       .example('$0 test contract')
@@ -177,6 +181,12 @@ module.exports = {
         printErrStream: process.stderr
       });
       console.log(emojMap.ok + 'tests ok');
+      try {
+        if(args.killServices === true) {
+          console.log(emojMap.ok + 'shutting down nodeos and all other services');
+          await execPromise(`zeus start-localenv --kill`);
+        }
+      } catch(e) {}
     }
     catch (e) {
       try {
