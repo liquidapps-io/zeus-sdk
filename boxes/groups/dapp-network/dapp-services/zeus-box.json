@@ -8,6 +8,7 @@
     "seed-microservices": "^1.0.0",
     "core-extensions": "^1.0.0",
     "demux": "^1.0.0",
+    "firehose": "^1.0.0",
     "dfuse": "^1.0.0",
     "seed-eos": "^1.0.0",
     "events": "^1.0.0",
@@ -22,7 +23,6 @@
       "allservices": true
     },
     "npm": {
-      "@dfuse/client": "^0.3.0",
       "big-integer": "^1.6.36",
       "bytebuffer": "^5.0.1",
       "cors": "^2.8.4",

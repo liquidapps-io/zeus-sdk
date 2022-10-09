@@ -6,8 +6,8 @@ import { getClient } from "./client";
         console.log(row);
         // {
         //     id: 9,
-        //     api_endpoint: 'https://kylin-dsp-2.liquidapps.io',
-        //     package_json_uri: 'https://kylin-dsp-2.liquidapps.io/package1.dsp-package.json',
+        //     api_endpoint: 'https://kylin-dsp-1.liquidapps.io',
+        //     package_json_uri: 'https://kylin-dsp-1.liquidapps.io/package1.dsp-package.json',
         //     package_id: 'package1',
         //     service: 'ipfsservice1',
         //     provider: 'heliosselene',

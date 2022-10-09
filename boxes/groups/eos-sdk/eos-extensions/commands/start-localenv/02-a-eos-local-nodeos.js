@@ -14,15 +14,22 @@ module.exports = async (args) => {
   if (args.creator !== 'eosio') { 
     return;
   } // only local
+  await Promise.all([
+    dockerrm('zeus-eosio'),
+    killIfRunning(8888),
+    killIfRunning(13035),
+    killIfRunning(13010),
+    killIfRunning(13011),
+    killIfRunning(13012),
+    killIfRunning(1065),
+    addLoggingConfig(),
+    addGenesisConfig(),
+  ])
   if(args.kill) {
-    await dockerrm('zeus-eosio');
-    await killIfRunning();
     return;
   }
 
   // add logging.json if doesnt exist
-  await addLoggingConfig();
-  await addGenesisConfig();
   var nodeosArgs = [
     '-e',
     '-p eosio',
@@ -34,7 +41,7 @@ module.exports = async (args) => {
     '--plugin eosio::http_plugin',
     '--delete-all-blocks',
     `-d ${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/data`,
-    `--config-dir ${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/config`,
+    args.backend == 'firehose' ? '' : `--config-dir ${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/config`,
     '--http-server-address=0.0.0.0:8888',
     '--access-control-allow-origin=*',
     '--contracts-console',
@@ -44,12 +51,22 @@ module.exports = async (args) => {
     '--verbose-http-errors',
     '--trace-history-debug-mode',
     '--delete-state-history',
-    '--wasm-runtime=eos-vm',
+    '--wasm-runtime=eos-vm-jit',
     '--max-irreversible-block-age=-1',
     `--genesis-json=${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/config/genesis.json`,
     '--chain-threads=2',
     '--abi-serializer-max-time-ms=100',
     '--max-block-cpu-usage-threshold-us=50000'
+  ];
+  const dfuseeosArgs = [
+    `--skip-checks=true`,
+    `--firehose-grpc-listen-addr=":13035"`,
+    `--mindreader-nodeos-api-addr=":8888"`,
+    `--config-file=""`,
+    `--data-dir=${args.docker ? '/home/ubuntu' : os.homedir()}/.dfuseeos`,
+    `--blockmeta-eos-api-extra-addr=":8888"`,
+    `--merger-time-between-store-lookups=1s`,
+    `--merger-writers-leeway=1s`
   ];
   var ports = [
     '-p 8888:8888',
@@ -66,7 +83,7 @@ module.exports = async (args) => {
   }
   if (dappservices) {
     // console.log('Initing dappservices plugins');
-    var backend = process.env.DEMUX_BACKEND || 'state_history_plugin';
+    var backend = args.backend;
     var { dappServicesContract } = dappservices;
     switch (backend) {
       case 'state_history_plugin':
@@ -79,12 +96,18 @@ module.exports = async (args) => {
           '-p 8887:8887'
         ];
         break;
+      case 'firehose':
+        nodeosArgs = [...nodeosArgs,
+          '--deep-mind'
+        ];
+        ports = [...ports,
+        `-p 13035:13035`
+        ];
+        break;
     }
   }
 
-  await dockerrm('zeus-eosio');
-  await killIfRunning();
-  if (!process.env.DOCKER_NODEOS && which.sync('nodeos', { nothrow: true })) {
+  if (!args.docker) {
     try {
       const res = await execPromise(`nodeos --version`, {});
       if (res < "v2.0.0") throw new Error();
@@ -108,15 +131,25 @@ module.exports = async (args) => {
     catch (e) {
 
     }
-    await execPromise(`nohup nodeos ${nodeosArgs.join(' ')} >> ./logs/nodeos.log 2>&1 &`, { unref: true });
-  }
-  else {
+    if(args.backend=='firehose' && !args.basicEnv){
+      await execPromise(`dfuseeos purge -f --data-dir=${args.docker ? '/home/ubuntu' : os.homedir()}/.dfuseeos`);
+      await execPromise(`nohup nodeos ${nodeosArgs.join(' ')} | dfuseeos start mindreader-stdin relayer merger firehose  ${dfuseeosArgs.join(' ')} >> ./logs/nodeos.log 2>&1 &`, { unref: true });
+    } else {
+      await execPromise(`nohup nodeos ${nodeosArgs.join(' ')} >> ./logs/nodeos.log 2>&1 &`, { unref: true });
+    }
+  } else {
+    let cmd;
+    const volume = `${os.homedir()}:/home/ubuntu`
     nodeosArgs[nodeosArgs.indexOf(`-d ${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/data`)] = `-d /home/ubuntu/.zeus/nodeos/data`
     nodeosArgs[nodeosArgs.indexOf(`--config-dir ${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/config`)] = `--config-dir /home/ubuntu/.zeus/nodeos/config`
     nodeosArgs[nodeosArgs.indexOf(`--genesis-json=${args.docker ? '/home/ubuntu' : os.homedir()}/.zeus/nodeos/config/genesis.json`)] = `--genesis-json=/home/ubuntu/.zeus/nodeos/config/genesis.json`
-    var nodeos = process.env.DOCKER_NODEOS || 'natpdev/leap-cdt';
-    const volume = `${os.homedir()}:/home/ubuntu`
-    const cmd = `docker run --name zeus-eosio --rm -v ${volume} -d ${ports.join(' ')} ${nodeos} /bin/bash -c "nodeos ${nodeosArgs.join(' ')}"`
+    var nodeos = process.env.DOCKER_NODEOS || 'natpdev/leap-cdt-dfuseeos';
+    if(args.backend=='firehose' && !args.basicEnv){
+      dfuseeosArgs[dfuseeosArgs.indexOf(`--data-dir=${args.docker ? '/home/ubuntu' : os.homedir()}/.dfuseeos`)] = `-d /home/ubuntu/.dfuseeos`
+      cmd = `docker run --name zeus-eosio --rm -v ${volume} -d ${ports.join(' ')} ${nodeos} /bin/bash -c "dfuseeos purge -f --data-dir=${args.docker ? '/home/ubuntu' : os.homedir()}/.dfuseeos; nodeos ${nodeosArgs.join(' ')} | dfuseeos start mindreader-stdin relayer merger firehose ${dfuseeosArgs.join(' ')}"`
+    } else {
+      cmd = `docker run --name zeus-eosio --rm -v ${volume} -d ${ports.join(' ')} ${nodeos} /bin/bash -c "nodeos ${nodeosArgs.join(' ')}"`
+    }
     await execPromise(cmd);
   }
 };
@@ -130,9 +163,9 @@ const dockerrm = async (name) => {
   }
 };
 
-const killIfRunning = async (status) => {
+const killIfRunning = async (port) => {
   try {
-    await kill(8888);
+    await kill(port);
   }
   catch (e) { }
 };
@@ -198,54 +231,155 @@ const addGenesisConfig = async () => {
 const loggingJson = {
   "includes": [],
   "appenders": [{
-    "name": "consoleout",
-    "type": "console",
-    "args": {
-      "stream": "std_out",
-      "level_colors": [{
-        "level": "debug",
-        "color": "green"
+      "name": "stderr",
+      "type": "console",
+      "args": {
+        "format": "${timestamp} ${thread_name} ${context} ${file}:${line} ${method} ${level}]  ${message}",
+        "stream": "std_error",
+        "level_colors": [{
+            "level": "debug",
+            "color": "green"
+          },{
+            "level": "warn",
+            "color": "brown"
+          },{
+            "level": "error",
+            "color": "red"
+          }
+        ],
+        "flush": true
       },
-      {
-        "level": "warn",
-        "color": "brown"
+      "enabled": true
+    },{
+      "name": "stdout",
+      "type": "console",
+      "args": {
+        "format": "${message}",
+        "stream": "std_out",
+        "level_colors": [{
+            "level": "debug",
+            "color": "green"
+          },{
+            "level": "warn",
+            "color": "brown"
+          },{
+            "level": "error",
+            "color": "red"
+          }
+        ],
+        "flush": true
       },
-      {
-        "level": "error",
-        "color": "red"
-      }
-      ]
-    },
-    "enabled": true
-  },
-  {
-    "name": "net",
-    "type": "gelf",
-    "args": {
-      "endpoint": "10.10.10.10",
-      "host": "test"
-    },
-    "enabled": true
-  }
+      "enabled": true
+    },{
+      "name": "net",
+      "type": "gelf",
+      "args": {
+        "endpoint": "10.10.10.10:12201",
+        "host": "host_name",
+        "_network": "jungle"
+      },
+      "enabled": true
+    }
   ],
   "loggers": [{
-    "name": "default",
+      "name": "default",
+      "level": "debug",
+      "enabled": true,
+      "additivity": false,
+      "appenders": [
+        "stderr",
+        "net"
+      ]
+    },{
+      "name": "net_plugin_impl",
+      "level": "info",
+      "enabled": true,
+      "additivity": false,
+      "appenders": [
+        "stderr",
+        "net"
+      ]
+    },{
+      "name": "http_plugin",
+      "level": "debug",
+      "enabled": true,
+      "additivity": false,
+      "appenders": [
+        "stderr",
+        "net"
+      ]
+    },{
+      "name": "producer_plugin",
+      "level": "debug",
+      "enabled": true,
+      "additivity": false,
+      "appenders": [
+        "stderr",
+        "net"
+      ]
+    },{
+      "name": "transaction_success_tracing",
+      "level": "debug",
+      "enabled": true,
+      "additivity": false,
+      "appenders": [
+        "stderr",
+        "net"
+      ]
+    },{
+      "name": "transaction_failure_tracing",
+      "level": "debug",
+      "enabled": true,
+      "additivity": false,
+      "appenders": [
+        "stderr",
+        "net"
+      ]
+    },{
+      "name": "trace_api",
+      "level": "debug",
+      "enabled": true,
+      "additivity": false,
+      "appenders": [
+        "stderr",
+        "net"
+      ]
+    },{
+      "name": "transaction_trace_success",
+      "level": "info",
+      "enabled": true,
+      "additivity": false,
+      "appenders": [
+        "stderr",
+        "net"
+      ]
+    },{
+      "name": "transaction_trace_failure",
+      "level": "info",
+      "enabled": true,
+      "additivity": false,
+      "appenders": [
+        "stderr",
+        "net"
+      ]
+    },{
+    "name": "state_history",
     "level": "info",
     "enabled": true,
     "additivity": false,
     "appenders": [
-      "consoleout",
+      "stderr",
       "net"
-    ]
-  },
-  {
-    "name": "net_plugin_impl",
-    "level": "info",
-    "enabled": true,
-    "additivity": false,
-    "appenders": [
-      "net"
-    ]
-  }
+      ]
+    },{
+      "name": "transaction",
+      "level": "info",
+      "enabled": true,
+      "additivity": false,
+      "appenders": [
+        "stderr",
+        "net"
+      ]
+    }
   ]
 }

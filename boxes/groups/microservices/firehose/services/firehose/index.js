@@ -2,7 +2,7 @@
 
 if (process.env.DAEMONIZE_PROCESS) { require('daemonize-process')(); }
 
-var backend = process.env.DFUSE_BACKEND || 'dfuse';
+var backend = process.env.FIREHOSE_BACKEND || 'firehose';
 const express = require('express');
 
 require(`./backends/${backend}`);
@@ -12,4 +12,4 @@ const genApp = () => {
 };
 
 const appWebHookListener = genApp();
-appWebHookListener.listen(process.env.PORT || 3195, () => console.log(`dfuse listening on port ${process.env.PORT || 3195}!`));
+appWebHookListener.listen(process.env.PORT || 3195, () => console.log(`firehose listening on port ${process.env.PORT || 3195}!`));

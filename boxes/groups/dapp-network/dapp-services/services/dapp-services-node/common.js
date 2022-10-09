@@ -23,55 +23,6 @@ const dspGatewayMainnetEndpoint = process.env.DSP_GATEWAY_MAINNET_ENDPOINT || 'h
 const nodeosLatest = process.env.NODEOS_LATEST || true;
 const maxReqRetries = parseInt(process.env.DSP_MAX_REQUEST_RETRIES || 10);
 
-//dfuse settings
-const mainnetDfuseEnable = process.env.DFUSE_PUSH_ENABLE || false;
-const mainnetDfuseGuarantee = process.env.DFUSE_PUSH_GUARANTEE || 'in-block';
-const mainnetDfuseApiKey = process.env.DFUSE_API_KEY || '';
-const mainnetDfuseNetwork = process.env.DFUSE_NETWORK || 'mainnet';
-
-const WebSocketClient = require("ws");
-const { createDfuseClient } = require("@dfuse/client");
-
-
-async function webSocketFactory(url, protocols) {
-  const webSocket = new WebSocketClient(url, protocols, {
-    handshakeTimeout: 30 * 1000, // 30s
-    maxPayload: 200 * 1024 * 1000 * 1000 // 200Mb
-  })
-  const onUpgrade = (response) => {
-    logger.debug(`Socket upgrade response status code. ${response.statusCode}`)
-
-    // You need to remove the listener at some point since this factory
-    // is called at each reconnection with the remote endpoint!
-    webSocket.removeListener("upgrade", onUpgrade)
-  }
-  webSocket.on("upgrade", onUpgrade)
-  return webSocket
-}
-
-const dfuseClientAuth = process.env.DFUSE_AUTHORIZATION ? true : false
-
-const client = mainnetDfuseApiKey ? createDfuseClient({ authorization: dfuseClientAuth, apiKey: mainnetDfuseApiKey, network: mainnetDfuseNetwork,
-  httpClientOptions: {
-    fetch
-  },
-  graphqlStreamClientOptions: {
-    socketOptions: {
-      // The WebSocket factory used for GraphQL stream must use this special protocols set
-      // We intend on making the library handle this for you automatically in the future,
-      // for now, it's required otherwise, the GraphQL will not connect correctly.
-      webSocketFactory: (url) => webSocketFactory(url, ["graphql-ws"]),
-      reconnectDelayInMs: 250 // document every 5s
-    }
-  },
-  streamClientOptions: {
-    socketOptions: {
-      // webSocketFactory: (url) => webSocketFactory(url)
-      webSocketFactory: (url) => webSocketFactory(url)
-    }
-  }
-}) : '';
-
 const proxy = httpProxy.createProxyServer();
 proxy.on('error', function (err, req, res) {
   if (err) {
@@ -173,11 +124,7 @@ function decodeName(value, littleEndian = true) {
 const eosMainnet = async () => {
   const mainnetConfig = {
     httpEndpoint: nodeosMainnetEndpoint,
-    keyProvider: mainnetDspKey,
-    dfuseEnable: mainnetDfuseEnable,
-    dfuseGuarantee: mainnetDfuseGuarantee,
-    dfusePushApiKey: mainnetDfuseApiKey ? await getDfuseJwt() : '',
-    dfuseNetwork: mainnetDfuseNetwork
+    keyProvider: mainnetDspKey
   }
   return getEosWrapper(mainnetConfig);
 }
@@ -199,21 +146,7 @@ const getEosForSidechain = async (sidechain, account = paccount, dspEndpoint = n
     httpEndpoint: dspEndpoint ? `http://localhost:${sidechain.dsp_port}` : sidechain.nodeos_endpoint, //TODO: do we need to check for https?
     keyProvider: process.env[`DSP_PRIVATE_KEY_${sidechain.name.toUpperCase()}`] || (await getCreateKeys(account, null, nodeosLatest.toString() === "true" ? true : false, sidechain)).active.privateKey //TODO: any reason not to include authorization here?
   }
-  if(!dspEndpoint) {
-    config = {
-      ...config,
-      dfuseEnable: [`DFUSE_PUSH_ENABLE_${sidechain.name.toUpperCase()}`],
-      dfuseGuarantee: [`DFUSE_PUSH_GUARANTEE_${sidechain.name.toUpperCase()}`] || 'in-block',
-      dfusePushApiKey: mainnetDfuseApiKey ? await getDfuseJwt() : '',
-      dfuseNetwork: [`DFUSE_NETWORK_${sidechain.name.toUpperCase()}`]
-    }
-  }
   return getEosWrapper(config);
-}
-
-const getDfuseJwt = async () => {
-  const jwtApiKey = await client.getTokenInfo();
-  return jwtApiKey.token
 }
 
 const forwardEvent = async (act, endpoint, redirect) => {
@@ -509,25 +442,9 @@ const sendError = (res, e) => {
 }
 
 const testTransaction = async(sidechain, uri, body) => {
-  const key = mainnetDfuseApiKey ? await getDfuseJwt() : '';
   let result;
-  const network = sidechain ? [`DFUSE_NETWORK_${sidechain.name.toUpperCase()}`] : mainnetDfuseNetwork 
   const currentNodeosEndpoint = sidechain ? sidechain.nodeos_endpoint : nodeosMainnetEndpoint;
-  const pushEnable = sidechain ? [`DFUSE_PUSH_ENABLE_${sidechain.name.toUpperCase()}`] : mainnetDfuseEnable
-  if(pushEnable.toString() === "true") {
-    const endpoint = network == 'local' || network == 'localliquidx' ? `http://` + network + uri : `https://` + network + uri
-    logger.debug(`Pushing to dFuse ${endpoint} with Guarantee ${mainnetDfuseGuarantee}`)
-    result = await fetch(endpoint, { 
-      method: 'POST', 
-      body: JSON.stringify(body),
-      headers: {
-        'Authorization': `Bearer ${key}`,
-        'X-Eos-Push-Guarantee': `${mainnetDfuseGuarantee}`
-      }
-    });
-  } else {
-    result = await fetch(currentNodeosEndpoint + uri, { method: 'POST', body: JSON.stringify(body) });
-  }  
+  result = await fetch(currentNodeosEndpoint + uri, { method: 'POST', body: JSON.stringify(body) });
   return result;
 }
 
@@ -601,12 +518,9 @@ const processRequestWithBody = async (req, res, body, actionHandlers, serviceNam
       const detailsPendingConsole = detailMsg.find(d => d.message.indexOf('pending console output:') != -1).message.replace('pending console output: ', '');
       let jsons;
       if (!detailsAssertion || (!detailsPendingConsole && !detailsAssertionSvcReq)) {
-        if(mainnetDfuseEnable.toString() == "true") logger.warn('unable to parse service request using dfuse push guarantee, must update consumer contract to use new dappservices contract');
         await rollBack(garbage, actionHandlers, serviceName, handlers);
         res.status(r.status);
         return res.send(resText);
-      } else if(mainnetDfuseEnable.toString() == "true") {
-        jsons = detailsAssertion.message.replace('required service: ','').split(': ', 2)[1].split(`'`).join(`"`).split('\n').filter(a => a.trim() != '');
       } else {
         jsons = detailsPendingConsole.split('\n').filter(a => a.trim() != '');
       }
@@ -1104,5 +1018,5 @@ module.exports = {
   encodeName, decodeName, getProviders, getEosForSidechain,
   emitUsage, detectXCallback, getTableRowsSec, getLinkedAccount,
   parseEvents, pushTransaction, eosDSPEndpoint,
-  loggerHelper, getDfuseJwt, mainnetDfuseEnable
+  loggerHelper
 };

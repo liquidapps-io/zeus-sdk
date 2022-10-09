@@ -17,7 +17,7 @@ import { EosioClient } from "./eosio-client";
  * @param {string} [options.dfuse_guarantee="in-block"] Dfuse Push Guarantee
  * @example
  *
- * const endpoint = "https://kylin-dsp-2.liquidapps.io"
+ * const endpoint = "https://kylin-dsp-1.liquidapps.io"
  * const network = "kylin"
  * const client = new DappClient(network { endpoint, fetch })
  */

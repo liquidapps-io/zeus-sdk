@@ -27,7 +27,7 @@ import { PushGuarantee } from "eosio-push-guarantee";
  * @param {string} [options.dfuse_guarantee="in-block"] Dfuse Push Guarantee
  * @example
  *
- * const endpoint = "https://kylin-dsp-2.liquidapps.io"
+ * const endpoint = "https://kylin-dsp-1.liquidapps.io"
  * const network = "kylin"
  * const client = new DappClient(network { endpoint, fetch })
  */
@@ -62,8 +62,8 @@ export class DappClient extends EosioClient {
      *     console.log(row);
      *     // {
      *     //     id: 9,
-     *     //     api_endpoint: 'https://kylin-dsp-2.liquidapps.io',
-     *     //     package_json_uri: 'https://kylin-dsp-2.liquidapps.io/package1.dsp-package.json',
+     *     //     api_endpoint: 'https://kylin-dsp-1.liquidapps.io',
+     *     //     package_json_uri: 'https://kylin-dsp-1.liquidapps.io/package1.dsp-package.json',
      *     //     package_id: 'package1',
      *     //     service: 'ipfsservice1',
      *     //     provider: 'heliosselene',
@@ -101,8 +101,8 @@ export class DappClient extends EosioClient {
      *     console.log(row);
      *     // {
      *     //     id: 9,
-     *     //     api_endpoint: 'https://kylin-dsp-2.liquidapps.io',
-     *     //     package_json_uri: 'https://kylin-dsp-2.liquidapps.io/package1.dsp-package.json',
+     *     //     api_endpoint: 'https://kylin-dsp-1.liquidapps.io',
+     *     //     package_json_uri: 'https://kylin-dsp-1.liquidapps.io/package1.dsp-package.json',
      *     //     package_id: 'package1',
      *     //     service: 'ipfsservice1',
      *     //     provider: 'heliosselene',

@@ -106,10 +106,10 @@ function getEosWrapper(config) {
                         }, finalOpts);
                         let body = {
                             transaction: {
-                                signatures:tx.signatures,
+                                signatures:result.signatures,
                                 compression: "none",
-                                packed_context_free_data: arrayToHex(tx.serializedContextFreeData || new Uint8Array(0)),
-                                packed_trx: arrayToHex(tx.serializedTransaction),
+                                packed_context_free_data: arrayToHex(result.serializedContextFreeData || new Uint8Array(0)),
+                                packed_trx: arrayToHex(result.serializedTransaction),
                             },
                             return_failure_trace: false,
                             retry_trx: true

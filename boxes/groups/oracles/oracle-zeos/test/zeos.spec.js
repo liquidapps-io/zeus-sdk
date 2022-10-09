@@ -45,7 +45,7 @@ describe(`ZEOS Test`, async () => {
           httpEndpoint: endpoint,
           fetch,
         });
-        vramClient = await dappClient.service('ipfs', code);
+        // vramClient = await dappClient.service('ipfs', code);
         storageClient = await dappClient.service("storage", code);
         var deployedStorage = await deployer.deploy(ctrtStorage, code);
         var deployedAuth = await deployer.deploy(ctrtAuth, "authentikeos");
@@ -248,7 +248,7 @@ describe(`ZEOS Test`, async () => {
             mode: 'cors',
             body: JSON.stringify({ uri: 'ipfs://' + vk_ipfs })
         });
-        resJson = await res.json();
+        const resJson = await res.json();
         var vk_str = Buffer.from(resJson.data, 'base64').toString();
         assert.equal(vk_str, data);
         

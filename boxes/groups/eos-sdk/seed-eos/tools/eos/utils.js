@@ -344,19 +344,19 @@ const eosioFeatures = [
   {"GET_CODE_HASH": "bcd2a26394b36614fd4894241d3c451ab0f6fd110958c3423073621a70826e99"},
   {"CRYPTO_PRIMITIVES": "6bcb40a24e49c26d0a60513b6aeb8551d264e4717f306b81a37a5afb3b47cedc"},
   {"GET_BLOCK_NUM": "35c2186cc36f7bb4aeaf4487b36e57039ccf45a9136aa856a5d569ecca55ef2b"},
-  {"NO_DUPLICATE_DEFERRED_ID": "4a90c00d55454dc5b059055ca213579c6ea856967712a56017487886a4d4cc0f"}
+  {"NO_DUPLICATE_DEFERRED_ID": "4a90c00d55454dc5b059055ca213579c6ea856967712a56017487886a4d4cc0f"},
+  {"CONFIGURABLE_WASM_LIMITS2": "d528b9f6e9693f45ed277af93474fd473ce7d831dae2180cca35d907bd10cb40"},
+  {"FORWARD_SETCODE": "2652f5f96006294109b3dd0bbde63693f55324af452b799ee137a81a905eed25"},
+  {"ACTION_RETURN_VALUE": "c3a6138c5061cf291310887c0b5c71fcaffeab90d5deb50d3b9e687cead45071"},
+  {"BLOCKCHAIN_PARAMETERS": "5443fcf88330c586bc0e5f3dee10e7f63c76c00249c87fe4fbf7f38c082006b4"},
 ]
 
 const eosioFeaturesAll = [
   ...eosioFeatures,
   // disabled by default
-  {"RESTRICT_ACTION_TO_SELF": "ad9e3d8f650687709fd68f4b90b41f7d825a365b02c23a636cef88ac2ac00c43"},
-  {"FORWARD_SETCODE": "2652f5f96006294109b3dd0bbde63693f55324af452b799ee137a81a905eed25"},
-  {"CONFIGURABLE_WASM_LIMITS2": "d528b9f6e9693f45ed277af93474fd473ce7d831dae2180cca35d907bd10cb40"},
   {"KV_DATABASE": "825ee6288fb1373eab1b5187ec2f04f6eacb39cb3a97f356a07c91622dd61d16"},
-  {"ACTION_RETURN_VALUE": "c3a6138c5061cf291310887c0b5c71fcaffeab90d5deb50d3b9e687cead45071"},
+  {"RESTRICT_ACTION_TO_SELF": "ad9e3d8f650687709fd68f4b90b41f7d825a365b02c23a636cef88ac2ac00c43"},
   {"CONFIGURABLE_WASM_LIMITS": "bf61537fd21c61a60e542a5d66c3f6a78da0589336868307f94a82bccea84e88"},
-  {"BLOCKCHAIN_PARAMETERS": "5443fcf88330c586bc0e5f3dee10e7f63c76c00249c87fe4fbf7f38c082006b4"},
 ]
 
 const enableEosioFeatures = async (args, name, sidechain, alternativeFeatureList = '') => {
@@ -430,6 +430,8 @@ const setPriv = async (args, sidechain) => {
   }
 }
 
+const delay = ms => new Promise(res => setTimeout(res, ms));
+
 const preactiveChain = async (sidechain) => {
   const body = {"protocol_features_to_activate": ["0ec7e080177b2c02b278d5088611686b49d739925a92d9bfcacd7fc6b74053bd"]}
   await fetch(`http://127.0.0.1:${sidechain ? 2424 : 8888}/v1/producer/schedule_protocol_feature_activations`, {
@@ -437,6 +439,7 @@ const preactiveChain = async (sidechain) => {
     body: JSON.stringify(body),
     headers: { "Content-Type": "application/json" }
   })
+  await delay(1000);
 }
 
 const genRandomId = () => Array.apply(null, { length: 64 }).map(Function.call, () => Math.floor(9 * Math.random())).join('')

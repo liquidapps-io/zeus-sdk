@@ -62,6 +62,10 @@ module.exports = {
         describe: 'service APIs to run',
         default: ''
       })
+      .option('backend', {
+        describe: 'backend API to stream trxs, firehose || state_history_plugin || ""',
+        default: 'state_history_plugin'
+      })
       .option('delete-logs', {
         describe: 'delete logs folder before starting test',
         default: false,
@@ -141,7 +145,7 @@ module.exports = {
       .example('$0 test contract -c')
       .example('$0 test -c')
       .example('$0 test --services "ipfs,cron,oracle,sign,vaccounts"')
-      .example('$0 test --services "ipfs,cron,oracle,sign,vaccounts" --chain eos --single-chain');
+      .example('$0 test --chain eos --single-chain');
   },
   command: 'test [contract]',
 

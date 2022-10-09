@@ -4,8 +4,8 @@ import { getClient } from "./client";
     const response = await (await getClient()).dappNetwork.get_package_info( "cardgame1112" );
     console.log(response);
     // {
-    //     api: 'https://kylin-dsp-2.liquidapps.io',
-    //     package_json_uri: 'https://kylin-dsp-2.liquidapps.io/liquidaccts2.dsp-package.json',
+    //     api: 'https://kylin-dsp-1.liquidapps.io',
+    //     package_json_uri: 'https://kylin-dsp-1.liquidapps.io/liquidaccts2.dsp-package.json',
     //     package_id: 'liquidaccts2',
     //     service: 'accountless1',
     //     provider: 'heliosselene',

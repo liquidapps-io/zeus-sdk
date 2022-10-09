@@ -68,7 +68,7 @@ declare const global: any;
  * @example
  *
  * const network = "kylin"
- * const endpoint = "https://kylin-dsp-2.liquidapps.io"
+ * const endpoint = "https://kylin-dsp-1.liquidapps.io"
  * const client = new HttpClient(network, { endpoint, fetch })
  */
 export class HttpClient {
