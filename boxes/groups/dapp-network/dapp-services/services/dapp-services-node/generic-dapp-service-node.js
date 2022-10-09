@@ -12,7 +12,7 @@ const { deserialize, generateABI, genNode, paccount, forwardEvent,
   resolveProviderPackage, paccountPermission, emitUsage, 
   detectXCallback, getTableRowsSec, getLinkedAccount, 
   parseEvents, pushTransaction, getEosForSidechain, 
-  eosMainnet, mainnetDfuseEnable, loggerHelper } = require('./common');
+  eosMainnet, loggerHelper } = require('./common');
 const { json } = require('body-parser');
 
 var sidechainsDict = {};
@@ -180,7 +180,7 @@ const extractUsageQuantity = async (event) => {
       if (!jsons.length) throw new Error('usage event not found');
     }
   }
-  if(!jsons && mainnetDfuseEnable) logger.warn('usage event not found, network may need to update to latest dappservices contract');
+  if(!jsons) logger.warn('usage event not found, network may need to update to latest dappservices contract');
   if (!jsons.length) {
     logger.error(`usage event not found: ${typeof(jsons) == "object" ? JSON.stringify(jsons) : jsons}`)
     throw new Error('usage event not found');

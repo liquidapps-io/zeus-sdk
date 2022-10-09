@@ -112,16 +112,11 @@ max_pending_messages = 5000 # amount of pending messages to add to the stack bef
 process_block_checkpoint = 1000 # amount of blocks to pass before updating PostgreSQL database with the last processed block
 # max_memory_mb = # max amount of memory to be consumed by demux, defaults to 8196
 
-[dfuse]
-network = "mainnet" # testnet (eosio testnet), kylin, worbli, wax
-# for push_transaction ability
-push_enable = false # push_enable may be true, even if enable is false
-push_guarantee = "in-block" # handoff:1, handoffs:2, handoffs:9, irreversible
-# for using dfuse instead of demux
-enable = false # enables dfuse demux, not related to push_enable
-api_key = "" # long-lived API key, see https://docs.dfuse.io/guides/core-concepts/authentication/, e.g. (server_abcdef123123123000000000000000000)
-debug = false # enable web socket debug messages in pm2 logs
-authorization = false # if using community edition of dfuse, set to true so dfuse client does not specify API key and authorization:false
+[firehose]
+enable = false # enables dfuse firehose instead of state history plugin
+grpc_address = 'localhost'
+grpc_secured = false
+grpc_port = 13035
 
 [ipfs]
 protocol = "http"
@@ -208,13 +203,11 @@ rinkeby_max_fee_per_gas = '500000000'
   #  demux_process_block_checkpoint = 1000 # amount of blocks to pass before updating PostgreSQL database with the last processed block
   #  # demux_max_memory_mb = # max amount of memory to be consumed by demux, defaults to 8196
   #  # dfuse
-  #  dfuse_network = "mainnet" # testnet (eosio testnet), kylin, worbli, wax
-  #  # for push_transaction ability
-  #  dfuse_push_enable = false # push_enable may be true, even if enable is false
-  #  dfuse_push_guarantee = "in-block" # handoff:1, handoffs:2, handoffs:3, irreversible
-  #  # for using dfuse instead of demux
-  #  dfuse_enable = false # enables dfuse demux, not related to push_enable
-  #  dfuse_api_key = "" # long-lived API key, see https://docs.dfuse.io/guides/core-concepts/authentication/, e.g. (server_abcdef123123123000000000000000000)
+  #  # for using dfuse firehose instead of demux
+  #  firehose_enable = false # enables dfuse firehose instead of state history plugin
+  #  firehose_grpc_address = 'localhost'' # firehose address
+  #  firehose_grpc_secured = false # firehose secured by grpc or not
+  #  firehose_grpc_port = 13035 # firehose port
   #  # sidechain 
   #  name = "test1" # CHAIN_NAME - contract on the EOS mainnet that registered the new chain
   #  # the mapping below contains the dappservices:dappservicex and mainnet DSP account to the new chain's DSP account mapping

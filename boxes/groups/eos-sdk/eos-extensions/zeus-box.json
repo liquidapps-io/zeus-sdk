@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "ignore": [
     "README.md"
   ],
@@ -16,6 +16,6 @@
   },
   "hooks": {
     "post-install": "bash scripts/install-eos.sh",
-    "post-unpack": "bash scripts/install-eosio-cdt.sh"
+    "post-unpack": "bash scripts/install-eosio-cdt.sh && bash scripts/install-dfuseeos.sh"
   }
 }

@@ -27,7 +27,7 @@ npm install --save dapp-network-js
 const { DappClient } = require("dapp-client")
 const fetch = require("isomorphic-fetch")
 
-const endpoint = "https://kylin-dsp-2.liquidapps.io"
+const endpoint = "https://kylin-dsp-1.liquidapps.io"
 const network = "kylin" // mainnet, jungle
 const client = new DappClient(network, { endpoint, fetch })
 ```
@@ -38,7 +38,7 @@ const client = new DappClient(network, { endpoint, fetch })
 import { DappClient } from "dapp-client"
 import fetch from "isomorphic-fetch"
 
-const endpoint = "https://kylin-dsp-2.liquidapps.io"
+const endpoint = "https://kylin-dsp-1.liquidapps.io"
 const network = "kylin" // mainnet, jungle
 const client = new DappClient(network, { endpoint, fetch })
 ```
@@ -49,7 +49,7 @@ const client = new DappClient(network, { endpoint, fetch })
 {
     "networks": {
         "mainnet": "https://nodes.get-scatter.com:443",
-        "kylin": "https://kylin-dsp-2.liquidapps.io",
+        "kylin": "https://kylin-dsp-1.liquidapps.io",
         "jungle": "https://jungle2.cryptolions.io:443"
     }
 }
@@ -198,7 +198,7 @@ EOSJS Client
 
 ```javascript
 const network = "kylin"
-const endpoint = "https://kylin-dsp-2.liquidapps.io"
+const endpoint = "https://kylin-dsp-1.liquidapps.io"
 const client = new EosjsClient(network, { endpoint, fetch })
 ```
 
@@ -249,7 +249,7 @@ Library for accessing DAPP Network services
 #### Examples
 
 ```javascript
-const endpoint = "https://kylin-dsp-2.liquidapps.io"
+const endpoint = "https://kylin-dsp-1.liquidapps.io"
 const network = "kylin"
 const client = new DappClient(network { endpoint, fetch })
 ```
@@ -275,8 +275,8 @@ for (const row of response.rows) {
     console.log(row);
     // {
     //     id: 9,
-    //     api_endpoint: 'https://kylin-dsp-2.liquidapps.io',
-    //     package_json_uri: 'https://kylin-dsp-2.liquidapps.io/package1.dsp-package.json',
+    //     api_endpoint: 'https://kylin-dsp-1.liquidapps.io',
+    //     package_json_uri: 'https://kylin-dsp-1.liquidapps.io/package1.dsp-package.json',
     //     package_id: 'package1',
     //     service: 'ipfsservice1',
     //     provider: 'heliosselene',
@@ -312,8 +312,8 @@ for (const row of response.rows) {
     console.log(row);
     // {
     //     id: 9,
-    //     api_endpoint: 'https://kylin-dsp-2.liquidapps.io',
-    //     package_json_uri: 'https://kylin-dsp-2.liquidapps.io/package1.dsp-package.json',
+    //     api_endpoint: 'https://kylin-dsp-1.liquidapps.io',
+    //     package_json_uri: 'https://kylin-dsp-1.liquidapps.io/package1.dsp-package.json',
     //     package_id: 'package1',
     //     service: 'ipfsservice1',
     //     provider: 'heliosselene',
@@ -681,8 +681,8 @@ const response = await client.get_package_info( 'cardgame1112' );
 
 console.log( response );
 // {
-//     api: 'https://kylin-dsp-2.liquidapps.io',
-//     package_json_uri: 'https://kylin-dsp-2.liquidapps.io/liquidaccts2.dsp-package.json',
+//     api: 'https://kylin-dsp-1.liquidapps.io',
+//     package_json_uri: 'https://kylin-dsp-1.liquidapps.io/liquidaccts2.dsp-package.json',
 //     package_id: 'liquidaccts2',
 //     service: 'accountless1',
 //     provider: 'heliosselene',
@@ -737,7 +737,7 @@ Push Oracle Request Transactkon - pushes an oracle request transaction
 ```javascript
 const response = await client.push_oracle_request_transaction( "https+json://USD/min-api.cryptocompare.com/data/price?fsym=EOS&tsyms=USD", "newtest12345", "testrnd", process.env.ORACLE_PRIVATE_KEY,
      {
-         endpoint: "https://kylin-dsp-2.liquidapps.io",
+         endpoint: "https://kylin-dsp-1.liquidapps.io",
          data: {
              uri: "", // will be filled and converted to hex by client
              foo: "",
@@ -889,7 +889,7 @@ EOSIO Client
 
 ```javascript
 const network = "kylin"
-const endpoint = "https://kylin-dsp-2.liquidapps.io"
+const endpoint = "https://kylin-dsp-1.liquidapps.io"
 const client = new EosioClient(network, { endpoint, fetch })
 ```
 

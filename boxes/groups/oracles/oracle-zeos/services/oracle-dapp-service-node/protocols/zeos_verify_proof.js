@@ -15,26 +15,38 @@ function hex2Bytes(hex)
 }
 
 module.exports = async ({ proto, address }) => {
-  // Format:
-  // zeos_verify_proof://halo2|groth16/thezeostoken/testkeyzeos1/[..]/[..]
-  //        proto       |             address
-  
+
   // split address to extract parameters
   const payloadParts = address.split('/');
   let idx = 0;
-  var type = payloadParts[idx++];       // 'groth16' or 'halo2'
-  var vk_code = payloadParts[idx++];
-  var vk_id = payloadParts[idx++];
+  var type = payloadParts[idx++]; // 'groth16' or 'halo2'
+  var vk_ipfs_uri = payloadParts[idx++];
   var proof_str = payloadParts[idx++];
   var inputs_str = payloadParts[idx++];
 
-  // fetch verifier key from vram
+  // fetch verifier key from liquid storage
   // TODO: for zeus use port 13015, for live environment on DSPs use port 3115
-  let dappClient = await createClient({ httpEndpoint: `http://localhost:${process.env.DSP_PORT || 3115}`, fetch });
-  let vramClient = await dappClient.service("ipfs", "thezeostoken");
-  var response = await vramClient.get_vram_row("thezeostoken", vk_code, "vk", vk_id);
-  var vk_str = response.row.vk;
+  process.env.DSP_PORT = 13015;
+  const response = await fetch(`http://localhost:${process.env.DSP_PORT || 3115}` + '/v1/dsp/liquidstorag/get_uri', {
+    method: 'POST',
+    mode: 'cors',
+    body: JSON.stringify({ uri: 'ipfs://' + vk_ipfs_uri })
+  });
+  const resJson = await response.json();
+  var vk_str = Buffer.from(resJson.data, 'base64').toString();
   
+  // fetch proof from liquid storage if it is not passed inline
+  if(proof_str.substr(0, 1) == "z")
+  {
+    const _response = await fetch(`http://localhost:${process.env.DSP_PORT || 3115}` + '/v1/dsp/liquidstorag/get_uri', {
+      method: 'POST',
+      mode: 'cors',
+      body: JSON.stringify({ uri: 'ipfs://' + proof_str })
+    });
+    const _resJson = await _response.json();
+    proof_str = Buffer.from(_resJson.data, 'base64').toString();
+  }
+
   var res = false;
   await zeos.then(m => {
     switch(type)
@@ -45,6 +57,10 @@ module.exports = async ({ proto, address }) => {
 
       case "groth16":
         res = m.verify_groth16_proof(hex2Bytes(proof_str), hex2Bytes(inputs_str), hex2Bytes(vk_str));
+        break;
+
+      case "zeos":
+        res = m.verify_zeos_proof(hex2Bytes(proof_str), hex2Bytes(inputs_str), hex2Bytes(vk_str));
         break;
 
       default:

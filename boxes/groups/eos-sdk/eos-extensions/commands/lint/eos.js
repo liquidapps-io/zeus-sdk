@@ -32,7 +32,7 @@ var colors = require('@colors/colors');
 
 module.exports = async (args) => {
   await dockerrm('zeus-make');
-  const dockerImage = process.env.CDT_DOCKER_LINT || 'tmuskal/eosio.cdt' || 'natpdev/leap-cdt';
+  const dockerImage = process.env.CDT_DOCKER_LINT || 'natpdev/leap-cdt-dfuseeos' || 'tmuskal/eosio.cdt';
   let stdout = await execPromise(`docker run -w /contracts -u $(id -u \$USER) -v $PWD:/contracts --rm -i ${dockerImage} clang-format -style=LLVM -i contracts/eos/*/*.hpp contracts/eos/*/*.cpp`, {});
   try {
     var checksArr = [

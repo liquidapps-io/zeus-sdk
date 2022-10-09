@@ -2,6 +2,8 @@ const { requireBox } = require('@liquidapps/box-utils');
 const { createAccount, uploadSystemContract, getEos, enableEosioFeatures, preactiveChain, setPriv, initContract } = requireBox('seed-eos/tools/eos/utils');
 const { loadModels } = requireBox('seed-models/tools/models');
 
+const delay = ms => new Promise(res => setTimeout(res, ms));
+
 var sleep = require('sleep-promise');
 
 module.exports = async (args) => {

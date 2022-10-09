@@ -85,7 +85,7 @@ globalEnv = { ...globalEnv, ...process.env };
 if (!globalEnv.DSP_ACCOUNT) throw new Error("DSP_ACCOUNT is required");
 if (!globalEnv.DSP_PRIVATE_KEY) throw new Error("DSP_PRIVATE_KEY is required");
 if (!globalEnv.DATABASE_URL) throw new Error("DATABASE_URL is required");
-if (globalEnv.DFUSE_ENABLE && !globalEnv.DFUSE_API_KEY) throw new Error("DFUSE_API_KEY is required if DFUSE_ENABLE true");
+if (globalEnv.FIREHOSE_ENABLE && !globalEnv.FIREHOSE_GRPC_ADDRESS) throw new Error("FIREHOSE_GRPC_ADDRESS, FIREHOSE_GRPC_PORT and FIREHOSE_GRPC_SECURED is required if FIREHOSE_ENABLE true");
 const DSP_ACCOUNT = globalEnv.DSP_ACCOUNT;
 const DSP_PRIVATE_KEY = globalEnv.DSP_PRIVATE_KEY;
 const DATABASE_URL = globalEnv.DATABASE_URL;
@@ -136,19 +136,11 @@ const IPFS_PROTOCOL = globalEnv.IPFS_PROTOCOL || 'http';
 const NODEOS_CHAINID = globalEnv.NODEOS_CHAINID || 'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906';
 const NODEOS_WEBSOCKET_PORT = globalEnv.NODEOS_WEBSOCKET_PORT || 8887;
 const DSP_LIQUIDX_CONTRACT = globalEnv.DSP_LIQUIDX_CONTRACT || 'liquidx.dsp';
-const DSP_PUSH_GUARANTEE = globalEnv.DSP_PUSH_GUARANTEE || 'in-block';
-const DSP_PUSH_GUARANTEE_PER_SERVICE = globalEnv.DSP_PUSH_GUARANTEE_PER_SERVICE || '';
-const DSP_READ_RETRIES = globalEnv.DSP_READ_RETRIES || 10;
-const DSP_PUSH_RETRIES = globalEnv.DSP_PUSH_RETRIES || 3;
-const DSP_BACKOFF_EXPONENT = globalEnv.DSP_BACKOFF_EXPONENT || 1.1;
-const DSP_BACKOFF = globalEnv.DSP_BACKOFF || 500;
 const DSP_BROADCAST_EVENT_TIMEOUT = globalEnv.DSP_BROADCAST_EVENT_TIMEOUT || 10000;
-const DFUSE_PUSH_ENABLE = globalEnv.DFUSE_PUSH_ENABLE || false;
-const DFUSE_PUSH_GUARANTEE = globalEnv.DFUSE_PUSH_GUARANTEE || 'in-block';
-const DFUSE_ENABLE = globalEnv.DFUSE_ENABLE || false;
-const DFUSE_API_KEY = globalEnv.DFUSE_API_KEY;
-const DFUSE_NETWORK = globalEnv.DFUSE_NETWORK || 'mainnet';
-const DFUSE_AUTHORIZATION = globalEnv.DFUSE_AUTHORIZATION || false;
+const FIREHOSE_ENABLE = globalEnv.FIREHOSE_ENABLE || false;
+const FIREHOSE_GRPC_ADDRESS = globalEnv.FIREHOSE_GRPC_ADDRESS || 'localhost';
+const FIREHOSE_GRPC_SECURED = globalEnv.FIREHOSE_GRPC_SECURED || false;
+const FIREHOSE_GRPC_PORT = globalEnv.FIREHOSE_GRPC_PORT || 13035;
 const EVM_ETHEREUM_PRIVATE_KEY = globalEnv.EVM_ETHEREUM_PRIVATE_KEY || '';
 const EVM_ETHEREUM_ENDPOINT = globalEnv.EVM_ETHEREUM_ENDPOINT || '';
 const EVM_ETHEREUM_GAS_PRICE = globalEnv.EVM_ETHEREUM_GAS_PRICE || '2000000';
@@ -251,6 +243,9 @@ let commonEnv = {
   NODEOS_LATEST,
   NODEOS_MANDEL_RETRY_BLOCKS,
   NODEOS_MANDEL_RETRY_IRREVERSIBLE,
+  FIREHOSE_GRPC_ADDRESS,
+  FIREHOSE_GRPC_SECURED,
+  FIREHOSE_GRPC_PORT,
   IPFS_HOST,
   IPFS_PORT,
   IPFS_PROTOCOL,
@@ -271,22 +266,12 @@ let commonEnv = {
   DSP_PORT,
   DSP_CONSUMER_PAYS,
   DSP_LIQUIDSTORAGE_UPLOAD_LIMIT,
-  DSP_PUSH_GUARANTEE,
-  DSP_READ_RETRIES,
-  DSP_PUSH_RETRIES,
-  DSP_BACKOFF_EXPONENT, 
-  DSP_BACKOFF,
   DSP_BROADCAST_EVENT_TIMEOUT,
   DATABASE_URL,
   DATABASE_NODE_ENV,
   DATABASE_TIMEOUT,
   DSP_LIQUIDX_CONTRACT,
-  DFUSE_PUSH_ENABLE,
-  DFUSE_PUSH_GUARANTEE,
-  DFUSE_API_KEY,
-  DFUSE_NETWORK,
-  DFUSE_AUTHORIZATION,
-  DEBUG: globalEnv.DFUSE_DEBUG ? "dfuse:*" : "",
+  DEBUG: globalEnv.FIREHOSE_DEBUG ? "dfuse:*" : "",
   EVM_ETHEREUM_PRIVATE_KEY,
   EVM_ETHEREUM_ENDPOINT,
   EVM_ETHEREUM_GAS_PRICE,
@@ -354,14 +339,6 @@ let commonEnv = {
   EVM_MUMBAI_GAS_PRICE_MULT
 };
 
-const guaranteeLevels = [];
-
-if(DSP_PUSH_GUARANTEE_PER_SERVICE) {
-  DSP_PUSH_GUARANTEE_PER_SERVICE.split('|').forEach(item => {
-    guaranteeLevels.push(JSON.parse(item));
-  })
-}
-
 if(ORACLES_PREFIXES) {
   ORACLES_PREFIXES.split('|').forEach(item => {
     item = JSON.parse(item);
@@ -395,16 +372,12 @@ const createDSPSidechainServices = (sidechain) => {
   for (const field of reqFields) {
     if (!sidechain[field]) throw new Error(`sidechain ${field} required`);
   }
-  const dfuseFields = ['dfuse_api_key', 'dfuse_network'];
-  for (const field of dfuseFields) {
-    if ((sidechain.dfuse_enable || sidechain.dfuse_push_enabl) && !sidechain[field]) throw new Error(`sidechain ${field} required`);
-  }
   commonEnv = {
     ...commonEnv,
     [`DSP_PRIVATE_KEY_${sidechain.name.toUpperCase()}`]: sidechain.dsp_private_key,
-    [`DFUSE_PUSH_ENABLE_${sidechain.name.toUpperCase()}`]: sidechain.dfuse_push_enable || false,
-    [`DFUSE_PUSH_GUARANTEE_${sidechain.name.toUpperCase()}`]: sidechain.dfuse_push_guarantee || 'in-block',
-    [`DFUSE_NETWORK_${sidechain.name.toUpperCase()}`]: sidechain.dfuse_network
+    [`FIREHOSE_GRPC_ADDRESS_${sidechain.name.toUpperCase()}`]: sidechain.firehose_grpc_address,
+    [`FIREHOSE_GRPC_SECURED_${sidechain.name.toUpperCase()}`]: sidechain.firehose_grpc_secured,
+    [`FIREHOSE_GRPC_PORT_${sidechain.name.toUpperCase()}`]: sidechain.firehose_grpc_port
   }
   const sidechainCommonEnv = {
     NODEOS_HOST: sidechain.nodeos_host || 'localhost',
@@ -434,10 +407,10 @@ const createDSPSidechainServices = (sidechain) => {
         LOGFILE_NAME:`${sidechain.name}-dapp-services-node`
       }
     },
-    sidechain.dfuse_enable ?  
+    sidechain.firehose_enable ?  
       {
-        name: `${sidechain.name}-dfuse`,
-        script: path.join(getBoxesDir(), 'dfuse', `dist`, 'services', 'dfuse', 'index.js'),
+        name: `${sidechain.name}-dfuse-firehose`,
+        script: path.join(getBoxesDir(), 'firehose', `services`, 'firehose', 'index.js'),
         autorestart: true,
         ...clusterParams,
         cwd: __dirname,
@@ -447,9 +420,7 @@ const createDSPSidechainServices = (sidechain) => {
           ...sidechainCommonEnv,
           WEBHOOK_DAPP_PORT,
           PORT: WEBHOOK_DEMUX_PORT,
-          LOGFILE_NAME: `${sidechain.name}-dfuse`,
-          DFUSE_API_KEY: sidechain.dfuse_api_key,
-          DFUSE_NETWORK: sidechain.dfuse_network
+          LOGFILE_NAME: `${sidechain.name}-dfuse-firehose`,
         }
       }
     :
@@ -481,7 +452,6 @@ const createDSPSidechainServices = (sidechain) => {
 }
 
 const createDSPServiceApp = (name) => {
-  const guaranteeConfig = guaranteeLevels.find(i => i.name == name);
   return {
     name: `${name}-dapp-service-node`,
     script: path.join(getBoxesDir(), getBoxName(`services/${name}-dapp-service-node/index.js`),  'services', `${name}-dapp-service-node`, 'index.js'),
@@ -491,12 +461,7 @@ const createDSPServiceApp = (name) => {
     log_date_format: "YYYY-MM-DDTHH:mm:ss",
     env: {
       ...commonEnv,
-      LOGFILE_NAME:`${name}-dapp-service-node`,
-      DSP_PUSH_GUARANTEE: guaranteeConfig ? guaranteeConfig.push_guarantee : DSP_PUSH_GUARANTEE,
-      DSP_READ_RETRIES: guaranteeConfig ? guaranteeConfig.read_retries : DSP_READ_RETRIES,
-      DSP_PUSH_RETRIES: guaranteeConfig ? guaranteeConfig.push_retries : DSP_PUSH_RETRIES,
-      DSP_BACKOFF_EXPONENT: guaranteeConfig ? guaranteeConfig.backoff_exponent : DSP_BACKOFF_EXPONENT,
-      DSP_BACKOFF: guaranteeConfig ? guaranteeConfig.backoff : DSP_BACKOFF
+      LOGFILE_NAME:`${name}-dapp-service-node`
     }
   };
 }
@@ -528,11 +493,11 @@ const apps = [
   ...servicesApps,
   ...sidechainServicesApps
 ]
-if(DFUSE_ENABLE) {
+if(FIREHOSE_ENABLE) {
   apps.push(
     {
-      name: 'dfuse',
-      script: path.join(getBoxesDir(), 'dfuse', `dist`, 'services', 'dfuse', 'index.js'),
+      name: `dfuse-firehose`,
+      script: path.join(getBoxesDir(), 'firehose', `services`, 'firehose', 'index.js'),
       autorestart: true,
       ...clusterParams,
       cwd: __dirname,
@@ -541,7 +506,7 @@ if(DFUSE_ENABLE) {
         ...commonEnv,
         WEBHOOK_DAPP_PORT,
         PORT: WEBHOOK_DEMUX_PORT,
-        LOGFILE_NAME: 'dfuse'
+        LOGFILE_NAME: 'dfuse-firehose'
       }
     })
 } else {

@@ -31,6 +31,10 @@ module.exports = {
         describe: 'service APIs to run',
         default: ''
       })
+      .option('backend', {
+        describe: 'backend API to stream trxs, firehose || state_history_plugin || ""',
+        default: 'state_history_plugin'
+      })
       // .option('verbose-rpc', {
       //   describe: 'verbose logs for blockchain communication',
       //   default: false

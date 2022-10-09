@@ -143,7 +143,7 @@ module.exports = async (args) => {
 
   }
 
-  const dockerImage = process.env.CDT_DOCKER || 'natpdev/leap-cdt';
+  const dockerImage = process.env.CDT_DOCKER || 'natpdev/leap-cdt-dfuseeos';
   try {
     var cmake = process.env.CMAKE;
     var make = process.env.MAKE;

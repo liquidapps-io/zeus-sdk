@@ -19,7 +19,7 @@ import { HttpClient, Fetch } from "./http-client";
  * @example
  *
  * const network = "kylin"
- * const endpoint = "https://kylin-dsp-2.liquidapps.io"
+ * const endpoint = "https://kylin-dsp-1.liquidapps.io"
  * const client = new EosioClient(network, { endpoint, fetch })
  */
 export class EosioClient extends HttpClient {
