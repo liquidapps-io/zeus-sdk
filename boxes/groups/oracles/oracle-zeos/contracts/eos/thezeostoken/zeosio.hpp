@@ -8,6 +8,23 @@
 
 using namespace std;
 
+// from: https://stackoverflow.com/a/47526992/2340535
+template<size_t n> string byte2str(const uint8_t* src)
+{
+    static const char table[] = "0123456789ABCDEF";
+    char dst[2 * n + 1];
+    const uint8_t* srcPtr = src;
+    char* dstPtr = dst;
+    for(auto count = n; count > 0; --count)
+    {
+        unsigned char c = *srcPtr++;
+        *dstPtr++ = table[c >> 4];
+        *dstPtr++ = table[c & 0x0f];
+    }
+    *dstPtr = 0;
+    return &dst[0];
+}
+
 namespace zeos
 {
     namespace groth16
