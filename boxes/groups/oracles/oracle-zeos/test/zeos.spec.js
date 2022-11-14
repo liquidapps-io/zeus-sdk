@@ -365,4 +365,250 @@ describe(`ZEOS Test`, async () => {
       }
     })();
   });
+  
+  var root4  = "0dda57858163abda248823ffe527bb2184df7d460b2765bf5277b7de28a19d33";
+  it('ZEOS merkle tree init', done => {
+    (async () => {
+      try {
+        // call init() and set merkle tree depth to 32
+        var res = await testcontract.init({
+            tree_depth: 5
+          }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        // check if depth is set to 0x20 (32)
+        res = await fetch(endpoint + '/v1/chain/get_table_rows', {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify({ code: 'thezeostoken', table: 'global', scope: 'thezeostoken' })
+        });
+        var resJson = await res.json();
+        assert.equal(resJson.rows[0].substr(32, 2), "05");
+
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  it('ZEOS merkle tree update (1 note)', done => {
+    (async () => {
+      try {
+        var res = await testcontract.testmtupdate({
+            num: 1
+          }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        // check if merkle tree root is still correct
+        res = await fetch(endpoint + '/v1/chain/get_table_rows', {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 0, upper_bound: 0 })
+        });
+        var resJson = await res.json();
+        assert.equal(resJson.rows[0].substr(0, 80), "0000000000000000" + root4);
+
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  it('ZEOS merkle tree update (1 note)', done => {
+    (async () => {
+      try {
+        var res = await testcontract.testmtupdate({
+            num: 1
+          }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        // check if merkle tree root is still correct
+        res = await fetch(endpoint + '/v1/chain/get_table_rows', {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 0, upper_bound: 0 })
+        });
+        var resJson = await res.json();
+        assert.equal(resJson.rows[0].substr(0, 80), "0000000000000000" + root4);
+
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  it('ZEOS merkle tree update (2 notes)', done => {
+    (async () => {
+      try {
+        var res = await testcontract.testmtupdate({
+            num: 2
+          }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        // check if merkle tree root is still correct
+        res = await fetch(endpoint + '/v1/chain/get_table_rows', {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 0, upper_bound: 0 })
+        });
+        var resJson = await res.json();
+        assert.equal(resJson.rows[0].substr(0, 80), "0000000000000000" + root4);
+
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  it('ZEOS merkle tree update (3 notes)', done => {
+    (async () => {
+      try {
+        var res = await testcontract.testmtupdate({
+            num: 3
+          }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        // check if merkle tree root is still correct
+        res = await fetch(endpoint + '/v1/chain/get_table_rows', {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 0, upper_bound: 0 })
+        });
+        var resJson = await res.json();
+        assert.equal(resJson.rows[0].substr(0, 80), "0000000000000000" + root4);
+
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  it('ZEOS merkle tree update (5 notes)', done => {
+    (async () => {
+      try {
+        var res = await testcontract.testmtupdate({
+            num: 5
+          }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        // check if merkle tree root is still correct
+        res = await fetch(endpoint + '/v1/chain/get_table_rows', {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 0, upper_bound: 0 })
+        });
+        var resJson = await res.json();
+        assert.equal(resJson.rows[0].substr(0, 80), "0000000000000000" + root4);
+
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  it('ZEOS merkle tree update (8 notes)', done => {
+    (async () => {
+      try {
+        var res = await testcontract.testmtupdate({
+            num: 8
+          }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        // check if merkle tree root is still correct
+        res = await fetch(endpoint + '/v1/chain/get_table_rows', {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 0, upper_bound: 0 })
+        });
+        var resJson = await res.json();
+        assert.equal(resJson.rows[0].substr(0, 80), "0000000000000000" + root4);
+
+        // check if merkle tree 'overflowed' correctly and a second root is created
+        res = await fetch(endpoint + '/v1/chain/get_table_rows', {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 31, upper_bound: 31 })
+        });
+        var resJson = await res.json();
+        assert.equal(resJson.rows[0].substr(0, 80), "1f00000000000000" + root4);
+
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
+  it('ZEOS merkle tree update (13 notes)', done => {
+    (async () => {
+      try {
+        var res = await testcontract.testmtupdate({
+            num: 13
+          }, {
+          authorization: `${code}@active`,
+          broadcast: true,
+          sign: true
+        });
+
+        // check if merkle tree root is still correct
+        res = await fetch(endpoint + '/v1/chain/get_table_rows', {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 0, upper_bound: 0 })
+        });
+        var resJson = await res.json();
+        assert.equal(resJson.rows[0].substr(0, 80), "0000000000000000" + root4);
+
+        // check if second merkle tree root is still correct
+        res = await fetch(endpoint + '/v1/chain/get_table_rows', {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 31, upper_bound: 31 })
+        });
+        var resJson = await res.json();
+        assert.equal(resJson.rows[0].substr(0, 80), "1f00000000000000" + root4);
+
+        // check if second merkle tree 'overflowed' correctly and a third root is created
+        res = await fetch(endpoint + '/v1/chain/get_table_rows', {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 62, upper_bound: 62 })
+        });
+        var resJson = await res.json();
+        assert.equal(resJson.rows[0].substr(0, 80), "3e00000000000000" + root4);
+
+        done();
+      }
+      catch (e) {
+        done(e);
+      }
+    })();
+  });
 });

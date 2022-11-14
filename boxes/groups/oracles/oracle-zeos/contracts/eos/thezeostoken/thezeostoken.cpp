@@ -1,7 +1,8 @@
 #include "thezeostoken.hpp"
 
 thezeostoken::thezeostoken(name self, name code, datastream<const char *> ds) :
-    contract(self, code, ds)
+    contract(self, code, ds),
+    global(_self, _self.value)
 {
 }
 
@@ -73,204 +74,84 @@ void thezeostoken::verifyproof(const string& type, const name& code, const name&
     //print("Proof verified by ", dsp_count, " DSPs\n\r");
 }
 
-void thezeostoken::init(const uint64_t& depth)
+void thezeostoken::update_merkle_tree(const uint64_t& leaf_count, const uint64_t& tree_depth, const vector<checksum256>& leaves)
+{
+    // build uri string by concatening all input parameters for the vcpu handler
+    string str = "zeos_merkle_tree_updater://";
+    str.append(to_string(leaf_count));
+    str.append("/");
+    str.append(to_string(tree_depth));
+    str.append("/");
+    for(auto it = leaves.begin(); it != leaves.end(); ++it)
+    {
+        str.append(byte2str<32>(reinterpret_cast<const uint8_t*>(it->extract_as_byte_array().data())));
+    }
+
+    //uint32_t dsp_count = 0;
+    vector<char> res = getURI(vector<char>(str.begin(), str.end()), [&](auto& results) { 
+        uint32_t dsp_threshold = 1;
+        // ensure the specified amount of DSPs have responded before a response is accepted
+        check(results.size() >= dsp_threshold, "require multiple results for consensus");
+        //dsp_count = results.size();
+        auto itr = results.begin();
+        auto first = itr->result;
+        ++itr;
+        while(itr != results.end())
+        {
+            check(itr->result == first, "consensus failed");
+            ++itr;
+        }
+        return first;
+    });
+
+    // modify/insert nodes (40 bytes each) into tree
+    mt_t tree(_self, _self.value);
+    check(res.size() % 40 == 0, "Node list must be multiple of 40 bytes: 8 bytes 'index', 32 bytes 'value'");
+    for(int i = 0; i < res.size()/40; i++)
+    {
+        uint64_t* idx_ptr = reinterpret_cast<uint64_t*>(&res[i*40]);
+        // the following might look like a dirty hack to some but it saves us one memcpy and should be safe according
+        // to the STL (https://stackoverflow.com/questions/11205186/treat-c-cstyle-array-as-stdarray)
+        checksum256 val = *reinterpret_cast<array<uint8_t, 32>*>(&res[i*40 + 8]);
+
+        // MSB of idx determines if node exists or is new
+        if(*idx_ptr & 0x8000000000000000)
+        {
+            auto it = tree.find(*idx_ptr & 0x7FFFFFFFFFFFFFFF);
+            tree.modify(it, _self, [&](auto& row) {
+                row.val = val;
+            });
+        }
+        else
+        {
+            tree.emplace(_self, [&](auto& row) {
+                row.idx = *idx_ptr;
+                row.val = val;
+            });
+        }
+    }
+}
+void thezeostoken::testmtupdate(const uint64_t& num)
+{
+    // create vector with <num> empty leaves
+    checksum256 nc = array<uint8_t, 32>{249, 255, 255, 255, 132, 169, 195, 207, 62, 48, 229, 190, 27, 209, 17, 16, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 63};
+    vector<checksum256> v;
+    for(int i = 0; i < num; i++)
+        v.push_back(nc);
+    // fetch global stats, add leaves, and update global stats
+    auto g = global.get();
+    update_merkle_tree(g.mt_leaf_count, g.mt_depth, v);
+    global.set({0, g.mt_leaf_count + num, g.mt_depth, deque<checksum256>()}, _self);
+}
+
+void thezeostoken::init(const uint64_t& tree_depth)
 {
     require_auth(_self);
 
-    // empty all tables (txd, mt, nf)
-    txd_t txd(_self, _self.value);
-    for(auto it = txd.begin(); it != txd.end(); )
-        it = txd.erase(it);
-    mt_t mt(_self, _self.value);
-    for(auto it = mt.begin(); it != mt.end(); )
-        it = mt.erase(it);
-    nf_t nf(_self, _self.value);
-    for(auto it = nf.begin(); it != nf.end(); )
-        it = nf.erase(it);
-    gs_t gs(_self, _self.value);
-//    for(auto it = gs.begin(); it != gs.end(); )
-//        it = gs.erase(it);
-#ifdef USE_VRAM
-    const uint64_t id = 0;
-#else
-    const uint64_t id = 1;
-#endif
-    // reset indices in global stats table
-    auto stats = gs.find(id);
-    if(stats == gs.end())
-    {
-        gs.emplace(_self, [&](auto& row){
-            row.id = id;
-            row.tx_count = 0;
-            row.mt_leaf_count = 0;
-            row.mt_depth = depth;
-            row.mt_roots = deque<checksum256>();
-        });
-    }
-    else
-    {
-        gs.modify(stats, _self, [&](auto& row){
-            row.tx_count = 0;
-            row.mt_leaf_count = 0;
-            row.mt_depth = depth;
-            row.mt_roots = deque<checksum256>();
-        });
-    }
+    // reset global state
+    global.set({0, 0, tree_depth, deque<checksum256>()}, _self);
 }
 
-// zMint
-void thezeostoken::mint(const checksum256& epk_s,
-                        const vector<uint128_t>& ciphertext_s,
-                        const checksum256& epk_r,
-                        const vector<uint128_t>& ciphertext_r,
-                        const string& proof,
-                        const asset& a,
-                        const checksum256& z_a,
-                        const name& user)
-{
-    require_auth(user);
-    check(a.amount >= 0, "a.amount invalid");
-
-    // pack inputs in same order as in the arithmetic circuit: amt_a, sym_a, z_a
-    vector<bool> bits;
-    append_bits(bits, a.amount);
-    append_bits(bits, a.symbol.raw());
-    append_bits(bits, z_a);
-    string inputs = inputs_hexstr(compute_multipacking(bits));
-
-    // verify proof
-    verifyproof("groth16", _self, "zeosmintnote"_n, proof, inputs);
-
-    // burn a from user's balance
-    sub_balance(user, a);
-
-    // add z_a to tree
-    insert_into_merkle_tree(z_a, true);
-
-    gs_t gs(_self, _self.value);
-#ifdef USE_VRAM
-    auto stats = gs.find(0);
-#else
-    auto stats = gs.find(1);
-#endif
-    check(stats != gs.end(), "global stats table not initialized");
-
-    // add tx data
-    add_txdata_to_list(TXD_MINT, stats->mt_leaf_count-1, epk_s, ciphertext_s, epk_r, ciphertext_r);
-}
-
-// zTransfer
-void thezeostoken::ztransfer(const checksum256& epk_s,
-                             const vector<uint128_t>& ciphertext_s,
-                             const checksum256& epk_r,
-                             const vector<uint128_t>& ciphertext_r,
-                             const string& proof,
-                             const checksum256& nf_a,
-                             const checksum256& z_b,
-                             const checksum256& z_c,
-                             const checksum256& root)
-{
-    // pack inputs in same order as in the arithmetic circuit: nf_a, z_b, z_c, root
-    vector<bool> bits;
-    append_bits(bits, nf_a);
-    append_bits(bits, z_b);
-    append_bits(bits, z_c);
-    append_bits(bits, root);
-    string inputs = inputs_hexstr(compute_multipacking(bits));
-
-    // check if root is valid
-    check(is_root_valid(root), "root invalid");
-
-    // check if nullifier already exists in list, if not add it
-    nf_t nf(_self, _self.value);
-#ifdef USE_VRAM
-    auto it = nf.find(nf_a);
-#else
-    auto it = nf.find((uint64_t)*((uint32_t*)nf_a.extract_as_byte_array().data()));
-#endif
-    check(it == nf.end(), "nullifier exists => note has been spent already");
-    nf.emplace(_self, [&](auto& n) {
-        n.val = nf_a;
-    });
-    
-    // verify proof
-    verifyproof("groth16", _self, "transfernote"_n, proof, inputs);
-    
-    // add z_b and z_c to tree
-    insert_into_merkle_tree(z_b, false);
-    insert_into_merkle_tree(z_c, true);
-
-    gs_t gs(_self, _self.value);
-#ifdef USE_VRAM
-    auto stats = gs.find(0);
-#else
-    auto stats = gs.find(1);
-#endif
-    check(stats != gs.end(), "global stats table not initialized");
-
-    // add tx data
-    add_txdata_to_list(TXD_ZTRANSFER, stats->mt_leaf_count-2, epk_s, ciphertext_s, epk_r, ciphertext_r);
-}
-
-// zBurn
-void thezeostoken::burn(const checksum256& epk_s,
-                        const vector<uint128_t>& ciphertext_s,
-                        const checksum256& epk_r,
-                        const vector<uint128_t>& ciphertext_r,
-                        const string& proof,
-                        const checksum256& nf_a,
-                        const asset& b,
-                        const checksum256& z_c,
-                        const checksum256& root,
-                        const name& user)
-{
-    // NOTE: uncomment if users should only be able to withdraw to their own EOS account, not to someone else's
-    //require_auth(user);
-
-    // pack inputs in same order as in the arithmetic circuit: nf_a, amt_b, sym_b, z_c, root
-    vector<bool> bits;
-    append_bits(bits, nf_a);
-    append_bits(bits, b.amount);
-    append_bits(bits, b.symbol.raw());
-    append_bits(bits, z_c);
-    append_bits(bits, root);
-    string inputs = inputs_hexstr(compute_multipacking(bits));
-
-    // check if root is valid
-    check(is_root_valid(root), "root invalid");
-
-    // check if nullifier already exists in list, if not add it
-    nf_t nf(_self, _self.value);
-#ifdef USE_VRAM
-    auto it = nf.find(nf_a);
-#else
-    auto it = nf.find((uint64_t)*((uint32_t*)nf_a.extract_as_byte_array().data()));
-#endif
-    check(it ==  nf.end(), "nullifier exists => note has been spent already");
-    nf.emplace(_self, [&](auto& n) {
-        n.val = nf_a;
-    });
-
-    // verify proof
-    verifyproof("groth16", _self, "zeosburnnote"_n, proof, inputs);
-    
-    // add z_c to tree
-    insert_into_merkle_tree(z_c, true);
-
-    // mint b to user's balance
-    add_balance(user, b, user);
-
-    gs_t gs(_self, _self.value);
-#ifdef USE_VRAM
-    auto stats = gs.find(0);
-#else
-    auto stats = gs.find(1);
-#endif
-    check(stats != gs.end(), "global stats table not initialized");
-
-    // add tx data
-    add_txdata_to_list(TXD_BURN, stats->mt_leaf_count-1, epk_s, ciphertext_s, epk_r, ciphertext_r);
-}
 
 void thezeostoken::create(const name& issuer, const asset& maximum_supply)
 {
@@ -441,171 +322,3 @@ asset thezeostoken::get_balance(const name& owner, const symbol_code& sym) const
     return ac.balance;
 }
 
-// merkle tree structure:
-// 
-//              (0)                 [d = 0] (root)
-//         /            \
-//       (1)            (2)         [d = 1]
-//     /    \        /      \
-//   (3)    (4)    (5)      (6)     [d = 2]
-//   / \    / \    /  \    /  \
-// (7) (8)(9)(10)(11)(12)(13)(14)   [d = 3]
-//
-#define MT_ARR_LEAF_ROW_OFFSET(d) ((1<<(d)) - 1)
-#define MT_ARR_FULL_TREE_OFFSET(d) ((1<<((d)+1)) - 1)
-#define MT_NUM_LEAVES(d) (1<<(d))
-#define GS_ROOTS_FIFO_SIZE 32
-void thezeostoken::insert_into_merkle_tree(const checksum256& val, const bool& add_root_to_list)
-{
-    // fetch global stats
-    gs_t gs(_self, _self.value);
-#ifdef USE_VRAM
-    auto stats = gs.find(0);
-#else
-    auto stats = gs.find(1);
-#endif
-    check(stats != gs.end(), "global stats table not initialized");
-
-    // calculate array index of next free leaf in >local< tree
-    uint64_t idx = MT_ARR_LEAF_ROW_OFFSET(stats->mt_depth) + stats->mt_leaf_count % MT_NUM_LEAVES(stats->mt_depth);
-    // calculate tree offset to translate array indices of >local< tree to global array indices
-    uint64_t tos = stats->mt_leaf_count / MT_NUM_LEAVES(stats->mt_depth) /*=tree_idx*/ * MT_ARR_FULL_TREE_OFFSET(stats->mt_depth);
-
-    // insert val into leaf
-    mt_t tree(_self, _self.value);
-    tree.emplace(_self, [&](auto& leaf) {
-        leaf.idx = tos + idx;
-        leaf.val = val;
-    });
-
-    // calculate merkle path up to root
-    for(int d = stats->mt_depth; d > 0; d--)
-    {
-        // if array index of node is uneven it is always the left child
-        bool is_left_child = 1 == idx % 2;
-
-        // determine sister node
-        uint64_t sis_idx = is_left_child ? idx + 1 : idx - 1;
-
-        // get values of both nodes
-        //                                     (n)              |            (n)
-        //                                   /     \            |         /      \
-        //                                (idx)     (0)         |     (sis_idx)  (idx)
-        checksum256 l = is_left_child ? tree.get(tos + idx).val : tree.get(tos + sis_idx).val;
-        checksum256 r = is_left_child ? checksum256() /* =0 */  : tree.get(tos + idx).val;
-
-        // concatenate and digest
-        uint8_t digest[32];
-        Blake2sContext context;
-        blake2sInit(&context, NULL, 0, 32);
-        blake2sUpdate(&context, l.extract_as_byte_array().data(), 32);
-        blake2sUpdate(&context, r.extract_as_byte_array().data(), 32);
-        blake2sFinal(&context, digest);
-        checksum256 parent_val = checksum256(digest);
-
-        // set idx to parent node index:
-        // left child's array index divided by two (integer division) equals array index of parent node
-        idx = is_left_child ? idx / 2 : sis_idx / 2;
-
-        // check if parent node was already created
-        auto it = tree.find(tos + idx);
-        // write new parent
-        if(it == tree.end())
-        {
-            tree.emplace(_self, [&](auto& node) {
-                node.idx = tos + idx;
-                node.val = parent_val;
-            });
-        }
-        else
-        {
-            tree.modify(it, _self, [&](auto& node) {
-                node.val = parent_val;
-            });
-        }
-    }
-    
-    // update global stats: increment leaf index, add new root to FIFO
-    gs.modify(stats, _self, [&](auto& row) {
-        row.mt_leaf_count++;
-        if(add_root_to_list)
-        {
-            row.mt_roots.push_front(tree.get(tos).val);
-            // only memorize the most recent x number of root nodes
-            if(row.mt_roots.size() > GS_ROOTS_FIFO_SIZE)
-            {
-                row.mt_roots.pop_back();
-            }
-        }
-    });
-}
-
-bool thezeostoken::is_root_valid(const checksum256& root)
-{
-    // a root is valid if it is the root of an existing full merkle tree OR in the queue
-    // of the most recent roots of the current merkle tree
-    
-    // check if root is in deque of most recent roots
-    gs_t gs(_self, _self.value);
-#ifdef USE_VRAM
-    auto stats = gs.find(0);
-#else
-    auto stats = gs.find(1);
-#endif
-    check(stats != gs.end(), "global stats table not initialized");
-
-    for(auto r = stats->mt_roots.begin(); r != stats->mt_roots.end(); ++r)
-    {
-        if(*r == root)
-        {
-            return true;
-        }
-    }
-    
-    // check roots of previous, full merkle trees (tree_index > 0)
-    uint64_t tree_idx = stats->mt_leaf_count / MT_NUM_LEAVES(stats->mt_depth);
-
-    mt_t tree(_self, _self.value);
-    for(uint64_t t = 0; t < tree_idx; ++t)
-    {
-        // can use get here because root must exist if this tree has a leaf
-        auto it = tree.get(t * MT_ARR_FULL_TREE_OFFSET(stats->mt_depth));
-        
-        if(it.val == root)
-        {
-            return true;
-        }
-    }
-    
-    // root was not found
-    return false;
-}
-
-void thezeostoken::add_txdata_to_list(const uint8_t& type,
-                                      const uint64_t& mt_leaf_count,
-                                      const checksum256& epk_s,
-                                      const vector<uint128_t>& ciphertext_s,
-                                      const checksum256& epk_r,
-                                      const vector<uint128_t>& ciphertext_r)
-{
-    gs_t gs(_self, _self.value);
-    txd_t txd(_self, _self.value);
-#ifdef USE_VRAM
-    auto stats = gs.find(0);
-#else
-    auto stats = gs.find(1);
-#endif
-    check(stats != gs.end(), "global stats table not initialized");
-    txd.emplace(_self, [&](auto& tx) {
-        tx.id = stats->tx_count;
-        tx.type = type;
-        tx.mt_leaf_count = mt_leaf_count;
-        tx.epk_s = epk_s;
-        tx.ciphertext_s = ciphertext_s;
-        tx.epk_r = epk_r;
-        tx.ciphertext_r = ciphertext_r;
-    });
-    gs.modify(stats, _self, [&](auto& row) {
-        row.tx_count++;
-    });
-}
