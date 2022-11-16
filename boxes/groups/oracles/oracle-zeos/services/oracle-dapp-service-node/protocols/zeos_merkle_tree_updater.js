@@ -7,7 +7,7 @@ global.fetch = fetch;
 const { createClient } = require('@liquidapps/dapp-client');
 
 // TODO: for zeus use port 13015, for live environment on DSPs use port 3115
-//process.env.DSP_PORT = 13015;
+process.env.DSP_PORT = 13015;
 var endpoint = `http://localhost:${process.env.DSP_PORT || 3115}`;
 
 // Convert a hex string to a byte array
@@ -40,9 +40,9 @@ module.exports = async ({ proto, address }) => {
 
     // calculate indices of nodes to fetch
     var indices = [];
-    var idx = MT_ARR_LEAF_ROW_OFFSET(tree_depth-1n) + leaf_count % MT_NUM_LEAVES(tree_depth-1n);
-    var tos = leaf_count / MT_NUM_LEAVES(tree_depth-1n) /*=tree_idx*/ * MT_ARR_FULL_TREE_OFFSET(tree_depth-1n);
-    for(var d = 0n; d < tree_depth-1n; d++)
+    var idx = MT_ARR_LEAF_ROW_OFFSET(tree_depth) + leaf_count % MT_NUM_LEAVES(tree_depth);
+    var tos = leaf_count / MT_NUM_LEAVES(tree_depth) /*=tree_idx*/ * MT_ARR_FULL_TREE_OFFSET(tree_depth);
+    for(var d = 0n; d < tree_depth; d++)
     {
       // if array index of node is uneven it is always the left child
       var is_left_child = 1n == idx % 2n;
@@ -94,3 +94,4 @@ module.exports = async ({ proto, address }) => {
 
   return res;
 };
+
