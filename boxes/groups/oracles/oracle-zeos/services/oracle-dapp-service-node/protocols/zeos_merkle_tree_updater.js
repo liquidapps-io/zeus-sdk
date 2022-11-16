@@ -7,7 +7,7 @@ global.fetch = fetch;
 const { createClient } = require('@liquidapps/dapp-client');
 
 // TODO: for zeus use port 13015, for live environment on DSPs use port 3115
-process.env.DSP_PORT = 13015;
+//process.env.DSP_PORT = 13015;
 var endpoint = `http://localhost:${process.env.DSP_PORT || 3115}`;
 
 // Convert a hex string to a byte array
