@@ -91,3 +91,4 @@ wasm = wasmInstance.exports;
 module.exports.__wasm = wasm;
 
 cachedUint8Memory0 = new Uint8Array(wasm.memory.buffer);
+
