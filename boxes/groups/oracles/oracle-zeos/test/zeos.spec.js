@@ -432,7 +432,7 @@ describe(`ZEOS Test`, async () => {
   it('ZEOS merkle tree init', done => {
     (async () => {
       try {
-        // call init() and set merkle tree depth to 32
+        // call init() and set merkle tree depth to 4
         var res = await testcontract.init({
             tree_depth: 4
           }, {
