@@ -101,17 +101,17 @@ if [ "$ARCH" == "Linux" ]; then
     	fi
         if ! [ -x "$(command -v nodeos)" ]; then
     		if [ "$OS_MAJ" = 22 ]; then
-                wget https://github.com/AntelopeIO/leap/releases/download/v${LEAP_VERSION}/leap-${LEAP_VERSION}-ubuntu22.04_amd64.deb
-                sudo apt install -y ./leap-${LEAP_VERSION}-ubuntu22.04_amd64.deb
-                rm ./leap-${LEAP_VERSION}-ubuntu22.04_amd64.deb
+                wget https://github.com/AntelopeIO/leap/releases/download/v${LEAP_VERSION}/leap_${LEAP_VERSION}-ubuntu22.04_amd64.deb
+                sudo apt install -y ./leap_${LEAP_VERSION}-ubuntu22.04_amd64.deb
+                rm ./leap_${LEAP_VERSION}-ubuntu22.04_amd64.deb
             elif [[ "$OS_MAJ" = 20 ]]; then
-                wget https://github.com/AntelopeIO/leap/releases/download/v${LEAP_VERSION}/leap-${LEAP_VERSION}-ubuntu20.04_amd64.deb
-                sudo apt install -y ./leap-${LEAP_VERSION}-ubuntu20.04_amd64.deb
-                rm ./leap-${LEAP_VERSION}-ubuntu20.04_amd64.deb
+                wget https://github.com/AntelopeIO/leap/releases/download/v${LEAP_VERSION}/leap_${LEAP_VERSION}-ubuntu20.04_amd64.deb
+                sudo apt install -y ./leap_${LEAP_VERSION}-ubuntu20.04_amd64.deb
+                rm ./leap_${LEAP_VERSION}-ubuntu20.04_amd64.deb
             elif [[ "$OS_MAJ" = 18 ]]; then
-                wget https://github.com/AntelopeIO/leap/releases/download/v${LEAP_VERSION}/leap-${LEAP_VERSION}-ubuntu18.04_amd64.deb
-                sudo apt install -y ./leap-${LEAP_VERSION}-ubuntu18.04_amd64.deb
-                rm ./leap-${LEAP_VERSION}-ubuntu18.04_amd64.deb
+                wget https://github.com/AntelopeIO/leap/releases/download/v${LEAP_VERSION}/leap_${LEAP_VERSION}-ubuntu18.04_amd64.deb
+                sudo apt install -y ./leap_${LEAP_VERSION}-ubuntu18.04_amd64.deb
+                rm ./leap_${LEAP_VERSION}-ubuntu18.04_amd64.deb
     		fi
             printf "\\nnodeos installed.\\n"
         else
