@@ -2,7 +2,7 @@
 
 ARCH=$( uname )
 NODEOS_VERSION=2.1.0
-LEAP_VERSION=3.1.2
+LEAP_VERSION=3.2.0
 if [ "$ARCH" == "Darwin" ] ; then
     OS_NAME=MacOSX
     OS_VER=$(sw_vers -productVersion)
