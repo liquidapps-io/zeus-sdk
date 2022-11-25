@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ARCH=$( uname )
-NODEOS_VERSION=2.1.0
+NODEOS_VERSION=2.0.13
 LEAP_VERSION=3.2.0
 if [ "$ARCH" == "Darwin" ] ; then
     OS_NAME=MacOSX
