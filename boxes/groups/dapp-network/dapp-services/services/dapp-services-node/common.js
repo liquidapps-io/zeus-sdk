@@ -622,6 +622,42 @@ const genNode = async (actionHandlers, port, serviceName, handlers, abi, sidecha
   if (handlers) handlers.abi = abi;
   const app = genApp();
   app.use(async (req, res, next) => {
+  
+    // mschoenebeck: Special case 'GET' request to fetch content via 'get_uri'
+    if(req.method == 'GET' && req.originalUrl.indexOf('/v1/dsp/liquidstorag/get_uri') == 0)
+    {
+      // Cut off url parameters
+      let qm = req.originalUrl.indexOf('?');
+      if(qm == -1) notFound(res, "Need to have at least one url parameter: 'uri'");
+      let uri = req.originalUrl.slice(0, qm);
+
+      // Convert GET to POST and call the existing API
+      try {
+        var response = await fetch(dspGatewayMainnetEndpoint + uri, {
+          method: 'POST',
+          mode: 'cors',
+          body: JSON.stringify(req.query)
+        });
+      } catch(e) {
+        logger.error(`error on fetch: ${e.toString()}`);
+        res.status(500);
+        res.send(JSON.stringify({
+          code: 500,
+          error: `${e.toString()}`
+        }));
+      }
+
+      // Set selected Response Headers if present in params
+      if(req.query.hasOwnProperty('__content_type'))                  res.setHeader('Content-Type', req.query.__content_type);
+      if(req.query.hasOwnProperty('__cross_origin_opener_policy'))    res.setHeader('Cross-Origin-Opener-Policy', req.query.__cross_origin_opener_policy);
+      if(req.query.hasOwnProperty('__cross_origin_embedder_policy'))  res.setHeader('Cross-Origin-Embedder-Policy', req.query.__cross_origin_embedder_policy);
+
+      // Unpack response and return its content only
+      let resp = await response.json();
+      let data = Buffer.from(resp.data, 'base64')
+      return res.send(data);
+    }
+  
     let uri = req.originalUrl;
     const isServiceRequest = uri.indexOf('/event') === 0;
     const isServiceAPIRequest = uri.indexOf('/v1/dsp/') === 0;

@@ -420,4 +420,52 @@ describe(`LiquidStorage Test`, async () => {
       }
     })();
   });
+  
+  it('Upload html file and perform GET Request', done => {
+    (async () => {
+      try {
+        const data = Buffer.from("<html><head></head><body><h1>Hello, HTML!</h1></body></html>", "utf8");
+        const options = {
+          rawLeaves: true
+        };
+        const result = await storageClient.upload_public_file(
+          data,
+          key,
+          permission,
+          options
+        );
+        
+        // fetch data back from liquidstorage using a GET request and set response headers for 'Content-Type'
+        // and 'cross origin isolation' (check out: https://web.dev/coop-coep/ for more information!)
+        let url_params = '?uri=' + result.uri;
+        url_params += '&__content_type=text%2Fhtml%3B%20charset%3Dutf-8';
+        url_params += '&__cross_origin_opener_policy=same-origin';
+        url_params += '&__cross_origin_embedder_policy=require-corp';
+        res = await fetch(endpoint + '/v1/dsp/liquidstorag/get_uri' + url_params, {
+            method: 'GET',
+            mode: 'cors'
+        });
+
+        // check response headers
+        assert.equal(res.headers.get("content-type"), "text/html; charset=utf-8");
+        // cannot check the other response headers because of CORS mode!
+        // check https://stackoverflow.com/a/44816592/2340535 for more information
+
+        res = await res.arrayBuffer();
+        res = Buffer.from(new Uint8Array(res)).toString();
+        assert.equal(res, data);
+
+        // console.log('Open the following link in a browser and check the console if "self.crossOriginIsolated" is set to "true":')
+        // console.log(endpoint + '/v1/dsp/liquidstorag/get_uri' + url_params);
+        // console.log('30 seconds timeout...');
+        // await new Promise(resolve => setTimeout(resolve, 30000));
+
+        done();
+      } catch (e) {
+        console.log(e);
+        done(e);
+      }
+    })();
+  });
+  
 });
