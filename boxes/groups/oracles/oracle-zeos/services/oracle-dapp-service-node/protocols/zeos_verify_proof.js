@@ -1,25 +1,14 @@
-const zeos = import('../services/oracle-dapp-service-node/protocols/pkg/zeos_verifier.js');
+const zeos = require('../services/oracle-dapp-service-node/protocols/pkg/index.node');
 
 const fetch = require("node-fetch");
 global.fetch = fetch;
-
-// TODO: might require: npm i --save @liquidapps/dapp-client.
-const { createClient } = require('@liquidapps/dapp-client');
-
-// Convert a hex string to a byte array
-function hex2Bytes(hex)
-{
-  for(var bytes = [], c = 0; c < hex.length; c += 2)
-      bytes.push(parseInt(hex.substr(c, 2), 16));
-  return bytes;
-}
 
 module.exports = async ({ proto, address }) => {
 
   // split address to extract parameters
   const payloadParts = address.split('/');
   let idx = 0;
-  var type = payloadParts[idx++]; // 'groth16' or 'halo2'
+  var type = payloadParts[idx++]; // 'groth16' or 'halo2' or 'zeos'
   var vk_ipfs_uri = payloadParts[idx++];
   var proof_str = payloadParts[idx++];
   var inputs_str = payloadParts[idx++];
@@ -48,26 +37,29 @@ module.exports = async ({ proto, address }) => {
   }
 
   var res = false;
-  await zeos.then(m => {
+  try {
     switch(type)
     {
       case "halo2":
-        res = m.verify_halo2_proof(hex2Bytes(proof_str), hex2Bytes(inputs_str), hex2Bytes(vk_str));
+        res = zeos.verify_halo2_proof(proof_str, inputs_str, vk_str);
         break;
 
       case "groth16":
-        res = m.verify_groth16_proof(hex2Bytes(proof_str), hex2Bytes(inputs_str), hex2Bytes(vk_str));
+        res = zeos.verify_groth16_proof(proof_str, inputs_str, vk_str);
         break;
 
       case "zeos":
-        res = m.verify_zeos_proof(hex2Bytes(proof_str), hex2Bytes(inputs_str), hex2Bytes(vk_str));
+        res = zeos.verify_zeos_proof(proof_str, inputs_str, vk_str);
         break;
 
       default:
         res = false;
         break;
     }
-  }).catch(console.error);
+  } catch(error) {
+    console.log(error);
+    res = false;
+  };
 
   if(res)
   {
