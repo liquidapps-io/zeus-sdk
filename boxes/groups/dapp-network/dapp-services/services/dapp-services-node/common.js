@@ -651,6 +651,7 @@ const genNode = async (actionHandlers, port, serviceName, handlers, abi, sidecha
       if(req.query.hasOwnProperty('__content_type'))                  res.setHeader('Content-Type', req.query.__content_type);
       if(req.query.hasOwnProperty('__cross_origin_opener_policy'))    res.setHeader('Cross-Origin-Opener-Policy', req.query.__cross_origin_opener_policy);
       if(req.query.hasOwnProperty('__cross_origin_embedder_policy'))  res.setHeader('Cross-Origin-Embedder-Policy', req.query.__cross_origin_embedder_policy);
+      if(req.query.hasOwnProperty('__service_worker_allowed'))        res.setHeader('Service-Worker-Allowed', req.query.__service_worker_allowed);
 
       // Unpack response and return its content only
       let resp = await response.json();
