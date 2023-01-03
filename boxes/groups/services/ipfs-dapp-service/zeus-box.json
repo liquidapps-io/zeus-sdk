@@ -1,8 +1,6 @@
 {
   "version": "1.0.5",
-  "ignore": [
-    "README.md"
-  ],
+  "ignore": ["README.md"],
   "dependencies": {
     "dapp-services": "^1.0.0",
     "splitter": "^1.0.0",
@@ -17,7 +15,7 @@
     },
     "npm": {
       "ipfs-api": "^26.1.2",
-      "bignumber.js":"^9.0.0",
+      "bignumber.js": "^9.0.0",
       "lru-cache": "^6.0.0",
       "dfuse-eoshttp-js": true,
       "node-fetch": "^2.6.0"
