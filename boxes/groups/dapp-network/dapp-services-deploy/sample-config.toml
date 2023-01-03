@@ -122,6 +122,9 @@ grpc_port = 13035
 protocol = "http"
 host = "localhost"
 port = 5001
+postgresql = false # use postgresql db to store IPFS data as well as IPFS instance
+postgresql_port = 8090 # port to run go process to fetching and storing IPFS data to/from postgresql
+postgresql_force_replay = false # use to prevent DSP from using cached values and to force replay to db
 
 [evm] # if using LiquidLink (link) service for ethereum, binance, or other evm chain
 

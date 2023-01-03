@@ -1,8 +1,6 @@
 {
   "version": "1.1.6",
-  "ignore": [
-    "README.md"
-  ],
+  "ignore": ["README.md"],
   "dependencies": {
     "seed-zeus-support": "^1.0.0",
     "seed-microservices": "^1.0.0",
@@ -15,7 +13,8 @@
     "seed-models": "^1.0.0",
     "mocha": "^1.0.0",
     "client-lib-base": "^1.0.0",
-    "ipfs-daemon": "^1.0.0"
+    "ipfs-daemon": "^1.0.0",
+    "ipfs-ds-postgres": "^1.0.0"
   },
   "install": {
     "contracts": {
