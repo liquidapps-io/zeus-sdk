@@ -132,6 +132,18 @@ const readFromIPFS = async (uri) => {
         }),
       ]);
       data = Buffer.from(await res.arrayBuffer());
+      if (Buffer.byteLength(data) == 0) {
+        logger.info("data not found in PostgreSQL, trying IPFS node");
+        res = await Promise.race([
+          ipfs.files.get(fileName),
+          new Promise((resolve, reject) => {
+            setTimeout(() => {
+              reject("ipfsentry not found");
+            }, ipfsTimeout);
+          }),
+        ]);
+        data = Buffer.from(res[0].content);
+      }
     } else {
       res = await Promise.race([
         ipfs.files.get(fileName),
@@ -143,6 +155,7 @@ const readFromIPFS = async (uri) => {
       ]);
       data = Buffer.from(res[0].content);
     }
+    if (Buffer.byteLength(data) == 0) throw new Error("data not found");
     cache.set(uri, data);
     return data;
   } catch (e) {
