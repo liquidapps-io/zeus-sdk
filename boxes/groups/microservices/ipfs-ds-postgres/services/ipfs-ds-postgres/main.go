@@ -26,13 +26,13 @@ func get(w http.ResponseWriter, req *http.Request) {
 	fmt.Println("getting :", key)
 
 	if key == "" {
-		panic("no key")
+		fmt.Println("no key :", key)
 	}
 
 	value, err := ds.Get(ipfs.NewKey(key))
 
 	if err != nil {
-		panic(err)
+		fmt.Println("issue get :", err)
 	}
 
 	_, err = w.Write(value)
@@ -47,7 +47,7 @@ func add(w http.ResponseWriter, req *http.Request) {
 	fmt.Println("adding :", key)
 
 	if key == "" {
-		panic("no key")
+		fmt.Println("no key :", key)
 	}
 
 	if req.Method != "POST" {
@@ -63,7 +63,7 @@ func add(w http.ResponseWriter, req *http.Request) {
 	err = ds.Put(ipfs.NewKey(key), body)
 
 	if err != nil {
-		panic(err)
+		fmt.Println("issue put :", err)
 	}
 }
 
