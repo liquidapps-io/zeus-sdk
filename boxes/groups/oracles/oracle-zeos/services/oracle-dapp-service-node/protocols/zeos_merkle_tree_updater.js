@@ -24,7 +24,7 @@ function MT_ARR_FULL_TREE_OFFSET(d) {return ((1n<<((d)+1n)) - 1n);}
 function MT_NUM_LEAVES(d) {return (1n<<(d));}
 
 module.exports = async ({ proto, address }) => {
-  // zeos_merkle_tree_updater://<leaf_count>/<tree_depth>/<note_commitments[]>
+  // zeos_merkle_tree_updater://<tree_root>/<leaf_count>/<tree_depth>/<note_commitments[]>
 
   // split address to extract parameters
   const payloadParts = address.split('/');
@@ -32,10 +32,11 @@ module.exports = async ({ proto, address }) => {
   var res;
   await zeos().then(async (instance) => {
 
-    // read leaf_count, tree_depth and note_commitments from uri 'address'
-    var leaf_count = BigInt(payloadParts[0]);
-    var tree_depth = BigInt(payloadParts[1]);
-    var note_commitments = hex2Bytes(payloadParts[2]);
+    // read tree_root, leaf_count, tree_depth and note_commitments from uri 'address'
+    var tree_root = payloadParts[0];
+    var leaf_count = BigInt(payloadParts[1]);
+    var tree_depth = BigInt(payloadParts[2]);
+    var note_commitments = hex2Bytes(payloadParts[3]);
     var note_commitments_ptr = instance.allocate(note_commitments, instance.ALLOC_NORMAL);
 
     // calculate indices of nodes to fetch
@@ -65,7 +66,9 @@ module.exports = async ({ proto, address }) => {
     //var str = response.row.vk;
 
     // fetch final nodes from EOS RAM
-    var final_nodes = "";
+    // the very first node in the list is the old tree root which is required to validate the
+    // tree state later (i.e. did the merkle tree change during the execution of this handler)
+    var final_nodes = "0000000000000000" + tree_root;
     for(const i of indices)
     {
       res = await fetch(endpoint + '/v1/chain/get_table_rows', {
@@ -84,7 +87,7 @@ module.exports = async ({ proto, address }) => {
       Number(leaf_count >> 32n), 
       Number(tree_depth), 
       final_nodes_ptr, 
-      indices.length, 
+      indices.length + 1, // +1 because of tree_root
       note_commitments_ptr, 
       note_commitments.length / 32
     );
@@ -94,3 +97,4 @@ module.exports = async ({ proto, address }) => {
 
   return res;
 };
+

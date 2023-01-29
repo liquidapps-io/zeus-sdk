@@ -115,13 +115,12 @@ describe(`ZEOS Test`, async () => {
         
         // fetch vk back from liquidstorage and check if it's correct
         var vk_ipfs = result.uri.substr(7);
-        res = await fetch(endpoint + '/v1/dsp/liquidstorag/get_uri', {
-            method: 'POST',
-            mode: 'cors',
-            body: JSON.stringify({ uri: 'ipfs://' + vk_ipfs })
+        res = await fetch(endpoint + '/v1/dsp/liquidstorag/get_uri?uri=ipfs://' + vk_ipfs, {
+            method: 'GET',
+            mode: 'cors'
         });
-        resJson = await res.json();
-        var vk_str = Buffer.from(resJson.data, 'base64').toString();
+        var vk_str = await res.arrayBuffer();
+        vk_str = Buffer.from(new Uint8Array(vk_str)).toString();
         assert.equal(vk_str, data);
   
         done();
@@ -441,7 +440,7 @@ describe(`ZEOS Test`, async () => {
           sign: true
         });
 
-        // check if depth is set to 0x20 (32)
+        // check if depth is set to 0x04
         res = await fetch(endpoint + '/v1/chain/get_table_rows', {
           method: 'POST',
           mode: 'cors',
@@ -475,7 +474,7 @@ describe(`ZEOS Test`, async () => {
           body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 0, upper_bound: 0 })
         });
         var resJson = await res.json();
-        assert.equal(resJson.rows[0].substr(0, 80), "0000000000000000" + root4);
+        assert.equal(resJson.rows[0].substr(0, 80), "0000000000000000a46582bf3cb2c803bf89df27d2d4f1d8a52fc2706778aa16dc3164e4577da007");
 
         done();
       }
@@ -502,7 +501,7 @@ describe(`ZEOS Test`, async () => {
           body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 0, upper_bound: 0 })
         });
         var resJson = await res.json();
-        assert.equal(resJson.rows[0].substr(0, 80), "0000000000000000" + root4);
+        assert.equal(resJson.rows[0].substr(0, 80), "00000000000000009471524c4735beb0d70c7b013e460b4e5902620542a27583f62d7008d392701c");
 
         done();
       }
@@ -529,7 +528,7 @@ describe(`ZEOS Test`, async () => {
           body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 0, upper_bound: 0 })
         });
         var resJson = await res.json();
-        assert.equal(resJson.rows[0].substr(0, 80), "0000000000000000" + root4);
+        assert.equal(resJson.rows[0].substr(0, 80), "0000000000000000b438aa6ead87aa09e6ee5e388da8d956443b3f34500a6db644d946725f3c7c03");
 
         done();
       }
@@ -556,7 +555,7 @@ describe(`ZEOS Test`, async () => {
           body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 0, upper_bound: 0 })
         });
         var resJson = await res.json();
-        assert.equal(resJson.rows[0].substr(0, 80), "0000000000000000" + root4);
+        assert.equal(resJson.rows[0].substr(0, 80), "0000000000000000bb68a41d85ed03c0397575d700e5d907a86ad807d2a02804249e9449c5f7f834");
 
         done();
       }
@@ -583,7 +582,7 @@ describe(`ZEOS Test`, async () => {
           body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 0, upper_bound: 0 })
         });
         var resJson = await res.json();
-        assert.equal(resJson.rows[0].substr(0, 80), "0000000000000000" + root4);
+        assert.equal(resJson.rows[0].substr(0, 80), "0000000000000000facc09654fc3ee373fff1f4ab27702ee77ae32da3e557eb00d9d27418bc67e15");
 
         done();
       }
@@ -610,7 +609,7 @@ describe(`ZEOS Test`, async () => {
           body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 0, upper_bound: 0 })
         });
         var resJson = await res.json();
-        assert.equal(resJson.rows[0].substr(0, 80), "0000000000000000" + root4);
+        assert.equal(resJson.rows[0].substr(0, 80), "000000000000000041ac59977381c655bd21f8cc72fddf095370b3758e2b5434479738b115b4f512");
 
         // check if merkle tree 'overflowed' correctly and a second root is created
         res = await fetch(endpoint + '/v1/chain/get_table_rows', {
@@ -619,7 +618,7 @@ describe(`ZEOS Test`, async () => {
           body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 31, upper_bound: 31 })
         });
         var resJson = await res.json();
-        assert.equal(resJson.rows[0].substr(0, 80), "1f00000000000000" + root4);
+        assert.equal(resJson.rows[0].substr(0, 80), "1f000000000000008cc55c727580ab9a5b5cac8eeda276cbc4f07128842d121d99ed2b0adfe81830");
 
         done();
       }
@@ -646,7 +645,7 @@ describe(`ZEOS Test`, async () => {
           body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 0, upper_bound: 0 })
         });
         var resJson = await res.json();
-        assert.equal(resJson.rows[0].substr(0, 80), "0000000000000000" + root4);
+        assert.equal(resJson.rows[0].substr(0, 80), "000000000000000041ac59977381c655bd21f8cc72fddf095370b3758e2b5434479738b115b4f512");
 
         // check if second merkle tree root is still correct
         res = await fetch(endpoint + '/v1/chain/get_table_rows', {
@@ -655,7 +654,7 @@ describe(`ZEOS Test`, async () => {
           body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 31, upper_bound: 31 })
         });
         var resJson = await res.json();
-        assert.equal(resJson.rows[0].substr(0, 80), "1f00000000000000" + root4);
+        assert.equal(resJson.rows[0].substr(0, 80), "1f000000000000000c2449441db58b841b74ab9f598f1210e955eadff18a4546ac75b1c32d903602");
 
         // check if second merkle tree 'overflowed' correctly and a third root is created
         res = await fetch(endpoint + '/v1/chain/get_table_rows', {
@@ -664,7 +663,7 @@ describe(`ZEOS Test`, async () => {
           body: JSON.stringify({ code: 'thezeostoken', table: 'mteosram', scope: 'thezeostoken', index_position: 'primary', key_type: 'uint64_t', lower_bound: 62, upper_bound: 62 })
         });
         var resJson = await res.json();
-        assert.equal(resJson.rows[0].substr(0, 80), "3e00000000000000" + root4);
+        assert.equal(resJson.rows[0].substr(0, 80), "3e00000000000000a709f3efd2035747f1177f91a17b4de5c25a5222833e6aae86aef1467789bd17");
 
         done();
       }
