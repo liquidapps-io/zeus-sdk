@@ -10,7 +10,7 @@
 #include "../dappservices/ipfs.hpp"
 #include "../dappservices/multi_index.hpp"
 #include "../dappservices/oracle.hpp"
-#include "../../../../zeosio/include/zeosio.hpp"
+#include "zeosio.hpp"
 #include <optional>
 #include <map>
 using namespace zeosio::halo2;
